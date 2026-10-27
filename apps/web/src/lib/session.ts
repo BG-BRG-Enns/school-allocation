@@ -34,6 +34,9 @@ export async function loadSession(): Promise<Me | null> {
 
 export async function signOut(): Promise<void> {
   await apiPost('/api/auth/logout')
-  session.value = null
+  // A full navigation, which drops everything the page knew; the session
+  // is not cleared here first, since the shell would then send the router
+  // to the sign-in page while this navigation is still on its way, and the
+  // two would race.
   window.location.assign(withBase('/anmelden'))
 }
