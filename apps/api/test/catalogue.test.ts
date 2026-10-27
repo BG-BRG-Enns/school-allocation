@@ -125,7 +125,7 @@ test('a teacher proposes within the rules, the organizer returns, approves and p
   assert.equal(draft.body.state, 'draft')
   assert.deepEqual(draft.body.teachers.map((x) => x.displayName), [BERND.name])
   assert.equal(draft.body.sessions[0]?.startsAt, '2027-06-21T07:00:00Z')
-  const trip = await send<Item>(s, s.carla, 'POST', url, { title: 'Wien', places: 8, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [s.berndPerson], sessions: [VIENNA] })
+  const trip = await send<Item>(s, s.carla, 'POST', url, { title: 'Wien', places: 8, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [s.berndPerson.toUpperCase()], sessions: [VIENNA] })
   assert.equal(trip.status, 201, JSON.stringify(trip.body))
   assert.deepEqual(trip.body.teachers.map((x) => x.displayName), [CARLA.name, BERND.name])
   assert.deepEqual(trip.body.fixedClasses, ['5A'])
@@ -189,7 +189,7 @@ test('a teacher proposes within the rules, the organizer returns, approves and p
   assert.equal(verifyAuditChain(events).valid, true)
 })
 
-test('an organizer\'s edit of their own item is recorded once it needs organizer rights', DB, async (t) => {
+test('an organizer\'s edit of their own item is recorded once it needs organizer rights, and always when the organizer is no teacher', DB, async (t) => {
   const s = await school(t)
   const campaign = await campaignTakingProposals(s)
   // Anna is a roster teacher too: her own draft is a teacher's business, unrecorded.
@@ -200,10 +200,16 @@ test('an organizer\'s edit of their own item is recorded once it needs organizer
   await send(s, s.anna, 'POST', `/api/admin/items/${own.body.id}/approve`)
   // Approved, the same edit is an organizer's change, own item or not.
   assert.equal((await send(s, s.anna, 'PATCH', `/api/items/${own.body.id}`, { title: 'Schach, Go und Dame', places: 10, teachers: [s.annaPerson], sessions: [MONDAY] })).status, 200)
+  // Sara, made an organizer, is no teacher: even her own draft is edited by that right, and recorded.
+  const saraId = (await get<{ id: string }>(s, s.sara, '/api/auth/me')).body.id
+  assert.equal((await send(s, s.anna, 'POST', '/api/admin/roles', { userId: saraId, role: 'campaign_organizer', reason: 'Test' })).status, 201)
+  const onBehalf = await send<Item>(s, s.sara, 'POST', `/api/campaigns/${campaign.id}/items`, { title: 'Für Bernd', places: 10, teachers: [s.berndPerson], sessions: [MONDAY] })
+  assert.equal(onBehalf.status, 201)
+  assert.equal((await send(s, s.sara, 'PATCH', `/api/items/${onBehalf.body.id}`, { title: 'Für Bernd, geändert', places: 10, teachers: [s.berndPerson], sessions: [MONDAY] })).status, 200)
   const db = createDatabase(s.ownerUrl, () => {})
   t.after(() => db.close())
   const events = await readAudit(db, campaign.id)
-  assert.deepEqual(events.map((e) => e.action), ['campaign.transitioned', 'item.approved', 'item.changed'])
+  assert.deepEqual(events.map((e) => e.action), ['campaign.transitioned', 'item.approved', 'item.changed', 'item.changed'])
 })
 
 test('a draft is deleted by its teacher, anything later is withdrawn by an organizer, and the catalogue is exported as a workbook', DB, async (t) => {

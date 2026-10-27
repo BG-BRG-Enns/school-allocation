@@ -221,7 +221,8 @@ function mayPropose(caller: Caller): boolean {
  * also a teacher does not become a teacher of an item they corrected.
  */
 function itemInput(body: Static<typeof ItemBody>, caller: Caller, creating: boolean): ItemInput {
-  const teachers = [...body.teachers]
+  // Ids as PostgreSQL returns them, so a spelling in upper case is the same teacher.
+  const teachers = body.teachers.map((id) => id.toLowerCase())
   if (creating && isTeacher(caller) && caller.person && !teachers.includes(caller.person.id)) teachers.unshift(caller.person.id)
   return {
     title: body.title,

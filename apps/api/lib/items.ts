@@ -130,8 +130,9 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
     const { rows: [campaign] } = await client.query<{ state: CampaignState }>('select state from campaign where id = $1 for update', [current.campaignId])
     // What a teacher may do without organizer rights: tend their own draft
     // while the catalogue takes proposals. Everything else is an
-    // organizer's change and is recorded, their own item or not.
-    const asTeacher = isOwn(caller, current) && current.state === 'draft' && campaign !== undefined && acceptsProposals(campaign.state)
+    // organizer's change and is recorded, their own item or not; an
+    // organizer who is no teacher of the roster acts by that right alone.
+    const asTeacher = caller.person?.kind === 'teacher' && isOwn(caller, current) && current.state === 'draft' && campaign !== undefined && acceptsProposals(campaign.state)
     if (!organizer && !asTeacher) {
       if (!isOwn(caller, current)) throw new RosterConflict('forbidden')
       if (current.state !== 'draft') throw new RosterConflict('item_state')

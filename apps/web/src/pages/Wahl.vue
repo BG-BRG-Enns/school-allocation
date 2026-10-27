@@ -365,7 +365,7 @@ function onSubmitPending(): void {
                 Genehmigen
               </button>
               <button
-                v-if="organizes && (item.state === 'proposed' || item.state === 'approved')"
+                v-if="organizes && campaign.state === 'catalogue' && (item.state === 'proposed' || item.state === 'approved')"
                 type="button"
                 class="ghost"
                 @click="ask(item, 'return')"
