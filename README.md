@@ -23,7 +23,7 @@ npm test
 
 ### Browser journeys
 
-`npm run e2e` runs the Playwright journeys in `e2e/specs` in Chromium against the real server, started by `e2e/harness/server.ts` with a fresh database and a stand-in for the Microsoft sign-in. It needs `TEST_DATABASE_URL` like the API tests, and Chromium once: `npm run e2e:install`. The browser console must stay clean: a message at warning or error level, or an uncaught exception, in any page of a journey fails the test it happened in; a refusal a spec provokes on purpose is declared with `refused` from `e2e/support/console.ts`.
+`npm run e2e` runs the Playwright journeys in `e2e/specs` in Chromium against the real server, started by `e2e/harness/server.ts` with a fresh database and a stand-in for the Microsoft sign-in. It needs `TEST_DATABASE_URL` like the API tests, and Chromium once: `npm run e2e:install`. The specs of a file build on each other and the files on the ones before, so run them in order; `npm run e2e:ui` opens Playwright's UI. `npm run e2e:screenshots` writes a full-page screenshot of every step to `docs/anleitung/bilder/full-size/`, which git ignores: a quick look at the whole app, from the empty roster to the published catalogue, without clicking through it. The browser console must stay clean: a message at warning or error level, or an uncaught exception, in any page of a journey fails the test it happened in; a refusal a spec provokes on purpose is declared with `refused` from `e2e/support/console.ts`.
 
 ## Container images
 
