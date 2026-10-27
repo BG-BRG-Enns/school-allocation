@@ -1,0 +1,421 @@
+name: CI
+
+# Two triggers, deliberately asymmetric:
+#
+#   pull_request — the full merge gate: lint, infra lint, tests, journeys,
+#                  the images.
+#   push to main — the image jobs alone, to populate the Docker layer cache
+#                  on the default branch's scope. GitHub scopes Actions
+#                  caches per ref, and a PR can only restore from its own
+#                  ref or the default branch, so without this every PR
+#                  builds cold.
+'on':
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # A superseded PR run is worth cancelling; a main run is not — cancelling it
+  # discards the cache export that is the only reason it exists.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: Lint
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      # The aggregate script: ESLint, markdownlint, lint:deps (exact pins in
+      # every workspace) and typecheck.
+      - run: npm run lint
+
+  # Everything the Node pipeline cannot see: the Dockerfiles, the deployment
+  # and the workflows themselves. Needs no toolchain, so it runs alongside
+  # the rest.
+  lint-infra:
+    name: Lint infra
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: ShellCheck
+        run: shellcheck --severity=warning scripts/*.sh deploy/*.sh
+
+      - name: Hadolint
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: Dockerfile
+          config: .hadolint.yaml
+
+      - name: Hadolint (PostgreSQL image)
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: deploy/postgres/Dockerfile
+          config: .hadolint.yaml
+
+      - name: Hadolint (solver image)
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: apps/solver/Dockerfile
+          config: .hadolint.yaml
+
+      # The deployment's Quadlet units parse with the Quadlet the guide
+      # requires (Podman 5): the generator's dry run for user units, from
+      # the podman image, since the runner's podman is older.
+      - name: Quadlet units
+        run: |
+          docker run --rm -v "$PWD/deploy/quadlet:/units:ro" -e QUADLET_UNIT_DIRS=/units \
+            quay.io/podman/stable:v5.4@sha256:52536d900c9e7e7cc924bb737eb8c570eeaa3c50f6a3b0b563eb0ec9c48807e4 \
+            /usr/lib/systemd/system-generators/podman-system-generator --user --dryrun
+
+      # online-audits must stay off. With a token present zizmor resolves action
+      # tags over the network, and GITHUB_TOKEN is scoped to this repository, so
+      # authenticating against actions/checkout returns 401 and the whole audit
+      # aborts with "no audit was performed" instead of reporting anything.
+      # Every static audit still runs offline.
+      - name: Zizmor
+        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        with:
+          online-audits: false
+          advanced-security: false
+          version: 1.29.0
+
+  test:
+    name: Test
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      # The same launcher developers use, so CI runs the database tests
+      # against the PostgreSQL the deployment runs.
+      - name: Start PostgreSQL
+        run: |
+          printf '%s' ci-owner-password > "$RUNNER_TEMP/pg-owner-password"
+          scripts/postgres.sh school-allocation-test-db 5432 "$RUNNER_TEMP/pg-owner-password"
+
+      - run: npm test
+        env:
+          # With CI set, database tests fail instead of skipping if this is missing.
+          TEST_DATABASE_URL: postgres://postgres:ci-owner-password@127.0.0.1:5432/postgres
+
+  # The browser journeys (e2e/specs) against the real server with a fresh
+  # database, the sign-in stand-in and Chromium: what the unit, API and
+  # web tests cannot see. Same launcher for PostgreSQL as the tests.
+  e2e:
+    name: Browser journeys
+    if: github.event_name != 'push'
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      # Chromium, kept between runs as long as the lock file, and with it
+      # the Playwright version, stays the same.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      # The installed Playwright, at the lock file's version, not whatever npx would fetch.
+      - run: node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Start PostgreSQL
+        run: |
+          printf '%s' ci-owner-password > "$RUNNER_TEMP/pg-owner-password"
+          scripts/postgres.sh school-allocation-e2e-db 5432 "$RUNNER_TEMP/pg-owner-password"
+
+      - run: npm run e2e
+        env:
+          TEST_DATABASE_URL: postgres://postgres:ci-owner-password@127.0.0.1:5432/postgres
+
+      # What a failed journey leaves behind: the report, traces and videos.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: browser-journeys
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
+  # Build the deployment image on every PR. Publishing only happens on v*
+  # tags, so without this a broken Dockerfile or a moved base image would not
+  # surface until release time. Also runs on push to main, where it is the
+  # only job, to write the layer cache every PR restores from.
+  image:
+    name: Image
+    needs: [lint, test]
+    # On push to main the lint and test jobs are skipped, and a job whose
+    # `needs` were skipped does not run by default. Checking the results
+    # explicitly keeps the PR behaviour (no build after a failed lint or
+    # test) while letting the cache-warming run proceed on main.
+    if: ${{ !cancelled() && needs.lint.result != 'failure' && needs.test.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: false
+          load: true
+          tags: school-allocation:ci
+          # The smoke test below checks that both reach the running app.
+          build-args: |
+            APP_VERSION=ci
+            GIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=school-allocation
+          # Only main exports. A pull request writing its own mode=max layers
+          # fills the shared 10 GB budget with blobs no other ref can restore.
+          cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max,scope=school-allocation' || '' }}
+
+      # What only the container can prove: it runs unprivileged, Node 26's
+      # type stripping executes the raw TypeScript entrypoint and the
+      # school-core workspace package it imports, the built web app is in
+      # the image, and the security headers come from the application
+      # rather than from a proxy.
+      - name: Smoke-test the image
+        run: |
+          set -euo pipefail
+
+          user="$(docker image inspect -f '{{.Config.User}}' school-allocation:ci)"
+          if [ "$user" != "10001:10001" ]; then
+            echo "Expected the image to run as '10001:10001', got '$user'" >&2
+            exit 1
+          fi
+
+          # Keeps the container names free if the step is retried in place, and
+          # stops a failed assertion from leaving containers running.
+          cleanup() { docker rm -f school-allocation-ci school-allocation-ci-db >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          cleanup
+
+          # Missing mandatory configuration must stop the container with a
+          # message naming the setting, not start it half-configured.
+          # Bounded: if the regression this checks for lets the server start,
+          # the probe must fail here rather than block until the job timeout.
+          if out="$(timeout 30 docker run --rm school-allocation:ci 2>&1)"; then
+            echo "Expected the image to refuse to start without PUBLIC_URL" >&2
+            exit 1
+          fi
+          echo "$out"
+          for setting in 'PUBLIC_URL must be set' 'ENTRA_TENANT_ID must be set' 'ENTRA_CLIENT_SECRET_FILE must be set' 'SESSION_KEY_FILE must be set'; do
+            if ! printf '%s' "$out" | grep -qF "$setting"; then
+              echo "Expected the refusal to say: $setting" >&2
+              exit 1
+            fi
+          done
+
+          # The deployment's own PostgreSQL image; the secrets as files
+          # readable by the image's uid 10001, and only the runtime password,
+          # the Entra client secret and the session key given to the app
+          # container. Dummy Entra ids: nothing contacts Entra before a
+          # sign-in.
+          printf '%s' ci-owner-password > "$RUNNER_TEMP/owner-password"
+          printf '%s' 'ci runtime p@ss:w/rd%' > "$RUNNER_TEMP/runtime-password"
+          printf '%s' 'ci-entra-client-secret' > "$RUNNER_TEMP/entra-client-secret"
+          openssl rand -hex 32 > "$RUNNER_TEMP/session-key"
+          chmod 644 "$RUNNER_TEMP/owner-password" "$RUNNER_TEMP/runtime-password" "$RUNNER_TEMP/entra-client-secret" "$RUNNER_TEMP/session-key"
+          tenant=00000000-0000-4000-8000-000000000001
+          docker build -t school-allocation-postgres:ci deploy/postgres
+          docker run -d --name school-allocation-ci-db -p 127.0.0.1:5432:5432 \
+            -e POSTGRES_DB=school_allocation -e POSTGRES_PASSWORD_FILE=/run/secrets/owner-password \
+            -v "$RUNNER_TEMP/owner-password:/run/secrets/owner-password:ro" \
+            school-allocation-postgres:ci
+          for _ in $(seq 1 60); do
+            if docker exec school-allocation-ci-db pg_isready -q -h 127.0.0.1 -U postgres -d school_allocation; then break; fi
+            sleep 1
+          done
+
+          migrate() {
+            docker run --rm --network host \
+              -v "$RUNNER_TEMP/owner-password:/run/secrets/owner-password:ro" \
+              -v "$RUNNER_TEMP/runtime-password:/run/secrets/runtime-password:ro" \
+              -e MIGRATION_DATABASE_URL=postgres://postgres@127.0.0.1:5432/school_allocation \
+              -e MIGRATION_DATABASE_PASSWORD_FILE=/run/secrets/owner-password \
+              -e DB_RUNTIME_PASSWORD_FILE=/run/secrets/runtime-password \
+              school-allocation:ci node apps/api/scripts/migrate.ts
+          }
+          wait_healthy() {
+            for _ in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then return 0; fi
+              sleep 1
+            done
+            docker logs school-allocation-ci
+            echo "image did not become healthy within 30s" >&2
+            return 1
+          }
+
+          migrate
+
+          docker run -d --name school-allocation-ci --network host --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --tmpfs /tmp \
+            -v "$RUNNER_TEMP/runtime-password:/run/secrets/runtime-password:ro" \
+            -v "$RUNNER_TEMP/entra-client-secret:/run/secrets/entra-client-secret:ro" \
+            -v "$RUNNER_TEMP/session-key:/run/secrets/session-key:ro" \
+            -e PUBLIC_URL=http://127.0.0.1:3000 \
+            -e DATABASE_URL=postgres://school_allocation_app@127.0.0.1:5432/school_allocation \
+            -e DATABASE_PASSWORD_FILE=/run/secrets/runtime-password \
+            -e ENTRA_TENANT_ID="$tenant" \
+            -e ENTRA_CLIENT_ID=00000000-0000-4000-8000-000000000002 \
+            -e ENTRA_CLIENT_SECRET_FILE=/run/secrets/entra-client-secret \
+            -e SESSION_KEY_FILE=/run/secrets/session-key \
+            school-allocation:ci
+          wait_healthy
+          docker logs school-allocation-ci
+
+          # The health check also reports what the image was built from, which
+          # proves that the build arguments reach the running app, and the
+          # core version from school-core, which the API imports through the
+          # workspace link in node_modules: that package's raw TypeScript has
+          # to run in the image as well.
+          core="$(sed -n 's/^export const CORE_VERSION = \([0-9][0-9]*\)$/\1/p' packages/school-core/src/index.ts)"
+          body="$(curl -fsS http://127.0.0.1:3000/api/health)"
+          expected="{\"status\":\"ok\",\"db\":\"up\",\"busy\":false,\"version\":\"ci\",\"gitSha\":\"${GITHUB_SHA}\",\"coreVersion\":${core}}"
+          if [ -z "$core" ] || [ "$body" != "$expected" ]; then
+            echo "Expected the image to reach the database as the runtime role and report its build and core version, $expected, got: $body" >&2
+            exit 1
+          fi
+
+          # Sessions are sealed with the native libsodium binding, which has
+          # to load in the image: the session check runs on every request to
+          # /me, and without a session cookie the answer is 204, nobody.
+          status="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/auth/me)"
+          if [ "$status" != 204 ]; then
+            echo "Expected /api/auth/me without a session to answer 204, got $status" >&2
+            exit 1
+          fi
+          # Sign-in starts at the configured tenant, with a nonce, and needs
+          # no outbound request to get there.
+          location="$(curl -s -o /dev/null -w '%{redirect_url}' http://127.0.0.1:3000/api/auth/login)"
+          case "$location" in
+            "https://login.microsoftonline.com/$tenant/oauth2/v2.0/authorize?"*nonce=*) ;;
+            *)
+              echo "Expected /api/auth/login to redirect to the tenant's authorize endpoint with a nonce, got: $location" >&2
+              exit 1
+              ;;
+          esac
+
+          # A redeploy: restart the container and run the migrations again,
+          # which must be a no-op, with no manual step in between.
+          docker restart school-allocation-ci >/dev/null
+          wait_healthy
+          if ! migrate | grep -q 'nothing to apply'; then
+            echo "Expected a second migration run to be a no-op" >&2
+            exit 1
+          fi
+
+          headers="$(curl -fsS -D - -o /dev/null http://127.0.0.1:3000/)"
+          echo "$headers"
+          if ! printf '%s' "$headers" | grep -qi "^content-security-policy:.*frame-ancestors 'none'"; then
+            echo "Expected a CSP with frame-ancestors 'none' on /" >&2
+            exit 1
+          fi
+          if ! printf '%s' "$headers" | grep -qi '^x-content-type-options: nosniff'; then
+            echo "Expected X-Content-Type-Options: nosniff on /" >&2
+            exit 1
+          fi
+          if ! printf '%s' "$headers" | grep -qi '^referrer-policy: no-referrer'; then
+            echo "Expected Referrer-Policy: no-referrer on /" >&2
+            exit 1
+          fi
+
+  # The solver image: it builds from pinned, hashed packages, runs as its
+  # own user on a read-only root without capabilities, and answers.
+  solver:
+    name: Solver image
+    needs: [lint-infra]
+    if: ${{ !cancelled() && needs.lint-infra.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: apps/solver
+          push: false
+          load: true
+          tags: school-allocation-solver:ci
+          cache-from: type=gha,scope=school-allocation-solver
+          cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max,scope=school-allocation-solver' || '' }}
+
+      - name: Smoke-test the solver image
+        run: |
+          set -euo pipefail
+          user="$(docker image inspect -f '{{.Config.User}}' school-allocation-solver:ci)"
+          if [ "$user" != "10002:10002" ]; then
+            echo "Expected the solver image to run as '10002:10002', got '$user'" >&2
+            exit 1
+          fi
+          cleanup() { docker rm -f school-allocation-solver-ci >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          docker run -d --name school-allocation-solver-ci --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --tmpfs /tmp -p 127.0.0.1:8000:8000 school-allocation-solver:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          body="$(curl -fsS http://127.0.0.1:8000/health)"
+          echo "$body"
+          case "$body" in
+            '{"status":"ok","ortools":"'*'","contract":"allocation/v1"}') ;;
+            *) echo "Expected the solver's health to name OR-Tools and the contract" >&2; exit 1 ;;
+          esac
+          status="$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8000/v1/solve)"
+          if [ "$status" != 501 ]; then
+            echo "Expected /v1/solve to answer 501 until the model is implemented, got $status" >&2
+            exit 1
+          fi

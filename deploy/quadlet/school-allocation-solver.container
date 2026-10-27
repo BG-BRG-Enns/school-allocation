@@ -1,0 +1,30 @@
+# The allocation solver (apps/solver): OR-Tools CP-SAT behind a small HTTP
+# face, on the internal network alone. It holds no data, no credentials
+# and no way out; the app sends it a compiled model with small integer ids
+# and checks the answer itself (docs/domain-and-api.md §6). It follows the
+# v1 line like the app, and the two are released together.
+[Unit]
+Description=school-allocation solver
+
+[Container]
+Image=ghcr.io/bg-brg-enns/school-allocation-solver:v1
+AutoUpdate=registry
+ContainerName=school-allocation-solver
+Network=school-allocation-internal.network
+ReadOnly=true
+Tmpfs=/tmp:mode=1777,size=64m
+DropCapability=ALL
+NoNewPrivileges=true
+HealthCmd=python3 -c 'import sys, urllib.request; sys.exit(0 if urllib.request.urlopen("http://127.0.0.1:8000/health", timeout=3).status == 200 else 1)'
+HealthInterval=30s
+HealthTimeout=5s
+HealthRetries=3
+HealthStartPeriod=20s
+Notify=healthy
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

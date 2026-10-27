@@ -1,0 +1,239 @@
+name: Publish Images
+
+# A release: a v<major>.<minor>.<patch> tag on main, pushed by hand. It
+# publishes three images to GHCR, the app, its PostgreSQL
+# (deploy/postgres/Dockerfile) and the solver (apps/solver), each under the
+# release tag, an immutable sha-<commit> tag and the floating line tag
+# v<major>, which the deployments follow (deploy/quadlet, deploy/README.md):
+# a school's podman-auto-update pulls the new v1 the night after. A v2
+# moves v2 alone. No `latest`: it would move across major lines. Each image
+# is signed with the repository's cosign key, which a host's policy requires
+# (deploy/policy.json), so an image that did not come through this workflow
+# is refused there.
+
+'on':
+  workflow_dispatch: {}
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to GHCR
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Only a release tag, and only a plain one: a pre-release such as
+      # v1.1.0-rc1 would move the v1 line too.
+      - name: Verify release tag
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF_TYPE}" != "tag" ] || ! printf '%s' "${GITHUB_REF_NAME}" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "Refusing to publish: expected a v<major>.<minor>.<patch> tag, got ${GITHUB_REF_TYPE} '${GITHUB_REF_NAME}'" >&2
+            exit 1
+          fi
+
+      # The images live under the repository owner, lower-cased: a registry
+      # name must be, an owner such as BG-BRG-Enns is not. deploy/policy.json
+      # and deploy/quadlet name the same owner.
+      - name: Name the images
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          {
+            echo "APP_IMAGE=ghcr.io/${owner}/school-allocation"
+            echo "POSTGRES_IMAGE=ghcr.io/${owner}/school-allocation-postgres"
+            echo "SOLVER_IMAGE=ghcr.io/${owner}/school-allocation-solver"
+          } >> "$GITHUB_ENV"
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        id: app
+        with:
+          images: ${{ env.APP_IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=tag
+            type=semver,pattern=v{{major}}
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        id: build
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.app.outputs.tags }}
+          labels: ${{ steps.app.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
+            GIT_SHA=${{ github.sha }}
+
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        id: postgres
+        with:
+          images: ${{ env.POSTGRES_IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=tag
+            type=semver,pattern=v{{major}}
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        id: build-postgres
+        with:
+          context: deploy/postgres
+          push: true
+          tags: ${{ steps.postgres.outputs.tags }}
+          labels: ${{ steps.postgres.outputs.labels }}
+
+      - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        id: solver
+        with:
+          images: ${{ env.SOLVER_IMAGE }}
+          flavor: latest=false
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=tag
+            type=semver,pattern=v{{major}}
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        id: build-solver
+        with:
+          context: apps/solver
+          push: true
+          tags: ${{ steps.solver.outputs.tags }}
+          labels: ${{ steps.solver.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
+            GIT_SHA=${{ github.sha }}
+
+      # The key and its password are repository secrets; deploy/cosign.pub
+      # is the public half. Each tag names an index (the image for
+      # linux/amd64 and its provenance), and podman checks the signature of
+      # the image it takes from the index, not of the index itself, and finds
+      # signatures only under cosign's classic tags (sha256-<digest>.sig),
+      # not in the bundles cosign 3 stores by default. So every manifest of
+      # the index is signed, in the classic format.
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      # Before anything is pushed under the line tag: the public half must
+      # be in the repository, or every host's policy refuses the images.
+      - name: Verify the public key is present
+        run: |
+          set -euo pipefail
+          if [ ! -s deploy/cosign.pub ]; then
+            echo "Refusing to publish: deploy/cosign.pub is missing. Generate the key pair once (cosign generate-key-pair), commit the public key as deploy/cosign.pub and store the private key and its password as the repository secrets COSIGN_PRIVATE_KEY and COSIGN_PASSWORD (deploy/README.md, Signatures)." >&2
+            exit 1
+          fi
+
+      - name: Sign the images
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          APP_DIGEST: ${{ steps.build.outputs.digest }}
+          POSTGRES_DIGEST: ${{ steps.build-postgres.outputs.digest }}
+          SOLVER_DIGEST: ${{ steps.build-solver.outputs.digest }}
+        run: |
+          set -euo pipefail
+          for image in "${APP_IMAGE}@${APP_DIGEST}" "${POSTGRES_IMAGE}@${POSTGRES_DIGEST}" "${SOLVER_IMAGE}@${SOLVER_DIGEST}"; do
+            cosign sign --yes --recursive --new-bundle-format=false --use-signing-config=false \
+              --key env://COSIGN_PRIVATE_KEY "$image"
+          done
+
+      # The check that counts is the host's, not cosign's: cosign verify
+      # accepts signatures podman cannot use. So the images are pulled by
+      # the podman the units are tested with, under the policy, registry
+      # setting and key a host installs from deploy/, unchanged; a pull it
+      # refuses fails the release before anything reaches a school.
+      - name: Pull the images as a host does
+        env:
+          APP_DIGEST: ${{ steps.build.outputs.digest }}
+          POSTGRES_DIGEST: ${{ steps.build-postgres.outputs.digest }}
+          SOLVER_DIGEST: ${{ steps.build-solver.outputs.digest }}
+        run: |
+          set -euo pipefail
+          docker run --rm --privileged -v "$PWD/deploy:/deploy:ro" \
+            -e APP="${APP_IMAGE}@${APP_DIGEST}" -e POSTGRES="${POSTGRES_IMAGE}@${POSTGRES_DIGEST}" -e SOLVER="${SOLVER_IMAGE}@${SOLVER_DIGEST}" \
+            quay.io/podman/stable:v5.4@sha256:52536d900c9e7e7cc924bb737eb8c570eeaa3c50f6a3b0b563eb0ec9c48807e4 \
+            sh -euc '
+              mkdir -p /home/allocation/school-allocation /etc/containers/registries.d
+              cp /deploy/cosign.pub /home/allocation/school-allocation/cosign.pub
+              cp /deploy/policy.json /etc/containers/policy.json
+              cp /deploy/registries.d/ghcr.yaml /etc/containers/registries.d/ghcr.yaml
+              for image in "$APP" "$POSTGRES" "$SOLVER"; do
+                podman --storage-driver vfs pull --quiet "$image"
+              done'
+
+      # Expansions go through env rather than straight into the script body:
+      # inlining ${{ ... }} splices the value into the shell source before it
+      # runs, which is how a crafted value becomes executable code.
+      - name: Report the release
+        env:
+          APP_DIGEST: ${{ steps.build.outputs.digest }}
+          POSTGRES_DIGEST: ${{ steps.build-postgres.outputs.digest }}
+          SOLVER_DIGEST: ${{ steps.build-solver.outputs.digest }}
+        run: |
+          set -euo pipefail
+          line="v${GITHUB_REF_NAME#v}"
+          line="${line%%.*}"
+          {
+            echo "### school-allocation ${GITHUB_REF_NAME}"
+            echo
+            echo "Deployments follow the \`${line}\` line of the three images (deploy/README.md) and pick this release up with their next nightly update."
+            echo
+            echo '```'
+            echo "${APP_IMAGE}:${GITHUB_REF_NAME}@${APP_DIGEST}"
+            echo "${POSTGRES_IMAGE}:${GITHUB_REF_NAME}@${POSTGRES_DIGEST}"
+            echo "${SOLVER_IMAGE}:${GITHUB_REF_NAME}@${SOLVER_DIGEST}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Bound registry growth. Each release adds an index per image, tagged
+  # with the release, the immutable sha-<commit> and the moving line tag,
+  # its entries and their signatures, which cosign stores as tagged
+  # artifacts next to the image and which are newer than it, so pruning by
+  # age never leaves an image without its signature. Keep enough history
+  # that a host can be put back on a recent release by hand.
+  cleanup-packages:
+    name: Prune old versions
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
+        with:
+          package-name: school-allocation
+          package-type: container
+          min-versions-to-keep: 20
+          delete-only-untagged-versions: false
+      - uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
+        with:
+          package-name: school-allocation-postgres
+          package-type: container
+          min-versions-to-keep: 20
+          delete-only-untagged-versions: false
+      - uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
+        with:
+          package-name: school-allocation-solver
+          package-type: container
+          min-versions-to-keep: 20
+          delete-only-untagged-versions: false

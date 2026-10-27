@@ -1,0 +1,32 @@
+{
+  "name": "@school-allocation/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "HTTP API for school-allocation; also serves the built web app.",
+  "license": "MIT",
+  "main": "server.ts",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.ts",
+    "dev": "node --watch --env-file-if-exists=.env server.ts",
+    "dev:fake-entra": "node --watch --env-file-if-exists=.env test/dev-server.ts",
+    "migrate": "node --env-file-if-exists=.env scripts/migrate.ts",
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/helmet": "13.2.0",
+    "@fastify/oauth2": "8.3.2",
+    "@fastify/rate-limit": "11.2.1",
+    "@fastify/secure-session": "8.4.1",
+    "@fastify/static": "10.1.6",
+    "@school-allocation/school-core": "0.1.0",
+    "fastify": "5.12.7",
+    "jose": "6.2.13",
+    "pg": "8.23.1",
+    "typebox": "1.4.2"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

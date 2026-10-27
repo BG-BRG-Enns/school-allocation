@@ -1,0 +1,21 @@
+name: Dependabot Auto-merge (Cron)
+
+on:
+  schedule:
+    # Run at 00:49, 08:49, and 16:49 UTC
+    - cron: '49 0,8,16 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-aged-prs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: cmiic/dependabot-automation/cron@6f33c1e895e189c532875d5ea279ba4322290823 # v2.3.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          quarantine-days: "1"
