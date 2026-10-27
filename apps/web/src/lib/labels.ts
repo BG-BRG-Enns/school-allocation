@@ -59,6 +59,46 @@ export const FIELD_LABELS: Readonly<Record<string, string>> = {
   classTeacherMail: 'Klassenvorstand',
 }
 
+/** A campaign's lifecycle state (school-core CAMPAIGN_STATES). */
+export const CAMPAIGN_STATE_LABELS: Readonly<Record<string, string>> = {
+  draft: 'In Vorbereitung',
+  catalogue: 'Aktivitäten werden gesammelt',
+  published: 'Katalog veröffentlicht',
+  open: 'Wahl läuft',
+  closed: 'Wahl beendet',
+  allocating: 'Zuteilung läuft',
+  review: 'Zuteilung in Prüfung',
+  results: 'Ergebnis veröffentlicht',
+  archived: 'Abgeschlossen',
+}
+
+/** An activity's state (school-core ITEM_STATES). */
+export const ITEM_STATE_LABELS: Readonly<Record<string, string>> = {
+  draft: 'Entwurf',
+  proposed: 'Eingereicht',
+  approved: 'Genehmigt',
+  withdrawn: 'Zurückgezogen',
+}
+
+/** Why an activity was refused (school-core CATALOGUE_PROBLEM_CODES). */
+export const CATALOGUE_PROBLEM_LABELS: Readonly<Record<string, string>> = {
+  no_sessions: 'Mindestens ein Termin ist nötig',
+  session_ends_before_start: 'Ein Termin endet vor seinem Beginn',
+  session_outside_project_days: 'Ein Termin liegt außerhalb der Projekttage',
+  sessions_overlap: 'Zwei Termine der Aktivität überschneiden sich',
+  credit_date_outside_session: 'Angerechnete Minuten für einen Tag, an dem der Termin nicht stattfindet',
+  credit_date_twice: 'Ein Tag ist bei einem Termin zweimal angerechnet',
+  credit_minutes_invalid: 'Angerechnete Minuten müssen eine ganze Zahl zwischen 0 und 1440 sein',
+  no_credit: 'Ein Termin rechnet keine Minuten an',
+  min_above_places: 'Die Mindestteilnehmerzahl ist größer als die Plätze',
+  fixed_item_cancellable: 'Eine Aktivität für fixe Klassen findet immer statt und kann nicht abgesagt werden',
+  fixed_class_unknown: 'Eine fixe Klasse gibt es in der Personenliste nicht',
+  eligible_class_unknown: 'Eine wählbare Klasse gibt es in der Personenliste nicht',
+  fixed_class_also_eligible: 'Eine Klasse ist fix zugeteilt und zugleich als wählbar eingetragen',
+  no_teacher: 'Mindestens eine Lehrkraft ist nötig',
+  teacher_twice: 'Eine Lehrkraft ist zweimal eingetragen',
+}
+
 /** What went wrong with a roster refresh from Entra groups, as the callback reports it in the page's query. */
 export const REFRESH_ERROR_LABELS: Readonly<Record<string, string>> = {
   state_mismatch: 'Die Rückkehr von Microsoft passte nicht zu diesem Browser. Bitte noch einmal starten.',
