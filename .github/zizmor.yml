@@ -1,0 +1,11 @@
+# zizmor configuration
+# https://docs.zizmor.sh/configuration/
+#
+# No Dependabot cooldown: dependency updates wait in the quarantine of
+# .github/workflows/dependabot-automerge.yml instead, which holds them
+# until the automation's soak period has passed.
+
+rules:
+  dependabot-cooldown:
+    ignore:
+      - dependabot.yml
