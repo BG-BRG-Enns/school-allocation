@@ -118,6 +118,35 @@ test('a batch is decided once, an entry is resolved once, a binding is closed an
   })
 })
 
+test('an item past draft is withdrawn rather than removed, keeps its campaign and its number; a campaign is never removed by the runtime role', DB, async (t) => {
+  const db = await createTestDatabase(t)
+  await withClient(db.ownerUrl, async (c) => {
+    const refused = async (sql: string, values: unknown[] = []) => {
+      await assert.rejects(c.query(sql, values), (err: unknown) => sqlState(err) === SQLSTATE.objectNotInPrerequisiteState, sql)
+    }
+    const { rows: [user] } = await c.query<{ id: string }>('insert into app_user (tid, oid, display_name) values ($1, $2, $3) returning id', [TID, OID, 'Anna'])
+    const { rows: [campaign] } = await c.query<{ id: string }>(
+      `insert into campaign (kind, name, school_year, project_days, created_by) values ('project_week', 'PW', '2026/27', '{2027-06-21}', $1) returning id`, [user?.id],
+    )
+    const { rows: [item] } = await c.query<{ id: string }>(
+      `insert into catalog_item (campaign_id, title, places, proposed_by) values ($1, 'Klettern', 10, $2) returning id`, [campaign?.id, user?.id],
+    )
+    await c.query(`update catalog_item set state = 'proposed' where id = $1`, [item?.id])
+    await refused('delete from catalog_item where id = $1', [item?.id])
+    await refused('update catalog_item set proposed_by = $2 where id = $1', [item?.id, user?.id === undefined ? null : '00000000-0000-4000-8000-000000000000'])
+    await c.query(`update catalog_item set state = 'approved', approved_at = now(), approved_by = $2, number = 1 where id = $1`, [item?.id, user?.id])
+    await refused('update catalog_item set number = 2 where id = $1', [item?.id])
+    await refused('truncate catalog_item cascade')
+    // A withdrawn item needs the time and the person.
+    await assert.rejects(c.query(`update catalog_item set state = 'withdrawn' where id = $1`, [item?.id]), (err: unknown) => sqlState(err) === '23514')
+  })
+  // The runtime role may add and change campaigns, not remove them.
+  await withClient(db.runtimeUrl, async (c) => {
+    await assert.rejects(c.query('delete from campaign'), (err: unknown) => sqlState(err) === SQLSTATE.insufficientPrivilege)
+    await assert.rejects(c.query('update campaign set created_by = created_by'), (err: unknown) => sqlState(err) === SQLSTATE.insufficientPrivilege)
+  })
+})
+
 test('a database a newer release migrated is accepted by an older migrator (the rollback); a gap in known history is not', DB, async (t) => {
   const db = await createTestDatabase(t)
   const lines: string[] = []
