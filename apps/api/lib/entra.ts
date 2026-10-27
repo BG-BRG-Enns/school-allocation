@@ -176,13 +176,15 @@ export async function registerEntra(app: FastifyInstance, config: EntraConfig, r
 
 /**
  * The authorization an administrator gives for one roster refresh: the
- * same client, the Graph scopes the deployment asks for, and openid so the
- * ID token says whose token it is. Registered on an encapsulated instance
- * of its own, beside the sign-in's.
+ * same client, the Graph scopes the deployment asks for, and openid and
+ * profile so the ID token says whose token it is. Registered on an
+ * encapsulated instance of its own, beside the sign-in's.
  */
 export async function registerGraphAuthorization(app: FastifyInstance, config: EntraConfig, redirectUri: string, basePath: string, scopes: readonly string[], authority = ENTRA_AUTHORITY): Promise<GraphAuthorization> {
   const cookie = stateCookie(basePath, 'graph')
-  const scope = ['openid', ...scopes.map((name) => `${GRAPH_BASE_URL}/${name}`)]
+  // openid and profile as at sign-in, so the ID token carries the object id
+  // and the name; then the Graph permissions, by their full name.
+  const scope = ['openid', 'profile', ...scopes.map((name) => `${GRAPH_BASE_URL}/${name}`)]
   await app.register(oauth2, oauthOptions('graphConsent', config, scope, redirectUri, cookie, endpoints(config, authority)))
   const client = app.getDecorator<OAuth2Namespace>('graphConsent')
   const verifyIdToken = idTokenVerifier(config, authority)

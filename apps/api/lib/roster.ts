@@ -183,44 +183,66 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
     const current = await currentBatch(client)
     if ((current?.id ?? null) !== batch.previous_batch_id) throw new RosterConflict('batch_superseded')
 
-    // The previous batch's persons, as previousOf() finds them: by key, or
-    // by an address only one previous entry carries.
-    const previousPerson = new Map<string, string>()
-    const previousByAddress = new Map<string, string[]>()
+    // Who is already known, in the order the identity invariant wants it:
+    // the person bound to the member's object id; else the person the key
+    // named in any committed batch, the latest first, so someone missing
+    // from one batch and back in the next is the same person; else, when
+    // the source changed and the key with it, the person of the one entry
+    // of the roster in force that carries the address. A known person who
+    // is bound to another identity is somebody else: a new account at an
+    // old address is a new person until an administrator says otherwise.
+    const knownByKey = new Map<string, string>()
+    {
+      const { rows } = await client.query<{ entry_key: string, person_id: string }>(
+        `select distinct on (e.entry_key) e.entry_key, e.person_id
+           from roster_entry e join import_batch b on b.id = e.batch_id
+          where b.state = 'committed' and e.person_id is not null
+          order by e.entry_key, b.decided_at desc`,
+      )
+      for (const row of rows) knownByKey.set(row.entry_key, row.person_id)
+    }
+    const currentByAddress = new Map<string, string[]>()
     if (current !== undefined) {
-      const { rows } = await client.query<{ entry_key: string, mail: string | null, upn: string | null, person_id: string }>(
-        'select entry_key, mail, upn, person_id from roster_entry where batch_id = $1 and person_id is not null', [current.id],
+      const { rows } = await client.query<{ mail: string | null, upn: string | null, person_id: string }>(
+        'select mail, upn, person_id from roster_entry where batch_id = $1 and person_id is not null', [current.id],
       )
       for (const row of rows) {
-        previousPerson.set(row.entry_key, row.person_id)
         for (const address of addressesOf({ mail: row.mail ?? undefined, upn: row.upn ?? undefined })) {
-          previousByAddress.set(address, [...(previousByAddress.get(address) ?? []), row.person_id])
+          currentByAddress.set(address, [...(currentByAddress.get(address) ?? []), row.person_id])
         }
       }
     }
     const byAddress = (entry: { mail: string | null, upn: string | null }): string | undefined => {
       for (const address of addressesOf({ mail: entry.mail ?? undefined, upn: entry.upn ?? undefined })) {
-        const candidates = previousByAddress.get(address)
+        const candidates = currentByAddress.get(address)
         if (candidates?.length === 1) return candidates[0]
       }
       return undefined
     }
+    const personByOid = new Map<string, string>()
+    const oidByPerson = new Map<string, string>()
+    {
+      const { rows } = await client.query<{ oid: string, person_id: string }>(
+        'select oid::text as oid, person_id from identity_binding where tid = $1 and unbound_at is null', [tid],
+      )
+      for (const row of rows) {
+        personByOid.set(row.oid, row.person_id)
+        oidByPerson.set(row.person_id, row.oid)
+      }
+    }
     const { rows: entries } = await client.query<{ id: string, oid: string | null, mail: string | null, upn: string | null, entry_key: string }>(
       'select id, oid::text as oid, mail, upn, entry_key from roster_entry where batch_id = $1 order by entry_key', [batchId],
     )
-    const oids = entries.map((entry) => entry.oid).filter((oid): oid is string => oid !== null)
-    const boundPerson = new Map<string, string>()
-    if (oids.length > 0) {
-      const { rows } = await client.query<{ oid: string, person_id: string }>(
-        'select oid::text as oid, person_id from identity_binding where tid = $1 and unbound_at is null and oid = any($2::uuid[])', [tid, oids],
-      )
-      for (const row of rows) boundPerson.set(row.oid, row.person_id)
-    }
 
     let created = 0
     const taken = new Set<string>()
     for (const entry of entries) {
-      let personId = (entry.oid === null ? undefined : boundPerson.get(entry.oid)) ?? previousPerson.get(entry.entry_key) ?? byAddress(entry)
+      let personId = entry.oid === null ? undefined : personByOid.get(entry.oid)
+      if (personId === undefined) {
+        const candidate = knownByKey.get(entry.entry_key) ?? byAddress(entry)
+        const boundElsewhere = candidate !== undefined && entry.oid !== null && oidByPerson.has(candidate) && oidByPerson.get(candidate) !== entry.oid
+        if (candidate !== undefined && !boundElsewhere) personId = candidate
+      }
       // A person is one entry of a batch; a second entry that resolves to
       // the same person (the index would refuse it) is somebody new.
       if (personId !== undefined && taken.has(personId)) personId = undefined
@@ -229,12 +251,17 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
         if (!person) throw new Error('person insert returned no row')
         personId = person.id
         created += 1
-        if (entry.oid !== null) {
-          await client.query(
-            `insert into identity_binding (person_id, tid, oid, method, bound_by, import_batch_id) values ($1, $2, $3, 'graph', $4, $5)`,
-            [personId, tid, entry.oid, actor.id, batchId],
-          )
-        }
+      }
+      // A member's identity is known now, whether the person is new or was
+      // known by address or key alone; the binding makes the next sign-in
+      // find them without any matching.
+      if (entry.oid !== null && !oidByPerson.has(personId)) {
+        await client.query(
+          `insert into identity_binding (person_id, tid, oid, method, bound_by, import_batch_id) values ($1, $2, $3, 'graph', $4, $5)`,
+          [personId, tid, entry.oid, actor.id, batchId],
+        )
+        personByOid.set(entry.oid, personId)
+        oidByPerson.set(personId, entry.oid)
       }
       taken.add(personId)
       await client.query('update roster_entry set person_id = $2 where id = $1', [entry.id, personId])

@@ -75,4 +75,6 @@ test('when the source changes and the key with it, an address both entries carry
   assert.deepEqual(summarizeDiff(diffRoster(twice, [{ kind: 'student', mail: tim.mail, displayName: 'Tim', className: '5A', grade: 9 }])), { added: 1, removed: 2, changed: 0, unchanged: 0 })
   // A previous entry is the same person as at most one new entry.
   assert.deepEqual(summarizeDiff(diffRoster([sara], [{ ...sara, oid: 'd0000000-0000-4000-8000-00000000000d' }, { ...sara, oid: 'e0000000-0000-4000-8000-00000000000e' }])), { added: 1, removed: 0, changed: 0, unchanged: 1 })
+  // Another object id at the same address is another person, whatever the name says.
+  assert.deepEqual(summarizeDiff(diffRoster([tim], [{ ...tim, oid: 'f0000000-0000-4000-8000-00000000000f' }])), { added: 1, removed: 1, changed: 0, unchanged: 0 })
 })

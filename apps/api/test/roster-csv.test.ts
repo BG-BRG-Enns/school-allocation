@@ -119,6 +119,26 @@ test('the next batch keeps the persons, shows what changed, and a person who lef
   assert.equal(persons.rows[0]?.n, '5')
 })
 
+test('a person missing from one batch and back in the next is the same person, and their account finds them again', DB, async (t) => {
+  const h = await harness(t, ADMIN)
+  const anna = await signIn(h, ANNA)
+  const upload = async (csv: string) => {
+    const batch = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })
+    assert.equal((await send(h, anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)).status, 200)
+  }
+  await upload(ROSTER_1)
+  const sara = await signIn(h, SARA)
+  const saraPerson = (await me(h, sara)).body.person?.id
+  assert.ok(saraPerson)
+
+  await upload([HEADER, row(ANNA.email, ANNA.name, '', '', 'teacher')].join('\n'))
+  assert.equal((await me(h, sara)).body.person?.kind, null)
+  await upload(ROSTER_1)
+  assert.deepEqual((await me(h, sara)).body.person, { id: saraPerson, kind: 'student', className: '5A', grade: 9 })
+  const persons = await withClient(h.ownerUrl, (c) => c.query<{ n: string }>('select count(*)::text as n from person'))
+  assert.equal(persons.rows[0]?.n, '4')
+})
+
 test('a batch that is not a roster is stored as rejected with the problems; a file that is not a roster CSV is refused outright', DB, async (t) => {
   const h = await harness(t, ADMIN)
   const anna = await signIn(h, ANNA)

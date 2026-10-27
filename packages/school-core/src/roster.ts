@@ -138,7 +138,9 @@ export function addressesOf(entry: Pick<RosterEntry, 'mail' | 'upn'>): string[] 
  * is the same person: by key, or, when the source changed and the key with
  * it (a CSV roster keyed by address replaced by a Graph roster keyed by
  * object id, or the other way round), by an address both carry and only
- * one previous entry has. Never by name.
+ * one previous entry has. Never by name, and never across two object ids:
+ * a new account at an old address is a new person until an administrator
+ * says otherwise.
  */
 export function previousOf<E extends RosterEntry>(previous: readonly E[]): (entry: RosterEntry) => E | undefined {
   const byKey = new Map<string, E>()
@@ -153,7 +155,10 @@ export function previousOf<E extends RosterEntry>(previous: readonly E[]): (entr
     if (key !== undefined && byKey.has(key)) return byKey.get(key)
     for (const address of addressesOf(entry)) {
       const candidates = byAddress.get(address)
-      if (candidates?.length === 1) return candidates[0]
+      if (candidates?.length !== 1) continue
+      const candidate = candidates[0] as E
+      if (entry.oid !== undefined && candidate.oid !== undefined && candidate.oid.toLowerCase() !== entry.oid.toLowerCase()) return undefined
+      return candidate
     }
     return undefined
   }

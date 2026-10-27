@@ -74,7 +74,8 @@ export async function listAccounts(db: Queryable, q: string, unboundOnly: boolea
 
 /** Blocks an account; its running session ends with the next request. An administrator cannot block themselves. */
 export async function blockAccount(db: Database, userId: string, reason: string, actor: Actor): Promise<boolean> {
-  if (userId === actor.id) throw new RosterConflict('cannot_block_self')
+  // PostgreSQL hands ids out in lower case; the route accepts either.
+  if (userId.toLowerCase() === actor.id.toLowerCase()) throw new RosterConflict('cannot_block_self')
   return db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
     const { rowCount } = await client.query('update app_user set blocked_at = now(), blocked_by = $2 where id = $1 and blocked_at is null', [userId, actor.id])

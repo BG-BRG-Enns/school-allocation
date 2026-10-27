@@ -58,7 +58,10 @@ function close(): void {
 
 async function findPersons(): Promise<void> {
   await action.run(async () => {
-    persons.value = (await searchPersons(personQuery.value.trim())).persons.filter((person) => person.account === null)
+    // Bound persons stay in the list: a replacement account is bound to a
+    // person whose old account is still bound, and the server closes that
+    // binding. The list says which account a person has now.
+    persons.value = (await searchPersons(personQuery.value.trim())).persons
   })
 }
 
@@ -125,7 +128,8 @@ function personText(account: Account): string {
 function describePerson(person: RosterPerson): string {
   const kind = KIND_LABELS[person.kind] ?? person.kind
   const where = person.kind === 'student' && person.className ? `, ${person.className}` : ''
-  return `${person.displayName} (${kind}${where}${person.mail ? `, ${person.mail}` : ''})`
+  const now = person.account === null ? '' : ` – derzeit Konto „${person.account}“, das dabei gelöst wird`
+  return `${person.displayName} (${kind}${where}${person.mail ? `, ${person.mail}` : ''})${now}`
 }
 
 const isSelf = (account: Account) => account.id === session.value?.id
@@ -278,7 +282,7 @@ const isSelf = (account: Account) => account.id === session.value?.id
           >
         </p>
         <p v-if="persons.length === 0">
-          Keine Person ohne Konto gefunden.
+          Keine Person gefunden.
         </p>
         <ul
           v-else

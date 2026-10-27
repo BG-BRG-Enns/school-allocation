@@ -72,6 +72,8 @@ test('a block ends the session at the next request and refuses the next sign-in;
   const self = await send<{ error: string }>(h, anna, 'POST', `/api/admin/users/${annaId}/block`, { reason: 'Versehen' })
   assert.equal(self.status, 409)
   assert.equal(self.body.error, 'cannot_block_self')
+  // In whatever case the id is written.
+  assert.equal((await send(h, anna, 'POST', `/api/admin/users/${annaId.toUpperCase()}/block`, { reason: 'Versehen' })).status, 409)
 
   assert.equal((await send(h, anna, 'POST', `/api/admin/users/${saraId}/block`, { reason: 'Konto kompromittiert' })).status, 204)
   assert.equal((await me(h, sara)).status, 204)

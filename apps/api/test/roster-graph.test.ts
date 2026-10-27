@@ -27,7 +27,7 @@ async function refresh(h: Harness, jar: CookieJar, as: Person = ANNA, schoolYear
   assert.equal(start.statusCode, 302, start.body)
   jar.update(start)
   const location = new URL(start.headers.location as string)
-  assert.match(location.searchParams.get('scope') ?? '', /openid https:\/\/graph\.microsoft\.com\/GroupMember\.Read\.All/)
+  assert.match(location.searchParams.get('scope') ?? '', /openid profile https:\/\/graph\.microsoft\.com\/GroupMember\.Read\.All/)
   const callback = h.entra.authorize(location.toString(), { claims: claimsOf(as) })
   const response = await h.app.inject({ method: 'GET', url: callback, headers: { cookie: jar.header() } })
   assert.equal(response.statusCode, 303, response.body)
@@ -87,6 +87,53 @@ test('labelled groups are read with the administrator\'s token, committed as pre
   assert.equal(persons.rows[0]?.n, '5')
   const tim = await signIn(h, TIM)
   assert.equal((await me(h, tim)).body.person?.kind, null)
+})
+
+test('a Graph roster after a CSV roster keeps the persons and binds them; a member whose object id changed is a new person', DB, async (t) => {
+  const h = await harness(t, ADMIN)
+  const anna = await signIn(h, ANNA)
+  await send(h, anna, 'PUT', '/api/admin/roster/groups', { groups: GROUPS })
+  const csv = ['email;given_name;family_name;class;grade;kind', `${SARA.email};Sara;Schülerin;5A;9;student`, `${TIM.email};Tim;Schüler;5A;9;student`, `${ANNA.email};Anna;Lehrerin;;;teacher`].join('\n')
+  const first = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })
+  await send(h, anna, 'POST', `/api/admin/roster/batches/${first.body.id}/commit`)
+  // Sara signs in and is bound by address; Tim never does.
+  const sara = await signIn(h, SARA)
+  const saraPerson = (await me(h, sara)).body.person?.id
+  const committedFirst = await get<BatchDetail>(h, anna, `/api/admin/roster/batches/${first.body.id}`)
+  const timPersonId = committedFirst.body.diff.added.find((e) => e.displayName === TIM.name)?.personId
+  assert.ok(timPersonId)
+
+  // Sara, Tim and Anna are found by address; Bernd and Carla are new.
+  const refreshed = /import\/([0-9a-f-]+)$/.exec(await refresh(h, anna))?.[1]
+  const detail = await get<BatchDetail>(h, anna, `/api/admin/roster/batches/${refreshed}`)
+  assert.deepEqual(detail.body.summary, { added: 2, removed: 0, changed: 0, unchanged: 3 })
+  const committed = await send<BatchDetail>(h, anna, 'POST', `/api/admin/roster/batches/${refreshed}/commit`)
+  assert.equal(committed.status, 200)
+  const person = (name: string) => [...committed.body.diff.added, ...committed.body.diff.changed.map((c) => c.after)].find((e) => e.displayName === name)?.personId
+  // Unchanged entries are not in the diff; the roster persons tell.
+  const persons = await get<{ persons: { displayName: string, personId: string, account: string | null }[] }>(h, anna, '/api/admin/roster/persons')
+  const byName = new Map(persons.body.persons.map((p) => [p.displayName, p]))
+  assert.equal(byName.get(SARA.name)?.personId, saraPerson, 'Sara is the same person')
+  assert.equal(byName.get(TIM.name)?.personId, timPersonId, 'Tim is the same person, though he never signed in')
+  assert.ok(person(BERND.name) && person(CARLA.name))
+  // Everyone is bound by object id now: Tim's CSV person got his Graph identity.
+  const bindings = await withClient(h.ownerUrl, (c) => c.query<{ method: string, n: string }>('select method, count(*)::text as n from identity_binding where unbound_at is null group by method order by method'))
+  assert.deepEqual(bindings.rows, [{ method: 'email_match', n: '1' }, { method: 'graph', n: '4' }])
+  const tim = await signIn(h, { ...TIM, email: 'tim.neu@schule.example.org' })
+  assert.equal((await me(h, tim)).body.person?.id, timPersonId)
+
+  // Sara's account is recreated: a new object id at her address. That is a
+  // new person; the old one keeps its binding until an administrator rebinds.
+  const SARA_2 = { ...SARA, oid: 'd2000000-0000-4000-8000-00000000000d' }
+  h.graph.groups.set(CLASS_5A_GROUP, [memberOf(SARA_2), memberOf(TIM)])
+  const again = /import\/([0-9a-f-]+)$/.exec(await refresh(h, anna))?.[1]
+  const second = await get<BatchDetail>(h, anna, `/api/admin/roster/batches/${again}`)
+  assert.deepEqual(second.body.summary, { added: 1, removed: 1, changed: 0, unchanged: 4 })
+  const done = await send<BatchDetail>(h, anna, 'POST', `/api/admin/roster/batches/${again}/commit`)
+  assert.notEqual(done.body.diff.added[0]?.personId, saraPerson)
+  assert.equal((await me(h, sara)).body.person?.kind, null, 'the old account is bound to a person the roster no longer lists')
+  const sara2 = await signIn(h, SARA_2)
+  assert.equal((await me(h, sara2)).body.person?.className, '5A')
 })
 
 test('a member without an address is a warning, a member in two groups rejects the batch, and a refused Graph is reported', DB, async (t) => {
