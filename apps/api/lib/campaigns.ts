@@ -10,6 +10,7 @@ import type { Caller } from './auth.ts'
 import type { Database, Queryable } from './db.ts'
 import { numberApprovedItems } from './items.ts'
 import { RosterConflict, type Actor } from './roster.ts'
+import { datesOfSpan } from './time.ts'
 
 export const CAMPAIGN_KINDS = ['project_week', 'wpf'] as const
 export type CampaignKind = typeof CAMPAIGN_KINDS[number]
@@ -86,13 +87,25 @@ export async function createCampaign(db: Database, input: NewCampaign, actor: Ac
   return campaign
 }
 
-/** Changes a campaign's name, year or days; only while it is being set up or taking proposals. */
+/**
+ * Changes a campaign's name, year or days; only while it is being set up or
+ * taking proposals, and never to days that would leave a session of an
+ * activity outside them: the activities were checked against the days they
+ * were proposed for, and a published catalogue must still satisfy that.
+ */
 export async function updateCampaign(db: Database, id: string, changes: CampaignChanges, actor: Actor): Promise<Campaign | undefined> {
   const found = await db.tx(async (client) => {
     await lockScope(client, id)
     const { rows: [current] } = await client.query<{ state: CampaignState }>('select state from campaign where id = $1 for update', [id])
     if (!current) return false
     if (current.state !== 'draft' && current.state !== 'catalogue') throw new RosterConflict('campaign_state')
+    const days = new Set(changes.projectDays)
+    const { rows: sessions } = await client.query<{ starts_at: Date, ends_at: Date }>(
+      `select s.starts_at, s.ends_at from item_session s join catalog_item i on i.id = s.item_id where i.campaign_id = $1 and i.state <> 'withdrawn'`, [id],
+    )
+    if (sessions.some((s) => datesOfSpan(s.starts_at.getTime(), s.ends_at.getTime()).some((date) => !days.has(date)))) {
+      throw new RosterConflict('sessions_outside_days')
+    }
     await client.query(
       'update campaign set name = $2, school_year = $3, project_days = $4::date[], updated_at = now() where id = $1',
       [id, changes.name, changes.schoolYear, changes.projectDays],

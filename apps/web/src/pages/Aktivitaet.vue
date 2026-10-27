@@ -9,7 +9,7 @@ import { useRouter } from 'vue-router'
 import { ApiError } from '../lib/api-rules.ts'
 import { createItem, loadCampaign, loadClasses, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { datesBetween, formatDay, localDateOf, localTimeOf } from '../lib/format.ts'
+import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, touchedDates } from '../lib/format.ts'
 import { CATALOGUE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
@@ -97,10 +97,9 @@ function removeSession(index: number): void {
   sessions.value.splice(index, 1)
 }
 
-/** The project days a session touches, which it may credit. */
+/** The days a session touches, which it may credit; an end at midnight does not touch the next day. */
 function touched(s: SessionForm): string[] {
-  if (!s.date) return []
-  return datesBetween(s.date, s.endDate || s.date)
+  return touchedDates(s.date, s.endDate, s.end)
 }
 
 /** Minutes between the session's clock times on one day: the starting point for the credit a teacher then corrects. */
@@ -142,9 +141,9 @@ function toggle(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
 }
 
-/** Local clock time in the browser's zone, which at a school is the school's; the server computes the dates in the school's zone. */
+/** A wall-clock time of the school's zone as an instant, whatever zone the browser is in. */
 function instant(date: string, time: string): string {
-  return new Date(`${date}T${time}:00`).toISOString()
+  return instantInSchoolZone(date, time)
 }
 
 function input(): ItemInput {

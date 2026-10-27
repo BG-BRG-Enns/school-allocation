@@ -125,15 +125,17 @@ export async function createItem(db: Database, campaignId: string, input: ItemIn
  */
 export async function updateItem(db: Database, id: string, input: ItemInput, caller: Caller, organizer: boolean): Promise<Item | undefined> {
   const found = await db.tx(async (client) => {
-    const current = await readItem(client, id)
+    const current = await lockedItem(client, id)
     if (!current) return false
-    await lockScope(client, current.campaignId)
     const { rows: [campaign] } = await client.query<{ state: CampaignState }>('select state from campaign where id = $1 for update', [current.campaignId])
-    const own = isOwn(caller, current)
-    if (!organizer) {
-      if (!own) throw new RosterConflict('forbidden')
+    // What a teacher may do without organizer rights: tend their own draft
+    // while the catalogue takes proposals. Everything else is an
+    // organizer's change and is recorded, their own item or not.
+    const asTeacher = isOwn(caller, current) && current.state === 'draft' && campaign !== undefined && acceptsProposals(campaign.state)
+    if (!organizer && !asTeacher) {
+      if (!isOwn(caller, current)) throw new RosterConflict('forbidden')
       if (current.state !== 'draft') throw new RosterConflict('item_state')
-      if (!campaign || !acceptsProposals(campaign.state)) throw new RosterConflict('campaign_state')
+      throw new RosterConflict('campaign_state')
     }
     if (current.state === 'withdrawn') throw new RosterConflict('item_state')
     await validate(client, current.campaignId, input)
@@ -146,7 +148,7 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
     await client.query('delete from item_teacher where item_id = $1', [id])
     await client.query('delete from item_session where item_id = $1', [id])
     await writeParts(client, id, input)
-    if (organizer && !own) {
+    if (!asTeacher) {
       await appendAudit(client, { scopeId: current.campaignId, actor: actorOf(caller), action: 'item.changed', metadata: { itemId: id, state: current.state } })
     }
     return true
@@ -154,17 +156,28 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
   return found ? readItem(db, id) : undefined
 }
 
-/** Removes a draft of the caller's own; anything else is withdrawn, not removed. */
+/** Removes a draft of the caller's own; anything else, and anything that was ever in a published catalogue (it has a number), is withdrawn, not removed. */
 export async function deleteDraft(db: Database, id: string, caller: Caller, organizer: boolean): Promise<boolean> {
   return db.tx(async (client) => {
-    const current = await readItem(client, id)
+    const current = await lockedItem(client, id)
     if (!current) return false
-    await lockScope(client, current.campaignId)
     if (!organizer && !isOwn(caller, current)) throw new RosterConflict('forbidden')
-    if (current.state !== 'draft') throw new RosterConflict('item_state')
+    if (current.state !== 'draft' || current.number !== null) throw new RosterConflict('item_state')
     await client.query('delete from catalog_item where id = $1', [id])
     return true
   })
+}
+
+/**
+ * The item as it is under its campaign's lock: read once for the campaign,
+ * locked, read again, so that what the caller decides on is what the lock
+ * protects, not a snapshot another transaction may have changed since.
+ */
+async function lockedItem(client: Queryable, id: string): Promise<Item | undefined> {
+  const found = await readItem(client, id)
+  if (!found) return undefined
+  await lockScope(client, found.campaignId)
+  return readItem(client, id)
 }
 
 /** A teacher proposes their draft; the campaign must be taking proposals. */
@@ -196,10 +209,15 @@ export async function approveItem(db: Database, id: string, caller: Caller): Pro
   })
 }
 
-/** An organizer returns a proposal or an approved item to draft, with a note for its teachers, audited. */
+/**
+ * An organizer returns a proposal or an approved item to draft, with a note
+ * for its teachers, audited. Only while the catalogue takes proposals: after
+ * publication a teacher could neither edit nor propose it again, so an
+ * organizer corrects a published item directly (audited) or withdraws it.
+ */
 export async function returnItem(db: Database, id: string, note: string, caller: Caller): Promise<Item | undefined> {
   return moveItem(db, id, 'draft', caller, true, async (client, current, campaignState) => {
-    if (campaignState !== 'catalogue' && campaignState !== 'published') throw new RosterConflict('campaign_state')
+    if (!acceptsProposals(campaignState)) throw new RosterConflict('campaign_state')
     await client.query('update catalog_item set state = $2, review_note = $3, approved_at = null, approved_by = null, updated_at = now() where id = $1', [id, 'draft', note])
     await appendAudit(client, { scopeId: current.campaignId, actor: actorOf(caller), action: 'item.returned', metadata: { itemId: id, from: current.state, note } })
   })
@@ -219,9 +237,8 @@ type Move = (client: Queryable, current: Item, campaignState: CampaignState) => 
 // the transition school-core allows, then the change itself.
 async function moveItem(db: Database, id: string, to: ItemState, caller: Caller, organizer: boolean, move: Move): Promise<Item | undefined> {
   const found = await db.tx(async (client) => {
-    const current = await readItem(client, id)
+    const current = await lockedItem(client, id)
     if (!current) return false
-    await lockScope(client, current.campaignId)
     const { rows: [campaign] } = await client.query<{ state: CampaignState }>('select state from campaign where id = $1 for update', [current.campaignId])
     if (!campaign) return false
     if (!organizer && !isOwn(caller, current)) throw new RosterConflict('forbidden')

@@ -113,12 +113,12 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
     if (!campaign) return
     const caller = callerOf(request)
     if (!mayPropose(caller)) return reply.code(403).send({ error: 'forbidden' })
-    return refusals(reply, async () => reply.code(201).send(await createItem(db, campaign.id, itemInput(request.body, caller), actorOf(request))))
+    return refusals(reply, async () => reply.code(201).send(await createItem(db, campaign.id, itemInput(request.body, caller, true), actorOf(request))))
   })
 
   app.patch<{ Params: Static<typeof IdParams>, Body: Static<typeof ItemBody> }>('/api/items/:id', { ...signedIn, schema: itemSchema }, async (request, reply) => {
     const caller = callerOf(request)
-    return withItem(reply, request.params.id, caller, () => updateItem(db, request.params.id, itemInput(request.body, caller), caller, isOrganizer(caller)))
+    return withItem(reply, request.params.id, caller, () => updateItem(db, request.params.id, itemInput(request.body, caller, false), caller, isOrganizer(caller)))
   })
 
   app.delete<{ Params: Static<typeof IdParams> }>('/api/items/:id', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
@@ -215,12 +215,14 @@ function mayPropose(caller: Caller): boolean {
 }
 
 /**
- * The body as the library takes it, defaults filled in, and the proposing
- * teacher among the teachers when they are one and left themselves out.
+ * The body as the library takes it, defaults filled in. On creation the
+ * proposing teacher is among the teachers when they are one and left
+ * themselves out; an edit keeps the list as sent, so an organizer who is
+ * also a teacher does not become a teacher of an item they corrected.
  */
-function itemInput(body: Static<typeof ItemBody>, caller: Caller): ItemInput {
+function itemInput(body: Static<typeof ItemBody>, caller: Caller, creating: boolean): ItemInput {
   const teachers = [...body.teachers]
-  if (isTeacher(caller) && caller.person && !teachers.includes(caller.person.id)) teachers.unshift(caller.person.id)
+  if (creating && isTeacher(caller) && caller.person && !teachers.includes(caller.person.id)) teachers.unshift(caller.person.id)
   return {
     title: body.title,
     description: body.description ?? '',

@@ -37,6 +37,43 @@ export function localTimeOf(iso: string): string {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: SCHOOL_TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso))
 }
 
+/**
+ * The local dates a session touches, as the server counts them: from its
+ * first day to its last, where an end exactly at midnight belongs to the
+ * day before.
+ */
+export function touchedDates(date: string, endDate: string, end: string): string[] {
+  const last = endDate || date
+  if (!date || last < date) return date ? [date] : []
+  return datesBetween(date, end === '00:00' && last > date ? previousDay(last) : last)
+}
+
+function previousDay(date: string): string {
+  return new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
+}
+
+/**
+ * The instant at a wall-clock date and time in the school's zone, whatever
+ * zone the browser is in: the offset is read from the zone for that moment,
+ * twice around a change of summer time.
+ */
+export function instantInSchoolZone(date: string, time: string): string {
+  const wall = Date.parse(`${date}T${time}:00Z`)
+  let ms = wall - zoneOffsetMinutes(wall) * 60_000
+  const again = wall - zoneOffsetMinutes(ms) * 60_000
+  if (again !== ms) ms = again
+  return new Date(ms).toISOString()
+}
+
+const zoneParts = new Intl.DateTimeFormat('en-US', { timeZone: SCHOOL_TIME_ZONE, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
+/** Minutes the school's zone is ahead of UTC at `ms`. */
+function zoneOffsetMinutes(ms: number): number {
+  const part = (type: string) => Number(zoneParts.formatToParts(new Date(ms)).find((p) => p.type === type)?.value)
+  const asUtc = Date.UTC(part('year'), part('month') - 1, part('day'), part('hour'), part('minute'), part('second'))
+  return Math.round((asUtc - ms) / 60_000)
+}
+
 /** Every local date from `from` to `to` inclusive, both YYYY-MM-DD. */
 export function datesBetween(from: string, to: string): string[] {
   const dates: string[] = []

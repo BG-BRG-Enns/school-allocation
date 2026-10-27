@@ -136,6 +136,9 @@ test('an item past draft is withdrawn rather than removed, keeps its campaign an
     await refused('update catalog_item set proposed_by = $2 where id = $1', [item?.id, user?.id === undefined ? null : '00000000-0000-4000-8000-000000000000'])
     await c.query(`update catalog_item set state = 'approved', approved_at = now(), approved_by = $2, number = 1 where id = $1`, [item?.id, user?.id])
     await refused('update catalog_item set number = 2 where id = $1', [item?.id])
+    // Back in draft but numbered: it was in a published catalogue once, so it stays.
+    await c.query(`update catalog_item set state = 'draft', approved_at = null, approved_by = null where id = $1`, [item?.id])
+    await refused('delete from catalog_item where id = $1', [item?.id])
     await refused('truncate catalog_item cascade')
     // A withdrawn item needs the time and the person.
     await assert.rejects(c.query(`update catalog_item set state = 'withdrawn' where id = $1`, [item?.id]), (err: unknown) => sqlState(err) === '23514')

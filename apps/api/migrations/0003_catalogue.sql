@@ -74,10 +74,11 @@ create index catalog_item_campaign on catalog_item (campaign_id, state);
 create function catalog_item_guard() returns trigger language plpgsql as $$
 begin
   if tg_op in ('DELETE', 'TRUNCATE') then
-    -- A draft nobody has reviewed may go; anything later is withdrawn, so
-    -- the record of what was proposed stays.
-    if tg_op = 'TRUNCATE' or old.state <> 'draft' then
-      perform refuse('an item past draft is withdrawn, not removed');
+    -- A draft nobody has reviewed may go; anything later, and anything that
+    -- was in a published catalogue (it has a number), is withdrawn, so the
+    -- record of what was proposed stays and no number is given out twice.
+    if tg_op = 'TRUNCATE' or old.state <> 'draft' or old.number is not null then
+      perform refuse('an item past draft or with a catalogue number is withdrawn, not removed');
     end if;
     return old;
   end if;

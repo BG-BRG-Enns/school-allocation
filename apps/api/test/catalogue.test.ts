@@ -27,6 +27,7 @@ interface Ready extends Harness {
   bernd: CookieJar
   carla: CookieJar
   sara: CookieJar
+  annaPerson: string
   berndPerson: string
   carlaPerson: string
 }
@@ -43,7 +44,7 @@ async function school(t: Parameters<typeof harness>[0]): Promise<Ready> {
   const batch = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })
   const committed = await send<BatchDetail>(h, anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)
   const person = (name: string) => committed.body.diff.added.find((e) => e.displayName === name)?.personId ?? ''
-  return { ...h, anna: await signIn(h, ANNA), bernd: await signIn(h, BERND), carla: await signIn(h, CARLA), sara: await signIn(h, SARA), berndPerson: person(BERND.name), carlaPerson: person(CARLA.name) }
+  return { ...h, anna: await signIn(h, ANNA), bernd: await signIn(h, BERND), carla: await signIn(h, CARLA), sara: await signIn(h, SARA), annaPerson: person(ANNA.name), berndPerson: person(BERND.name), carlaPerson: person(CARLA.name) }
 }
 
 async function campaignTakingProposals(s: Ready): Promise<Campaign> {
@@ -123,8 +124,8 @@ test('a teacher proposes within the rules, the organizer returns, approves and p
   assert.deepEqual(trip.body.fixedClasses, ['5A'])
 
   // Own drafts are edited and seen by their teachers, by nobody else but organizers.
-  assert.equal((await send(s, s.carla, 'PATCH', `/api/items/${draft.body.id}`, { title: 'Klettern!', places: 12, teachers: [], sessions: [MONDAY] })).status, 403)
-  assert.equal((await send(s, s.bernd, 'PATCH', `/api/items/${draft.body.id}`, { title: 'Klettern und Bouldern', places: 12, minParticipants: 6, teachers: [], sessions: [MONDAY] })).status, 200)
+  assert.equal((await send(s, s.carla, 'PATCH', `/api/items/${draft.body.id}`, { title: 'Klettern!', places: 12, teachers: [s.berndPerson], sessions: [MONDAY] })).status, 403)
+  assert.equal((await send(s, s.bernd, 'PATCH', `/api/items/${draft.body.id}`, { title: 'Klettern und Bouldern', places: 12, minParticipants: 6, teachers: [s.berndPerson], sessions: [MONDAY] })).status, 200)
   assert.deepEqual((await get<{ items: Item[] }>(s, s.carla, url)).body.items.map((i) => i.title), ['Wien'], 'Carla sees her own only')
   assert.deepEqual((await get<{ items: Item[] }>(s, s.bernd, url)).body.items.map((i) => i.title).sort(), ['Klettern und Bouldern', 'Wien'], 'Bernd teaches on both')
   assert.deepEqual((await get<{ items: Item[] }>(s, s.anna, url)).body.items.length, 2)
@@ -132,12 +133,12 @@ test('a teacher proposes within the rules, the organizer returns, approves and p
   // Propose, return with a note, propose again, approve; the audit log of the campaign records the organizer's steps.
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${draft.body.id}/approve`)).status, 409, 'a draft is not approved')
   assert.equal((await send(s, s.bernd, 'POST', `/api/items/${draft.body.id}/propose`)).status, 200)
-  assert.equal((await send(s, s.bernd, 'PATCH', `/api/items/${draft.body.id}`, { title: 'x', places: 12, teachers: [], sessions: [MONDAY] })).status, 409, 'a proposal is not edited by its teacher')
+  assert.equal((await send(s, s.bernd, 'PATCH', `/api/items/${draft.body.id}`, { title: 'x', places: 12, teachers: [s.berndPerson], sessions: [MONDAY] })).status, 409, 'a proposal is not edited by its teacher')
   const returned = await send<Item>(s, s.anna, 'POST', `/api/admin/items/${draft.body.id}/return`, { note: 'Bitte den Treffpunkt ergänzen.' })
   assert.equal(returned.status, 200, JSON.stringify(returned.body))
   assert.equal(returned.body.state, 'draft')
   assert.equal(returned.body.reviewNote, 'Bitte den Treffpunkt ergänzen.')
-  assert.equal((await send(s, s.bernd, 'PATCH', `/api/items/${draft.body.id}`, { title: 'Klettern und Bouldern', location: 'Treffpunkt Bahnhof', places: 12, minParticipants: 6, teachers: [], sessions: [MONDAY] })).status, 200)
+  assert.equal((await send(s, s.bernd, 'PATCH', `/api/items/${draft.body.id}`, { title: 'Klettern und Bouldern', location: 'Treffpunkt Bahnhof', places: 12, minParticipants: 6, teachers: [s.berndPerson], sessions: [MONDAY] })).status, 200)
   assert.equal((await send(s, s.bernd, 'POST', `/api/items/${draft.body.id}/propose`)).status, 200)
   assert.equal((await send(s, s.bernd, 'POST', `/api/items/${draft.body.id}/unpropose`)).status, 200)
   assert.equal((await send(s, s.bernd, 'POST', `/api/items/${draft.body.id}/propose`)).status, 200)
@@ -147,8 +148,13 @@ test('a teacher proposes within the rules, the organizer returns, approves and p
   assert.equal(approved.body.state, 'approved')
   assert.equal(approved.body.number, null, 'numbered at publication')
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${trip.body.id}/approve`)).status, 200)
-  // An organizer's change to someone else's item is audited.
-  assert.equal((await send(s, s.anna, 'PATCH', `/api/items/${trip.body.id}`, { title: 'Wien-Exkursion', places: 8, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [s.carlaPerson, s.berndPerson], sessions: [VIENNA] })).status, 200)
+  // An organizer's change to someone else's item is audited, and does not make the organizer (a roster teacher herself) one of its teachers.
+  const corrected = await send<Item>(s, s.anna, 'PATCH', `/api/items/${trip.body.id}`, { title: 'Wien-Exkursion', places: 8, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [s.carlaPerson, s.berndPerson], sessions: [VIENNA] })
+  assert.equal(corrected.status, 200)
+  assert.deepEqual(corrected.body.teachers.map((t) => t.displayName), [CARLA.name, BERND.name])
+  // A day with sessions on it cannot be taken from the campaign.
+  assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${campaign.id}`, { name: campaign.name, schoolYear: '2026/27', projectDays: [DAYS[0]] })).body.error, 'sessions_outside_days')
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${campaign.id}`, { name: campaign.name, schoolYear: '2026/27', projectDays: [...DAYS, '2027-06-24'] })).status, 200)
 
   // Students see nothing until publication; then the catalogue in print order: Monday's climbing before Tuesday's trip.
   assert.equal((await get(s, s.sara, `/api/campaigns/${campaign.id}/catalogue`)).status, 404)
@@ -162,14 +168,35 @@ test('a teacher proposes within the rules, the organizer returns, approves and p
   // A late item an organizer proposes and approves gets the next number.
   const late = await send<Item>(s, s.anna, 'POST', url, { title: 'Nachzügler', places: 5, teachers: [s.carlaPerson], sessions: [MONDAY] })
   assert.equal(late.status, 409, 'not even an organizer proposes into a published catalogue')
+  // After publication an organizer corrects directly (audited) or withdraws; a return would strand the item.
+  assert.equal((await send<{ error: string }>(s, s.anna, 'POST', `/api/admin/items/${draft.body.id}/return`, { note: 'x' })).body.error, 'campaign_state')
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/items/${draft.body.id}`, { title: 'Klettern und Bouldern', location: 'Treffpunkt Bahnhof, 8:45', places: 12, minParticipants: 6, teachers: [s.berndPerson], sessions: [MONDAY] })).status, 200)
+  assert.equal((await send(s, s.bernd, 'DELETE', `/api/items/${draft.body.id}`)).status, 409, 'a numbered item is never removed')
 
   const db = createDatabase(s.ownerUrl, () => {})
   t.after(() => db.close())
   const events = await readAudit(db, campaign.id)
-  assert.deepEqual(events.map((e) => e.action), ['campaign.transitioned', 'item.returned', 'item.approved', 'item.approved', 'item.changed', 'campaign.transitioned'])
+  assert.deepEqual(events.map((e) => e.action), ['campaign.transitioned', 'item.returned', 'item.approved', 'item.approved', 'item.changed', 'campaign.changed', 'campaign.transitioned', 'item.changed'])
   assert.equal(events[1]?.metadata.note, 'Bitte den Treffpunkt ergänzen.')
-  assert.deepEqual(events[5]?.metadata.numbered, 2)
+  assert.deepEqual(events[6]?.metadata.numbered, 2)
   assert.equal(verifyAuditChain(events).valid, true)
+})
+
+test('an organizer\'s edit of their own item is recorded once it needs organizer rights', DB, async (t) => {
+  const s = await school(t)
+  const campaign = await campaignTakingProposals(s)
+  // Anna is a roster teacher too: her own draft is a teacher's business, unrecorded.
+  const own = await send<Item>(s, s.anna, 'POST', `/api/campaigns/${campaign.id}/items`, { title: 'Schach', places: 10, teachers: [], sessions: [MONDAY] })
+  assert.equal(own.status, 201)
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/items/${own.body.id}`, { title: 'Schach und Go', places: 10, teachers: [s.annaPerson], sessions: [MONDAY] })).status, 200)
+  await send(s, s.anna, 'POST', `/api/items/${own.body.id}/propose`)
+  await send(s, s.anna, 'POST', `/api/admin/items/${own.body.id}/approve`)
+  // Approved, the same edit is an organizer's change, own item or not.
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/items/${own.body.id}`, { title: 'Schach, Go und Dame', places: 10, teachers: [s.annaPerson], sessions: [MONDAY] })).status, 200)
+  const db = createDatabase(s.ownerUrl, () => {})
+  t.after(() => db.close())
+  const events = await readAudit(db, campaign.id)
+  assert.deepEqual(events.map((e) => e.action), ['campaign.transitioned', 'item.approved', 'item.changed'])
 })
 
 test('a draft is deleted by its teacher, anything later is withdrawn by an organizer, and the catalogue is exported as a workbook', DB, async (t) => {
