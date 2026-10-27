@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto'
 import { addressesOf, checkRoster, diffRoster, rosterKey, summarizeDiff, type PersonKind, type RosterDiff, type RosterDiffSummary, type RosterEntry, type RosterProblem } from '@school-allocation/school-core'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from './audit.ts'
 import type { AuditActor } from './audit-chain.ts'
-import { canonicalJson } from './canonical-json.ts'
+import { canonicalJson, CanonicalJsonError } from './canonical-json.ts'
 import type { Database, Queryable } from './db.ts'
 
 export const BATCH_SOURCES = ['graph:groups', 'csv'] as const
@@ -125,20 +125,23 @@ export async function entriesOf(db: Queryable, batchId: string): Promise<StoredE
 export async function createBatch(db: Database, input: NewBatch): Promise<BatchDetail> {
   const problems = [...(input.problems ?? []), ...checkRoster(input.entries)]
   const warnings = input.warnings ?? []
-  const payload = canonicalJson([...input.entries].sort((a, b) => (rosterKey(a) ?? '').localeCompare(rosterKey(b) ?? '')))
-  const hash = createHash('sha256').update(payload).digest('hex')
+  const hash = payloadHash([...input.entries].sort((a, b) => (rosterKey(a) ?? '').localeCompare(rosterKey(b) ?? '')))
   const id = await db.tx(async (client) => {
     const current = await currentBatch(client)
     const previous = current === undefined ? [] : await entriesOf(client, current.id)
     const summary = problems.length > 0 ? EMPTY_SUMMARY : summarizeDiff(diffRoster(previous, input.entries))
     const rejected = problems.length > 0
+    // A rejected batch is decided as it is written, by the database's
+    // clock like fetched_at, so the two are one instant whatever this
+    // process's clock says.
     const { rows: [row] } = await client.query<{ id: string }>(
       `insert into import_batch (source, state, school_year, payload_sha256, row_count, triggered_by, previous_batch_id, diff_summary, problems, warnings, decided_at, decided_by)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) returning id`,
+       values ($1, case when $10::boolean then 'rejected' else 'pending' end, $2, $3, $4, $5::uuid, $6, $7, $8, $9,
+               case when $10::boolean then now() end, case when $10::boolean then $5::uuid end) returning id`,
       [
-        input.source, rejected ? 'rejected' : 'pending', input.schoolYear, hash, input.entries.length, input.triggeredBy,
+        input.source, input.schoolYear, hash, input.entries.length, input.triggeredBy,
         current?.id ?? null, JSON.stringify(summary), JSON.stringify(problems), JSON.stringify(warnings),
-        rejected ? new Date() : null, rejected ? input.triggeredBy : null,
+        rejected,
       ],
     )
     if (!row) throw new Error('import_batch insert returned no row')
@@ -161,6 +164,24 @@ export async function createBatch(db: Database, input: NewBatch): Promise<BatchD
   const batch = await readBatch(db, id)
   if (!batch) throw new Error('the batch just written is gone')
   return batch
+}
+
+/**
+ * The hash a batch is recorded under: of the entries' canonical JSON. A
+ * rejected batch may hold text no canonical form and no PostgreSQL column
+ * takes (U+0000, a lone surrogate; checkEntry reports it as the row's
+ * problem), and is hashed as JSON made well-formed instead. An accepted
+ * batch never contains such text.
+ */
+function payloadHash(entries: readonly RosterEntry[]): string {
+  let text: string
+  try {
+    text = canonicalJson(entries)
+  } catch (err) {
+    if (!(err instanceof CanonicalJsonError)) throw err
+    text = JSON.stringify(entries).toWellFormed().replaceAll('\0', '')
+  }
+  return createHash('sha256').update(text).digest('hex')
 }
 
 /**

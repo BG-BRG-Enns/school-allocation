@@ -21,6 +21,8 @@ export interface Harness {
   /** The runtime connection the app uses. */
   db: Database
   ownerUrl: string
+  /** Every log line the server wrote so far; what a 500 says about itself. */
+  logs: () => string
 }
 
 export async function harness(t: TestContext, env: Record<string, string> = {}, groups?: Map<string, FakeMember[]>): Promise<Harness> {
@@ -31,9 +33,9 @@ export async function harness(t: TestContext, env: Record<string, string> = {}, 
   t.after(() => graph.close())
   const db = createDatabase(testDb.runtimeUrl, () => {})
   t.after(() => db.close())
-  const { app } = await buildTestApp(env, db, { entraAuthority: entra.authority, graphBaseUrl: graph.baseUrl })
+  const { app, logs } = await buildTestApp(env, db, { entraAuthority: entra.authority, graphBaseUrl: graph.baseUrl })
   t.after(() => app.close())
-  return { app, entra, graph, db, ownerUrl: testDb.ownerUrl }
+  return { app, entra, graph, db, ownerUrl: testDb.ownerUrl, logs }
 }
 
 /** Signs `person` in, in a browser of their own; the jar carries their session. */

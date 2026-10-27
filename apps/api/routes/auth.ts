@@ -21,6 +21,7 @@ import rateLimit from '@fastify/rate-limit'
 import { Type, type Static } from 'typebox'
 import type { Config } from '../config.ts'
 import { upsertAppUser } from '../lib/app-user.ts'
+import { lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { currentUser, loadCaller, withinSeconds } from '../lib/auth.ts'
 import { bindAtSignIn } from '../lib/bindings.ts'
 import type { Database } from '../lib/db.ts'
@@ -116,7 +117,11 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
     // The person is recorded, a listed first administrator gets the role,
     // and a CSV roster entry with this address is bound to the identity, in
     // one transaction with the audit events of the grant and the binding.
+    // The school scope's lock comes first, before the person's row is
+    // touched: the administrative changes take it first too and then write
+    // app_user (a block), so the two never wait for each other.
     const user = await db.tx(async (client) => {
+      await lockScope(client, SCHOOL_SCOPE)
       const signedIn = await upsertAppUser(client, identity)
       if (!signedIn.blocked) {
         await bootstrapAdmin(client, { ...identity, id: signedIn.id }, config.bootstrapAdmins)

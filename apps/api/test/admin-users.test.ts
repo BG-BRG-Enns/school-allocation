@@ -7,6 +7,8 @@ import assert from 'node:assert/strict'
 import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { verifyAuditChain } from '../lib/audit-chain.ts'
 import { createDatabase } from '../lib/db.ts'
+import { withClient } from './helpers/db.ts'
+import { TENANT_ID } from './helpers/env.ts'
 import { DB, get, harness, me, send, signIn } from './helpers/harness.ts'
 import { ANNA, BERND, SARA } from './helpers/personas.ts'
 
@@ -52,10 +54,24 @@ test('an administrator grants and revokes roles, which count at the next request
   assert.deepEqual((await me(h, anna)).body.roles, [])
   assert.equal((await get(h, anna, '/api/admin/roles')).status, 403)
 
+  // Two administrators who revoke each other at the same moment: the
+  // second revocation finds nobody left and is refused. Played here with
+  // Bernd's own grant revoked underneath him, as the other transaction
+  // would have done it, and the lib function called as the route does.
+  const annaId = (await me(h, anna)).body.id
+  const back = await send<Grant>(h, bernd, 'POST', '/api/admin/roles', { userId: annaId, role: 'school_admin', reason: 'zurück' })
+  assert.equal(back.status, 201)
+  await withClient(h.ownerUrl, (c) => c.query('update role_grant set revoked_at = now(), revoked_by = user_id where id = $1', [second.body.id]))
+  const { revokeGrant, blockAccount } = await import('../lib/admin-users.ts')
+  const berndActor = { id: berndId, tid: TENANT_ID, oid: BERND.oid, name: BERND.name }
+  await assert.rejects(revokeGrant(h.db, back.body.id, 'auch weg', berndActor), (err: unknown) => (err as { code?: string }).code === 'last_admin')
+  await assert.rejects(blockAccount(h.db, annaId, 'auch gesperrt', berndActor), (err: unknown) => (err as { code?: string }).code === 'last_admin')
+  assert.deepEqual((await me(h, anna)).body.roles, ['school_admin'])
+
   const db = createDatabase(h.ownerUrl, () => {})
   t.after(() => db.close())
   const events = await readAudit(db, SCHOOL_SCOPE)
-  assert.deepEqual(events.map((e) => e.action), ['admin.bootstrapped', 'role.granted', 'role.revoked', 'role.granted', 'role.revoked'])
+  assert.deepEqual(events.map((e) => e.action), ['admin.bootstrapped', 'role.granted', 'role.revoked', 'role.granted', 'role.revoked', 'role.granted'])
   assert.deepEqual(events[1]?.metadata.role, 'campaign_organizer')
   assert.equal(events[1]?.metadata.reason, 'Organisiert die Projektwoche')
   assert.equal(events[4]?.actor.oid, BERND.oid)

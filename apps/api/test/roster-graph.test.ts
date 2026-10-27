@@ -149,7 +149,9 @@ test('a member without an address is a warning, a member in two groups rejects t
   assert.equal(batch.body.diff.added.length, 4, 'the device is not a member of the roster')
 
   h.graph.groups.set(CLASS_5A_GROUP, [memberOf(SARA), memberOf(BERND)])
-  const rejected = /import\/([0-9a-f-]+)$/.exec(await refresh(h, anna))?.[1]
+  const where = await refresh(h, anna)
+  const rejected = /import\/([0-9a-f-]+)$/.exec(where)?.[1]
+  assert.ok(rejected, where)
   const detail = await get<BatchDetail>(h, anna, `/api/admin/roster/batches/${rejected}`)
   assert.equal(detail.body.state, 'rejected')
   assert.deepEqual(detail.body.problems, [{ code: 'both_kinds', key: BERND.oid }])

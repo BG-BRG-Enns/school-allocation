@@ -68,6 +68,7 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   already_granted: 'Diese Rolle hat die Person schon.',
   already_revoked: 'Diese Rolle wurde schon entzogen.',
   cannot_revoke_self: 'Sie können sich die Administration nicht selbst entziehen. Eine andere Administratorin oder ein anderer Administrator kann das.',
+  last_admin: 'Das würde die Schule ohne Administration zurücklassen. Erteilen Sie zuerst jemand anderem die Administration.',
 }
 
 /**

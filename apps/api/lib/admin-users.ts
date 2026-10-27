@@ -72,12 +72,32 @@ export async function listAccounts(db: Queryable, q: string, unboundOnly: boolea
   }))
 }
 
-/** Blocks an account; its running session ends with the next request. An administrator cannot block themselves. */
+/**
+ * The school must keep an administrator who can sign in: whoever this
+ * change would take that from (a block, a revoked administration) is not
+ * taken while nobody else is left. Checked under the scope's lock, so two
+ * administrators who remove each other at the same moment lose one, not
+ * both; the guard in front of the route cannot see the other transaction.
+ */
+async function assertAnotherAdminRemains(client: Queryable, withoutUserId: string): Promise<void> {
+  const { rows: [row] } = await client.query<{ n: string }>(
+    `select count(*)::text as n from role_grant g join app_user u on u.id = g.user_id
+      where g.role = 'school_admin' and g.campaign_id is null and g.revoked_at is null and u.blocked_at is null and u.id <> $1`,
+    [withoutUserId],
+  )
+  if (Number(row?.n ?? 0) === 0) throw new RosterConflict('last_admin')
+}
+
+/** Blocks an account; its running session ends with the next request. An administrator cannot block themselves, nor the last other administrator. */
 export async function blockAccount(db: Database, userId: string, reason: string, actor: Actor): Promise<boolean> {
   // PostgreSQL hands ids out in lower case; the route accepts either.
   if (userId.toLowerCase() === actor.id.toLowerCase()) throw new RosterConflict('cannot_block_self')
   return db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
+    const { rowCount: admin } = await client.query(
+      `select 1 from role_grant where user_id = $1 and role = 'school_admin' and campaign_id is null and revoked_at is null`, [userId],
+    )
+    if ((admin ?? 0) > 0) await assertAnotherAdminRemains(client, userId)
     const { rowCount } = await client.query('update app_user set blocked_at = now(), blocked_by = $2 where id = $1 and blocked_at is null', [userId, actor.id])
     if ((rowCount ?? 0) === 0) {
       const { rowCount: exists } = await client.query('select 1 from app_user where id = $1', [userId])
@@ -150,7 +170,7 @@ export async function grantRole(db: Database, userId: string, role: Role, reason
   return (await listGrants(db)).find((grant) => grant.id === id)
 }
 
-/** Revokes a grant, audited. An administrator cannot revoke their own administration, so nobody locks everyone out. */
+/** Revokes a grant, audited. An administrator can revoke neither their own administration nor the last other one, so nobody locks everyone out. */
 export async function revokeGrant(db: Database, grantId: string, reason: string, actor: Actor): Promise<boolean> {
   return db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
@@ -159,7 +179,10 @@ export async function revokeGrant(db: Database, grantId: string, reason: string,
     )
     if (!grant) return false
     if (grant.revoked) throw new RosterConflict('already_revoked')
-    if (grant.user_id === actor.id && grant.role === 'school_admin') throw new RosterConflict('cannot_revoke_self')
+    if (grant.role === 'school_admin') {
+      if (grant.user_id === actor.id) throw new RosterConflict('cannot_revoke_self')
+      await assertAnotherAdminRemains(client, grant.user_id)
+    }
     await client.query('update role_grant set revoked_at = now(), revoked_by = $2 where id = $1', [grantId, actor.id])
     await appendAudit(client, { scopeId: SCHOOL_SCOPE, actor: auditActor(actor), action: 'role.revoked', metadata: { grantId, userId: grant.user_id, role: grant.role, reason } })
     return true
