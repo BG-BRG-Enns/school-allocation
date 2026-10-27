@@ -22,6 +22,15 @@ export const AUDIT_ACTIONS = [
   'role.revoked',
   'user.blocked',
   'user.unblocked',
+  // The roster: the labelled groups changed; a batch committed (it is the
+  // roster now) or discarded.
+  'roster.groups-changed',
+  'roster.imported',
+  'roster.discarded',
+  // A person's identity: bound (by the import, at a first sign-in, or by an
+  // administrator) and closed.
+  'identity.bound',
+  'identity.unbound',
 ] as const
 
 export type AuditAction = typeof AUDIT_ACTIONS[number]

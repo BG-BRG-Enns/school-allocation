@@ -19,6 +19,7 @@ import { interruptStaleJobs } from '../lib/jobs.ts'
 import { sqlState } from '../lib/pg-errors.ts'
 import { CLIENT_ID, CLIENT_SECRET, secretFile, TENANT_ID } from './helpers/env.ts'
 import { startFakeEntra } from './helpers/fake-entra.ts'
+import { CLASS_5A_GROUP, startFakeGraph, TEACHERS_GROUP } from './helpers/fake-graph.ts'
 
 function refuse(reason: string): never {
   console.error(`Refusing to start: ${reason}`)
@@ -44,6 +45,8 @@ if (!isLoopbackHost(config.host) || !isLoopbackHost(new URL(config.publicUrl).ho
 }
 
 const entra = await startFakeEntra({ redirectUri: `${config.publicUrl}/api/auth/callback` })
+// A stand-in for Graph as well, with two groups to label (helpers/fake-graph.ts).
+const graph = await startFakeGraph(entra.issued)
 const db = createDatabase(config.databaseUrl, (err) => console.error('database client failed', err))
 
 let problems: string[]
@@ -56,13 +59,15 @@ if (problems.length > 0) {
   refuse(problems.join('; '))
 }
 
-const server = await buildApp(config, { db, entraAuthority: entra.authority })
+const server = await buildApp(config, { db, entraAuthority: entra.authority, graphBaseUrl: graph.baseUrl })
 server.addHook('onClose', async () => {
   await db.close()
   await entra.close()
+  await graph.close()
 })
 await interruptStaleJobs(db)
 server.log.warn({ authority: entra.authority }, 'sign-in is the test stand-in, not Microsoft Entra ID: for development only')
+server.log.warn({ graph: graph.baseUrl, groups: [CLASS_5A_GROUP, TEACHERS_GROUP] }, 'Graph is a stand-in with two groups: label them under Verwaltung → Stammdaten')
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {

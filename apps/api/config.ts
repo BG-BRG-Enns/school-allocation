@@ -39,6 +39,13 @@ export interface Config {
    * listed; then the first grant has to come from the database.
    */
   bootstrapAdmins: string[]
+  /**
+   * The Microsoft Graph permissions an administrator's roster refresh asks
+   * for, delegated, by name (lib/graph.ts): GroupMember.Read.All reads the
+   * labelled groups' members; a tenant whose member listing leaves the
+   * address out adds User.ReadBasic.All (docs/data-sources.md §3).
+   */
+  graphScopes: string[]
   build: BuildInfo
 }
 
@@ -116,6 +123,7 @@ export function loadConfig(env: Env): Config {
     },
     sessionSecret: check(() => sessionSecret(env), Buffer.alloc(0)),
     bootstrapAdmins: check(() => parseBootstrapAdmins(env.BOOTSTRAP_ADMINS), []),
+    graphScopes: check(() => parseGraphScopes(env.GRAPH_DELEGATED_SCOPES), []),
     build: {
       version: check(() => buildValue(env, 'APP_VERSION', 'dev', /^[0-9A-Za-z][0-9A-Za-z.+_-]{0,63}$/, 'a release tag such as v1.2.0'), ''),
       gitSha: check(() => buildValue(env, 'GIT_SHA', 'unknown', /^[0-9a-f]{7,64}$/, 'a commit hash in lower-case hex'), ''),
@@ -351,6 +359,25 @@ export function parseBootstrapAdmins(raw: string | undefined): string[] {
   const bad = entries.filter((entry) => !GUID.test(entry) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry))
   if (bad.length > 0) {
     throw new ConfigError(`BOOTSTRAP_ADMINS must list Entra object ids or school e-mail addresses separated by commas, got ${bad.join(', ')}`)
+  }
+  return [...new Set(entries)]
+}
+
+/** What a refresh asks for unless the deployment says otherwise: the least that lists a group's members. */
+export const DEFAULT_GRAPH_SCOPES = ['GroupMember.Read.All']
+const MAX_GRAPH_SCOPES = 5
+
+// Permission names as Graph writes them (Resource.Operation.Scope), a few
+// at most; they end up in the authorization URL, so nothing else is taken.
+export function parseGraphScopes(raw: string | undefined): string[] {
+  const entries = (raw ?? '').split(',').map((entry) => entry.trim()).filter(Boolean)
+  if (entries.length === 0) return [...DEFAULT_GRAPH_SCOPES]
+  if (entries.length > MAX_GRAPH_SCOPES) {
+    throw new ConfigError(`GRAPH_DELEGATED_SCOPES lists ${entries.length} permissions; a roster refresh needs at most ${MAX_GRAPH_SCOPES}`)
+  }
+  const bad = entries.filter((entry) => !/^[A-Za-z]+(?:\.[A-Za-z]+)+$/.test(entry))
+  if (bad.length > 0) {
+    throw new ConfigError(`GRAPH_DELEGATED_SCOPES must list Microsoft Graph permission names such as GroupMember.Read.All separated by commas, got ${bad.join(', ')}`)
   }
   return [...new Set(entries)]
 }

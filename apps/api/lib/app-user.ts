@@ -8,6 +8,8 @@ export interface EntraIdentity {
   displayName: string
   /** The email claim, or preferred_username without one; null without either. */
   email: string | null
+  /** The preferred_username claim, which in a school tenant is the user principal name; null without one. */
+  upn: string | null
 }
 
 export interface SignedInUser {

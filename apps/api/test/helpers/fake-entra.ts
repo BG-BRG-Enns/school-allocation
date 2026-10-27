@@ -49,11 +49,17 @@ interface PendingCode {
 }
 
 export interface FakeEntraOptions {
-  /** The app's registered redirect URI; any other is refused, as Entra refuses it. */
+  /** The app's registered redirect URI for sign-in; any other is refused, as Entra refuses it. The Graph authorization's callback is registered beside it. */
   redirectUri?: string
 }
 
+/** The second redirect URI an app registration has: the roster refresh's callback, next to the sign-in's. */
+export function graphRedirectUri(signInRedirectUri: string): string {
+  return signInRedirectUri.replace(/\/api\/auth\/callback$/, '/api/admin/roster/graph/callback')
+}
+
 export async function startFakeEntra({ redirectUri = `${ORIGIN}/api/auth/callback` }: FakeEntraOptions = {}): Promise<FakeEntra> {
+  const redirectUris = [redirectUri, graphRedirectUri(redirectUri)]
   const kid = 'test-key'
   const tenantKey = await generateKeyPair('RS256')
   const foreignKey = await generateKeyPair('RS256')
@@ -86,21 +92,22 @@ export async function startFakeEntra({ redirectUri = `${ORIGIN}/api/auth/callbac
 
   let authority = ''
 
-  /** An authorization request of this tenant's registered client, or an error naming what is wrong. */
+  /** An authorization request of this tenant's registered client, to one of its redirect URIs, or an error naming what is wrong. */
   function checked(authorizationUrl: string): URL {
     const url = new URL(authorizationUrl)
     const param = (name: string) => url.searchParams.get(name) ?? ''
     if (url.origin !== authority || url.pathname !== `/${TENANT_ID}/oauth2/v2.0/authorize`
-      || param('client_id') !== CLIENT_ID || param('response_type') !== 'code' || param('redirect_uri') !== redirectUri) {
+      || param('client_id') !== CLIENT_ID || param('response_type') !== 'code' || !redirectUris.includes(param('redirect_uri'))) {
       throw new Error(`not an authorization request for this tenant and client: ${authorizationUrl}`)
     }
     return url
   }
 
-  /** Plays the sign-in for an authorization request: a code for the claims, and the query the browser goes back with. */
+  /** Plays the sign-in for an authorization request: a code for the claims, and the query the browser goes back with, to the request's own redirect URI. */
   function issue(authorizationUrl: string, { claims = {}, signWith = 'tenant' }: AuthorizeOptions): { redirectUri: string, query: string } {
     const url = checked(authorizationUrl)
     const param = (name: string) => url.searchParams.get(name) ?? ''
+    const redirectUri = param('redirect_uri')
     const now = Math.floor(Date.now() / 1000)
     const merged: Record<string, unknown> = {
       iss: ISSUER,
@@ -152,8 +159,8 @@ export async function startFakeEntra({ redirectUri = `${ORIGIN}/api/auth/callbac
       ? typedPerson(typed ?? '', url.searchParams.get('name') ?? '')
       : PERSONAS.find((persona) => persona.oid === chosen)
     if (!person) return json(response, 404, { error: 'unknown_persona' })
-    const { query } = issue(pending, { claims: claimsOf(person) })
-    response.writeHead(302, { location: `${redirectUri}?${query}` }).end()
+    const { redirectUri: target, query } = issue(pending, { claims: claimsOf(person) })
+    response.writeHead(302, { location: `${target}?${query}` }).end()
   }
 
   const server = createServer((request, response) => {
@@ -175,7 +182,8 @@ export async function startFakeEntra({ redirectUri = `${ORIGIN}/api/auth/callbac
     requests,
     issued,
     authorize(authorizationUrl, options = {}) {
-      return `${new URL(redirectUri).pathname}?${issue(authorizationUrl, options).query}`
+      const issued = issue(authorizationUrl, options)
+      return `${new URL(issued.redirectUri).pathname}?${issued.query}`
     },
     close: () => new Promise((resolve) => server.close(() => resolve())),
   }

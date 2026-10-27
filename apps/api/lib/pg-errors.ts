@@ -9,6 +9,7 @@ export const SQLSTATE = {
   /** A statement stopped by the pool's statement timeout, a lock wait included. */
   queryCanceled: '57014',
   undefinedTable: '42P01',
+  uniqueViolation: '23505',
 } as const
 
 export function sqlState(err: unknown): string | undefined {

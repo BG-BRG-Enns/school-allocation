@@ -72,14 +72,57 @@ test('a role grant is revoked, never changed or removed; the audit log is append
   })
 })
 
+test('a batch is decided once, an entry is resolved once, a binding is closed and never removed, and none of them is truncated', DB, async (t) => {
+  const db = await createTestDatabase(t)
+  await withClient(db.ownerUrl, async (c) => {
+    const refused = async (sql: string, values: unknown[] = []) => {
+      await assert.rejects(c.query(sql, values), (err: unknown) => sqlState(err) === SQLSTATE.objectNotInPrerequisiteState, sql)
+    }
+    const { rows: [user] } = await c.query<{ id: string }>('insert into app_user (tid, oid, display_name) values ($1, $2, $3) returning id', [TID, OID, 'Anna'])
+    const { rows: [batch] } = await c.query<{ id: string }>(
+      `insert into import_batch (source, school_year, payload_sha256, row_count, triggered_by, diff_summary) values ('csv', '2026/27', repeat('a', 64), 1, $1, '{}') returning id`, [user?.id],
+    )
+    const { rows: [entry] } = await c.query<{ id: string }>(
+      `insert into roster_entry (batch_id, kind, mail, display_name, class_name, grade) values ($1, 'student', 'Sara@schule.example.org', 'Sara', '5A', 9) returning id`, [batch?.id],
+    )
+    // The same key twice in one batch, whatever the case of the address.
+    await assert.rejects(c.query(`insert into roster_entry (batch_id, kind, mail, display_name, class_name, grade) values ($1, 'teacher', 'sara@schule.example.org', 'Sara', null, null)`, [batch?.id]), (err: unknown) => sqlState(err) === SQLSTATE.uniqueViolation)
+    // A student needs a class and a grade.
+    await assert.rejects(c.query(`insert into roster_entry (batch_id, kind, mail, display_name) values ($1, 'student', 'tim@schule.example.org', 'Tim')`, [batch?.id]), (err: unknown) => sqlState(err) === '23514')
+
+    await refused('update import_batch set school_year = \'2027/28\' where id = $1', [batch?.id])
+    await refused('delete from import_batch where id = $1', [batch?.id])
+    await refused('update roster_entry set display_name = \'Sarah\' where id = $1', [entry?.id])
+    await refused('delete from roster_entry where id = $1', [entry?.id])
+    const { rows: [person] } = await c.query<{ id: string }>('insert into person default values returning id')
+    await c.query('update roster_entry set person_id = $2 where id = $1', [entry?.id, person?.id])
+    await refused('update roster_entry set person_id = null where id = $1', [entry?.id])
+    await c.query(`update import_batch set state = 'committed', decided_at = now(), decided_by = $2 where id = $1`, [batch?.id, user?.id])
+    await refused(`update import_batch set state = 'discarded' where id = $1`, [batch?.id])
+
+    const { rows: [binding] } = await c.query<{ id: string }>(
+      `insert into identity_binding (person_id, tid, oid, method, bound_by) values ($1, $2, $3, 'email_match', $4) returning id`, [person?.id, TID, OID, user?.id],
+    )
+    // One active binding per identity and per person.
+    await assert.rejects(c.query(`insert into identity_binding (person_id, tid, oid, method, bound_by) values ($1, $2, $3, 'admin', $4)`, [person?.id, TID, '0000000b-0000-4000-8000-00000000000b', user?.id]), (err: unknown) => sqlState(err) === SQLSTATE.uniqueViolation)
+    await refused('update identity_binding set method = \'admin\' where id = $1', [binding?.id])
+    await refused('delete from identity_binding where id = $1', [binding?.id])
+    await c.query('update identity_binding set unbound_at = now(), unbound_by = $2, unbind_reason = \'x\' where id = $1', [binding?.id, user?.id])
+    await refused('update identity_binding set unbound_at = null, unbound_by = null, unbind_reason = null where id = $1', [binding?.id])
+    // Closed, the identity and the person can be bound anew.
+    await c.query(`insert into identity_binding (person_id, tid, oid, method, bound_by) values ($1, $2, $3, 'admin', $4)`, [person?.id, TID, OID, user?.id])
+    for (const table of ['import_batch', 'roster_entry', 'identity_binding']) await refused(`truncate ${table} cascade`)
+  })
+})
+
 test('a database a newer release migrated is accepted by an older migrator (the rollback); a gap in known history is not', DB, async (t) => {
   const db = await createTestDatabase(t)
   const lines: string[] = []
   await withClient(db.ownerUrl, (c) => c.query(
-    'insert into schema_migrations (filename, sha256) values ($1, $2)', ['0002_from_the_future.sql', 'f'.repeat(64)],
+    'insert into schema_migrations (filename, sha256) values ($1, $2)', ['9999_from_the_future.sql', 'f'.repeat(64)],
   ))
   assert.deepEqual(await migrate({ databaseUrl: db.ownerUrl, runtimePassword: TEST_RUNTIME_PASSWORD, log: (line) => lines.push(line) }), [])
-  assert.ok(lines.some((line) => line.includes('0002_from_the_future.sql') && line.includes('newer release')), lines.join('\n'))
+  assert.ok(lines.some((line) => line.includes('9999_from_the_future.sql') && line.includes('newer release')), lines.join('\n'))
 
   await withClient(db.ownerUrl, (c) => c.query(
     'insert into schema_migrations (filename, sha256) values ($1, $2)', ['0000_before_the_baseline.sql', 'e'.repeat(64)],

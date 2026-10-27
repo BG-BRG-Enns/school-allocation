@@ -54,3 +54,16 @@ export function Literals<T extends string>(values: readonly T[]) {
 
 /** A lowercase or uppercase UUID, as PostgreSQL accepts it. */
 export const Uuid = Type.String({ pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' })
+
+/** Why a change was made, as the audit log records it. */
+export const Reason = SingleLineText(500)
+
+export const PersonKindSchema = Type.Union([Type.Literal('student'), Type.Literal('teacher')])
+
+/** The roster person behind an account, as the roster in force has them; `kind` null when it does not list them. */
+export const PersonSummary = StrictObject({
+  id: Type.String(),
+  kind: Type.Union([PersonKindSchema, Type.Null()]),
+  className: Type.Union([Type.String(), Type.Null()]),
+  grade: Type.Union([Type.Integer(), Type.Null()]),
+})
