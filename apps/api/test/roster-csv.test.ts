@@ -157,12 +157,19 @@ test('a batch that is not a roster is stored as rejected with the problems; a fi
   assert.equal((await send(h, anna, 'POST', `/api/admin/roster/batches/${rejected.body.id}/discard`)).status, 409)
   // Text PostgreSQL could not hold (NUL, a lone surrogate) is a row's problem, not a server error.
   const unholdable = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', {
-    csv: [HEADER, row(SARA.email, 'Sa\u0000ra Schülerin', '5A', '9', 'student'), row(TIM.email, 'Tim \uD800Schüler', '5A', '9', 'student')].join('\n'),
+    csv: [
+      HEADER,
+      row(SARA.email, 'Sa\u0000ra Schülerin', '5A', '9', 'student'),
+      row(TIM.email, 'Tim \uD800Schüler', '5A', '9', 'student'),
+      row('bernd\u0000@schule.example.org', BERND.name, '', '', 'teacher'),
+    ].join('\n'),
     schoolYear: '2026/27',
   })
   assert.equal(unholdable.status, 201, `${JSON.stringify(unholdable.body)}\n${h.logs()}`)
   assert.equal(unholdable.body.state, 'rejected')
-  assert.deepEqual(unholdable.body.problems.map((p) => p.code), ['invalid_name', 'invalid_name'])
+  assert.deepEqual(unholdable.body.problems.map((p) => [p.code, p.key]), [
+    ['invalid_name', SARA.email], ['invalid_name', TIM.email], ['invalid_address', 'bernd@schule.example.org'],
+  ])
 
   const invalid = await send<{ error: string, message: string }>(h, anna, 'POST', '/api/admin/roster/csv', { csv: 'name;phone\nA;1', schoolYear: '2026/27' })
   assert.equal(invalid.status, 422)

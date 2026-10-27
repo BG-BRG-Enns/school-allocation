@@ -99,11 +99,14 @@ export function parseRosterCsv(text: string): RosterCsvResult {
   const required: Column[] = ['given_name', 'family_name', 'class', 'grade', 'kind']
   for (const column of required) if (index(column) === -1) fileProblems.push({ code: 'missing_column', column })
   if (index('email') === -1 && index('upn') === -1) fileProblems.push({ code: 'missing_column', column: 'email' })
-  if (rows.length === 0) fileProblems.push({ code: 'empty' })
-  if (rows.length > CSV_LIMITS.rows) fileProblems.push({ code: 'too_many_rows' })
+  // A blank line, as a spreadsheet leaves at the end, is not a row; a file
+  // of blank lines holds nobody and is refused like one without lines.
+  const filled = rows.filter((row) => !isBlank(row))
+  if (filled.length === 0) fileProblems.push({ code: 'empty' })
+  if (filled.length > CSV_LIMITS.rows) fileProblems.push({ code: 'too_many_rows' })
   rows.forEach((row, i) => {
     const line = i + 2
-    if (row.length !== header.length && !(row.length === 1 && row[0] === '')) fileProblems.push({ code: 'field_count', line })
+    if (row.length !== header.length && !isBlank(row)) fileProblems.push({ code: 'field_count', line })
     if (row.some((field) => field.length > CSV_LIMITS.field)) fileProblems.push({ code: 'field_too_long', line })
   })
   if (fileProblems.length > 0) return { entries: [], fileProblems, problems: [] }
@@ -111,8 +114,7 @@ export function parseRosterCsv(text: string): RosterCsvResult {
   const entries: RosterEntry[] = []
   const problems: RosterProblem[] = []
   rows.forEach((row, i) => {
-    // A blank line, as a spreadsheet leaves at the end, is not a row.
-    if (row.length === 1 && row[0] === '') return
+    if (isBlank(row)) return
     const line = i + 2
     const field = (column: Column) => {
       const at = index(column)
@@ -145,6 +147,11 @@ export function parseRosterCsv(text: string): RosterCsvResult {
     entries.push(entry)
   })
   return { entries, fileProblems: [], problems }
+}
+
+/** A record with nothing in it: an empty line, or one of separators and spaces alone. */
+function isBlank(row: readonly string[]): boolean {
+  return row.every((field) => field.trim() === '')
 }
 
 interface ParsedCsv {

@@ -123,7 +123,7 @@ export async function entriesOf(db: Queryable, batchId: string): Promise<StoredE
  * Nothing about persons changes until the batch is committed.
  */
 export async function createBatch(db: Database, input: NewBatch): Promise<BatchDetail> {
-  const problems = [...(input.problems ?? []), ...checkRoster(input.entries)]
+  const problems = [...(input.problems ?? []), ...checkRoster(input.entries)].map(storableProblem)
   const warnings = input.warnings ?? []
   const hash = payloadHash([...input.entries].sort((a, b) => (rosterKey(a) ?? '').localeCompare(rosterKey(b) ?? '')))
   const id = await db.tx(async (client) => {
@@ -164,6 +164,18 @@ export async function createBatch(db: Database, input: NewBatch): Promise<BatchD
   const batch = await readBatch(db, id)
   if (!batch) throw new Error('the batch just written is gone')
   return batch
+}
+
+/**
+ * A problem as the batch's jsonb column holds it: its key, an address or
+ * an object id from the row, made well-formed and without U+0000, which
+ * jsonb refuses, and cut to an address's length. An address that needed
+ * this is the problem's own reason (invalid_address).
+ */
+function storableProblem(problem: RosterProblem): RosterProblem {
+  if (problem.key === undefined) return problem
+  const key = problem.key.toWellFormed().replaceAll('\0', '').slice(0, 254)
+  return key === '' ? { ...problem, key: undefined } : { ...problem, key }
 }
 
 /**

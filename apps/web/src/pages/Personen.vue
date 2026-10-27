@@ -60,8 +60,10 @@ async function findPersons(): Promise<void> {
   await action.run(async () => {
     // Bound persons stay in the list: a replacement account is bound to a
     // person whose old account is still bound, and the server closes that
-    // binding. The list says which account a person has now.
+    // binding. The list says which account a person has now. A choice the
+    // new search no longer shows is no choice.
     persons.value = (await searchPersons(personQuery.value.trim())).persons
+    if (!persons.value.some((person) => person.personId === chosenPerson.value)) chosenPerson.value = null
   })
 }
 

@@ -36,6 +36,9 @@ test('a file without the right header, with the wrong field count or a broken qu
   assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;kind\na@b.cd;A;B;5A;student').fileProblems, [{ code: 'missing_column', column: 'grade' }])
   assert.deepEqual(parseRosterCsv('given_name;family_name;class;grade;kind\nA;B;5A;9;student').fileProblems, [{ code: 'missing_column', column: 'email' }])
   assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\n').fileProblems, [{ code: 'empty' }])
+  // Blank lines, or lines of separators alone, hold nobody.
+  assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\n\n\n').fileProblems, [{ code: 'empty' }])
+  assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\r\n;;;;;\r\n').fileProblems, [{ code: 'empty' }])
   assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\na@b.cd;A;B;5A;9').fileProblems, [{ code: 'field_count', line: 2 }])
   assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\n"a@b.cd;A;B;5A;9;student').fileProblems, [{ code: 'malformed_quote', line: 2 }])
   assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\n"a@b.cd"x;A;B;5A;9;student').fileProblems, [{ code: 'malformed_quote', line: 2 }])
