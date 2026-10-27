@@ -140,8 +140,10 @@ test('an item past draft is withdrawn rather than removed, keeps its campaign an
     await c.query(`update catalog_item set state = 'draft', approved_at = null, approved_by = null where id = $1`, [item?.id])
     await refused('delete from catalog_item where id = $1', [item?.id])
     await refused('truncate catalog_item cascade')
-    // A withdrawn item needs the time and the person.
+    // A withdrawn item needs the time, the person and the reason.
     await assert.rejects(c.query(`update catalog_item set state = 'withdrawn' where id = $1`, [item?.id]), (err: unknown) => sqlState(err) === '23514')
+    await assert.rejects(c.query(`update catalog_item set state = 'withdrawn', withdrawn_at = now(), withdrawn_by = $2 where id = $1`, [item?.id, user?.id]), (err: unknown) => sqlState(err) === '23514')
+    await c.query(`update catalog_item set state = 'withdrawn', withdrawn_at = now(), withdrawn_by = $2, withdraw_reason = 'doppelt' where id = $1`, [item?.id, user?.id])
   })
   // The runtime role may add and change campaigns, not remove them.
   await withClient(db.runtimeUrl, async (c) => {

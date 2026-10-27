@@ -62,6 +62,8 @@ test('a campaign is visible by role and state; its settings change only while it
   assert.equal(created.status, 201)
   const id = created.body.id
   assert.equal((await send(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'x', schoolYear: '2026/27', projectDays: ['2027-06-21', '2027-06-21'] })).status, 422)
+  // A day the calendar does not have passes the shape and is refused here, not by the database.
+  assert.equal((await send<{ error: string }>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'x', schoolYear: '2026/27', projectDays: ['2027-02-31'] })).body.error, 'invalid_date')
   assert.equal((await send(s, s.bernd, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'x', schoolYear: '2026/27', projectDays: DAYS })).status, 403)
 
   // A draft is the organizers' alone.
@@ -209,7 +211,7 @@ test('an organizer\'s edit of their own item is recorded once it needs organizer
   const db = createDatabase(s.ownerUrl, () => {})
   t.after(() => db.close())
   const events = await readAudit(db, campaign.id)
-  assert.deepEqual(events.map((e) => e.action), ['campaign.transitioned', 'item.approved', 'item.changed', 'item.changed'])
+  assert.deepEqual(events.map((e) => e.action), ['campaign.transitioned', 'item.approved', 'item.changed', 'item.created', 'item.changed'])
 })
 
 test('a draft is deleted by its teacher, anything later is withdrawn by an organizer, and the catalogue is exported as a workbook', DB, async (t) => {

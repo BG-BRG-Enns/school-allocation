@@ -4,7 +4,7 @@
 // rank it and who, which classes are fixed into it, what it costs. The
 // rules are the server's (school-core); a refusal names them here.
 
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ApiError } from '../lib/api-rules.ts'
 import { createItem, loadCampaign, loadClasses, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
@@ -53,40 +53,48 @@ const sessions = ref<SessionForm[]>([])
 const grades = computed(() => [...new Set(classes.value.map((c) => c.grade))].sort((a, b) => a - b))
 const isFixed = computed(() => fixedClasses.value.length > 0)
 
-onMounted(() => loading.run(async () => {
-  const [view, found] = await Promise.all([loadCampaign(props.id), loadClasses(props.id)])
-  campaign.value = view.campaign
-  classes.value = found.classes
-  if (props.itemId) {
-    const item = (await loadItems(props.id)).items.find((i) => i.id === props.itemId)
-    if (!item) throw new ApiError(404, 'not_found')
-    existing.value = item
-    title.value = item.title
-    description.value = item.description
-    location.value = item.location
-    feeEuro.value = item.feeCents === 0 ? '' : (item.feeCents / 100).toFixed(2).replace('.', ',')
-    feeNote.value = item.feeNote
-    places.value = item.places
-    minParticipants.value = item.minParticipants
-    cancellableBelowMin.value = item.cancellableBelowMin
-    fixedClasses.value = [...item.fixedClasses]
-    eligibleGrades.value = [...item.eligibleGrades]
-    eligibleClasses.value = [...item.eligibleClasses]
-    teachers.value = [...item.teachers]
-    sessions.value = item.sessions.map((s) => ({
-      date: localDateOf(s.startsAt),
-      start: localTimeOf(s.startsAt),
-      endDate: localDateOf(s.endsAt),
-      end: localTimeOf(s.endsAt),
-      location: s.location,
-      credits: Object.fromEntries(s.credits.map((c) => [c.date, c.minutes])),
-    }))
-  } else {
-    const me = session.value
-    if (me?.person?.kind === 'teacher') teachers.value = [{ personId: me.person.id, displayName: me.displayName }]
-    addSession()
-  }
-}))
+/** The campaign, the roster's classes and, when editing, the item; again when the route names another. */
+async function load(): Promise<void> {
+  problems.value = []
+  sessions.value = []
+  await loading.run(async () => {
+    const [view, found] = await Promise.all([loadCampaign(props.id), loadClasses(props.id)])
+    campaign.value = view.campaign
+    classes.value = found.classes
+    if (props.itemId) {
+      const item = (await loadItems(props.id)).items.find((i) => i.id === props.itemId)
+      if (!item) throw new ApiError(404, 'not_found')
+      existing.value = item
+      title.value = item.title
+      description.value = item.description
+      location.value = item.location
+      feeEuro.value = item.feeCents === 0 ? '' : (item.feeCents / 100).toFixed(2).replace('.', ',')
+      feeNote.value = item.feeNote
+      places.value = item.places
+      minParticipants.value = item.minParticipants
+      cancellableBelowMin.value = item.cancellableBelowMin
+      fixedClasses.value = [...item.fixedClasses]
+      eligibleGrades.value = [...item.eligibleGrades]
+      eligibleClasses.value = [...item.eligibleClasses]
+      teachers.value = [...item.teachers]
+      sessions.value = item.sessions.map((s) => ({
+        date: localDateOf(s.startsAt),
+        start: localTimeOf(s.startsAt),
+        endDate: localDateOf(s.endsAt),
+        end: localTimeOf(s.endsAt),
+        location: s.location,
+        credits: Object.fromEntries(s.credits.map((c) => [c.date, c.minutes])),
+      }))
+    } else {
+      existing.value = null
+      const me = session.value
+      if (me?.person?.kind === 'teacher') teachers.value = [{ personId: me.person.id, displayName: me.displayName }]
+      addSession()
+    }
+  })
+}
+onMounted(load)
+watch(() => [props.id, props.itemId], load)
 
 function addSession(): void {
   const day = campaign.value?.projectDays[0] ?? ''

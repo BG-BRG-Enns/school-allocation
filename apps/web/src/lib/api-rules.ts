@@ -75,6 +75,7 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   invalid_item_transition: 'Dieser Schritt ist für die Aktivität nicht möglich.',
   transition_not_available: 'Dieser Schritt steht in dieser Version noch nicht zur Verfügung.',
   project_day_twice: 'Ein Projekttag ist zweimal eingetragen.',
+  invalid_date: 'Ein Datum gibt es im Kalender nicht.',
   sessions_outside_days: 'An den gestrichenen Tagen finden schon Termine statt. Bitte zuerst die betroffenen Aktivitäten ändern.',
   item_invalid: 'Die Aktivität entspricht nicht den Regeln. Bitte die Hinweise prüfen.',
 }

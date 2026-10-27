@@ -36,9 +36,11 @@ export const AUDIT_ACTIONS = [
   'campaign.created',
   'campaign.changed',
   'campaign.transitioned',
-  // An activity, in its campaign's scope: an organizer's review and an
-  // organizer's change to someone else's item. A teacher's own drafting is
-  // not privileged and not recorded here.
+  // An activity, in its campaign's scope: an organizer's review, and what
+  // an organizer does by that right alone (creating on behalf, changing an
+  // item past drafting). A teacher's own drafting is not privileged and not
+  // recorded here.
+  'item.created',
   'item.approved',
   'item.returned',
   'item.withdrawn',

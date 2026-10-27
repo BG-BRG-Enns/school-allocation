@@ -66,6 +66,7 @@ create table catalog_item (
   check ((approved_at is null) = (approved_by is null)),
   check ((withdrawn_at is null) = (withdrawn_by is null)),
   check ((state = 'withdrawn') = (withdrawn_at is not null)),
+  check (state <> 'withdrawn' or withdraw_reason is not null),
   check (state <> 'approved' or approved_at is not null)
 );
 create unique index catalog_item_number on catalog_item (campaign_id, number) where number is not null;

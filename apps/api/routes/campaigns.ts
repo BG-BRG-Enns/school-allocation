@@ -113,7 +113,7 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
     if (!campaign) return
     const caller = callerOf(request)
     if (!mayPropose(caller)) return reply.code(403).send({ error: 'forbidden' })
-    return refusals(reply, async () => reply.code(201).send(await createItem(db, campaign.id, itemInput(request.body, caller, true), actorOf(request))))
+    return refusals(reply, async () => reply.code(201).send(await createItem(db, campaign.id, itemInput(request.body, caller, true), caller)))
   })
 
   app.patch<{ Params: Static<typeof IdParams>, Body: Static<typeof ItemBody> }>('/api/items/:id', { ...signedIn, schema: itemSchema }, async (request, reply) => {
@@ -142,14 +142,14 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
   // Organizers.
 
   app.post<{ Body: Static<typeof CampaignBody> }>('/api/admin/campaigns', { ...organizer, schema: { body: CampaignBody, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
-    const days = uniqueSorted(request.body.projectDays)
-    if (days.length !== request.body.projectDays.length) return reply.code(422).send({ error: 'project_day_twice' })
+    const days = projectDays(request.body.projectDays)
+    if (typeof days === 'string') return reply.code(422).send({ error: days })
     return reply.code(201).send(await createCampaign(db, { ...request.body, projectDays: days }, actorOf(request)))
   })
 
   app.patch<{ Params: Static<typeof IdParams>, Body: Static<typeof CampaignChangesBody> }>('/api/admin/campaigns/:id', { ...organizer, schema: { params: IdParams, body: CampaignChangesBody, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
-    const days = uniqueSorted(request.body.projectDays)
-    if (days.length !== request.body.projectDays.length) return reply.code(422).send({ error: 'project_day_twice' })
+    const days = projectDays(request.body.projectDays)
+    if (typeof days === 'string') return reply.code(422).send({ error: days })
     return refusals(reply, async () => {
       const campaign = await updateCampaign(db, request.params.id, { ...request.body, projectDays: days }, actorOf(request))
       return campaign ?? reply.code(404).send({ error: 'not_found' })
@@ -243,6 +243,20 @@ function itemInput(body: Static<typeof ItemBody>, caller: Caller, creating: bool
 
 function uniqueSorted(values: readonly string[]): string[] {
   return [...new Set(values)].sort((a, b) => a.localeCompare(b, 'de'))
+}
+
+/**
+ * The project days as the campaign keeps them: calendar dates that exist
+ * (the schema checks the shape, not that 31 February is a day), each once,
+ * in order. Otherwise the error code to answer with.
+ */
+function projectDays(values: readonly string[]): string[] | 'invalid_date' | 'project_day_twice' {
+  for (const day of values) {
+    const ms = Date.parse(`${day}T00:00:00Z`)
+    if (!Number.isFinite(ms) || new Date(ms).toISOString().slice(0, 10) !== day) return 'invalid_date'
+  }
+  const days = [...new Set(values)].sort()
+  return days.length === values.length ? days : 'project_day_twice'
 }
 
 /** 403 for the wrong person, 404 for what is not there, 409 for a state that refuses, 422 for an activity that breaks the rules. */

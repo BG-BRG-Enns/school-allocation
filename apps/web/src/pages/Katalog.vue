@@ -4,7 +4,7 @@
 // The browser's print function makes the PDF; the page hides the shell
 // around it when printing.
 
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { loadCatalogue, type Campaign, type Item } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatFee, formatSpan } from '../lib/format.ts'
@@ -16,11 +16,15 @@ const items = ref<Item[]>([])
 const loading = useFeedback()
 usePageTitle(() => campaign.value ? `Katalog ${campaign.value.name}` : 'Katalog')
 
-onMounted(() => loading.run(async () => {
-  const result = await loadCatalogue(props.id)
-  campaign.value = result.campaign
-  items.value = result.items
-}))
+async function load(): Promise<void> {
+  await loading.run(async () => {
+    const result = await loadCatalogue(props.id)
+    campaign.value = result.campaign
+    items.value = result.items
+  })
+}
+onMounted(load)
+watch(() => props.id, load)
 
 function places(item: Item): string {
   if (item.fixedClasses.length === 0) return `${item.places} Plätze`
@@ -72,7 +76,7 @@ function who(item: Item): string {
       :key="item.id"
       class="catalogue-item"
     >
-      <h2>{{ item.number }} · {{ item.title }}</h2>
+      <h2>{{ item.number === null ? item.title : `${item.number} · ${item.title}` }}</h2>
       <p class="muted">
         {{ item.teachers.map((t) => t.displayName).join(', ') }}<template v-if="item.location">
           · {{ item.location }}

@@ -9,7 +9,7 @@ import { acceptsProposals, checkItem, itemTransition, type CampaignState, type C
 import { appendAudit, lockScope } from './audit.ts'
 import type { Caller } from './auth.ts'
 import type { Database, Queryable } from './db.ts'
-import { RosterConflict, type Actor } from './roster.ts'
+import { RosterConflict } from './roster.ts'
 import { datesOfSpan, instantOf } from './time.ts'
 
 export interface SessionInput {
@@ -96,8 +96,12 @@ async function validate(client: Queryable, campaignId: string, input: ItemInput)
   if (problems.length > 0 || unknownTeachers.length > 0) throw new ItemInvalid(problems, unknownTeachers)
 }
 
-/** Writes an activity as a draft; the campaign must be taking proposals. */
-export async function createItem(db: Database, campaignId: string, input: ItemInput, actor: Actor): Promise<Item> {
+/**
+ * Writes an activity as a draft; the campaign must be taking proposals. A
+ * teacher drafting their own is not recorded; someone who is no teacher of
+ * the roster creates by organizer right, on a teacher's behalf, and that is.
+ */
+export async function createItem(db: Database, campaignId: string, input: ItemInput, caller: Caller): Promise<Item> {
   const id = await db.tx(async (client) => {
     await lockScope(client, campaignId)
     const { rows: [campaign] } = await client.query<{ state: CampaignState }>('select state from campaign where id = $1 for update', [campaignId])
@@ -109,10 +113,13 @@ export async function createItem(db: Database, campaignId: string, input: ItemIn
                                  fixed_classes, eligible_grades, eligible_classes, proposed_by)
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id`,
       [campaignId, input.title, input.description, input.location, input.feeCents, input.feeNote, input.places, input.minParticipants, input.cancellableBelowMin,
-        input.fixedClasses, input.eligibleGrades, input.eligibleClasses, actor.id],
+        input.fixedClasses, input.eligibleGrades, input.eligibleClasses, caller.id],
     )
     if (!row) throw new Error('catalog_item insert returned no row')
     await writeParts(client, row.id, input)
+    if (caller.person?.kind !== 'teacher') {
+      await appendAudit(client, { scopeId: campaignId, actor: actorOf(caller), action: 'item.created', metadata: { itemId: row.id, teachers: input.teachers.length } })
+    }
     return row.id
   })
   return mustRead(db, id)
