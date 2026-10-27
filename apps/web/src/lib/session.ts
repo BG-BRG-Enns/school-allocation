@@ -7,10 +7,19 @@ import { computed, ref } from 'vue'
 import { apiGet, apiPost } from './api.ts'
 import { withBase } from './base.ts'
 
+/** The roster person behind the account; null until the roster knows the account, `kind` null when the roster in force does not list them. */
+export interface MePerson {
+  id: string
+  kind: 'student' | 'teacher' | null
+  className: string | null
+  grade: number | null
+}
+
 export interface Me {
   id: string
   displayName: string
   roles: string[]
+  person: MePerson | null
 }
 
 /** undefined until loaded; null when signed out. */

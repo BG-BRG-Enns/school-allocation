@@ -50,7 +50,24 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   invalid_transition: 'Dieser Schritt ist im aktuellen Zustand nicht möglich.',
   rate_limited: 'Zu viele Versuche. Bitte warten Sie einen Moment.',
   FST_ERR_VALIDATION: 'Die Eingabe ist unvollständig oder zu lang.',
+  FST_ERR_CTP_BODY_TOO_LARGE: 'Die Datei ist zu groß.',
   request_failed: 'Das hat nicht geklappt. Bitte versuchen Sie es noch einmal.',
+  // The roster
+  csv_invalid: 'Die Datei ist keine Personenliste im erwarteten Format. Bitte die Vorlage verwenden.',
+  invalid_school_year: 'Das Schuljahr wird als 2026/27 geschrieben.',
+  batch_not_pending: 'Über diesen Import wurde schon entschieden.',
+  batch_superseded: 'Seit diesem Import wurde ein anderer übernommen. Bitte noch einmal importieren.',
+  duplicate_group: 'Eine Gruppe ist zweimal eingetragen.',
+  group_label_incomplete: 'Eine Schülergruppe braucht Klasse und Schulstufe; eine Lehrkräftegruppe hat keine.',
+  no_groups: 'Es sind noch keine Entra-Gruppen eingetragen.',
+  // Accounts and roles
+  already_bound: 'Dieses Konto ist dieser Person schon zugeordnet.',
+  cannot_block_self: 'Sie können sich nicht selbst sperren.',
+  already_blocked: 'Dieses Konto ist schon gesperrt.',
+  not_blocked: 'Dieses Konto ist nicht gesperrt.',
+  already_granted: 'Diese Rolle hat die Person schon.',
+  already_revoked: 'Diese Rolle wurde schon entzogen.',
+  cannot_revoke_self: 'Sie können sich die Administration nicht selbst entziehen. Eine andere Administratorin oder ein anderer Administrator kann das.',
 }
 
 /**

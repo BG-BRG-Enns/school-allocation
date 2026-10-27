@@ -18,6 +18,8 @@ import { createDatabase } from '../../apps/api/lib/db.ts'
 import { createTestDatabase } from '../../apps/api/test/helpers/db.ts'
 import { SERVER_ENV } from '../../apps/api/test/helpers/env.ts'
 import { startFakeEntra } from '../../apps/api/test/helpers/fake-entra.ts'
+import { startFakeGraph } from '../../apps/api/test/helpers/fake-graph.ts'
+import { ANNA } from '../../apps/api/test/helpers/personas.ts'
 import { BASE_PATH } from '../support/base.ts'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -64,6 +66,9 @@ try {
   const testDb = await createTestDatabase(context)
   const entra = await startFakeEntra({ redirectUri: `${ORIGIN}${BASE_PATH}/api/auth/callback` })
   cleanups.push(() => entra.close())
+  // The stand-in for Graph, with the groups the journeys label and read.
+  const graph = await startFakeGraph(entra.issued)
+  cleanups.push(() => graph.close())
   const db = createDatabase(testDb.runtimeUrl, (err) => console.error('database client failed', err))
   cleanups.push(() => db.close())
   const config = loadConfig({
@@ -72,8 +77,10 @@ try {
     HOST: '127.0.0.1',
     PORT: String(PORT),
     WEB_DIST_DIR: path.join(ROOT, 'apps', 'web', 'dist'),
+    // Anna administers the school in the journeys.
+    BOOTSTRAP_ADMINS: ANNA.email ?? '',
   })
-  const app = await buildApp(config, { db, entraAuthority: entra.authority })
+  const app = await buildApp(config, { db, entraAuthority: entra.authority, graphBaseUrl: graph.baseUrl })
   cleanups.push(() => app.close())
   await app.listen({ host: '127.0.0.1', port: PORT })
   console.log(`e2e server ready at ${ORIGIN}${BASE_PATH} (database ${testDb.name}, sign-in stand-in at ${entra.authority})`)
