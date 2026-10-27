@@ -28,6 +28,17 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   audit_event: { table: ['SELECT', 'INSERT'] },
   // A job is started and finished; nothing else about it changes.
   job: { table: ['SELECT', 'INSERT'], updateColumns: ['finished_at', 'outcome'] },
+  // A person is an id that is created when a batch is committed; nothing
+  // about it changes and nobody is removed.
+  person: { table: ['SELECT', 'INSERT'] },
+  // A batch is written and decided; a trigger keeps the rest.
+  import_batch: { table: ['SELECT', 'INSERT'], updateColumns: ['state', 'decided_at', 'decided_by'] },
+  // The labelled groups are replaced as a whole by an administrator, audited.
+  roster_group: { table: ['SELECT', 'INSERT', 'UPDATE', 'DELETE'] },
+  // An entry is written with its batch and resolved to a person once.
+  roster_entry: { table: ['SELECT', 'INSERT'], updateColumns: ['person_id'] },
+  // A binding is made and closed, never changed otherwise or removed.
+  identity_binding: { table: ['SELECT', 'INSERT'], updateColumns: ['unbound_at', 'unbound_by', 'unbind_reason'] },
 }
 
 /** Functions the runtime role may execute, by their signature as PostgreSQL prints a regprocedure: argument types without spaces between them. */

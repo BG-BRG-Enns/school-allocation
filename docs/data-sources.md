@@ -42,16 +42,22 @@ Nothing else is imported, even if Graph returns more.
 ### A. Entra groups via Microsoft Graph
 
 1. The administrator enters the group IDs (or picks groups from a searchable list, if the school
-   grants `Group.Read.All`) and labels each group: **students** or **teachers**, and for student
-   groups the class name and grade.
-2. "Refresh roster" lists the members of each group and writes one `ImportBatch` with a diff against
-   the previous batch. Members are matched into persons by `oid`.
+   grants `Group.Read.All`; D-23) and labels each group: **students** or **teachers**, and for student
+   groups the class name and grade. The list is replaced as a whole and audited.
+2. "Refresh roster" sends the administrator to Microsoft to consent to the Graph permissions for this
+   one refresh; the callback reads the members of each labelled group with that token, writes one
+   `ImportBatch` with a diff against the roster in force, and forgets the token. Only users count as
+   members (nested groups and devices are skipped); only `id`, `displayName`, `mail` and
+   `userPrincipalName` are read. A member without an address is a warning on the batch.
 3. Two permission models (D-22, least privilege by default):
-   - **Delegated** (default): the refresh runs with the administrator's own Graph token, obtained
-     during the refresh action. Attributable, and the app holds no standing directory permission.
-     Automatic refresh at window opening is not possible; the organizer refreshes before opening.
-   - **Application** (`GroupMember.Read.All`), opt-in: the app may refresh on its own, e.g. when a
-     window opens. Needs admin consent.
+   - **Delegated** (default, implemented): the refresh runs with the administrator's own Graph token,
+     obtained during the refresh action, which the ID token of that authorization must attribute to
+     the signed-in administrator. Attributable, and the app holds no standing directory permission.
+     Automatic refresh at window opening is not possible; the organizer refreshes before opening. The
+     permissions asked for are the deployment's `GRAPH_DELEGATED_SCOPES`, `GroupMember.Read.All` unless
+     set.
+   - **Application** (`GroupMember.Read.All`), opt-in, not implemented yet: the app may refresh on its
+     own, e.g. when a window opens. Needs admin consent.
 
    Which user properties `GroupMember.Read.All` returns for members must be **verified on a test
    tenant**; if `mail` is missing, `User.ReadBasic.All` is the smallest addition.
@@ -61,18 +67,30 @@ Nothing else is imported, even if Graph returns more.
 ### B. CSV upload
 
 Columns: `email` (or `upn`), `given_name`, `family_name`, `class`, `grade`, `kind`, optionally
-`class_teacher_email`. The upload is validated, shown as a diff, and committed as an `ImportBatch`.
-Binding to the login happens at the first sign-in (`identity-and-roles.md` §4). The format is
-documented with a downloadable template.
+`class_teacher_email`; `kind` is `student` or `teacher`, in English or German. Comma or semicolon
+separated, as a spreadsheet saves it, with a downloadable template. The upload is parsed in the
+browser-independent core (so the same files are refused everywhere), stored as a pending
+`ImportBatch` with its diff, and committed by the administrator. Binding to the login happens at the
+first sign-in (`identity-and-roles.md` §4). The `class_teacher_email` column is kept on the entry;
+class-teacher assignment itself comes with attendance (S5).
 
 ### Common rules
 
 - Batches are **append-only** and carry: source, time, payload hash, row count, who triggered it,
-  school year, diff summary.
+  school year, diff summary, problems, warnings. A batch is **pending** until an administrator
+  **commits** it (it is the roster in force from then on) or **discards** it; a batch whose rows do
+  not form a roster is stored as **rejected**, with the problems, and can be neither.
+- A pending batch's diff was taken against the roster in force at that moment; once another batch
+  is committed, the pending one is stale and its commit is refused.
 - **Allocation always runs against one frozen batch.** Eligibility must not change under a running
   allocation.
-- A batch with the same `oid`/e-mail twice, or a person in both the student and teacher set, is
-  **rejected whole**.
+- A batch with the same `oid`/e-mail twice, a person in both the student and teacher set, one
+  address on two entries, or nobody in it at all is **rejected whole**.
+- Across batches, the same key is the same person; when the source changes and the key with it
+  (CSV to Graph, or back), an address only one previous entry carries identifies the person. When a
+  batch is committed, each entry is resolved to a person: the one bound to the member's object id,
+  the previous batch's entry with the same key or address, or a new one. A new person from Graph is
+  bound to their identity at once.
 
 ## 4. Conflicts and outages
 

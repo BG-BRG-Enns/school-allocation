@@ -1,11 +1,24 @@
 <script setup lang="ts">
-// Who the app takes the signed-in person for, and which roles they hold.
+// Who the app takes the signed-in person for: the roster person behind the
+// account, with class and grade, and the roles they hold.
 
-import { ROLE_LABELS } from '../lib/labels.ts'
+import { computed } from 'vue'
+import { KIND_LABELS, ROLE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
 usePageTitle(() => 'Mein Konto')
+
+const personText = computed(() => {
+  const person = session.value?.person
+  if (!person) return null
+  if (person.kind === null) return 'In der aktuellen Personenliste der Schule nicht (mehr) enthalten.'
+  const kind = KIND_LABELS[person.kind] ?? person.kind
+  if (person.kind === 'student' && person.className !== null) {
+    return `${kind}, Klasse ${person.className}${person.grade === null ? '' : ` (${person.grade}. Schulstufe)`}`
+  }
+  return kind
+})
 </script>
 
 <template>
@@ -13,6 +26,13 @@ usePageTitle(() => 'Mein Konto')
   <dl v-if="session">
     <dt>Name</dt>
     <dd>{{ session.displayName }}</dd>
+    <dt>An der Schule</dt>
+    <dd v-if="personText">
+      {{ personText }}
+    </dd>
+    <dd v-else>
+      Noch keiner Person der Schule zugeordnet. Wenn Sie an einer Wahl teilnehmen sollen, wenden Sie sich bitte an die Verwaltung.
+    </dd>
     <dt>Rollen</dt>
     <dd v-if="session.roles.length === 0">
       Keine besonderen Rollen.

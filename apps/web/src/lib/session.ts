@@ -7,10 +7,19 @@ import { computed, ref } from 'vue'
 import { apiGet, apiPost } from './api.ts'
 import { withBase } from './base.ts'
 
+/** The roster person behind the account; null until the roster knows the account, `kind` null when the roster in force does not list them. */
+export interface MePerson {
+  id: string
+  kind: 'student' | 'teacher' | null
+  className: string | null
+  grade: number | null
+}
+
 export interface Me {
   id: string
   displayName: string
   roles: string[]
+  person: MePerson | null
 }
 
 /** undefined until loaded; null when signed out. */
@@ -25,6 +34,9 @@ export async function loadSession(): Promise<Me | null> {
 
 export async function signOut(): Promise<void> {
   await apiPost('/api/auth/logout')
-  session.value = null
+  // A full navigation, which drops everything the page knew; the session
+  // is not cleared here first, since the shell would then send the router
+  // to the sign-in page while this navigation is still on its way, and the
+  // two would race.
   window.location.assign(withBase('/anmelden'))
 }

@@ -48,9 +48,19 @@ export interface PendingSignIn {
   startedAt: number
 }
 
+/** Between an administrator's start of a Graph roster refresh and its callback. */
+export interface PendingGraphRefresh {
+  /** Must come back inside the ID token of the authorization. */
+  nonce: string
+  /** The school year the batch is for. */
+  schoolYear: string
+  startedAt: number
+}
+
 export interface UserSessionData {
   user: SessionUser
   signIn: PendingSignIn
+  graphRefresh: PendingGraphRefresh
 }
 
 declare module 'fastify' {

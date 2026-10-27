@@ -21,12 +21,14 @@ import rateLimit from '@fastify/rate-limit'
 import { Type, type Static } from 'typebox'
 import type { Config } from '../config.ts'
 import { upsertAppUser } from '../lib/app-user.ts'
+import { lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { currentUser, loadCaller, withinSeconds } from '../lib/auth.ts'
+import { bindAtSignIn } from '../lib/bindings.ts'
 import type { Database } from '../lib/db.ts'
 import { registerEntra, SIGN_IN_SECONDS, SignInError } from '../lib/entra.ts'
 import { safeReturnTo } from '../lib/return-to.ts'
 import { bootstrapAdmin, ROLES } from '../lib/roles.ts'
-import { ErrorResponse, StrictObject } from '../lib/schemas/common.ts'
+import { ErrorResponse, PersonSummary, StrictObject } from '../lib/schemas/common.ts'
 
 export interface AuthRoutesOptions {
   config: Config
@@ -55,6 +57,8 @@ const MeResponse = StrictObject({
   id: Type.String(),
   displayName: Type.String(),
   roles: Type.Array(Type.Union(ROLES.map((role) => Type.Literal(role)))),
+  /** The roster person this account is bound to; null until the roster knows the account. */
+  person: Type.Union([PersonSummary, Type.Null()]),
 })
 
 // Starting and completing a sign-in is limited per client address: generous
@@ -110,11 +114,19 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
     } catch (err) {
       return refuse(request, reply, err)
     }
-    // The person is recorded, and a listed first administrator gets the
-    // role, in one transaction with the audit event of the grant.
+    // The person is recorded, a listed first administrator gets the role,
+    // and a CSV roster entry with this address is bound to the identity, in
+    // one transaction with the audit events of the grant and the binding.
+    // The school scope's lock comes first, before the person's row is
+    // touched: the administrative changes take it first too and then write
+    // app_user (a block), so the two never wait for each other.
     const user = await db.tx(async (client) => {
+      await lockScope(client, SCHOOL_SCOPE)
       const signedIn = await upsertAppUser(client, identity)
-      if (!signedIn.blocked) await bootstrapAdmin(client, { ...identity, id: signedIn.id }, config.bootstrapAdmins)
+      if (!signedIn.blocked) {
+        await bootstrapAdmin(client, { ...identity, id: signedIn.id }, config.bootstrapAdmins)
+        await bindAtSignIn(client, identity, signedIn.id, identity.displayName)
+      }
       return signedIn
     })
     if (user.blocked) {
@@ -144,7 +156,7 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
       if (user) request.userSession.delete()
       return reply.code(204).send()
     }
-    return { id: caller.id, displayName: caller.displayName, roles: caller.roles }
+    return { id: caller.id, displayName: caller.displayName, roles: caller.roles, person: caller.person }
   })
 }
 

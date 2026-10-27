@@ -238,17 +238,22 @@ Response:
 | Method and path | Role | Purpose |
 | --------------- | ---- | ------- |
 | `GET /api/auth/login`, `GET /api/auth/callback`, `POST /api/auth/logout` | — | Entra sign-in |
-| `GET /api/me` | any | Person, kind, roles, binding state |
+| `GET /api/auth/me` | any | Account, roles, and the bound person with kind, class and grade (null until bound) |
 | `GET /api/campaigns` | any | Campaigns visible to me |
 | `GET /api/campaigns/:id/catalogue` | any | Published catalogue (eligible items flagged for students) |
 | `GET /api/campaigns/:id/my-choice` · `PUT …/my-choice` | student | Fixed items, offered items, ranked list, completeness (whole-list replace) |
 | `GET /api/campaigns/:id/my-result` | student | Published assignment + explanation |
 | `POST /api/items` · `PATCH /api/items/:id` | teacher (own), organizer | Propose/edit activity and sessions; `mode` choosable (with eligibility) or fixed (with target classes) |
 | `POST /api/admin/campaigns` · `PATCH …/:id` · `POST …/:id/transition` | organizer | Campaign set-up and lifecycle |
-| `GET/PUT /api/admin/roster/groups` | admin | Label Entra groups (students/teachers, class, grade) |
-| `POST /api/admin/roster/graph/refresh` · `POST /api/admin/roster/csv` · `GET /api/admin/roster/batches/:id/diff` | admin | Roster import from Graph or CSV; diff view |
-| `PUT /api/admin/classes/:class/teachers` | admin, organizer | Assign class teachers |
-| `GET /api/admin/bindings/unmatched` · `POST /api/admin/bindings` | admin | Unmatched logins, audited bind/merge |
+| `GET /api/admin/roster` · `PUT /api/admin/roster/groups` | admin | The roster in force, recent batches; label Entra groups (students/teachers, class, grade) |
+| `GET /api/admin/roster/graph/start` · `GET …/graph/callback` | admin | Refresh from the labelled groups with the administrator's own Graph token (authorization-code flow, second redirect URI) |
+| `POST /api/admin/roster/csv` · `GET /api/admin/roster/csv/template` | admin | CSV upload (JSON body with the file's text), the template |
+| `GET /api/admin/roster/batches/:id` · `POST …/commit` · `POST …/discard` | admin | A batch with its diff, problems and warnings; the decision |
+| `GET /api/admin/roster/persons?q=` | admin | Persons of the roster in force, with their bound account |
+| `PUT /api/admin/classes/:class/teachers` | admin, organizer | Assign class teachers (S5) |
+| `GET /api/admin/users?q=&unbound=` · `POST /api/admin/users/:id/block` · `POST …/unblock` | admin | Accounts with person, roles and block state; the administrator's queue is `unbound=true`; block and unblock with a reason |
+| `POST /api/admin/bindings` | admin | Bind an account to a person (reason required); closes the previous bindings of both |
+| `GET /api/admin/roles` · `POST /api/admin/roles` · `POST /api/admin/roles/:id/revoke` | admin | School-wide grants (reason required); an administrator cannot revoke their own |
 | `PUT /api/admin/campaigns/:id/choices/:personId` | organizer | On-behalf entry (reason required) |
 | `POST /api/admin/campaigns/:id/preassignments/:personId/:itemId/exempt` | organizer | Exempt a student from a fixed class activity (reason required) |
 | `POST /api/admin/campaigns/:id/runs` · `GET …/runs/:runId` · `POST …/runs/:runId/publish` | organizer | Allocation |
@@ -257,7 +262,7 @@ Response:
 | `PUT /api/sessions/:id/attendance` | KV (own class), organizer; admin for WPF | Attendance |
 | `GET /api/admin/campaigns/:id/export/{choices,assignments,participants,missing,attendance}.xlsx` | organizer, auditor | Exports |
 | `GET /print/campaigns/:id/catalogue` | any | Printable catalogue (print CSS → PDF via browser) |
-| `GET /api/admin/audit?campaign=` | admin, auditor | Audit log + export |
+| `GET /api/admin/audit` | admin, auditor | The school scope's audit log (campaign scopes and export later) |
 | `GET /api/health` | — | Includes `busy` for the update gate |
 
 Reads are authorized per request: IDOR on reads is in scope. Status codes follow school-election: 401

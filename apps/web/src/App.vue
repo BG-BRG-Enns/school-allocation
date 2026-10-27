@@ -10,7 +10,7 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { signInUrl } from './lib/api-rules.ts'
 import { withBase } from './lib/base.ts'
-import { loadSession, session, signOut } from './lib/session.ts'
+import { isSchoolAdmin, loadSession, session, signOut } from './lib/session.ts'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,6 +51,12 @@ function onSignOut(): void {
         v-if="session"
         aria-label="Konto"
       >
+        <RouterLink
+          v-if="isSchoolAdmin"
+          to="/verwaltung"
+        >
+          Verwaltung
+        </RouterLink>
         <RouterLink
           to="/konto"
           class="who"

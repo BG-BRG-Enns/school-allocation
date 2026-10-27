@@ -5,6 +5,7 @@ import helmet from '@fastify/helmet'
 import fastifyStatic from '@fastify/static'
 import { CORE_VERSION } from '@school-allocation/school-core'
 import type { Config } from './config.ts'
+import { createGuards } from './lib/auth.ts'
 import type { Database } from './lib/db.ts'
 import { isBusy } from './lib/jobs.ts'
 import { ErrorResponse, HealthResponse } from './lib/schemas/common.ts'
@@ -12,6 +13,8 @@ import { pathOf } from './lib/url.ts'
 import { loadWebIndex, sendWebIndex } from './lib/web-index.ts'
 import { applyHardening } from './plugins/hardening.ts'
 import { registerSessions } from './plugins/session.ts'
+import { adminRosterRoutes } from './routes/admin-roster.ts'
+import { adminUsersRoutes } from './routes/admin-users.ts'
 import { authRoutes } from './routes/auth.ts'
 
 export interface AppOptions {
@@ -20,6 +23,8 @@ export interface AppOptions {
   logStream?: Writable
   /** Where Entra ID is reached. Tests point it at a local stand-in; it is not configurable. */
   entraAuthority?: string
+  /** Where Microsoft Graph is reached. Tests point it at a local stand-in; it is not configurable. */
+  graphBaseUrl?: string
   /** Called with every route as it is registered; tests list them. */
   onRoute?: (route: RouteOptions) => void
 }
@@ -104,7 +109,10 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   // Every route under the base path: at the root of a host there is none.
   const under = config.basePath === '' ? {} : { prefix: config.basePath }
   await registerSessions(app, config)
+  const guards = createGuards(db)
   await app.register(authRoutes, { config, db, entraAuthority: options.entraAuthority, ...under })
+  await app.register(adminRosterRoutes, { config, db, guards, entraAuthority: options.entraAuthority, graphBaseUrl: options.graphBaseUrl, ...under })
+  await app.register(adminUsersRoutes, { db, guards, ...under })
 
   // The health check also says whether a job is executing: the
   // deployment's nightly update asks it and stays away while one does

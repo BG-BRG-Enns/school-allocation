@@ -17,11 +17,24 @@
 //   409  allowed, but not in the campaign's current state.
 
 import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { PersonKind } from '@school-allocation/school-core'
 import { SESSION_SECONDS, type SessionUser } from '../plugins/session.ts'
 import type { Queryable } from './db.ts'
 import { isRole, type Role } from './roles.ts'
 
-/** The caller a guard let through: the identity and the school-wide roles held now. */
+/**
+ * The person of the roster the caller's identity is bound to, as the
+ * roster in force has them; `kind` null when the roster in force does not
+ * list them (any more).
+ */
+export interface CallerPerson {
+  id: string
+  kind: PersonKind | null
+  className: string | null
+  grade: number | null
+}
+
+/** The caller a guard let through: the identity, the school-wide roles held now, and the roster person. */
 export interface Caller {
   /** app_user.id */
   id: string
@@ -29,6 +42,8 @@ export interface Caller {
   oid: string
   displayName: string
   roles: Role[]
+  /** null until a roster entry is bound to this identity. */
+  person: CallerPerson | null
 }
 
 /** The signed-in caller as the cookie has it, or undefined. A session past its lifetime, or without a sign-in time, counts as none. */
@@ -58,21 +73,42 @@ export function callerOf(request: FastifyRequest): Caller {
 
 /**
  * The person behind a session as the database has them now, with their
- * school-wide roles; undefined when the row is gone or the person is
- * blocked, which ends the session.
+ * school-wide roles and their roster person; undefined when the row is gone
+ * or the person is blocked, which ends the session.
  */
+interface CallerRow {
+  tid: string
+  oid: string
+  display_name: string
+  blocked: boolean
+  roles: string[]
+  person_id: string | null
+  kind: PersonKind | null
+  class_name: string | null
+  grade: number | null
+}
+
 export async function loadCaller(db: Queryable, userId: string): Promise<Caller | undefined> {
-  const { rows: [row] } = await db.query<{ tid: string, oid: string, display_name: string, blocked: boolean, roles: string[] }>(
+  const { rows: [row] } = await db.query<CallerRow>(
     `select u.tid, u.oid, u.display_name, u.blocked_at is not null as blocked,
-            coalesce(array_agg(g.role order by g.role) filter (where g.role is not null), '{}') as roles
+            coalesce((select array_agg(g.role order by g.role) from role_grant g where g.user_id = u.id and g.campaign_id is null and g.revoked_at is null), '{}') as roles,
+            b.person_id, e.kind, e.class_name, e.grade
        from app_user u
-       left join role_grant g on g.user_id = u.id and g.campaign_id is null and g.revoked_at is null
-      where u.id = $1
-      group by u.id`,
+       left join identity_binding b on b.tid = u.tid and b.oid = u.oid and b.unbound_at is null
+       left join roster_entry e on e.person_id = b.person_id
+            and e.batch_id = (select id from import_batch where state = 'committed' order by decided_at desc limit 1)
+      where u.id = $1`,
     [userId],
   )
   if (!row || row.blocked) return undefined
-  return { id: userId, tid: row.tid, oid: row.oid, displayName: row.display_name, roles: row.roles.filter(isRole) }
+  return {
+    id: userId,
+    tid: row.tid,
+    oid: row.oid,
+    displayName: row.display_name,
+    roles: row.roles.filter(isRole),
+    person: row.person_id === null ? null : { id: row.person_id, kind: row.kind, className: row.class_name, grade: row.grade },
+  }
 }
 
 export interface Guards {
