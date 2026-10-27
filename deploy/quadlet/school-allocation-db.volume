@@ -1,0 +1,5 @@
+# The PostgreSQL data directory: choices, allocations and the audit log.
+# Back it up the way the host backs up its other services (README.md,
+# Backups).
+[Volume]
+VolumeName=school-allocation-db

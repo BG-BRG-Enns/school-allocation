@@ -1,0 +1,34 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Playwright's output and report (npm run e2e)
+test-results/
+playwright-report/
+
+# Local env + editor state
+.env
+.env.*
+!.env.example
+.secrets/
+.vscode/
+.idea/
+.DS_Store
+*.log
+tmp/
+
+# Deployment state that never belongs in git: the operator's .env and
+# secret files.
+/deploy/.env
+/deploy/secrets/
+
+# Full-page screenshots of the journeys (npm run e2e:screenshots): a quick
+# look at every step without clicking through the app, kept local because
+# each run rewrites them all.
+docs/anleitung/bilder/full-size/
+
+# The solver's local environment and Python caches.
+apps/solver/.venv/
+__pycache__/

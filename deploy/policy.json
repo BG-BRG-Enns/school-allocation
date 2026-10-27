@@ -1,0 +1,28 @@
+{
+  "default": [{ "type": "insecureAcceptAnything" }],
+  "transports": {
+    "docker": {
+      "ghcr.io/bg-brg-enns/school-allocation": [
+        {
+          "type": "sigstoreSigned",
+          "keyPath": "/home/allocation/school-allocation/cosign.pub",
+          "signedIdentity": { "type": "matchRepository" }
+        }
+      ],
+      "ghcr.io/bg-brg-enns/school-allocation-postgres": [
+        {
+          "type": "sigstoreSigned",
+          "keyPath": "/home/allocation/school-allocation/cosign.pub",
+          "signedIdentity": { "type": "matchRepository" }
+        }
+      ],
+      "ghcr.io/bg-brg-enns/school-allocation-solver": [
+        {
+          "type": "sigstoreSigned",
+          "keyPath": "/home/allocation/school-allocation/cosign.pub",
+          "signedIdentity": { "type": "matchRepository" }
+        }
+      ]
+    }
+  }
+}

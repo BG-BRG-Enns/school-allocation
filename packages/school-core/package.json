@@ -1,0 +1,15 @@
+{
+  "name": "@school-allocation/school-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure domain: campaign lifecycle, eligibility, time arithmetic, choice completeness, the allocation model and its validation. No I/O, no framework dependencies.",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  }
+}

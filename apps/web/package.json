@@ -1,0 +1,23 @@
+{
+  "name": "@school-allocation/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Student, teacher and organizer UI. Built to static files that the API serves.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p test/tsconfig.json"
+  },
+  "devDependencies": {
+    "@school-allocation/school-core": "0.1.0",
+    "@vitejs/plugin-vue": "6.0.10",
+    "vite": "8.3.5",
+    "vue": "3.5.44",
+    "vue-router": "5.4.0",
+    "vue-tsc": "3.3.13"
+  }
+}

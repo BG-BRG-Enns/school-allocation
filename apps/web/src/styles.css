@@ -1,0 +1,126 @@
+/* System fonts, no download: the content security policy allows this origin
+   only, and a font file is nothing the page needs. */
+:root {
+  --ink: #1b1f24;
+  --muted: #5a6470;
+  --line: #d9dee4;
+  --accent: #0b5cad;
+  --accent-ink: #ffffff;
+  --paper: #ffffff;
+  --ground: #f4f6f8;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.shell-header nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+.who {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.who:hover,
+.who:focus-visible {
+  text-decoration: underline;
+}
+
+.shell-main {
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin: 0 0 16px;
+}
+
+a {
+  color: var(--accent);
+}
+
+button,
+.button {
+  font: inherit;
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+button:focus-visible,
+.button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #ffbf47;
+  outline-offset: 2px;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 24px;
+}
+
+dt {
+  color: var(--muted);
+}
+
+dd {
+  margin: 0;
+}
+
+dd ul {
+  margin: 0;
+  padding-left: 20px;
+}

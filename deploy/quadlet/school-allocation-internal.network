@@ -1,0 +1,5 @@
+# The network the database and the solver sit on: no route off the host.
+# Quadlet creates it when a unit that names it starts.
+[Network]
+NetworkName=school-allocation-internal
+Internal=true
