@@ -70,7 +70,8 @@ test('a campaign is visible by role and state; its settings change only while it
   assert.deepEqual((await get<{ campaigns: Campaign[] }>(s, s.bernd, '/api/campaigns')).body.campaigns, [])
   assert.equal((await get<{ campaigns: Campaign[] }>(s, s.anna, '/api/campaigns')).body.campaigns.length, 1)
 
-  assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: 'Projektwoche Juni 2027', schoolYear: '2026/27', projectDays: DAYS.slice(0, 2) })).status, 200)
+  // The id in whatever case the URL carries it: the audit scope stays the stored one.
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id.toUpperCase()}`, { name: 'Projektwoche Juni 2027', schoolYear: '2026/27', projectDays: DAYS.slice(0, 2) })).status, 200)
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'published' })).status, 409, 'published does not follow draft')
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'open' })).status, 400, 'not a transition this release offers')
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'catalogue' })).status, 200)
@@ -87,6 +88,12 @@ test('a campaign is visible by role and state; its settings change only while it
   assert.equal(sara.status, 200)
   assert.equal(sara.body.may.propose, false)
   assert.equal((await get(s, undefined, `/api/campaigns/${id}`)).status, 401)
+
+  const db = createDatabase(s.ownerUrl, () => {})
+  t.after(() => db.close())
+  const events = await readAudit(db, id)
+  assert.deepEqual(events.map((e) => e.action), ['campaign.changed', 'campaign.transitioned', 'campaign.transitioned'])
+  assert.equal(verifyAuditChain(events).valid, true)
 })
 
 test('a teacher proposes within the rules, the organizer returns, approves and publishes, and the catalogue is numbered in print order', DB, async (t) => {
@@ -206,6 +213,9 @@ test('a draft is deleted by its teacher, anything later is withdrawn by an organ
   const a = await send<Item>(s, s.bernd, 'POST', url, { title: 'A', places: 10, teachers: [], sessions: [MONDAY] })
   const b = await send<Item>(s, s.bernd, 'POST', url, { title: 'B', places: 10, teachers: [], sessions: [MONDAY] })
   assert.equal((await send(s, s.carla, 'DELETE', `/api/items/${a.body.id}`)).status, 403)
+  // Drafting is the teachers' alone: an organizer neither removes nor proposes someone else's draft; she withdraws, audited.
+  assert.equal((await send(s, s.anna, 'DELETE', `/api/items/${a.body.id}`)).status, 403)
+  assert.equal((await send(s, s.anna, 'POST', `/api/items/${a.body.id}/propose`)).status, 403)
   assert.equal((await send(s, s.bernd, 'DELETE', `/api/items/${a.body.id}`)).status, 204)
   assert.equal((await get(s, s.bernd, `/api/items/${a.body.id}/propose`)).status, 404)
   assert.equal((await send(s, s.bernd, 'POST', `/api/items/${b.body.id}/propose`)).status, 200)

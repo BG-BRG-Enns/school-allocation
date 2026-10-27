@@ -393,7 +393,7 @@ async function save(propose: boolean): Promise<void> {
           <input
             type="checkbox"
             :checked="fixedClasses.includes(c.className)"
-            @change="fixedClasses = toggle(fixedClasses, c.className)"
+            @change="fixedClasses = toggle(fixedClasses, c.className); eligibleClasses = eligibleClasses.filter((name) => !fixedClasses.includes(name))"
           >
           {{ c.className }}
         </label>

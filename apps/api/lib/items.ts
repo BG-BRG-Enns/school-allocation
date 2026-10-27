@@ -156,12 +156,17 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
   return found ? readItem(db, id) : undefined
 }
 
-/** Removes a draft of the caller's own; anything else, and anything that was ever in a published catalogue (it has a number), is withdrawn, not removed. */
-export async function deleteDraft(db: Database, id: string, caller: Caller, organizer: boolean): Promise<boolean> {
+/**
+ * Removes a draft of the caller's own; anything else, and anything that was
+ * ever in a published catalogue (it has a number), is withdrawn, not
+ * removed. Drafting is its teachers' business alone: an organizer takes
+ * someone else's item out through the audited withdrawal.
+ */
+export async function deleteDraft(db: Database, id: string, caller: Caller): Promise<boolean> {
   return db.tx(async (client) => {
     const current = await lockedItem(client, id)
     if (!current) return false
-    if (!organizer && !isOwn(caller, current)) throw new RosterConflict('forbidden')
+    if (!isOwn(caller, current)) throw new RosterConflict('forbidden')
     if (current.state !== 'draft' || current.number !== null) throw new RosterConflict('item_state')
     await client.query('delete from catalog_item where id = $1', [id])
     return true
@@ -180,19 +185,17 @@ async function lockedItem(client: Queryable, id: string): Promise<Item | undefin
   return readItem(client, id)
 }
 
-/** A teacher proposes their draft; the campaign must be taking proposals. */
-export async function proposeItem(db: Database, id: string, caller: Caller, organizer: boolean): Promise<Item | undefined> {
-  return moveItem(db, id, 'proposed', caller, organizer, async (client, current, campaignState) => {
-    if (!organizer && !isOwn(caller, current)) throw new RosterConflict('forbidden')
+/** One of an item's teachers proposes their draft; the campaign must be taking proposals. Organizers propose their own items like anyone. */
+export async function proposeItem(db: Database, id: string, caller: Caller): Promise<Item | undefined> {
+  return moveItem(db, id, 'proposed', caller, false, async (client, current, campaignState) => {
     if (!acceptsProposals(campaignState)) throw new RosterConflict('campaign_state')
     await client.query('update catalog_item set state = $2, review_note = \'\', updated_at = now() where id = $1', [id, 'proposed'])
   })
 }
 
-/** A teacher takes their proposal back to draft. An organizer's return goes through returnItem. */
-export async function unproposeItem(db: Database, id: string, caller: Caller, organizer: boolean): Promise<Item | undefined> {
-  return moveItem(db, id, 'draft', caller, organizer, async (client, current, campaignState) => {
-    if (!organizer && !isOwn(caller, current)) throw new RosterConflict('forbidden')
+/** One of an item's teachers takes their proposal back to draft. An organizer's return goes through returnItem, with its note and audit event. */
+export async function unproposeItem(db: Database, id: string, caller: Caller): Promise<Item | undefined> {
+  return moveItem(db, id, 'draft', caller, false, async (client, current, campaignState) => {
     if (!acceptsProposals(campaignState)) throw new RosterConflict('campaign_state')
     if (current.state !== 'proposed') throw new RosterConflict('item_state')
     await client.query('update catalog_item set state = $2, updated_at = now() where id = $1', [id, 'draft'])

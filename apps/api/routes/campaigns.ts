@@ -124,19 +124,19 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
   app.delete<{ Params: Static<typeof IdParams> }>('/api/items/:id', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
     const caller = callerOf(request)
     return withItem(reply, request.params.id, caller, async () => {
-      if (!await deleteDraft(db, request.params.id, caller, isOrganizer(caller))) return undefined
+      if (!await deleteDraft(db, request.params.id, caller)) return undefined
       return 'deleted'
     }, 204)
   })
 
   app.post<{ Params: Static<typeof IdParams> }>('/api/items/:id/propose', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
     const caller = callerOf(request)
-    return withItem(reply, request.params.id, caller, () => proposeItem(db, request.params.id, caller, isOrganizer(caller)))
+    return withItem(reply, request.params.id, caller, () => proposeItem(db, request.params.id, caller))
   })
 
   app.post<{ Params: Static<typeof IdParams> }>('/api/items/:id/unpropose', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
     const caller = callerOf(request)
-    return withItem(reply, request.params.id, caller, () => unproposeItem(db, request.params.id, caller, isOrganizer(caller)))
+    return withItem(reply, request.params.id, caller, () => unproposeItem(db, request.params.id, caller))
   })
 
   // Organizers.

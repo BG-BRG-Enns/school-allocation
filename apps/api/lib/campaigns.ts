@@ -93,7 +93,8 @@ export async function createCampaign(db: Database, input: NewCampaign, actor: Ac
  * activity outside them: the activities were checked against the days they
  * were proposed for, and a published catalogue must still satisfy that.
  */
-export async function updateCampaign(db: Database, id: string, changes: CampaignChanges, actor: Actor): Promise<Campaign | undefined> {
+export async function updateCampaign(db: Database, rawId: string, changes: CampaignChanges, actor: Actor): Promise<Campaign | undefined> {
+  const id = canonicalId(rawId)
   const found = await db.tx(async (client) => {
     await lockScope(client, id)
     const { rows: [current] } = await client.query<{ state: CampaignState }>('select state from campaign where id = $1 for update', [id])
@@ -122,8 +123,9 @@ export async function updateCampaign(db: Database, id: string, changes: Campaign
  * approved items are numbered for print). The later states are refused
  * until the slice that gives them meaning.
  */
-export async function transitionCampaign(db: Database, id: string, to: CampaignState, actor: Actor): Promise<Campaign | undefined> {
+export async function transitionCampaign(db: Database, rawId: string, to: CampaignState, actor: Actor): Promise<Campaign | undefined> {
   if (!AVAILABLE_TRANSITIONS.includes(to)) throw new RosterConflict('transition_not_available')
+  const id = canonicalId(rawId)
   const found = await db.tx(async (client) => {
     await lockScope(client, id)
     const { rows: [current] } = await client.query<{ state: CampaignState }>('select state from campaign where id = $1 for update', [id])
@@ -223,4 +225,13 @@ function toCampaign(row: CampaignRow): Campaign {
 
 function auditActor(actor: Actor) {
   return { tid: actor.tid, oid: actor.oid, name: actor.name }
+}
+
+/**
+ * A campaign id as PostgreSQL stores it, in lower case. The id is the
+ * audit scope: it is hashed into every event and locked by its text, so
+ * the spelling a URL came with must not reach either.
+ */
+export function canonicalId(id: string): string {
+  return id.toLowerCase()
 }
