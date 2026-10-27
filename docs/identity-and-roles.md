@@ -36,11 +36,16 @@ The roster (who may take part, in which class) is imported into frozen batches; 
 
 Rules for both:
 
-- No fuzzy or name-based matching, ever.
-- A sign-in without a roster match lands in a "not assigned" state and appears in an administrator's
-  queue. The administrator can bind it to a roster entry, audited.
+- No fuzzy or name-based matching, ever. The address match binds only when exactly one unbound
+  person of the roster in force carries the address; two candidates bind nobody.
+- A sign-in without a roster match lands in a "not assigned" state (the account page says so) and
+  appears in the administrator's list of accounts without a person. The administrator binds it to a
+  person of the roster in force, with a reason, audited.
 - A roster entry whose person changed accounts (new `oid`) is re-attached by an administrator,
-  audited. The old binding is closed, not deleted.
+  audited. The old binding is closed, not deleted; so is the account's binding to another person, if
+  it had one.
+- A bound person who is missing from the roster in force keeps the binding and is shown as "not in
+  the current roster"; they take part in nothing until a batch lists them again.
 - The school ID number of the administration system is **not stored**. SchulWahl does not need it.
 
 ## 5. Kind and roles

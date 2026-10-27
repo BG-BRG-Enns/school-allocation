@@ -12,7 +12,18 @@ In the school's tenant, under **App registrations**:
 2. Under **Certificates & secrets**, a client secret. Note its value; it goes into `secrets/entra-client-secret` and nowhere else. Note the expiry and renew it before.
 3. From the overview page, the **Directory (tenant) ID** and **Application (client) ID**, for `.env`.
 4. No app roles and no API permissions are needed for sign-in. Optionally, under **Enterprise applications**, set **Assignment required** and assign the groups of all students and all teachers, so nobody outside those groups can sign in at all.
-5. For the roster import from class groups (a later release), the permission the app asks for is documented with that release.
+5. For the roster from Entra groups, see the next section. A school that uploads its roster as a CSV file needs nothing more.
+
+## Roster from Entra groups
+
+An administrator can read the school's roster from the class groups and the teachers' group in Entra. The app holds no directory permission of its own: the refresh runs with the administrator's own token, which Entra issues after they consent, for that one refresh, and which the app forgets afterwards. For that, the app registration needs:
+
+1. A second redirect URI, `PUBLIC_URL` followed by `/api/admin/roster/graph/callback`.
+2. Under **API permissions**, the **delegated** Microsoft Graph permission `GroupMember.Read.All`, with admin consent granted for the tenant (**Grant admin consent**), so that the administrator is not asked to consent to a permission only a tenant administrator may grant.
+
+If the member listing of your tenant returns no e-mail addresses with that permission alone (the batch then warns about members without an address), add the delegated permission `User.ReadBasic.All` and set `GRAPH_DELEGATED_SCOPES=GroupMember.Read.All,User.ReadBasic.All` in `.env`.
+
+In the app, under **Verwaltung → Stammdaten**, the administrator enters the groups' object ids and labels them (a class with its grade, or the teachers), then starts the refresh. The members become a pending batch with a diff against the roster in force, which the administrator commits or discards.
 
 ## Host
 
@@ -82,7 +93,7 @@ The app image runs as uid 10001, the app and the migrator alike, so the migrator
 
 ## Configuration
 
-`~/school-allocation/.env`, from `deploy/.env.example`: `PUBLIC_URL`, `TRUST_PROXY`, `LOG_LEVEL`, `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `BOOTSTRAP_ADMINS`. The app refuses to start with a missing or unsafe value and names it in the journal.
+`~/school-allocation/.env`, from `deploy/.env.example`: `PUBLIC_URL`, `TRUST_PROXY`, `LOG_LEVEL`, `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `BOOTSTRAP_ADMINS`, optionally `GRAPH_DELEGATED_SCOPES`. The app refuses to start with a missing or unsafe value and names it in the journal.
 
 `BOOTSTRAP_ADMINS` names the people who become school administrators at their first sign-in, by school address or Entra object id. Every further role is granted in the app and recorded in its audit log. Removing a name from the list revokes nothing; that is done in the app too.
 
