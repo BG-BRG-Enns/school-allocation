@@ -49,6 +49,32 @@ export {
 
 export { SCHOOL_YEAR, isSchoolYear, schoolYearOf } from './school-year.ts'
 
+export {
+  CATALOGUE_PROBLEM_CODES,
+  ITEM_STATES,
+  ITEM_TRANSITIONS,
+  LOCAL_DATE,
+  acceptsProposals,
+  checkItem,
+  creditedMinutesByDate,
+  isEligible,
+  isItemState,
+  isPreAssigned,
+  itemTransition,
+  overlaps,
+  type CatalogueProblem,
+  type CatalogueProblemCode,
+  type Credit,
+  type ItemContext,
+  type ItemInput,
+  type ItemRules,
+  type ItemState,
+  type ItemTransitionResult,
+  type SessionInput,
+  type Span,
+  type StudentOf,
+} from './catalogue.ts'
+
 /**
  * The version of the domain rules a stored result was computed with. Bumped
  * whenever a change here would give a different allocation or validation
