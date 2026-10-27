@@ -9,13 +9,13 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import type { AddressInfo } from 'node:net'
 import { ANNA, BERND, CARLA, SARA, TIM, type Person } from './personas.ts'
 
-/** A member as Graph lists it; `type` is the @odata.type, a user unless said otherwise. */
+/** A member as Graph lists it; `type` is the @odata.type, a user unless said otherwise, left out when null. */
 export interface FakeMember {
   id: string
   displayName?: string
   mail?: string
   userPrincipalName?: string
-  type?: string
+  type?: string | null
 }
 
 export interface FakeGraph {
@@ -65,11 +65,11 @@ export async function startFakeGraph(accepted: readonly string[], groups = defau
     if (!members) return json(response, 404, { error: { code: 'Request_ResourceNotFound' } })
     const skip = Number(url.searchParams.get('$skiptoken') ?? '0')
     const page = members.slice(skip, skip + graph.pageSize).map((member) => ({
-      '@odata.type': member.type ?? '#microsoft.graph.user',
-      'id': member.id,
-      'displayName': member.displayName ?? null,
-      'mail': member.mail ?? null,
-      'userPrincipalName': member.userPrincipalName ?? null,
+      ...(member.type === null ? {} : { '@odata.type': member.type ?? '#microsoft.graph.user' }),
+      id: member.id,
+      displayName: member.displayName ?? null,
+      mail: member.mail ?? null,
+      userPrincipalName: member.userPrincipalName ?? null,
     }))
     const body: Record<string, unknown> = { value: page }
     if (skip + graph.pageSize < members.length) {

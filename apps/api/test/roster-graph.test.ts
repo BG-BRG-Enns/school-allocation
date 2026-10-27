@@ -141,12 +141,25 @@ test('a member without an address is a warning, a member in two groups rejects t
   const anna = await signIn(h, ANNA)
   await send(h, anna, 'PUT', '/api/admin/roster/groups', { groups: GROUPS })
 
-  h.graph.groups.set(CLASS_5A_GROUP, [memberOf(SARA, { mail: undefined, userPrincipalName: undefined }), { id: 'not-a-guid', displayName: 'Device', type: '#microsoft.graph.device' }])
+  h.graph.groups.set(CLASS_5A_GROUP, [
+    memberOf(SARA, { mail: undefined, userPrincipalName: undefined }),
+    { id: '33333333-3333-4333-8333-333333333333', displayName: 'Device', type: '#microsoft.graph.device' },
+    { id: '44444444-4444-4444-8444-444444444444', displayName: 'Untyped', type: null },
+  ])
   const first = /import\/([0-9a-f-]+)$/.exec(await refresh(h, anna))?.[1]
   const batch = await get<BatchDetail>(h, anna, `/api/admin/roster/batches/${first}`)
   assert.equal(batch.body.state, 'pending')
   assert.deepEqual(batch.body.warnings, [{ code: 'no_address', key: SARA.oid }])
-  assert.equal(batch.body.diff.added.length, 4, 'the device is not a member of the roster')
+  assert.equal(batch.body.diff.added.length, 4, 'neither the device nor the untyped object is a member of the roster')
+
+  // Groups without a single user are not a roster: nobody is removed by accident.
+  h.graph.groups.set(CLASS_5A_GROUP, [])
+  h.graph.groups.set(TEACHERS_GROUP, [])
+  const nobody = /import\/([0-9a-f-]+)$/.exec(await refresh(h, anna))?.[1]
+  const empty = await get<BatchDetail>(h, anna, `/api/admin/roster/batches/${nobody}`)
+  assert.equal(empty.body.state, 'rejected')
+  assert.deepEqual(empty.body.problems, [{ code: 'empty_roster' }])
+  h.graph.groups.set(TEACHERS_GROUP, [memberOf(ANNA), memberOf(BERND), memberOf(CARLA)])
 
   h.graph.groups.set(CLASS_5A_GROUP, [memberOf(SARA), memberOf(BERND)])
   const where = await refresh(h, anna)
@@ -162,7 +175,7 @@ test('a member without an address is a warning, a member in two groups rejects t
   assert.equal(await refresh(h, anna), '/verwaltung/stammdaten?fehler=graph_failed')
   h.graph.failWith = undefined
   const batches = await get<{ batches: Batch[] }>(h, anna, '/api/admin/roster')
-  assert.deepEqual(batches.body.batches.map((b) => b.state), ['rejected', 'pending'])
+  assert.deepEqual(batches.body.batches.map((b) => b.state), ['rejected', 'rejected', 'pending'])
 })
 
 test('the Graph token must be the signed-in administrator\'s own, from a refresh this browser started', DB, async (t) => {

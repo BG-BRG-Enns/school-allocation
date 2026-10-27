@@ -38,6 +38,8 @@ test('a batch with the same person twice, as a student and a teacher, or with on
   assert.deepEqual(checkRoster([tim, { ...tim, oid: 'f0000000-0000-4000-8000-00000000000f' }]), [{ code: 'duplicate_address', key: 'f0000000-0000-4000-8000-00000000000f' }])
   // Entries without a key cannot be duplicates of each other; they are refused as keyless.
   assert.deepEqual(checkRoster([{ kind: 'teacher', displayName: 'A' }, { kind: 'teacher', displayName: 'B' }]), [{ code: 'no_key' }, { code: 'no_key' }])
+  // Nobody at all is not a roster either.
+  assert.deepEqual(checkRoster([]), [{ code: 'empty_roster' }])
 })
 
 test('the diff says who is new, who is gone and what changed, by key and not by name; the user principal name is not roster content', () => {

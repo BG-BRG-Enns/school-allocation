@@ -51,8 +51,19 @@ begin
     perform refuse('an import batch is kept, not removed');
     return null;
   end if;
+  -- What a stored batch must satisfy, whoever writes it: it is born pending
+  -- or rejected, and it is committed only once every entry has its person.
+  if tg_op = 'INSERT' then
+    if new.state not in ('pending', 'rejected') then
+      perform refuse('an import batch is written pending or rejected');
+    end if;
+    return new;
+  end if;
   if old.state <> 'pending' then
     perform refuse('a decided import batch does not change');
+  end if;
+  if new.state = 'committed' and exists (select 1 from roster_entry where batch_id = new.id and person_id is null) then
+    perform refuse('a committed import batch has every entry resolved to a person');
   end if;
   if new.source <> old.source or new.school_year <> old.school_year or new.fetched_at <> old.fetched_at
      or new.payload_sha256 <> old.payload_sha256 or new.row_count <> old.row_count or new.triggered_by <> old.triggered_by
@@ -63,7 +74,7 @@ begin
   return new;
 end
 $$;
-create trigger import_batch_guard before update or delete on import_batch
+create trigger import_batch_guard before insert or update or delete on import_batch
   for each row execute function import_batch_guard();
 create trigger import_batch_no_truncate before truncate on import_batch
   for each statement execute function import_batch_guard();

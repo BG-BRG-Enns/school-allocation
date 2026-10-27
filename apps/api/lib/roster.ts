@@ -268,6 +268,7 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
     )
 
     let created = 0
+    let bound = 0
     const taken = new Set<string>()
     for (const entry of entries) {
       let personId = entry.oid === null ? undefined : personByOid.get(entry.oid)
@@ -287,7 +288,10 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
       }
       // A member's identity is known now, whether the person is new or was
       // known by address or key alone; the binding makes the next sign-in
-      // find them without any matching.
+      // find them without any matching. The import's audit event counts
+      // these bindings, and each row names the batch that made it: the
+      // event per binding is written where a binding is an action of its
+      // own, at a sign-in or by an administrator (lib/bindings.ts).
       if (entry.oid !== null && !oidByPerson.has(personId)) {
         await client.query(
           `insert into identity_binding (person_id, tid, oid, method, bound_by, import_batch_id) values ($1, $2, $3, 'graph', $4, $5)`,
@@ -295,6 +299,7 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
         )
         personByOid.set(entry.oid, personId)
         oidByPerson.set(personId, entry.oid)
+        bound += 1
       }
       taken.add(personId)
       await client.query('update roster_entry set person_id = $2 where id = $1', [entry.id, personId])
@@ -304,7 +309,7 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
       scopeId: SCHOOL_SCOPE,
       actor: { tid: actor.tid, oid: actor.oid, name: actor.name },
       action: 'roster.imported',
-      metadata: { batchId, source: batch.source, schoolYear: batch.school_year, rowCount: batch.row_count, ...batch.diff_summary, personsCreated: created },
+      metadata: { batchId, source: batch.source, schoolYear: batch.school_year, rowCount: batch.row_count, ...batch.diff_summary, personsCreated: created, identitiesBound: bound },
     })
     return true
   })

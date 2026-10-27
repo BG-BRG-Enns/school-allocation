@@ -93,8 +93,9 @@ function text(value: unknown): string | null {
 /**
  * The entries of a batch from the members of the labelled groups: the
  * group's kind, class and grade, the member's object id, name and
- * addresses. Members that are not users (nested groups, devices) are left
- * out. A member in two groups becomes two entries with one key, which the
+ * addresses. Only members Graph marks as users are taken: nested groups,
+ * devices, and anything without the type annotation are left out. A member
+ * in two groups becomes two entries with one key, which the
  * batch check refuses, as designed. A member without an address is a
  * warning: the import goes through, notifications cannot reach them.
  */
@@ -103,7 +104,7 @@ export function membersToEntries(groups: readonly RosterGroup[], membersByGroup:
   const warnings: RosterWarning[] = []
   for (const group of groups) {
     for (const member of membersByGroup.get(group.groupId) ?? []) {
-      if (member.type !== undefined && member.type !== '#microsoft.graph.user') continue
+      if (member.type !== '#microsoft.graph.user') continue
       const oid = member.id.toLowerCase()
       if (!GUID.test(oid)) continue
       const entry: RosterEntry = {

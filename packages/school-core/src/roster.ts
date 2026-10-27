@@ -47,6 +47,8 @@ export function rosterKey(entry: Pick<RosterEntry, 'oid' | 'mail' | 'upn'>): str
 }
 
 export const ROSTER_PROBLEM_CODES = [
+  /** Nobody in the batch: committing it would remove everyone. */
+  'empty_roster',
   /** Neither an object id nor an address. */
   'no_key',
   /** The same person twice. */
@@ -107,6 +109,7 @@ export function checkEntry(entry: RosterEntry): RosterProblem[] {
  * is rejected whole). Empty when the batch may be stored.
  */
 export function checkRoster(entries: readonly RosterEntry[]): RosterProblem[] {
+  if (entries.length === 0) return [{ code: 'empty_roster' }]
   const problems = entries.flatMap(checkEntry)
   const kindsByKey = new Map<string, Set<PersonKind>>()
   const seen = new Set<string>()

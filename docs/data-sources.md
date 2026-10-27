@@ -84,8 +84,8 @@ class-teacher assignment itself comes with attendance (S5).
   is committed, the pending one is stale and its commit is refused.
 - **Allocation always runs against one frozen batch.** Eligibility must not change under a running
   allocation.
-- A batch with the same `oid`/e-mail twice, a person in both the student and teacher set, or one
-  address on two entries is **rejected whole**.
+- A batch with the same `oid`/e-mail twice, a person in both the student and teacher set, one
+  address on two entries, or nobody in it at all is **rejected whole**.
 - Across batches, the same key is the same person; when the source changes and the key with it
   (CSV to Graph, or back), an address only one previous entry carries identifies the person. When a
   batch is committed, each entry is resolved to a person: the one bound to the member's object id,

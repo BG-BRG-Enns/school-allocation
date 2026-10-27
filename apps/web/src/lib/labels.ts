@@ -30,6 +30,7 @@ export const BATCH_STATE_LABELS: Readonly<Record<string, string>> = {
 
 /** Why a batch or a row was refused (school-core ROSTER_PROBLEM_CODES). */
 export const PROBLEM_LABELS: Readonly<Record<string, string>> = {
+  empty_roster: 'Die Liste enthält niemanden',
   no_key: 'Weder Objekt-ID noch E-Mail-Adresse',
   duplicate_key: 'Dieselbe Person kommt zweimal vor',
   duplicate_address: 'Dieselbe E-Mail-Adresse bei zwei Personen',

@@ -94,6 +94,9 @@ test('a batch is decided once, an entry is resolved once, a binding is closed an
     await refused('delete from import_batch where id = $1', [batch?.id])
     await refused('update roster_entry set display_name = \'Sarah\' where id = $1', [entry?.id])
     await refused('delete from roster_entry where id = $1', [entry?.id])
+    // A batch is born pending or rejected, and is committed only once every entry has its person.
+    await refused(`insert into import_batch (source, state, school_year, payload_sha256, row_count, triggered_by, diff_summary, decided_at, decided_by) values ('csv', 'committed', '2026/27', repeat('b', 64), 0, $1, '{}', now(), $1)`, [user?.id])
+    await refused(`update import_batch set state = 'committed', decided_at = now(), decided_by = $2 where id = $1`, [batch?.id, user?.id])
     const { rows: [person] } = await c.query<{ id: string }>('insert into person default values returning id')
     await c.query('update roster_entry set person_id = $2 where id = $1', [entry?.id, person?.id])
     await refused('update roster_entry set person_id = null where id = $1', [entry?.id])
