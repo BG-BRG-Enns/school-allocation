@@ -13,6 +13,7 @@ import Import from './pages/Import.vue'
 import Katalog from './pages/Katalog.vue'
 import Klasse from './pages/Klasse.vue'
 import Klassen from './pages/Klassen.vue'
+import Mailvorlagen from './pages/Mailvorlagen.vue'
 import Personen from './pages/Personen.vue'
 import SignIn from './pages/SignIn.vue'
 import Stammdaten from './pages/Stammdaten.vue'
@@ -20,6 +21,7 @@ import Start from './pages/Start.vue'
 import Verwaltung from './pages/Verwaltung.vue'
 import Wahl from './pages/Wahl.vue'
 import Wahlen from './pages/Wahlen.vue'
+import Wuensche from './pages/Wuensche.vue'
 import Zeiten from './pages/Zeiten.vue'
 
 export const router = createRouter({
@@ -34,11 +36,14 @@ export const router = createRouter({
     { path: '/wahlen/:id/aktivitaet/neu', component: Aktivitaet, props: true },
     { path: '/wahlen/:id/aktivitaet/:itemId', component: Aktivitaet, props: true },
     { path: '/wahlen/:id/klasse/:className', component: Klasse, props: true },
+    { path: '/wahlen/:id/wuensche', component: Wuensche, props: true },
+    { path: '/wahlen/:id/wuensche/:personId', component: Wuensche, props: true },
     { path: '/verwaltung', component: Verwaltung },
     { path: '/verwaltung/stammdaten', component: Stammdaten },
     { path: '/verwaltung/stammdaten/import/:id', component: Import, props: true },
     { path: '/verwaltung/personen', component: Personen },
     { path: '/verwaltung/klassen', component: Klassen },
     { path: '/verwaltung/zeiten', component: Zeiten },
+    { path: '/verwaltung/mailvorlagen', component: Mailvorlagen },
   ],
 })

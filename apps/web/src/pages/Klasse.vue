@@ -7,7 +7,7 @@ import { onMounted, ref, watch } from 'vue'
 import { loadCampaign, loadClassStatus, type Campaign, type ClassStatus } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatSpan } from '../lib/format.ts'
-import { ITEM_STATE_LABELS } from '../lib/labels.ts'
+import { CHOICE_STATE_LABELS, ITEM_STATE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string, className: string }>()
@@ -69,7 +69,10 @@ watch(() => [props.id, props.className], load)
     </section>
     <section>
       <h2>Schüler/innen ({{ status.students.length }})</h2>
-      <p class="muted">
+      <p
+        v-if="status.students.every((s) => s.choice === null)"
+        class="muted"
+      >
         Wer schon gewählt hat, zeigt diese Seite, sobald die Wahl läuft.
       </p>
       <ul>
@@ -78,6 +81,10 @@ watch(() => [props.id, props.className], load)
           :key="s.personId"
         >
           {{ s.displayName }}
+          <span
+            v-if="s.choice !== null"
+            :class="['badge', s.choice === 'complete' ? 'badge-approved' : 'badge-proposed']"
+          >{{ CHOICE_STATE_LABELS[s.choice] ?? s.choice }}</span>
         </li>
       </ul>
     </section>

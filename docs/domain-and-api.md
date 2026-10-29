@@ -27,7 +27,10 @@ Status: proposal for review · 2026-10-27 · revised 2026-10-29 for the decision
 | `AllocationRun` | `id`, `campaign_id`, `snapshot_sha256`, `seed`, `core_version`, `solver_version`, `ortools_version`, `status`, `levels[]` (value, proven), `started_by`, `published_at?` | Many per campaign, at most one published |
 | `Assignment` | `run_id`, `person_id`, `item_id`, `source` (`fixed` / `solver` / `fallback` / `swap` / `manual`) | Fixed rows are copied from the pre-assignments; `fallback` is a placement into a fee-free item outside the student's wishes (D-06); `swap` a student's own move in the swap window; manual rows reference a reason |
 | `Attendance` | `session_id`, `person_id`, `status`, `recorded_by` | Separate from assignments |
-| `OutboxMail` | `id`, `kind`, `campaign_id`, `person_id`, `dedupe_key` (unique), `state` (`queued` / `sent` / `failed`), `message_id`, `attempts`, `last_error` | Unique `dedupe_key` (e.g. `missed:<campaign>:<person>`) prevents double notices |
+| `OutboxMail` | `id`, `kind`, `campaign_id?`, `person_id?`, `to_address`, `subject`, `body`, `dedupe_key` (unique), `state` (`queued` / `sending` / `sent` / `failed`), `attempts`, `next_attempt_at`, `detail`, `message_id`, `sent_at` | Written in the triggering transaction; the unique `dedupe_key` (e.g. `choice_reminder:<campaign>:<person>:reminder:<close>`) prevents double notices; rows stay as the record of what was sent |
+| `MailTemplate` | `kind` (one of `choice_invitation`, `choice_reminder`, `grace_invitation`, `grace_reminder`, `missed_deadline`, `class_missing`), `subject`, `body`, `updated_by` | Seeded with the product's German defaults, edited by the organizer; placeholders in `{{…}}` checked against the kind's list at save |
+| `PreAssignment` | `campaign_id`, `item_id`, `person_id`, `source` (`class` / `manual`), `exempted_at?`, `exempted_by?`, `exempt_reason?` | Materialized from `fixed_classes` when the window opens; exempted by an organizer, audited, never removed |
+| `Choice` | `campaign_id`, `person_id`, `ranking` (group key → item ids in order), `saved_in` (`first` / `late`), `version`, `entered_by` | Whole-list replace; every save appends a `ChoiceRevision` (with `reason` when entered on behalf) |
 | `RoleGrant` | `person_id`, `role`, `scope` (school / campaign), `granted_by`, `revoked_at` | Privileged roles |
 | `AuditEvent` | hash-chained per campaign, allow-listed actions with typed metadata | Pattern from school-election |
 
@@ -293,6 +296,8 @@ Response:
 | `GET /api/admin/roster/graph/start` · `GET …/graph/callback` | admin | Refresh from the labelled groups with the administrator's own Graph token (authorization-code flow, second redirect URI) |
 | `GET /api/admin/roster/graph/groups?q=` | admin | The tenant's groups by name, for the picker (D-23; `Group.Read.All` delegated, same token flow); `?classes=true` every group whose name is a class ("5A"), the whole school in one search |
 | `GET /api/admin/settings/periods` · `PUT …/periods` | admin | The school's period grid (D-25) |
+| `GET /api/admin/mail-templates` · `PUT …/:kind` · `POST …/:kind/test` · `GET /api/admin/mail/status` | organizer | The notices' texts, checked against the kind's placeholders at save (audited); a test mail with sample values to the caller's own address through the real outbox; whether mail is set up and what waits |
+| `GET /api/admin/campaigns/:id/missing` · `GET …/export/missing.xlsx` · `GET …/mail` | organizer, auditor | Every student with the state of their list and the notices sent to them; the campaign's outbox as a protocol (texts left out) |
 | `POST /api/admin/purge` | admin | Delete the records of a school year past their retention (D-15); reason required, audited, nothing automatic |
 | `POST /api/admin/roster/csv` · `GET /api/admin/roster/csv/template` | admin | CSV upload (JSON body with the file's text), the template |
 | `GET /api/admin/roster/batches/:id` · `POST …/commit` · `POST …/discard` | admin | A batch with its diff, problems and warnings; the decision |

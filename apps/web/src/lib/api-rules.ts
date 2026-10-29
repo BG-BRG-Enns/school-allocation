@@ -89,6 +89,13 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   graph_not_authorized: 'Für die Gruppensuche ist eine Anmeldung bei Microsoft nötig.',
   graph_forbidden: 'Microsoft Graph verweigert das Lesen der Gruppen. Fehlt die Berechtigung oder die Zustimmung der IT?',
   graph_failed: 'Microsoft Graph hat nicht geantwortet. Bitte später noch einmal versuchen.',
+  // The window and mail
+  not_a_student: 'Nur Schüler/innen der Personenliste wählen.',
+  ranking_invalid: 'Die Wünsche entsprechen nicht den Regeln. Bitte die Hinweise prüfen.',
+  already_exempted: 'Diese Befreiung gibt es schon.',
+  mail_off: 'Der Mailversand ist auf diesem Server nicht eingerichtet.',
+  no_address: 'Ihr Konto hat keine E-Mail-Adresse, an die eine Testmail gehen könnte.',
+  template_invalid: 'Die Vorlage entspricht nicht den Regeln. Bitte die Hinweise prüfen.',
 }
 
 /**
