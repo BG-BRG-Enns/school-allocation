@@ -14,7 +14,7 @@ import { createDatabase } from '../lib/db.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
 import { startFakeSolver } from './helpers/fake-solver.ts'
 import { DB, get, send } from './helpers/harness.ts'
-import { BERND, CARLA, SARA, TIM } from './helpers/personas.ts'
+import { ANNA, BERND, CARLA, SARA, TIM } from './helpers/personas.ts'
 import { school, type View } from './helpers/school.ts'
 
 test('a run is published with its cancellations confirmed: results, notices once, the student\'s result, the participants, the class, the workbook; the refusals', DB, async (t) => {
@@ -67,6 +67,7 @@ test('a run is published with its cancellations confirmed: results, notices once
   const saraMail = mails.rows.find((m) => m.to_address === SARA.email)
   assert.match(saraMail?.body ?? '', /Tanz/)
   assert.match(saraMail?.body ?? '', /Wien \(Klasse\)/)
+  assert.match(saraMail?.body ?? '', /Di\., 22\.06\. 08:00 – 18:00: .*Wien/, 'one day: the clock span alone')
   assert.match(saraMail?.body ?? '', /tauschen/i)
   assert.match(mails.rows[0]?.body ?? '', /Darts/)
   assert.doesNotMatch(mails.rows.map((m) => m.to_address).join(), new RegExp(CARLA.email ?? 'nobody'))
@@ -90,6 +91,28 @@ test('a run is published with its cancellations confirmed: results, notices once
   const carla = await (await import('./helpers/harness.ts')).signIn(s, CARLA)
   assert.equal((await get(s, carla, `/api/campaigns/${id}/items/${s.items.wien}/participants`)).status, 403)
   assert.equal((await get(s, s.sara, `/api/campaigns/${id}/items/${s.items.wien}/participants`)).status, 403)
+  // Bernd out of the roster in force (a new batch without him): his binding and his item stay, his right to the participants does not.
+  const roster = (teachers: string[]) => [
+    'email;given_name;family_name;class;grade;kind;class_teacher_email',
+    `${SARA.email};Sara;Schülerin;5A;9;student;${CARLA.email}`, `${TIM.email};Tim;Schüler;5A;9;student;${CARLA.email}`,
+    ...teachers,
+  ].join('\n')
+  const commit = async (csv: string) => {
+    const batch = await send<{ id: string }>(s, s.anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })
+    assert.equal((await send(s, s.anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)).status, 200)
+  }
+  await commit(roster([`${ANNA.email};Anna;Lehrerin;;;teacher;`, `${CARLA.email};Carla;Kollegin;;;teacher;`]))
+  assert.equal((await get(s, s.bernd, `/api/campaigns/${id}/items/${s.items.wien}/participants`)).status, 403, 'a teacher of the item, but no teacher of the roster')
+  await commit(roster([`${ANNA.email};Anna;Lehrerin;;;teacher;`, `${BERND.email};Bernd;Lehrer;;;teacher;`, `${CARLA.email};Carla;Kollegin;;;teacher;`]))
+  assert.equal((await get(s, s.bernd, `/api/campaigns/${id}/items/${s.items.wien}/participants`)).status, 200)
+  assert.equal((await get(s, s.anna, `/api/admin/campaigns/00000000-0000-4000-8000-000000000000/export/assignments.xlsx`)).status, 404, 'an unknown campaign, not an unpublished one')
+  // Tanz withdrawn after publication: Sara's result still names it, with its fee.
+  await owner.query('update catalog_item set fee_cents = 500 where id = $1', [s.items.tanz])
+  await owner.query('update catalog_item set state = \'withdrawn\', withdrawn_at = now(), withdrawn_by = (select id from app_user limit 1), withdraw_reason = \'Test\' where id = $1', [s.items.tanz])
+  const after = await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)
+  assert.deepEqual(after.body.items.map((i) => i.title).sort(), ['Tanz', 'Wien'])
+  assert.equal(after.body.feeCents, 500)
+  assert.equal((await get<ParticipantsResponse>(s, s.anna, `/api/campaigns/${id}/items/${s.items.tanz}/participants`)).status, 200)
 
   // The class page carries the places now.
   const status = await get<{ students: { displayName: string, placement: { items: { title: string }[], deficit: number } | null }[] }>(s, carla, `/api/campaigns/${id}/classes/5A/status`)

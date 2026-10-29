@@ -10,6 +10,7 @@ import type { Actor, Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
 import * as store from '../lib/dao/allocation.ts'
 import { lockedCampaign, readCampaign, updateState } from '../lib/dao/campaigns.ts'
+import { listCampaignItems } from '../lib/dao/items.ts'
 import { campaignStudents } from '../lib/dao/choices.ts'
 import { classTeachersByClass } from '../lib/dao/window.ts'
 import type { Database, Queryable } from '../lib/db.ts'
@@ -20,7 +21,7 @@ import type { Campaign } from '../lib/models/campaigns.ts'
 import type { CampaignStudent } from '../lib/models/choices.ts'
 import type { Item } from '../lib/models/items.ts'
 import type { WindowContext } from '../lib/models/window.ts'
-import { isOrganizer, isOwn, withoutTeachers } from '../lib/policies.ts'
+import { isOrganizer, isOwn, isTeacher, withoutTeachers } from '../lib/policies.ts'
 import { SCHOOL_TIME_ZONE } from '../lib/time.ts'
 import { runReview, snapshotHash, snapshotOf } from './allocation.ts'
 import { catalogueItems } from './items.ts'
@@ -34,7 +35,14 @@ const same = (a: readonly string[], b: readonly string[]) => [...new Set(a)].sor
 
 /** The item as a line of a student's programme: its number and title, the day and the clock span of each session. */
 function programmeLine(item: Item, source: Assignment['source']): string {
-  const when = item.sessions.map((s) => `${dayShort.format(new Date(s.startsAt))} ${clock.format(new Date(s.startsAt))} – ${clock.format(new Date(s.endsAt))}`).join(', ')
+  const when = item.sessions.map((s) => {
+    const start = new Date(s.startsAt)
+    const end = new Date(s.endsAt)
+    // A trip over the night names both days.
+    return dayShort.format(start) === dayShort.format(end)
+      ? `${dayShort.format(start)} ${clock.format(start)} – ${clock.format(end)}`
+      : `${dayShort.format(start)} ${clock.format(start)} – ${dayShort.format(end)} ${clock.format(end)}`
+  }).join(', ')
   const title = item.number === null ? item.title : `${item.number}. ${item.title}`
   return `${when}: ${title}${source === 'fixed' ? ' (Klasse)' : ''}${item.feeCents > 0 ? ` – Beitrag ${(item.feeCents / 100).toFixed(2).replace('.', ',')} €` : ''}`
 }
@@ -133,10 +141,10 @@ async function notifyPublication(client: Queryable, context: WindowContext, camp
 
 /** The campaign with its published run; `not_published` before publication. */
 export async function requirePublished(db: Queryable, campaignId: string): Promise<{ campaign: Campaign, run: StoredRun }> {
-  const run = await store.readPublishedRun(db, campaignId)
-  if (!run) throw new ApplicationError('not_published')
   const campaign = await readCampaign(db, campaignId)
   if (!campaign) throw new ApplicationError('not_found')
+  const run = await store.readPublishedRun(db, campaignId)
+  if (!run) throw new ApplicationError('not_published')
   return { campaign, run }
 }
 
@@ -148,7 +156,8 @@ export async function myResult(db: Database, campaign: Campaign, caller: Caller)
   const rows = (await store.listAssignments(db, run.id)).filter((r) => r.personId === personId)
   const explanation = explainStudent(run.snapshot, rows, personId)
   if (!explanation) throw new ApplicationError('not_found')
-  const items = (await catalogueItems(db, campaign.id)).filter((item) => rows.some((r) => r.itemId === item.id))
+  // Every item the campaign had: one withdrawn since publication still names a place given, and its fee stays owed.
+  const items = (await listCampaignItems(db, campaign.id)).filter((item) => rows.some((r) => r.itemId === item.id))
   return {
     campaign,
     run: { seq: run.seq, seed: run.seed, publishedAt: run.publishedAt ?? '' },
@@ -161,10 +170,11 @@ export async function myResult(db: Database, campaign: Campaign, caller: Caller)
 
 /** The participants of an item in the published run: the organizer's and the auditor's always, a teacher's for their own item. */
 export async function participants(db: Database, campaign: Campaign, caller: Caller, itemId: string) {
-  const items = await catalogueItems(db, campaign.id)
+  const items = await listCampaignItems(db, campaign.id)
   const item = items.find((i) => i.id === itemId.toLowerCase())
   if (!item) throw new ApplicationError('not_found')
-  if (!isOrganizer(caller) && !caller.roles.includes('read_only_auditor') && !isOwn(caller, item)) throw new ApplicationError('forbidden')
+  // A teacher of the item who is a teacher of the roster now: a binding outlives the roster, a proposer's account its role.
+  if (!isOrganizer(caller) && !caller.roles.includes('read_only_auditor') && !(isTeacher(caller) && isOwn(caller, item))) throw new ApplicationError('forbidden')
   const { run } = await requirePublished(db, campaign.id)
   const rows = (await store.listAssignments(db, run.id)).filter((r) => r.itemId === item.id)
   const students = new Map((await campaignStudents(db, campaign)).map((s) => [s.personId, s]))
@@ -183,7 +193,7 @@ export interface ClassPlacement {
 export async function classPlacements(db: Queryable, campaign: Campaign, className: string): Promise<Map<string, ClassPlacement>> {
   const run = await store.readPublishedRun(db, campaign.id)
   if (!run) return new Map()
-  const [rows, items] = await Promise.all([store.listAssignments(db, run.id), catalogueItems(db, campaign.id)])
+  const [rows, items] = await Promise.all([store.listAssignments(db, run.id), listCampaignItems(db, campaign.id)])
   const titles = new Map(items.map((item) => [item.id, item.title]))
   const result = new Map<string, ClassPlacement>()
   for (const student of run.snapshot.students.filter((s) => s.className === className)) {

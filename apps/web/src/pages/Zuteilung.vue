@@ -99,6 +99,12 @@ async function select(run: AllocationRun): Promise<void> {
   })
 }
 
+// Another run on show: whatever was confirmed was confirmed for the one before.
+watch(() => selected.value?.run.id, () => {
+  publishing.value = false
+  cancellationsConfirmed.value = false
+})
+
 async function onCompare(): Promise<void> {
   if (compareId.value === '') {
     other.value = null

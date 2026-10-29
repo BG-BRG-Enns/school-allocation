@@ -705,6 +705,13 @@ function onSubmitPending(): void {
               >
                 Bearbeiten
               </RouterLink>
+              <RouterLink
+                v-if="own(item) && !organizes && resultsOut && item.state !== 'withdrawn'"
+                class="button ghost-link small"
+                :to="`/wahlen/${campaign.id}/aktivitaet/${item.id}`"
+              >
+                Teilnehmer/innen
+              </RouterLink>
               <button
                 v-if="own(item) && item.state === 'draft' && campaign.state === 'catalogue'"
                 type="button"
