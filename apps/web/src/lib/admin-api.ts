@@ -1,10 +1,12 @@
+import type { Period } from '@school-allocation/school-core'
+export type { Period } from '@school-allocation/school-core'
 // The administration's API, typed as the server answers it
 // (apps/api/routes/admin-roster.ts, admin-users.ts).
 
-import type { Account, BatchDetail, ClassWithTeachers, Grant, GraphGroup, MailTemplate, Period, RosterGroup, RosterOverview, RosterPerson } from '@school-allocation/api-contracts'
+import type { Account, BatchDetail, ClassWithTeachers, Grant, GraphGroup, MailTemplate, RosterGroup, RosterOverview, RosterPerson } from '@school-allocation/api-contracts'
 import { apiGet, apiPost, apiPut } from './api.ts'
 
-export type { Account, Batch, BatchDetail, BatchState, ClassTeacher, ClassWithTeachers, Grant, GraphGroup, MailTemplate, Period, RosterGroup, RosterOverview, RosterPerson, StoredEntry, TemplateInvalidBody } from '@school-allocation/api-contracts'
+export type { Account, Batch, BatchDetail, BatchState, ClassTeacher, ClassWithTeachers, Grant, GraphGroup, MailTemplate, RosterGroup, RosterOverview, RosterPerson, StoredEntry, TemplateInvalidBody } from '@school-allocation/api-contracts'
 export const loadRoster = () => apiGet<RosterOverview>('/api/admin/roster')
 export const saveGroups = (groups: RosterGroup[]) => apiPut<{ groups: RosterGroup[] }>('/api/admin/roster/groups', { groups })
 export const uploadCsv = (csv: string, schoolYear: string) => apiPost<BatchDetail>('/api/admin/roster/csv', { csv, schoolYear })

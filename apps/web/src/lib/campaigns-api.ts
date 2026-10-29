@@ -1,10 +1,12 @@
+import type { DayDemand } from '@school-allocation/school-core'
+export type { DayDemand } from '@school-allocation/school-core'
 // The campaigns' and the catalogue's API, typed as the server answers it
 // (apps/api/routes/campaigns.ts).
 
-import type { Campaign, CampaignChanges, CampaignView, ChoiceView, ClassStatus, DayDemand, Item, ItemInput, MissingStudent } from '@school-allocation/api-contracts'
+import type { Campaign, CampaignChanges, CampaignView, ChoiceView, ClassStatus, Item, ItemInput, MissingStudent } from '@school-allocation/api-contracts'
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from './api.ts'
 
-export type { Campaign, CampaignChanges, CampaignCounts, CampaignView, CampaignWindow, ChoiceState, ChoiceView, ClassStatus, DayDemand, GroupView, Item, ItemInput, ItemInvalidBody, MissingStudent, RankingInvalidBody, SessionInput } from '@school-allocation/api-contracts'
+export type { Campaign, CampaignChanges, CampaignCounts, CampaignView, CampaignWindow, ChoiceState, ChoiceView, ClassStatus, GroupView, Item, ItemInput, ItemInvalidBody, MissingStudent, RankingInvalidBody, SessionInput } from '@school-allocation/api-contracts'
 export const loadCampaigns = () => apiGet<{ campaigns: Campaign[] }>('/api/campaigns')
 export const loadCampaign = (id: string) => apiGet<CampaignView>(`/api/campaigns/${encodeURIComponent(id)}`)
 export const loadItems = (id: string) => apiGet<{ items: Item[] }>(`/api/campaigns/${encodeURIComponent(id)}/items`)

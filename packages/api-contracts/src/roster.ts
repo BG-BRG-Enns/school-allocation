@@ -1,10 +1,10 @@
 // Shared HTTP shapes. Types are derived from the schemas used by Fastify.
 
-import { CLASS_NAME, CSV_LIMITS, GRADES, ROSTER_PROBLEM_CODES } from '@school-allocation/school-core'
+import { CLASS_NAME, CSV_LIMITS, GRADES, ROSTER_CHANGED_FIELDS, ROSTER_PROBLEM_CODES } from '@school-allocation/school-core'
 import { Type, type Static } from 'typebox'
 import { Literals, PersonKindSchema, SingleLineText, StrictObject, Uuid } from './common.ts'
 
-export type PersonKind = Static<typeof PersonKindSchema>
+export type { PersonKind } from '@school-allocation/school-core'
 
 export const RosterEntrySchema = StrictObject({
   kind: PersonKindSchema,
@@ -16,20 +16,20 @@ export const RosterEntrySchema = StrictObject({
   grade: Type.Optional(Type.Number()),
   classTeacherMail: Type.Optional(Type.String()),
 })
-export type RosterEntry = Static<typeof RosterEntrySchema>
+export type { RosterEntry } from '@school-allocation/school-core'
 
 export const RosterProblemCodeSchema = Literals(ROSTER_PROBLEM_CODES)
-export type RosterProblemCode = Static<typeof RosterProblemCodeSchema>
+export type { RosterProblemCode } from '@school-allocation/school-core'
 
 export const RosterProblemSchema = StrictObject({
   code: RosterProblemCodeSchema,
   key: Type.Optional(Type.String()),
   line: Type.Optional(Type.Number()),
 })
-export type RosterProblem = Static<typeof RosterProblemSchema>
+export type { RosterProblem } from '@school-allocation/school-core'
 
-export const ChangedFieldSchema = Type.Union([Type.Literal('kind'), Type.Literal('displayName'), Type.Literal('className'), Type.Literal('grade'), Type.Literal('mail'), Type.Literal('classTeacherMail')])
-export type ChangedField = Static<typeof ChangedFieldSchema>
+export const ChangedFieldSchema = Literals(ROSTER_CHANGED_FIELDS)
+export type { ChangedField } from '@school-allocation/school-core'
 
 export const RosterDiffSummarySchema = StrictObject({
   added: Type.Number(),
@@ -37,7 +37,7 @@ export const RosterDiffSummarySchema = StrictObject({
   changed: Type.Number(),
   unchanged: Type.Number(),
 })
-export type RosterDiffSummary = Static<typeof RosterDiffSummarySchema>
+export type { RosterDiffSummary } from '@school-allocation/school-core'
 
 export const BatchStateSchema = Type.Union([Type.Literal('pending'), Type.Literal('committed'), Type.Literal('discarded'), Type.Literal('rejected')])
 export type BatchState = Static<typeof BatchStateSchema>
@@ -77,7 +77,7 @@ export type BatchDetail = Static<typeof BatchDetailSchema>
 export const RosterGroupSchema = StrictObject({
   groupId: Type.String(),
   label: Type.String(),
-  kind: Type.Union([Type.Literal('student'), Type.Literal('teacher')]),
+  kind: PersonKindSchema,
   className: Type.Optional(Type.String()),
   grade: Type.Optional(Type.Number()),
 })
@@ -95,7 +95,7 @@ export type RosterOverview = Static<typeof RosterOverviewSchema>
 export const RosterPersonSchema = StrictObject({
   personId: Type.String(),
   displayName: Type.String(),
-  kind: Type.Union([Type.Literal('student'), Type.Literal('teacher')]),
+  kind: PersonKindSchema,
   className: Type.Union([Type.String(), Type.Null()]),
   grade: Type.Union([Type.Number(), Type.Null()]),
   mail: Type.Union([Type.String(), Type.Null()]),

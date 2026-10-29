@@ -1,4 +1,5 @@
-import { Type, type TProperties } from 'typebox'
+import { PERSON_KINDS } from '@school-allocation/school-core'
+import { Type,type TProperties } from 'typebox'
 
 /**
  * An object schema that rejects unknown properties. Every request and
@@ -58,7 +59,8 @@ export const Uuid = Type.String({ pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a
 /** Why a change was made, as the audit log records it. */
 export const Reason = SingleLineText(500)
 
-export const PersonKindSchema = Type.Union([Type.Literal('student'), Type.Literal('teacher')])
+// Keep the existing anyOf representation; domain-checks pins this tuple to PersonKind.
+export const PersonKindSchema = Type.Union([Type.Literal(PERSON_KINDS[0]), Type.Literal(PERSON_KINDS[1])])
 
 /** The roster person behind an account, as the roster in force has them; `kind` null when it does not list them. */
 export const PersonSummary = StrictObject({
@@ -71,3 +73,5 @@ export const PersonSummary = StrictObject({
 export const IdParams = StrictObject({ id: Uuid })
 
 export const ROLES = ['school_admin', 'campaign_organizer', 'read_only_auditor'] as const
+
+export type Role = typeof ROLES[number]

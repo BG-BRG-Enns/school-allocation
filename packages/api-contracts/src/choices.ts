@@ -6,13 +6,13 @@ import { CampaignSchema, ItemSchema, ItemStateSchema } from './campaigns.ts'
 import { Literals, StrictObject } from './common.ts'
 
 export const RankingProblemCodeSchema = Literals(RANKING_PROBLEM_CODES)
-export type RankingProblemCode = Static<typeof RankingProblemCodeSchema>
+export type { RankingProblemCode } from '@school-allocation/school-core'
 
 export const RankingProblemSchema = StrictObject({
   code: RankingProblemCodeSchema,
   group: Type.Optional(Type.String()),
 })
-export type RankingProblem = Static<typeof RankingProblemSchema>
+export type { RankingProblem } from '@school-allocation/school-core'
 
 export const ChoiceStateSchema = Type.Union([Type.Literal('none'), Type.Literal('incomplete'), Type.Literal('complete')])
 export type ChoiceState = Static<typeof ChoiceStateSchema>

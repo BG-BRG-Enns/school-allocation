@@ -8,7 +8,7 @@ export const PeriodSchema = StrictObject({
   starts: Type.String(),
   ends: Type.String(),
 })
-export type Period = Static<typeof PeriodSchema>
+export type { Period } from '@school-allocation/school-core'
 
 export const ClassTeacherSchema = StrictObject({
   personId: Type.String(),
