@@ -23,7 +23,7 @@ An administrator can read the school's roster from the class groups and the teac
 
 A school that enters group ids by hand and wants no group search leaves `Group.Read.All` out of the registration and sets `GRAPH_DELEGATED_SCOPES=GroupMember.Read.All,User.ReadBasic.All` in `.env`.
 
-In the app, under **Verwaltung → Stammdaten**, the administrator picks the groups from a search by name (authorizing a token for it at Microsoft, which the server keeps in memory for the token's lifetime, never on disk) or enters their object ids, labels them (a class with its grade, or the teachers), then starts the refresh. The members become a pending batch with a diff against the roster in force, which the administrator commits or discards.
+In the app, under **Verwaltung → Stammdaten**, the administrator picks the groups from a search by name (authorizing a token for it at Microsoft, which the server keeps in memory for the token's lifetime, never on disk) or enters their object ids, labels them (a class with its grade, or the teachers), then starts the refresh. Members are read through nested groups, so a class whose students sit in nested groups is labelled once: either the class group or its nested groups, not both (3A, or 3AR and 3AG), or the students come in twice and the batch is refused. The members become a pending batch with a diff against the roster in force, which the administrator commits or discards.
 
 ## Host
 
