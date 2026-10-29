@@ -190,6 +190,9 @@ test('every tampering is caught: capacity, overlap, an item outside the options,
   assert.ok(codes(tamper((r) => r.passes[0].assign.push(['sara', 'dance']))).includes('assigned_twice:sara:dance'))
   assert.ok(codes(tamper((r) => r.passes[1].cancelled.push('nope'))).includes('unknown_item:nope'))
   assert.deepEqual(codes(tamper((r) => (r.passes[0].status = 'INFEASIBLE'))), ['pass_not_solved'], 'nothing else is judged on a pass that was not solved')
+  assert.ok(codes(tamper((r) => (r.passes[0].levels = r.passes[0].levels.map((l) => ({ ...l, proven: false }))))).includes('status_inconsistent'), 'OPTIMAL with an unproven level')
+  assert.ok(codes(tamper((r) => (r.passes[1].status = 'OPTIMAL'))).includes('status_inconsistent'), 'the second pass has unproven levels')
+  assert.ok(codes(tamper((r) => r.passes[0].cancelled.push('pottery'))).includes('cancelled_twice'))
   assert.ok(codes(tamper((r) => (r.passes[1].levels = r.passes[1].levels.slice(1)))).includes('levels_unexpected'))
 
   const result = solved()

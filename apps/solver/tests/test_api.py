@@ -35,6 +35,9 @@ def test_a_malformed_request_is_refused_as_such() -> None:
     payload = request([student(0, [option(0, 1000)])], [item(0, 1)])
     assert client.post("/v1/solve", json={**payload, "extra": 1}).status_code == 422
     assert client.post("/v1/solve", json={**payload, "contract": "allocation/v2"}).status_code == 422
+    over = request([student(0, [option(0, 1000, tie=1000)])], [item(0, 1)])
+    assert client.post("/v1/solve", json=over).status_code == 422, "a tie weight is drawn below 1000"
+
 
 
 def test_an_unsound_model_is_answered_not_guessed() -> None:

@@ -11,7 +11,9 @@ import { overlaps } from './catalogue.ts'
 
 export const ALLOCATION_PROBLEM_CODES = [
   'pass_not_solved',
+  'status_inconsistent',
   'levels_unexpected',
+  'cancelled_twice',
   'level_mismatch',
   'not_in_pass',
   'unknown_item',
@@ -104,11 +106,14 @@ function validatePass(input: AllocationInput, compiled: CompiledPass, result: Pa
     return
   }
   if (result.levels.map((l) => l.name).join(',') !== compiled.request.levels.join(',')) problems.push({ code: 'levels_unexpected', pass })
+  // The status is the roll-up of the levels (§6): OPTIMAL only with every level proven, FEASIBLE only with one that is not.
+  if ((result.status === 'OPTIMAL') !== result.levels.every((l) => l.proven)) problems.push({ code: 'status_inconsistent', pass })
   const students = new Map(compiled.students.map((p) => [p.student.personId, p]))
   const items = new Map(input.items.map((item) => [item.id, item]))
   const solverItems = new Set(compiled.itemIds)
   const cancelled = new Set(result.cancelled)
-  for (const itemId of result.cancelled) {
+  if (cancelled.size !== result.cancelled.length) problems.push({ code: 'cancelled_twice', pass })
+  for (const itemId of cancelled) {
     const item = items.get(itemId)
     if (!item || !solverItems.has(itemId)) {
       problems.push({ code: 'unknown_item', pass, itemId })

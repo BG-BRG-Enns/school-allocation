@@ -31,6 +31,9 @@ class DayMinutes(Strict):
 
 COST_SCALE = 1000
 
+# Tie-break weights are drawn in [0, TIE_RANGE) by the API's core.
+TIE_RANGE = 1000
+
 
 class Option(Strict):
     o: int = Field(ge=0)
@@ -38,7 +41,7 @@ class Option(Strict):
     cost: int = Field(ge=0)
     # rank · minutes, exact: what a threshold is compared against, times COST_SCALE, so rounding never tips it.
     weight: int = Field(ge=0)
-    tie: int = Field(ge=0)
+    tie: int = Field(ge=0, lt=TIE_RANGE)
     credit: list[DayMinutes]
 
 

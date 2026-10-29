@@ -4,7 +4,7 @@
 // drifts from the contract is refused, not trusted. The shapes are
 // school-core's; domain-checks.ts pins them.
 
-import { ALLOCATION_CONTRACT, ALLOCATION_INPUT_PROBLEM_CODES, ALLOCATION_PROBLEM_CODES, SOLVE_STATUSES } from '@school-allocation/school-core'
+import { ALLOCATION_CONTRACT, ALLOCATION_INPUT_PROBLEM_CODES, ALLOCATION_PROBLEM_CODES, SOLVE_STATUSES, TIE_RANGE } from '@school-allocation/school-core'
 import { Type, type Static } from 'typebox'
 import { Literals, StrictObject } from './common.ts'
 
@@ -13,7 +13,7 @@ const Count = Type.Integer({ minimum: 0 })
 const Pair = Type.Tuple([Count, Count])
 
 export const DayMinutesSchema = StrictObject({ d: Count, min: Count })
-export const SolveOptionSchema = StrictObject({ o: Count, cost: Count, weight: Count, tie: Count, credit: Type.Array(DayMinutesSchema) })
+export const SolveOptionSchema = StrictObject({ o: Count, cost: Count, weight: Count, tie: Type.Integer({ minimum: 0, maximum: TIE_RANGE - 1 }), credit: Type.Array(DayMinutesSchema) })
 export const SolveStudentSchema = StrictObject({ s: Count, required: Type.Array(DayMinutesSchema), norm: Count, options: Type.Array(SolveOptionSchema) })
 export const SolveItemSchema = StrictObject({ o: Count, max: Count, min: Count, cancellable: Type.Boolean() })
 /** The solver's limit per level, deterministic seconds; the solver refuses more than 600. */

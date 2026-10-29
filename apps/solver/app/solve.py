@@ -198,9 +198,10 @@ class Incumbent:
 
 def greedy_assign(request: SolveRequest) -> set[tuple[int, int]]:
     """A first solution to start the search from: the fixed pairs, then for
-    each student, day by day, the cheapest options that still have a place,
-    credit the day and clash with nothing taken, until the day is covered.
-    A hint, not an answer: it may break a minimum, and the solver repairs it."""
+    each student, day by day, the options that still have a place, credit
+    the day and clash with nothing taken, by wish number (the cost per
+    minute) and the longer first, until the day is covered. A hint, not an
+    answer: it may break a minimum, and the solver repairs it."""
     remaining = {item.o: item.max for item in request.items}
     conflicts = {(min(a, b), max(a, b)) for a, b in request.conflicts}
     fixed: dict[int, list[int]] = {}
@@ -217,8 +218,11 @@ def greedy_assign(request: SolveRequest) -> set[tuple[int, int]]:
             taken.append(o)
             for c in options[o].credit:
                 covered[c.d] = covered.get(c.d, 0) + c.min
+        def minutes(op) -> int:  # noqa: ANN001 - the option model of this request
+            return sum(c.min for c in op.credit)
+
         for day in sorted(student.required, key=lambda r: r.d):
-            for op in sorted(student.options, key=lambda op: (op.cost, op.o)):
+            for op in sorted(student.options, key=lambda op: (op.cost / max(1, minutes(op)), -minutes(op), op.o)):
                 if covered.get(day.d, 0) >= day.min:
                     break
                 if op.o in taken or remaining[op.o] <= 0 or not any(c.d == day.d and c.min > 0 for c in op.credit):
