@@ -8,7 +8,7 @@
 // the solver does not know the difference. Pure, and deterministic down
 // to the order of every list, so the same input gives the same request.
 
-import { creditedMinutesByDate, overlaps, type Span } from './catalogue.ts'
+import { creditedMinutesByDate, overlaps, type ItemRules, type Span } from './catalogue.ts'
 import { offeredTo, timeGroupsOf, type OfferableItem } from './choices.ts'
 import {
   ALLOCATION_CONTRACT,
@@ -71,8 +71,23 @@ export function solverItems(input: AllocationInput, cancelled: ReadonlySet<strin
   return input.items.filter((item) => item.rules.places > 0 && !cancelled.has(item.id)).sort(byId)
 }
 
-/** A student's requirement per day and their options against `items`, the whole catalogue's offer to them. */
-export function prepareStudent(input: AllocationInput, student: AllocationStudent, items: readonly AllocationItem[]): PreparedStudent {
+/** Whether the solver may decide not to run an item (D-08): it says so, it is nobody's class activity, and it has a minimum to fall below. */
+export function mayBeCancelled(rules: Pick<ItemRules, 'cancellableBelowMin' | 'fixedClasses' | 'minParticipants'>): boolean {
+  return rules.cancellableBelowMin && rules.fixedClasses.length === 0 && rules.minParticipants > 0
+}
+
+/** The minimum the solver holds an item to: none for a class activity, which its classes carry. */
+export function solverMinimum(rules: Pick<ItemRules, 'fixedClasses' | 'minParticipants'>): number {
+  return rules.fixedClasses.length > 0 ? 0 : rules.minParticipants
+}
+
+/**
+ * A student's requirement per day and their options against `items`, the
+ * whole catalogue's offer to them. Wish numbers are counted over the list
+ * as the student saved it; an item `cancelled` since is then left out, so
+ * a second wish stays the second wish when the first is gone.
+ */
+export function prepareStudent(input: AllocationInput, student: AllocationStudent, items: readonly AllocationItem[], cancelled: ReadonlySet<string> = new Set()): PreparedStudent {
   const all = new Map(input.items.map((item) => [item.id, item]))
   const fixed = student.fixedItemIds.map((id) => all.get(id)).filter((item): item is AllocationItem => item !== undefined)
   const fixedSpans = fixed.flatMap((item) => item.sessions.map((s) => ({ startMs: s.startMs, endMs: s.endMs })))
@@ -107,8 +122,7 @@ export function prepareStudent(input: AllocationInput, student: AllocationStuden
     if (![...credit.keys()].some((date) => required.has(date))) continue
     options.push(option(input, student, full, 'fallback', cap + 1, requiredTotal))
   }
-  options.sort((a, b) => byText(a.itemId, b.itemId))
-  return { student, required, requiredTotal, fixedSpans, options }
+  return { student, required, requiredTotal, fixedSpans, options: options.filter((o) => !cancelled.has(o.itemId)).sort((a, b) => byText(a.itemId, b.itemId)) }
 }
 
 function option(input: AllocationInput, student: AllocationStudent, item: AllocationItem, kind: OptionKind, rank: number, requiredTotal: number): CompiledOption {
@@ -126,10 +140,10 @@ function option(input: AllocationInput, student: AllocationStudent, item: Alloca
   }
 }
 
-/** Every student prepared against the items the solver gets, in person-id order. */
+/** Every student prepared against the catalogue's offer, the `cancelled` items left out of their options, in person-id order. */
 export function prepareStudents(input: AllocationInput, cancelled: ReadonlySet<string> = new Set()): PreparedStudent[] {
-  const items = solverItems(input, cancelled)
-  return [...input.students].sort((a, b) => byText(a.personId, b.personId)).map((student) => prepareStudent(input, student, items))
+  const items = solverItems(input, new Set())
+  return [...input.students].sort((a, b) => byText(a.personId, b.personId)).map((student) => prepareStudent(input, student, items, cancelled))
 }
 
 /** The students of a pass: the first takes the first window's lists, the second everyone (D-20); nobody without a requirement left. */
@@ -187,13 +201,7 @@ export function compilePass(input: AllocationInput, pass: Pass, runId: string, p
     seed: input.seed,
     limits: { deterministicTimePerLevel: input.limits.deterministicTimePerLevel },
     students: requestStudents,
-    items: items.map((item, o) => ({
-      o,
-      max: item.rules.places,
-      // A class activity is carried by its classes; its minimum is not for the extra places.
-      min: item.rules.fixedClasses.length > 0 ? 0 : item.rules.minParticipants,
-      cancellable: item.rules.cancellableBelowMin && item.rules.fixedClasses.length === 0,
-    })),
+    items: items.map((item, o) => ({ o, max: item.rules.places, min: solverMinimum(item.rules), cancellable: mayBeCancelled(item.rules) })),
     conflicts,
     fixed,
     levels: levelNames(input.wishesPerGroup),
@@ -209,13 +217,16 @@ export function itemsOverlap(a: Pick<AllocationItem, 'sessions'>, b: Pick<Alloca
   return a.sessions.some((x) => b.sessions.some((y) => overlaps(x, y)))
 }
 
-export const ALLOCATION_INPUT_PROBLEM_CODES = ['daily_minimum_missing', 'no_students'] as const
+export const ALLOCATION_INPUT_PROBLEM_CODES = ['daily_minimum_missing', 'no_students', 'fixed_items_overlap'] as const
 export type AllocationInputProblemCode = typeof ALLOCATION_INPUT_PROBLEM_CODES[number]
 
 export interface AllocationInputProblem {
   code: AllocationInputProblemCode
   /** The grades without a daily minimum. */
   grades?: number[]
+  /** The student placed into two class activities that overlap, and the two. */
+  personId?: string
+  itemIds?: string[]
 }
 
 /** A non-cancellable item fewer students can take than its minimum asks: the usual cause of an infeasible run (D-08). */
@@ -237,16 +248,34 @@ export function checkAllocationInput(input: AllocationInput): AllocationInputChe
   if (input.students.length === 0) problems.push({ code: 'no_students' })
   const grades = [...new Set(input.students.map((s) => s.grade))].filter((grade) => !(input.dailyMinimum[String(grade)] !== undefined && input.dailyMinimum[String(grade)] as number > 0)).sort((a, b) => a - b)
   if (grades.length > 0) problems.push({ code: 'daily_minimum_missing', grades })
+  // Two class activities that take the same student at the same time: the catalogue's mistake, not the model's to resolve.
+  for (const student of [...input.students].sort((a, b) => byText(a.personId, b.personId))) {
+    for (const [a, b] of fixedOverlaps(input, student)) problems.push({ code: 'fixed_items_overlap', personId: student.personId, itemIds: [a, b] })
+  }
   const warnings: AllocationWarning[] = []
   if (problems.length === 0) {
     const prepared = prepareStudents(input)
     for (const item of solverItems(input, new Set())) {
-      const cancellable = item.rules.cancellableBelowMin && item.rules.fixedClasses.length === 0
-      const minimum = item.rules.fixedClasses.length > 0 ? 0 : item.rules.minParticipants
-      if (cancellable || minimum === 0) continue
+      const minimum = solverMinimum(item.rules)
+      if (mayBeCancelled(item.rules) || minimum === 0) continue
       const possible = prepared.filter((p) => p.requiredTotal > 0 && p.options.some((o) => o.itemId === item.id)).length
       if (possible < minimum) warnings.push({ code: 'minimum_out_of_reach', itemId: item.id, possible, minimum })
     }
   }
   return { problems, warnings }
+}
+
+/** The pairs of a student's fixed items whose sessions overlap, in id order. */
+export function fixedOverlaps(input: AllocationInput, student: Pick<AllocationStudent, 'fixedItemIds'>): [string, string][] {
+  const items = new Map(input.items.map((item) => [item.id, item]))
+  const fixed = [...student.fixedItemIds].sort(byText).map((id) => items.get(id)).filter((item): item is AllocationItem => item !== undefined)
+  const pairs: [string, string][] = []
+  for (let a = 0; a < fixed.length; a++) {
+    for (let b = a + 1; b < fixed.length; b++) {
+      const itemA = fixed[a] as AllocationItem
+      const itemB = fixed[b] as AllocationItem
+      if (itemsOverlap(itemA, itemB)) pairs.push([itemA.id, itemB.id])
+    }
+  }
+  return pairs
 }

@@ -6,7 +6,7 @@
 // the input, so it needs nothing the API knows.
 
 import { COST_SCALE, type AllocationInput, type AllocationResult, type Assignment, type LevelValue, type Pass, type PassResult } from './allocation-model.ts'
-import { compilePass, itemsOverlap, type CompiledPass, type PreparedStudent } from './allocation-compile.ts'
+import { compilePass, fixedOverlaps, itemsOverlap, mayBeCancelled, solverMinimum, type CompiledPass, type PreparedStudent } from './allocation-compile.ts'
 import { overlaps } from './catalogue.ts'
 
 export const ALLOCATION_PROBLEM_CODES = [
@@ -112,7 +112,7 @@ function validatePass(input: AllocationInput, compiled: CompiledPass, result: Pa
       problems.push({ code: 'unknown_item', pass, itemId })
       continue
     }
-    if (!item.rules.cancellableBelowMin || item.rules.fixedClasses.length > 0) problems.push({ code: 'cancelled_not_cancellable', pass, itemId })
+    if (!mayBeCancelled(item.rules)) problems.push({ code: 'cancelled_not_cancellable', pass, itemId })
   }
   const seen = new Set<string>()
   const perItem = new Map<string, number>()
@@ -150,7 +150,7 @@ function validatePass(input: AllocationInput, compiled: CompiledPass, result: Pa
     if (!item) continue
     const count = perItem.get(itemId) ?? 0
     if (count > item.rules.places) problems.push({ code: 'capacity_exceeded', pass, itemId, reported: count, recomputed: item.rules.places })
-    const minimum = item.rules.fixedClasses.length > 0 ? 0 : item.rules.minParticipants
+    const minimum = solverMinimum(item.rules)
     if (!cancelled.has(itemId) && count < minimum) problems.push({ code: 'below_minimum', pass, itemId, reported: count, recomputed: minimum })
   }
   for (const [personId, itemIds] of perStudent) {
@@ -222,6 +222,10 @@ export function assembleAssignments(input: AllocationInput, result: AllocationRe
  */
 export function validateAllocation(input: AllocationInput, result: AllocationResult, assignments?: readonly Assignment[]): AllocationProblem[] {
   const problems: AllocationProblem[] = []
+  // The pre-assignments themselves: two class activities at the same time are no result anyone may publish.
+  for (const student of input.students) {
+    for (const [, b] of fixedOverlaps(input, student)) problems.push({ code: 'overlaps_fixed', personId: student.personId, itemId: b })
+  }
   const first = compilePass(input, 1, 'validate')
   validatePass(input, first, result.passes[0], undefined, problems)
   if (result.passes[0].status === 'OPTIMAL' || result.passes[0].status === 'FEASIBLE') {

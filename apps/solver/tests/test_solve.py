@@ -180,3 +180,11 @@ def test_the_greedy_start_covers_what_it_can_and_respects_places_fixed_pairs_and
     )
     # Student 1 holds item 0 by the fixed pair; student 0 then takes 1 (0 is full) and 2; student 1 adds 2.
     assert greedy_assign(SolveRequest.model_validate(payload)) == {(1, 0), (0, 1), (0, 2), (1, 2)}
+
+
+def test_an_item_without_a_minimum_runs_with_its_takers_or_none() -> None:
+    # Nobody has item 1 as an option; cancellable, but with no minimum to fall below it stays available.
+    payload = request([student(0, [option(0, 1000)])], [item(0, 5), item(1, 5, minimum=0, cancellable=True)])
+    result = run(payload)
+    assert result["status"] == "OPTIMAL"
+    assert result["cancelled"] == []

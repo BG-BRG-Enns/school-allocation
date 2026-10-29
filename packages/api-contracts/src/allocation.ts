@@ -59,6 +59,8 @@ export const AllocationInputProblemCodeSchema = Literals(ALLOCATION_INPUT_PROBLE
 export const AllocationInputProblemSchema = StrictObject({
   code: AllocationInputProblemCodeSchema,
   grades: Type.Optional(Type.Array(Type.Integer())),
+  personId: Type.Optional(Type.String()),
+  itemIds: Type.Optional(Type.Array(Type.String())),
 })
 export const AllocationWarningSchema = StrictObject({
   code: Type.Literal('minimum_out_of_reach'),

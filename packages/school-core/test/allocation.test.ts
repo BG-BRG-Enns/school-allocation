@@ -58,7 +58,7 @@ const INPUT: AllocationInput = {
     student('max', '5A', 9, ['trip'], { [MON_AM]: ['climbing'] }, 'first'),
     student('ben', '5B', 9, ['trip', 'mondayclass'], null, null),
     student('lena', '6A', 10, [], { [MON_AM]: ['minigolf', 'dance'], [MON_PM]: ['chess', 'tabletennis'], [TUE]: ['museum'], [WED]: ['hike', 'pottery'] }, 'first'),
-    student('tom', '6A', 10, [], { [MON_AM]: ['dance'], [MON_PM]: ['chess'], [TUE]: ['museum'], [WED]: ['pottery'] }, 'late'),
+    student('tom', '6A', 10, [], { [MON_AM]: ['dance'], [MON_PM]: ['chess'], [TUE]: ['museum'], [WED]: ['pottery', 'hike'] }, 'late'),
     student('ida', '6A', 10, [], null, null),
   ],
   items: ITEMS,
@@ -124,7 +124,7 @@ test('the first pass takes the first window\'s students; the request is determin
   const items = new Map(compiled.request.items.map((i) => [compiled.itemIds[i.o], i]))
   assert.deepEqual(items.get('trip'), { o: 8, max: 2, min: 0, cancellable: false }, 'a class activity\'s extra places; its minimum is its classes\' business')
   assert.deepEqual(items.get('pottery'), { o: 6, max: 2, min: 2, cancellable: true })
-  assert.deepEqual(items.get('chess'), { o: 0, max: 1, min: 0, cancellable: true })
+  assert.deepEqual(items.get('chess'), { o: 0, max: 1, min: 0, cancellable: false }, 'nothing to fall below: it runs, takers or none')
   const name = (o: number) => compiled.itemIds[o] as string
   assert.deepEqual(compiled.request.conflicts.map(([a, b]) => `${name(a)}/${name(b)}`), [
     'chess/tabletennis', 'climbing/dance', 'climbing/minigolf', 'dance/minigolf', 'hike/pottery', 'hike/trip', 'museum/trip', 'pottery/trip',
@@ -151,7 +151,7 @@ test('the second pass keeps the first pass fixed, drops what it cancelled, and p
   const sara = compiled.students.find((p) => p.student.personId === 'sara')
   assert.deepEqual(sara?.options.map((o) => o.itemId), ['dance', 'tabletennis'], 'a first-pass student keeps what the first pass gave them, nothing else')
   const tom = compiled.students.find((p) => p.student.personId === 'tom')
-  assert.deepEqual(tom?.options.map((o) => `${o.itemId}:${o.kind}:${o.rank}`), ['chess:wish:1', 'dance:wish:1', 'hike:fallback:4', 'minigolf:fallback:4', 'museum:wish:1', 'tabletennis:fallback:4'], 'his Wednesday wish is gone; the hike is his fallback')
+  assert.deepEqual(tom?.options.map((o) => `${o.itemId}:${o.kind}:${o.rank}`), ['chess:wish:1', 'dance:wish:1', 'hike:wish:2', 'minigolf:fallback:4', 'museum:wish:1', 'tabletennis:fallback:4'], 'his first Wednesday wish is gone; the hike stays his second')
   assert.throws(() => compilePass(INPUT, 2, 'run-1'), RangeError)
 })
 
@@ -184,6 +184,7 @@ test('every tampering is caught: capacity, overlap, an item outside the options,
   assert.ok(codes(tamper((r) => r.passes[0].assign.push(['max', 'chess']))).includes('overlap:max:chess'), 'two afternoon items')
   assert.ok(codes(tamper((r) => (r.passes[0].levels[0] as { value: number }).value = 1)).includes('level_mismatch'))
   assert.ok(codes(tamper((r) => r.passes[0].cancelled.push('trip'))).includes('cancelled_not_cancellable:trip'))
+  assert.ok(codes(tamper((r) => r.passes[0].cancelled.push('dance'))).includes('cancelled_not_cancellable:dance'), 'no minimum, nothing to fall below')
   assert.ok(codes(tamper((r) => r.passes[0].cancelled.push('tabletennis'))).includes('assigned_to_cancelled:sara:tabletennis'))
   assert.ok(codes(tamper((r) => (r.passes[0].cancelled = []))).includes('below_minimum:pottery'), 'nobody in it, two needed')
   assert.ok(codes(tamper((r) => r.passes[0].assign.push(['sara', 'dance']))).includes('assigned_twice:sara:dance'))
@@ -206,7 +207,7 @@ test('the rows of a result carry the pre-assignments, the pass and the wish numb
     { personId: 'max', itemId: 'climbing', source: 'wish', pass: 1, rank: 1 },
     { personId: 'max', itemId: 'tabletennis', source: 'fallback', pass: 1, rank: null },
   ])
-  assert.deepEqual(rows.filter((r) => r.personId === 'tom').map((r) => `${r.itemId}:${r.source}:${r.pass}`), ['dance:wish:2', 'hike:fallback:2', 'museum:wish:2', 'tabletennis:fallback:2'])
+  assert.deepEqual(rows.filter((r) => r.personId === 'tom').map((r) => `${r.itemId}:${r.source}:${r.pass}:${r.rank}`), ['dance:wish:2:1', 'hike:wish:2:2', 'museum:wish:2:1', 'tabletennis:fallback:2:null'])
 
   const max = explainStudent(INPUT, rows, 'max')
   assert.deepEqual(max?.days, [
@@ -221,7 +222,7 @@ test('the rows of a result carry the pre-assignments, the pass and the wish numb
 
   const summary = summarizeAllocation(INPUT, rows, cancelledOf(result))
   assert.deepEqual(summary.students, { total: 6, choosing: 5, covered: 5, withDeficit: 0, withFallback: 3, late: 1, nonSubmitters: 1 })
-  assert.deepEqual(summary.ranks, { 1: 9, 2: 0, 3: 0, fallback: 7, fixed: 4 })
+  assert.deepEqual(summary.ranks, { 1: 9, 2: 1, 3: 0, fallback: 6, fixed: 4 })
   assert.deepEqual(summary.classes, [
     { className: '5A', students: 2, withDeficit: 0, withFallback: 1 },
     { className: '5B', students: 1, withDeficit: 0, withFallback: 0 },
@@ -230,7 +231,7 @@ test('the rows of a result carry the pre-assignments, the pass and the wish numb
   assert.deepEqual(summary.items.find((i) => i.itemId === 'pottery'), { itemId: 'pottery', fixed: 0, assigned: 0, places: 2, minimum: 2, cancelled: true })
   assert.deepEqual(summary.items.find((i) => i.itemId === 'trip'), { itemId: 'trip', fixed: 3, assigned: 0, places: 2, minimum: 0, cancelled: false })
   assert.deepEqual(summary.deficits, [])
-  assert.equal(summary.fallbacks.length, 7)
+  assert.equal(summary.fallbacks.length, 6)
 })
 
 test('a day no option can cover is a deficit, counted and reported, never hidden', () => {
@@ -256,6 +257,10 @@ test('the input is checked before any solving: a grade without a minimum, no stu
   assert.deepEqual(checkAllocationInput({ ...INPUT, dailyMinimum: { 9: 300 } }).problems, [{ code: 'daily_minimum_missing', grades: [10] }])
   assert.deepEqual(checkAllocationInput({ ...INPUT, dailyMinimum: { 9: 300, 10: 0 } }).problems, [{ code: 'daily_minimum_missing', grades: [10] }])
   assert.deepEqual(checkAllocationInput({ ...INPUT, students: [] }).problems, [{ code: 'no_students' }])
+  // Two class activities taking 5B at the same time on Tuesday: the catalogue's mistake, refused before the solver and by the validator.
+  const clash = { ...INPUT, items: [...INPUT.items, item('tuesdayclass', [session(1, 8, 13, 300)], { fixedClasses: ['5B'], places: 0, cancellableBelowMin: false })], students: INPUT.students.map((s) => (s.personId === 'ben' ? { ...s, fixedItemIds: [...s.fixedItemIds, 'tuesdayclass'] } : s)) }
+  assert.deepEqual(checkAllocationInput(clash).problems, [{ code: 'fixed_items_overlap', personId: 'ben', itemIds: ['trip', 'tuesdayclass'] }])
+  assert.ok(validateAllocation(clash, solved()).some((p) => p.code === 'overlaps_fixed' && p.personId === 'ben' && p.itemId === 'tuesdayclass'))
   const strict = { ...INPUT, items: INPUT.items.map((i) => (i.id === 'climbing' ? { ...i, rules: { ...i.rules, minParticipants: 5, cancellableBelowMin: false } } : i)) }
   assert.deepEqual(checkAllocationInput(strict).warnings, [{ code: 'minimum_out_of_reach', itemId: 'climbing', possible: 1, minimum: 5 }], 'only max ranked it, and a paid item is nobody\'s fallback')
   assert.equal(prepareStudents(INPUT).length, 6)

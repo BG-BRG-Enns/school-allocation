@@ -95,7 +95,8 @@ class Model:
         conflicts = {(min(a, b), max(a, b)) for a, b in request.conflicts}
         for o in sorted(self.items):
             self.y[o] = m.new_bool_var(f"y{o}")
-            if not self.items[o].cancellable:
+            # An item without a minimum has nothing to fall below: it runs, takers or none.
+            if not self.items[o].cancellable or self.items[o].min == 0:
                 m.add(self.y[o] == 1)
         takers: dict[int, list[cp_model.IntVar]] = {o: [] for o in self.items}
         for s in sorted(self.students):

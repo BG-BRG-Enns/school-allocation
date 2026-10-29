@@ -142,9 +142,13 @@ constants included, so they describe the whole school.
 
 **Fallback placement** (D-06): for each day a student still has to cover, the compiler adds every
 eligible **fee-free** item with places the student did not rank as a fallback option, at rank
-`cap + 1`, which costs more than any wish. A non-submitter has fallback options only. L1 then fills
-the day if it can; a day that stays uncovered is a deficit, and the student is listed as unplaced for
-the class teacher and the organizer. A paid item is never assigned outside a student's wishes.
+`cap + 1`, which costs more than any wish. Wish numbers are counted over the list as the student
+saved it, so when the first pass cancels a student's first wish, their second stays the second in the
+second pass. A non-submitter has fallback options only. L1 then fills the day if it can; a day that
+stays uncovered is a deficit, and the student is listed as unplaced for the class teacher and the
+organizer. A paid item is never assigned outside a student's wishes. Two class activities that take
+the same student at the same time are the catalogue's mistake: the run is refused before the solver
+(`fixed_items_overlap`), and the validator refuses such a result too.
 
 **Pre-assignments are resolved by the compiler, not the solver.** For each student, the credit of
 their fixed items is subtracted from each day's requirement (floored at zero), and items that overlap
@@ -164,7 +168,10 @@ infeasible, with the remedies at hand (make it cancellable, lower the minimum, w
 - `x[s,o]` ∈ {0,1}, only for choosable items `o` on student `s`'s ranked list, or among the
   student's fallback options, that are eligible and do not overlap the student's fixed items. Other
   items are never assigned.
-- `y[o]` ∈ {0,1}: the item runs. Fixed to 1 unless it may be cancelled below its minimum (D-08).
+- `y[o]` ∈ {0,1}: the item runs. Fixed to 1 unless it may be cancelled below its minimum (D-08): the
+  item says so, it is nobody's class activity, and it has a minimum to fall below. An item with no
+  minimum runs with its takers or with none, so a course nobody ranked in the first window is still
+  there for the late lists.
 
 **Hard constraints:**
 

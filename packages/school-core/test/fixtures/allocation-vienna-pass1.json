@@ -229,37 +229,37 @@
       "o": 0,
       "max": 1,
       "min": 0,
-      "cancellable": true
+      "cancellable": false
     },
     {
       "o": 1,
       "max": 20,
       "min": 0,
-      "cancellable": true
+      "cancellable": false
     },
     {
       "o": 2,
       "max": 20,
       "min": 0,
-      "cancellable": true
+      "cancellable": false
     },
     {
       "o": 3,
       "max": 20,
       "min": 0,
-      "cancellable": true
+      "cancellable": false
     },
     {
       "o": 4,
       "max": 20,
       "min": 0,
-      "cancellable": true
+      "cancellable": false
     },
     {
       "o": 5,
       "max": 20,
       "min": 0,
-      "cancellable": true
+      "cancellable": false
     },
     {
       "o": 6,
@@ -271,7 +271,7 @@
       "o": 7,
       "max": 20,
       "min": 0,
-      "cancellable": true
+      "cancellable": false
     },
     {
       "o": 8,
