@@ -109,6 +109,76 @@ export {
   type TimeGroup,
 } from './choices.ts'
 
+export {
+  ALLOCATION_CONTRACT,
+  ASSIGNMENT_SOURCES,
+  COST_SCALE,
+  SOLVE_STATUSES,
+  TIE_RANGE,
+  fnv1a32,
+  levelNames,
+  tieWeight,
+  type AllocationInput,
+  type AllocationItem,
+  type AllocationLimits,
+  type AllocationResult,
+  type AllocationStudent,
+  type Assignment,
+  type AssignmentSource,
+  type DayMinutes,
+  type LevelValue,
+  type Pass,
+  type PassResult,
+  type SolveItem,
+  type SolveOption,
+  type SolveRequest,
+  type SolveResponse,
+  type SolveStatus,
+  type SolveStudent,
+  type SubmissionWindow,
+} from './allocation-model.ts'
+
+export {
+  ALLOCATION_INPUT_PROBLEM_CODES,
+  checkAllocationInput,
+  compilePass,
+  inPass,
+  itemsOverlap,
+  prepareStudent,
+  prepareStudents,
+  solverItems,
+  type AllocationInputCheck,
+  type AllocationInputProblem,
+  type AllocationInputProblemCode,
+  type AllocationWarning,
+  type CompiledOption,
+  type CompiledPass,
+  type OptionKind,
+  type PreparedStudent,
+} from './allocation-compile.ts'
+
+export {
+  ALLOCATION_PROBLEM_CODES,
+  assembleAssignments,
+  cancelledOf,
+  recomputeLevels,
+  thresholdOf,
+  validateAllocation,
+  type AllocationProblem,
+  type AllocationProblemCode,
+} from './allocation-validate.ts'
+
+export {
+  explainStudent,
+  summarizeAllocation,
+  type AllocationSummary,
+  type ClassSummary,
+  type ExplainedDay,
+  type ExplainedItem,
+  type ItemSummary,
+  type StudentExplanation,
+} from './allocation-explain.ts'
+
 /**
  * The version of the domain rules a stored result was computed with. Bumped
  * whenever a change here would give a different allocation or validation
