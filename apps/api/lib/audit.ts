@@ -49,6 +49,14 @@ export const AUDIT_ACTIONS = [
   // class teachers of a class set.
   'settings.periods-changed',
   'class.teachers-changed',
+  // The window (campaign scope): an organizer exempts a student from a
+  // class activity, or enters a ranking on a student's behalf. A
+  // student's own saving is not privileged and keeps its revisions instead.
+  'preassignment.exempted',
+  'choice.entered-on-behalf',
+  // Mail (school scope): a template changed, a test mail sent.
+  'mail.template-changed',
+  'mail.test-sent',
 ] as const
 
 export type AuditAction = typeof AUDIT_ACTIONS[number]

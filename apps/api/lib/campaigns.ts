@@ -11,12 +11,13 @@ import type { Database, Queryable } from './db.ts'
 import { numberApprovedItems } from './items.ts'
 import { RosterConflict, type Actor } from './roster.ts'
 import { datesOfSpan } from './time.ts'
+import { windowEffects, type WindowContext } from './window.ts'
 
 export const CAMPAIGN_KINDS = ['project_week', 'wpf'] as const
 export type CampaignKind = typeof CAMPAIGN_KINDS[number]
 
-/** The states this release moves a campaign into; the choice window and everything after come with later slices. */
-export const AVAILABLE_TRANSITIONS: readonly CampaignState[] = ['catalogue', 'published']
+/** The states an organizer moves a campaign into by hand; the grace week comes by the clock alone, and the allocation with a later slice. */
+export const AVAILABLE_TRANSITIONS: readonly CampaignState[] = ['catalogue', 'published', 'open', 'closed']
 
 /**
  * The choice window and what it asks (D-05, D-06, D-13): when students
@@ -35,6 +36,8 @@ export interface CampaignWindow {
   /** Grade → minutes; a grade not listed has no minimum. */
   dailyMinimum: Record<string, number>
   showTeachers: boolean
+  /** Days before a close the reminder goes out; 0 for none. */
+  reminderDays: number
 }
 
 export interface Campaign extends CampaignWindow {
@@ -45,6 +48,8 @@ export interface Campaign extends CampaignWindow {
   state: CampaignState
   /** Local dates, YYYY-MM-DD, in order. */
   projectDays: string[]
+  /** The roster batch frozen at the close; null before. */
+  rosterBatchId: string | null
   createdAt: string
   updatedAt: string
 }
@@ -70,7 +75,7 @@ export type CampaignChanges = Omit<NewCampaign, 'kind'> & Partial<CampaignWindow
 /** The states in which the window's settings may still change: everything before the window opens. */
 const WINDOW_SETTABLE: readonly CampaignState[] = ['draft', 'catalogue', 'published']
 
-const WINDOW_FIELDS = ['opensAt', 'closesAt', 'lateUntil', 'swapFrom', 'swapUntil', 'wishesPerGroup', 'dailyMinimum', 'showTeachers'] as const
+const WINDOW_FIELDS = ['opensAt', 'closesAt', 'lateUntil', 'swapFrom', 'swapUntil', 'wishesPerGroup', 'dailyMinimum', 'showTeachers', 'reminderDays'] as const
 
 /**
  * The window as it would be after `changes`, or the rule it breaks: the
@@ -171,9 +176,9 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     }
     await client.query(
       `update campaign set name = $2, school_year = $3, project_days = $4::date[], opens_at = $5, closes_at = $6, late_until = $7, swap_from = $8, swap_until = $9,
-              wishes_per_group = $10, daily_minimum = $11, show_teachers = $12, updated_at = now() where id = $1`,
+              wishes_per_group = $10, daily_minimum = $11, show_teachers = $12, reminder_days = $13, updated_at = now() where id = $1`,
       [id, changes.name, changes.schoolYear, changes.projectDays, window.opensAt, window.closesAt, window.lateUntil, window.swapFrom, window.swapUntil,
-        window.wishesPerGroup, JSON.stringify(window.dailyMinimum), window.showTeachers],
+        window.wishesPerGroup, JSON.stringify(window.dailyMinimum), window.showTeachers, window.reminderDays],
     )
     await appendAudit(client, {
       scopeId: id, actor: auditActor(actor), action: 'campaign.changed',
@@ -190,25 +195,34 @@ async function lockedCampaign(client: Queryable, id: string): Promise<Campaign |
   return row === undefined ? undefined : toCampaign(row)
 }
 
+/** What the clock does and an organizer may not: enter the grace week. */
+const CLOCK_ONLY: readonly CampaignState[] = ['grace']
+
 /**
  * Moves a campaign to `to`, under its lock, as school-core allows: into the
- * catalogue (proposals open) or published (the catalogue is final, and the
- * approved items are numbered for print). The later states are refused
- * until the slice that gives them meaning.
+ * catalogue (proposals open), published (the catalogue is final, and the
+ * approved items are numbered for print), open (the pre-assignments are
+ * materialized and the students invited), the grace week (by the clock)
+ * and closed (the roster frozen, the students without a list told). The
+ * allocation's states are refused until the slice that gives them meaning.
  */
-export async function transitionCampaign(db: Database, rawId: string, to: CampaignState, actor: Actor): Promise<Campaign | undefined> {
-  if (!AVAILABLE_TRANSITIONS.includes(to)) throw new RosterConflict('transition_not_available')
+export async function transitionCampaign(db: Database, rawId: string, to: CampaignState, actor: Actor, context: WindowContext, options: { byClock?: boolean } = {}): Promise<Campaign | undefined> {
+  if (!AVAILABLE_TRANSITIONS.includes(to) && !(options.byClock && CLOCK_ONLY.includes(to))) throw new RosterConflict('transition_not_available')
   const id = canonicalId(rawId)
   const found = await db.tx(async (client) => {
     await lockScope(client, id)
-    const { rows: [current] } = await client.query<{ state: CampaignState }>('select state from campaign where id = $1 for update', [id])
+    const current = await lockedCampaign(client, id)
     if (!current) return false
     const result = transition(current.state, to)
     if (!result.ok) throw new RosterConflict('invalid_transition')
     let numbered = 0
     if (to === 'published') numbered = await numberApprovedItems(client, id)
     await client.query('update campaign set state = $2, updated_at = now() where id = $1', [id, to])
-    await appendAudit(client, { scopeId: id, actor: auditActor(actor), action: 'campaign.transitioned', metadata: { campaignId: id, from: current.state, to, numbered } })
+    const effects = await windowEffects(client, context, current, to)
+    await appendAudit(client, {
+      scopeId: id, actor: auditActor(actor), action: 'campaign.transitioned',
+      metadata: { campaignId: id, from: current.state, to, numbered, byClock: options.byClock === true, ...effects },
+    })
     return true
   })
   return found ? readCampaign(db, id) : undefined
@@ -313,6 +327,8 @@ interface CampaignRow {
   wishes_per_group: number
   daily_minimum: Record<string, number>
   show_teachers: boolean
+  reminder_days: number
+  roster_batch_id: string | null
   created_at: Date
   updated_at: Date
 }
@@ -320,7 +336,8 @@ interface CampaignRow {
 // Dates come back as text: the driver would otherwise make them Dates at
 // local midnight, which is not what a project day is.
 const SELECT = `select c.id, c.kind, c.name, c.school_year, c.state, c.project_days::text[] as project_days,
-  c.opens_at, c.closes_at, c.late_until, c.swap_from, c.swap_until, c.wishes_per_group, c.daily_minimum, c.show_teachers, c.created_at, c.updated_at from campaign c`
+  c.opens_at, c.closes_at, c.late_until, c.swap_from, c.swap_until, c.wishes_per_group, c.daily_minimum, c.show_teachers, c.reminder_days,
+  c.roster_batch_id, c.created_at, c.updated_at from campaign c`
 
 function toCampaign(row: CampaignRow): Campaign {
   const iso = (value: Date | null) => value?.toISOString() ?? null
@@ -339,6 +356,8 @@ function toCampaign(row: CampaignRow): Campaign {
     wishesPerGroup: row.wishes_per_group,
     dailyMinimum: row.daily_minimum,
     showTeachers: row.show_teachers,
+    reminderDays: row.reminder_days,
+    rosterBatchId: row.roster_batch_id,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   }

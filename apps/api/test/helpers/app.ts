@@ -34,7 +34,8 @@ export async function buildTestApp(env: Record<string, string> = {}, db: Databas
     },
   })
   const config = loadConfig({ ...SERVER_ENV, PUBLIC_URL: ORIGIN, WEB_DIST_DIR: path.join(tmpdir(), 'no-web-build-here'), ...env })
-  const app = await buildApp(config, { db, logStream, ...options })
+  // The clock and the sender are driven by the tests that need them.
+  const app = await buildApp(config, { db, logStream, background: false, ...options })
   return { app, logs: () => captured }
 }
 

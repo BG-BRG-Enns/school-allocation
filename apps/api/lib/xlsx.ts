@@ -3,8 +3,35 @@
 // so the sheet sorts and sums; nothing about students is in it.
 
 import writeXlsxFile from 'write-excel-file/node'
+import type { StudentChoiceState } from './choices.ts'
 import type { Item } from './items.ts'
 import { SCHOOL_TIME_ZONE } from './time.ts'
+
+/** A student's row of the organizer's list: the state of their list and what was sent to them. */
+export interface MissingRow extends StudentChoiceState {
+  mails: { kind: string, state: string, createdAt: string }[]
+}
+
+const STATE_LABELS: Record<string, string> = { none: 'keine Wünsche', incomplete: 'unvollständig', complete: 'vollständig' }
+
+/** Every student with the state of their list, for the organizer's and the class teachers' spreadsheets. */
+export async function missingWorkbook(rows: readonly MissingRow[]): Promise<Buffer> {
+  const data = [
+    ['Klasse', 'Schulstufe', 'Name', 'Stand', 'Fenster', 'Zuletzt gespeichert', 'E-Mail', 'Nachrichten'].map(header),
+    ...rows.map((row) => [
+      { type: String, value: row.className },
+      { type: Number, value: row.grade },
+      { type: String, value: row.displayName },
+      { type: String, value: STATE_LABELS[row.state] ?? row.state },
+      { type: String, value: row.window === null ? '' : (row.window === 'first' ? 'Anmeldefenster' : 'Nachfrist') },
+      { type: String, value: row.updatedAt === null ? '' : when.format(new Date(row.updatedAt)) },
+      { type: String, value: row.address ?? '' },
+      { type: String, value: row.mails.map((m) => `${m.kind}: ${m.state}`).join('; ') },
+    ]),
+  ]
+  const workbook = writeXlsxFile([{ sheet: 'Wahlstand', columns: [{ width: 8 }, { width: 10 }, { width: 30 }, { width: 16 }, { width: 16 }, { width: 22 }, { width: 36 }, { width: 50 }], data }])
+  return workbook.toBuffer()
+}
 
 const when = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 

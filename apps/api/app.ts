@@ -17,7 +17,12 @@ import { adminRosterRoutes } from './routes/admin-roster.ts'
 import { adminUsersRoutes } from './routes/admin-users.ts'
 import { authRoutes } from './routes/auth.ts'
 import { campaignRoutes } from './routes/campaigns.ts'
+import { mailRoutes } from './routes/mail.ts'
 import { settingsRoutes } from './routes/settings.ts'
+import { windowRoutes } from './routes/window.ts'
+import { Sender } from './lib/mail/sender.ts'
+import { createMailTransport } from './lib/mail/transport.ts'
+import { startScheduler } from './lib/scheduler.ts'
 
 export interface AppOptions {
   db: Database
@@ -29,6 +34,12 @@ export interface AppOptions {
   graphBaseUrl?: string
   /** Called with every route as it is registered; tests list them. */
   onRoute?: (route: RouteOptions) => void
+  /**
+   * Whether the clock and the sender run in this process (lib/scheduler.ts,
+   * lib/mail/sender.ts): the server and the dev server say yes; tests drive
+   * both by hand and say no.
+   */
+  background?: boolean
 }
 
 export async function buildApp(config: Config, options: AppOptions): Promise<FastifyInstance> {
@@ -115,8 +126,27 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   await app.register(authRoutes, { config, db, entraAuthority: options.entraAuthority, ...under })
   await app.register(adminRosterRoutes, { config, db, guards, entraAuthority: options.entraAuthority, graphBaseUrl: options.graphBaseUrl, ...under })
   await app.register(adminUsersRoutes, { db, guards, ...under })
-  await app.register(campaignRoutes, { db, guards, ...under })
+  // The sender, when mail is set up; the scheduler always. Both start once
+  // the app is ready and stop with it, so a shutdown waits for a session in
+  // flight and opens no new one.
+  const sender = config.mail === null || options.background === false ? null : new Sender({ db, transport: createMailTransport(config.mail), config: config.mail, log: app.log })
+  const wakeSender = () => sender?.wake()
+  await app.register(campaignRoutes, { db, guards, baseUrl: config.publicUrl, wakeSender, ...under })
   await app.register(settingsRoutes, { db, guards, ...under })
+  await app.register(windowRoutes, { db, guards, ...under })
+  await app.register(mailRoutes, { config, db, guards, wakeSender, ...under })
+  if (options.background !== false) {
+    let scheduler: { stop: () => void } | null = null
+    app.addHook('onReady', async () => {
+      if (sender) await sender.start()
+      scheduler = startScheduler(db, { baseUrl: config.publicUrl }, app.log, 60_000, wakeSender)
+      if (config.mail === null) app.log.warn('mail is off: no SMTP_HOST; notices queue in the outbox and go out once it is set')
+    })
+    app.addHook('onClose', async () => {
+      scheduler?.stop()
+      if (sender) await sender.stop()
+    })
+  }
 
   // The health check also says whether a job is executing: the
   // deployment's nightly update asks it and stays away while one does

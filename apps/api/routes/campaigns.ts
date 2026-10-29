@@ -30,6 +30,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { callerOf, type Caller, type Guards } from '../lib/auth.ts'
 import { campaignCounts, campaignDemand, canSee, createCampaign, isOrganizer, isTeacher, listCampaigns, readCampaign, rosterClasses, rosterTeachers, transitionCampaign, updateCampaign, type Campaign } from '../lib/campaigns.ts'
+import { choiceStates, type StudentChoiceState } from '../lib/choices.ts'
 import { classStudents } from '../lib/class-teachers.ts'
 import type { Database } from '../lib/db.ts'
 import { approveItem, catalogueItems, createItem, deleteDraft, ItemInvalid, listItems, proposeItem, readItem, returnItem, unproposeItem, updateItem, withdrawItem, type Item, type ItemInput } from '../lib/items.ts'
@@ -42,12 +43,16 @@ import { catalogueWorkbook } from '../lib/xlsx.ts'
 export interface CampaignRoutesOptions {
   db: Database
   guards: Guards
+  /** Where the links in notices point. */
+  baseUrl: string
+  /** Told after a transition, so queued notices go out without waiting for the next poll. */
+  wakeSender?: () => void
 }
 
 const IdParams = StrictObject({ id: Uuid })
 const TeachersQuery = StrictObject({ q: Type.Optional(Type.String({ maxLength: 100 })) })
 
-export async function campaignRoutes(app: FastifyInstance, { db, guards }: CampaignRoutesOptions): Promise<void> {
+export async function campaignRoutes(app: FastifyInstance, { db, guards, baseUrl, wakeSender }: CampaignRoutesOptions): Promise<void> {
   const signedIn = { preHandler: guards.requireSession }
   const organizer = { preHandler: guards.requireRole('campaign_organizer', 'school_admin') }
 
@@ -106,7 +111,14 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
     const items = (await listItems(db, campaign, caller, true))
       .filter((item) => item.fixedClasses.includes(className) && (item.state === 'approved' || item.state === 'proposed'))
       .map((item) => ({ id: item.id, title: item.title, state: item.state, sessions: item.sessions.map((s) => ({ startsAt: s.startsAt, endsAt: s.endsAt })) }))
-    return { className, students, classActivities: items }
+    // Once the window has opened, who has chosen; before, nobody has a list to speak of.
+    const windowOpened = !['draft', 'catalogue', 'published'].includes(campaign.state)
+    const states = windowOpened ? new Map((await choiceStates(db, campaign, className)).map((s) => [s.personId, s])) : new Map<string, StudentChoiceState>()
+    return {
+      className,
+      students: students.map((s) => ({ ...s, choice: windowOpened ? (states.get(s.personId)?.state ?? 'none') : null, window: states.get(s.personId)?.window ?? null })),
+      classActivities: items,
+    }
   })
 
   app.get<{ Params: Static<typeof IdParams> }>('/api/campaigns/:id/items', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
@@ -196,7 +208,8 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
 
   app.post<{ Params: Static<typeof IdParams>, Body: Static<typeof TransitionBody> }>('/api/admin/campaigns/:id/transition', { ...organizer, schema: { params: IdParams, body: TransitionBody, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
     return refusals(reply, async () => {
-      const campaign = await transitionCampaign(db, request.params.id, request.body.to, actorOf(request))
+      const campaign = await transitionCampaign(db, request.params.id, request.body.to, actorOf(request), { baseUrl })
+      if (campaign) wakeSender?.()
       return campaign ?? reply.code(404).send({ error: 'not_found' })
     })
   })

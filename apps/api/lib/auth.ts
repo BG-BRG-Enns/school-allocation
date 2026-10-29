@@ -41,6 +41,8 @@ export interface Caller {
   tid: string
   oid: string
   displayName: string
+  /** The address the token carried at sign-in; null when it carried none. */
+  email: string | null
   roles: Role[]
   /** null until a roster entry is bound to this identity. */
   person: CallerPerson | null
@@ -82,6 +84,7 @@ interface CallerRow {
   tid: string
   oid: string
   display_name: string
+  email: string | null
   blocked: boolean
   roles: string[]
   person_id: string | null
@@ -94,7 +97,7 @@ interface CallerRow {
 export async function loadCaller(db: Queryable, userId: string): Promise<Caller | undefined> {
   const { rows: [row] } = await db.query<CallerRow>(
     `with current as (select id, school_year from import_batch where state = 'committed' order by decided_at desc limit 1)
-     select u.tid, u.oid, u.display_name, u.blocked_at is not null as blocked,
+     select u.tid, u.oid, u.display_name, u.email, u.blocked_at is not null as blocked,
             coalesce((select array_agg(g.role order by g.role) from role_grant g where g.user_id = u.id and g.campaign_id is null and g.revoked_at is null), '{}') as roles,
             b.person_id, e.kind, e.class_name, e.grade,
             case when e.kind = 'teacher' then coalesce((
@@ -118,6 +121,7 @@ export async function loadCaller(db: Queryable, userId: string): Promise<Caller 
     tid: row.tid,
     oid: row.oid,
     displayName: row.display_name,
+    email: row.email,
     roles: row.roles.filter(isRole),
     person: row.person_id === null ? null : { id: row.person_id, kind: row.kind, className: row.class_name, grade: row.grade },
     classTeacherOf: row.classes,
