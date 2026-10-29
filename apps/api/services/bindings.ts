@@ -42,14 +42,14 @@ export async function bindAtSignIn(client: Queryable, identity: SignedInIdentity
  * binding, if any, and the account's current binding to another person, if
  * any, are closed first, each audited, and the new binding is audited with
  * the reason. Refused when the account is bound to that person already.
- * Returns false when the account or the person does not exist.
+ * Throws not_found when the account or the person does not exist.
  */
-export async function bindByAdmin(db: Database, input: AdminBinding, actor: Actor): Promise<boolean> {
+export async function bindByAdmin(db: Database, input: AdminBinding, actor: Actor): Promise<void> {
   return db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
     const user = await store.findAccount(client, input)
     const persons = await store.findPerson(client, input)
-    if (!user || (persons ?? 0) === 0) return false
+    if (!user || (persons ?? 0) === 0) throw new ApplicationError('not_found')
     const open = await store.findOpenBindings(client, input, user)
     if (open.some((binding) => binding.personId === input.personId && binding.tid === user.tid && binding.oid === user.oid)) {
       throw new ApplicationError('already_bound')
@@ -67,6 +67,5 @@ export async function bindByAdmin(db: Database, input: AdminBinding, actor: Acto
       scopeId: SCHOOL_SCOPE, actor: audit, action: 'identity.bound',
       metadata: { bindingId: made?.id ?? null, personId: input.personId, userId: input.userId, method: 'admin', reason: input.reason },
     })
-    return true
   })
 }

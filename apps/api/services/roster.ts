@@ -23,10 +23,10 @@ import { reconcileOpenCampaigns } from './pre-assignments.ts'
 
 const EMPTY_SUMMARY: RosterDiffSummary = { added: 0, removed: 0, changed: 0, unchanged: 0 }
 
-export async function readBatch(db: Queryable, id: string): Promise<BatchDetail | undefined> {
+export async function readBatch(db: Queryable, id: string): Promise<BatchDetail> {
   const rows = await store.findBatch(db, id)
   const row = rows[0]
-  if (row === undefined) return undefined
+  if (row === undefined) throw new ApplicationError('not_found')
   const batch = row
   const diff: RosterDiff<StoredEntry> = batch.state === 'rejected'
     ? { added: [], removed: [], changed: [], unchanged: 0 }
@@ -104,11 +104,11 @@ function payloadHash(entries: readonly RosterEntry[]): string {
  * once. Refused when the batch is not pending, or when another batch was
  * committed since this one's diff was taken (its diff is stale).
  */
-export async function commitBatch(db: Database, batchId: string, actor: Actor, tid: string): Promise<BatchDetail | undefined> {
-  const found = await db.tx(async (client) => {
+export async function commitBatch(db: Database, batchId: string, actor: Actor, tid: string): Promise<BatchDetail> {
+  await db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
     const batch = await store.lockBatchForCommit(client, batchId)
-    if (!batch) return false
+    if (!batch) throw new ApplicationError('not_found')
     if (batch.state !== 'pending') throw new ApplicationError('batch_not_pending')
     const current = await currentBatch(client)
     if ((current?.id ?? null) !== batch.previousBatchId) throw new ApplicationError('batch_superseded')
@@ -196,17 +196,16 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
       action: 'roster.imported',
       metadata: { batchId, source: batch.source, schoolYear: batch.schoolYear, rowCount: batch.rowCount, ...batch.diffSummary, personsCreated: created, identitiesBound: bound },
     })
-    return true
   })
-  return found ? readBatch(db, batchId) : undefined
+  return readBatch(db, batchId)
 }
 
 /** Sets a pending batch aside; the roster in force stays as it is. */
-export async function discardBatch(db: Database, batchId: string, actor: Actor): Promise<BatchDetail | undefined> {
-  const found = await db.tx(async (client) => {
+export async function discardBatch(db: Database, batchId: string, actor: Actor): Promise<BatchDetail> {
+  await db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
     const batch = await store.lockBatchForDiscard(client, batchId)
-    if (!batch) return false
+    if (!batch) throw new ApplicationError('not_found')
     if (batch.state !== 'pending') throw new ApplicationError('batch_not_pending')
     await store.discardBatch(client, batchId, actor)
     await appendAudit(client, {
@@ -215,9 +214,8 @@ export async function discardBatch(db: Database, batchId: string, actor: Actor):
       action: 'roster.discarded',
       metadata: { batchId, source: batch.source },
     })
-    return true
   })
-  return found ? readBatch(db, batchId) : undefined
+  return readBatch(db, batchId)
 }
 
 /** Roster configuration and import history, with the school-local suggested year. */

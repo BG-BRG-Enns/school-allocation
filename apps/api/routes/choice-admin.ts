@@ -29,11 +29,10 @@ export async function choiceAdminRoutes(app: FastifyInstance, { db, guards }: Wi
     return ({ campaign, ...await saveRanking(db, campaign, student.personId, request.body.ranking, { caller: callerOf(request), reason: request.body.reason }) })
   })
 
-  registerEndpoint(app, endpoints.postAdminCampaignsByIdPreassignmentsByPersonIdByItemIdExempt, { ...organizer }, async (request, reply) => {
+  registerEndpoint(app, endpoints.postAdminCampaignsByIdPreassignmentsByPersonIdByItemIdExempt, { ...organizer }, async (request) => {
     const campaign = await visibleCampaign(db, callerOf(request), request.params.id)
     const student = await namedStudent(db, campaign, request.params.personId)
-    const done = await exemptPreAssignment(db, campaign, student.personId, request.params.itemId.toLowerCase(), request.body.reason, callerOf(request))
-    if (!done) return reply.code(404).send({ error: 'not_found' })
+    await exemptPreAssignment(db, campaign, student.personId, request.params.itemId.toLowerCase(), request.body.reason, callerOf(request))
     return { campaign, ...await choiceView(db, campaign, student) }
   })
 }

@@ -126,13 +126,13 @@ export async function saveRanking(db: Database, campaign: Campaign, personId: st
  * placements are the allocation's frozen input (a placement by hand is
  * S4's).
  */
-export async function exemptPreAssignment(db: Database, campaign: Campaign, personId: string, itemId: string, reason: string, caller: Caller): Promise<boolean> {
+export async function exemptPreAssignment(db: Database, campaign: Campaign, personId: string, itemId: string, reason: string, caller: Caller): Promise<void> {
   return db.tx(async (client) => {
     await lockScope(client, campaign.id)
     const current = await store.lockExemptionWindow(client, campaign)
     if (!current || !acceptsChoices(current.state)) throw new ApplicationError('campaign_state')
     const row = await store.lockPreAssignment(client, campaign, personId, itemId)
-    if (!row) return false
+    if (!row) throw new ApplicationError('not_found')
     if (row.exemptedAt !== null) throw new ApplicationError('already_exempted')
     await store.exemptPreAssignment(client, campaign, personId, itemId, caller, reason)
     await appendAudit(client, {
@@ -141,7 +141,6 @@ export async function exemptPreAssignment(db: Database, campaign: Campaign, pers
       action: 'preassignment.exempted',
       metadata: { personId, itemId, reason },
     })
-    return true
   })
 }
 

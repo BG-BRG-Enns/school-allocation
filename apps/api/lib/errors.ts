@@ -57,3 +57,9 @@ export class TemplateInvalid extends Error {
     this.problems = problems
   }
 }
+
+/** Route-facing operations require a subject; optional DAO lookups remain explicit. */
+export function requireFound<T>(value: T | undefined): T {
+  if (value === undefined) throw new ApplicationError('not_found')
+  return value
+}

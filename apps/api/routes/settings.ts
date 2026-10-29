@@ -17,7 +17,6 @@ import { actorOf } from '../lib/actor.ts'
 import type { Guards } from '../lib/auth.ts'
 import { callerOf } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { ApplicationError, PeriodsInvalid } from '../lib/errors.ts'
 import { replaceClassTeachers } from '../services/class-teachers.ts'
 import { replacePeriods } from '../services/settings.ts'
 
@@ -35,13 +34,8 @@ export async function settingsRoutes(app: FastifyInstance, { db, guards }: Setti
     return periodSettings(db)
   })
 
-  registerEndpoint(app, endpoints.putAdminSettingsPeriods, { ...admin }, async (request, reply) => {
-    try {
-      return { periods: await replacePeriods(db, request.body.periods, actorOf(callerOf(request))) }
-    } catch (err) {
-      if (err instanceof PeriodsInvalid) return reply.code(422).send({ error: 'period_grid_invalid', problems: err.problems })
-      throw err
-    }
+  registerEndpoint(app, endpoints.putAdminSettingsPeriods, { ...admin }, async (request) => {
+    return { periods: await replacePeriods(db, request.body.periods, actorOf(callerOf(request))) }
   })
 
   registerEndpoint(app, endpoints.getAdminClasses, { ...organizer }, async () => {
@@ -52,14 +46,9 @@ export async function settingsRoutes(app: FastifyInstance, { db, guards }: Setti
     return teacherDirectory(db, request.query.q)
   })
 
-  registerEndpoint(app, endpoints.putAdminClassesByClassNameTeachers, { ...organizer }, async (request, reply) => {
-    try {
-      // Ids as PostgreSQL returns them, so a spelling in upper case is the same teacher.
-      await replaceClassTeachers(db, request.params.className, request.body.teachers.map((id) => id.toLowerCase()), actorOf(callerOf(request)))
-    } catch (err) {
-      if (err instanceof ApplicationError) return reply.code(err.code === 'class_unknown' ? 404 : 422).send({ error: err.code })
-      throw err
-    }
+  registerEndpoint(app, endpoints.putAdminClassesByClassNameTeachers, { ...organizer }, async (request) => {
+    // Ids as PostgreSQL returns them, so a spelling in upper case is the same teacher.
+    await replaceClassTeachers(db, request.params.className, request.body.teachers.map((id) => id.toLowerCase()), actorOf(callerOf(request)))
     return classDirectory(db)
   })
 }

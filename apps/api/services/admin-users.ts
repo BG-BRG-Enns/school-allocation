@@ -3,6 +3,8 @@
 // (docs/identity-and-roles.md §5). Every change writes its audit event in
 // the same transaction.
 
+import { requireFound } from '../lib/errors.ts'
+
 import { readAudit } from '../lib/audit.ts'
 
 import { type Actor } from '../lib/actor.ts'
@@ -28,7 +30,7 @@ async function assertAnotherAdminRemains(client: Queryable, withoutUserId: strin
 }
 
 /** Blocks an account; its running session ends with the next request. An administrator cannot block themselves, nor the last other administrator. */
-export async function blockAccount(db: Database, userId: string, reason: string, actor: Actor): Promise<boolean> {
+export async function blockAccount(db: Database, userId: string, reason: string, actor: Actor): Promise<void> {
   // PostgreSQL hands ids out in lower case; the route accepts either.
   if (userId.toLowerCase() === actor.id.toLowerCase()) throw new ApplicationError('cannot_block_self')
   return db.tx(async (client) => {
@@ -38,34 +40,32 @@ export async function blockAccount(db: Database, userId: string, reason: string,
     const affected = await store.blockUser(client, userId, actor)
     if (affected === 0) {
       const exists = await store.findUserToBlock(client, userId)
-      if ((exists ?? 0) === 0) return false
+      if ((exists ?? 0) === 0) throw new ApplicationError('not_found')
       throw new ApplicationError('already_blocked')
     }
     await appendAudit(client, { scopeId: SCHOOL_SCOPE, actor: auditActor(actor), action: 'user.blocked', metadata: { userId, reason } })
-    return true
   })
 }
 
-export async function unblockAccount(db: Database, userId: string, reason: string, actor: Actor): Promise<boolean> {
+export async function unblockAccount(db: Database, userId: string, reason: string, actor: Actor): Promise<void> {
   return db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
     const affected = await store.unblockUser(client, userId)
     if (affected === 0) {
       const exists = await store.findUserToUnblock(client, userId)
-      if ((exists ?? 0) === 0) return false
+      if ((exists ?? 0) === 0) throw new ApplicationError('not_found')
       throw new ApplicationError('not_blocked')
     }
     await appendAudit(client, { scopeId: SCHOOL_SCOPE, actor: auditActor(actor), action: 'user.unblocked', metadata: { userId, reason } })
-    return true
   })
 }
 
-/** Grants a school-wide role, audited; refused when the person holds it already. Returns false when the account does not exist. */
-export async function grantRole(db: Database, userId: string, role: Role, reason: string, actor: Actor): Promise<Grant | undefined> {
+/** Grants a school-wide role, audited; refused when the person holds it already. Throws not_found when the account does not exist. */
+export async function grantRole(db: Database, userId: string, role: Role, reason: string, actor: Actor): Promise<Grant> {
   const id = await db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
     const exists = await store.findGrantRecipient(client, userId)
-    if ((exists ?? 0) === 0) return undefined
+    if ((exists ?? 0) === 0) throw new ApplicationError('not_found')
     let grant: { id: string } | undefined
     try {
       const rows = await store.insertGrant(client, userId, role, actor, reason)
@@ -77,16 +77,16 @@ export async function grantRole(db: Database, userId: string, role: Role, reason
     await appendAudit(client, { scopeId: SCHOOL_SCOPE, actor: auditActor(actor), action: 'role.granted', metadata: { grantId: grant?.id ?? null, userId, role, reason } })
     return grant?.id
   })
-  if (id === undefined) return undefined
-  return (await listGrants(db)).find((grant) => grant.id === id)
+  if (id === undefined) throw new ApplicationError('not_found')
+  return requireFound((await listGrants(db)).find((grant) => grant.id === id))
 }
 
 /** Revokes a grant, audited. An administrator can revoke neither their own administration nor the last other one, so nobody locks everyone out. */
-export async function revokeGrant(db: Database, grantId: string, reason: string, actor: Actor): Promise<boolean> {
+export async function revokeGrant(db: Database, grantId: string, reason: string, actor: Actor): Promise<void> {
   return db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
     const grant = await store.lockGrant(client, grantId)
-    if (!grant) return false
+    if (!grant) throw new ApplicationError('not_found')
     if (grant.revoked) throw new ApplicationError('already_revoked')
     if (grant.role === 'school_admin') {
       if (grant.userId === actor.id) throw new ApplicationError('cannot_revoke_self')
@@ -94,7 +94,6 @@ export async function revokeGrant(db: Database, grantId: string, reason: string,
     }
     await store.revokeGrant(client, grantId, actor)
     await appendAudit(client, { scopeId: SCHOOL_SCOPE, actor: auditActor(actor), action: 'role.revoked', metadata: { grantId, userId: grant.userId, role: grant.role, reason } })
-    return true
   })
 }
 

@@ -19,12 +19,11 @@ import { accountDirectory, roleGrants, schoolAudit } from '../services/admin-use
 import * as endpoints from '@school-allocation/api-contracts/admin-users-endpoints'
 import { registerEndpoint } from '../lib/endpoint.ts'
 
-import type { FastifyInstance, FastifyReply } from 'fastify'
+import type { FastifyInstance } from 'fastify'
 import { actorOf } from '../lib/actor.ts'
 import type { Guards } from '../lib/auth.ts'
 import { callerOf } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { ApplicationError } from '../lib/errors.ts'
 import { blockAccount, grantRole, revokeGrant, unblockAccount } from '../services/admin-users.ts'
 import { bindByAdmin } from '../services/bindings.ts'
 
@@ -41,15 +40,18 @@ export async function adminUsersRoutes(app: FastifyInstance, { db, guards }: Adm
   })
 
   registerEndpoint(app, endpoints.postAdminUsersByIdBlock, { ...admin }, async (request, reply) => {
-    return done(reply, () => blockAccount(db, request.params.id, request.body.reason, actorOf(callerOf(request))))
+    await blockAccount(db, request.params.id, request.body.reason, actorOf(callerOf(request)))
+    return reply.code(204).send()
   })
 
   registerEndpoint(app, endpoints.postAdminUsersByIdUnblock, { ...admin }, async (request, reply) => {
-    return done(reply, () => unblockAccount(db, request.params.id, request.body.reason, actorOf(callerOf(request))))
+    await unblockAccount(db, request.params.id, request.body.reason, actorOf(callerOf(request)))
+    return reply.code(204).send()
   })
 
   registerEndpoint(app, endpoints.postAdminBindings, { ...admin }, async (request, reply) => {
-    return done(reply, () => bindByAdmin(db, request.body, actorOf(callerOf(request))))
+    await bindByAdmin(db, request.body, actorOf(callerOf(request)))
+    return reply.code(204).send()
   })
 
   registerEndpoint(app, endpoints.getAdminRoles, { ...admin }, async () => {
@@ -57,32 +59,16 @@ export async function adminUsersRoutes(app: FastifyInstance, { db, guards }: Adm
   })
 
   registerEndpoint(app, endpoints.postAdminRoles, { ...admin }, async (request, reply) => {
-    try {
-      const grant = await grantRole(db, request.body.userId, request.body.role, request.body.reason, actorOf(callerOf(request)))
-      if (!grant) return reply.code(404).send({ error: 'not_found' })
-      return reply.code(201).send(grant)
-    } catch (err) {
-      if (err instanceof ApplicationError) return reply.code(409).send({ error: err.code })
-      throw err
-    }
+    const grant = await grantRole(db, request.body.userId, request.body.role, request.body.reason, actorOf(callerOf(request)))
+    return reply.code(201).send(grant)
   })
 
   registerEndpoint(app, endpoints.postAdminRolesByIdRevoke, { ...admin }, async (request, reply) => {
-    return done(reply, () => revokeGrant(db, request.params.id, request.body.reason, actorOf(callerOf(request))))
+    await revokeGrant(db, request.params.id, request.body.reason, actorOf(callerOf(request)))
+    return reply.code(204).send()
   })
 
   registerEndpoint(app, endpoints.getAdminAudit, { preHandler: guards.requireRole('school_admin', 'read_only_auditor') }, async () => {
     return schoolAudit(db)
   })
-}
-
-/** 204 when the change was made, 404 when its subject does not exist, 409 with the code when the state refuses it. */
-async function done(reply: FastifyReply, fn: () => Promise<boolean>) {
-  try {
-    if (!await fn()) return reply.code(404).send({ error: 'not_found' })
-    return reply.code(204).send()
-  } catch (err) {
-    if (err instanceof ApplicationError) return reply.code(409).send({ error: err.code })
-    throw err
-  }
 }

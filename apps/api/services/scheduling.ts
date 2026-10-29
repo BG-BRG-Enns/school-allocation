@@ -55,7 +55,7 @@ async function advance(db: Database, context: WindowContext, id: string, now: Da
     // refused, not repeated, and a window postponed meanwhile stays shut.
     await transitionCampaign(db, id, to, CLOCK_ACTOR, context, { byClock: true, now })
   } catch (err) {
-    if (err instanceof ApplicationError && (err.code === 'not_due' || err.code === 'invalid_transition')) return 0
+    if (err instanceof ApplicationError && (err.code === 'not_due' || err.code === 'invalid_transition' || err.code === 'not_found')) return 0
     throw err
   }
   return 1

@@ -1,6 +1,7 @@
 import type { ItemBody } from '@school-allocation/api-contracts/catalogue'
 import type { Static } from 'typebox'
 import type { Caller } from '../lib/actor.ts'
+import { ApplicationError } from '../lib/errors.ts'
 import type { ItemInput } from '../lib/models/items.ts'
 import { isTeacher } from '../lib/policies.ts'
 
@@ -43,15 +44,16 @@ export function uniqueSorted(values: readonly string[]): string[] {
 /**
  * The project days as the campaign keeps them: calendar dates that exist
  * (the schema checks the shape, not that 31 February is a day), each once,
- * in order. Otherwise the error code to answer with.
+ * in order. Otherwise throws an application validation error.
  */
-export function projectDays(values: readonly string[]): string[] | 'invalid_date' | 'project_day_twice' {
+export function projectDays(values: readonly string[]): string[] {
   for (const day of values) {
     const ms = Date.parse(`${day}T00:00:00Z`)
-    if (!Number.isFinite(ms) || new Date(ms).toISOString().slice(0, 10) !== day) return 'invalid_date'
+    if (!Number.isFinite(ms) || new Date(ms).toISOString().slice(0, 10) !== day) throw new ApplicationError('invalid_date')
   }
   // YYYY-MM-DD sorts chronologically by its characters; the comparator says
   // so, since sort() without one is sort by code unit only by convention.
   const days = [...new Set(values)].sort((a, b) => Number(a > b) - Number(a < b))
-  return days.length === values.length ? days : 'project_day_twice'
+  if (days.length !== values.length) throw new ApplicationError('project_day_twice')
+  return days
 }

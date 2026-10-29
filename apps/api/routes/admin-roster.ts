@@ -31,20 +31,19 @@ export async function adminRosterRoutes(app: FastifyInstance, { config, db, guar
     return { groups }
   })
 
-  registerEndpoint(app, endpoints.getAdminRosterBatchesById, { ...admin }, async (request, reply) => {
+  registerEndpoint(app, endpoints.getAdminRosterBatchesById, { ...admin }, async (request) => {
     const batch = await readBatch(db, request.params.id)
-    if (!batch) return reply.code(404).send({ error: 'not_found' })
     return batch
   })
 
-  registerEndpoint(app, endpoints.postAdminRosterBatchesByIdCommit, { ...admin }, async (request, reply) => {
+  registerEndpoint(app, endpoints.postAdminRosterBatchesByIdCommit, { ...admin }, async (request) => {
     const batch = await commitBatch(db, request.params.id, actorOf(callerOf(request)), config.entra.tenantId)
-    return batch ?? reply.code(404).send({ error: 'not_found' })
+    return batch
   })
 
-  registerEndpoint(app, endpoints.postAdminRosterBatchesByIdDiscard, { ...admin }, async (request, reply) => {
+  registerEndpoint(app, endpoints.postAdminRosterBatchesByIdDiscard, { ...admin }, async (request) => {
     const batch = await discardBatch(db, request.params.id, actorOf(callerOf(request)))
-    return batch ?? reply.code(404).send({ error: 'not_found' })
+    return batch
   })
 
   registerEndpoint(app, endpoints.getAdminRosterPersons, { ...admin }, async (request) => {

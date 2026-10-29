@@ -75,12 +75,12 @@ export async function createCampaign(db: Database, input: NewCampaign, actor: Ac
  * activity outside them: the activities were checked against the days they
  * were proposed for, and a published catalogue must still satisfy that.
  */
-export async function updateCampaign(db: Database, rawId: string, changes: CampaignChanges, actor: Actor): Promise<Campaign | undefined> {
+export async function updateCampaign(db: Database, rawId: string, changes: CampaignChanges, actor: Actor): Promise<Campaign> {
   const id = canonicalId(rawId)
-  const found = await db.tx(async (client) => {
+  await db.tx(async (client) => {
     await lockScope(client, id)
     const current = await lockedCampaign(client, id)
-    if (!current) return false
+    if (!current) throw new ApplicationError('not_found')
     const setUpChanged = changes.name !== current.name || changes.schoolYear !== current.schoolYear || changes.projectDays.join() !== current.projectDays.join()
     if (setUpChanged && current.state !== 'draft' && current.state !== 'catalogue') throw new ApplicationError('campaign_state')
     const window: CampaignWindow = { ...current }
@@ -102,9 +102,8 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
       scopeId: id, actor: auditActor(actor), action: 'campaign.changed',
       metadata: { campaignId: id, projectDays: changes.projectDays.length, setUp: setUpChanged, window: windowChanged },
     })
-    return true
   })
-  return found ? readCampaign(db, id) : undefined
+  return requireCampaign(db, id)
 }
 
 /** What the clock does and an organizer may not: enter the grace week. */
@@ -133,17 +132,17 @@ export function dueTransition(campaign: Pick<Campaign, 'state' | 'opensAt' | 'cl
  * deadline is checked again under the lock, so a window an organizer
  * postponed meanwhile is not opened on the old date (`not_due`).
  */
-export async function transitionCampaign(db: Database, rawId: string, to: CampaignState, actor: Actor, context: WindowContext, options: { byClock?: boolean, now?: Date } = {}): Promise<Campaign | undefined> {
+export async function transitionCampaign(db: Database, rawId: string, to: CampaignState, actor: Actor, context: WindowContext, options: { byClock?: boolean, now?: Date } = {}): Promise<Campaign> {
   if (!AVAILABLE_TRANSITIONS.includes(to) && !(options.byClock && CLOCK_ONLY.includes(to))) throw new ApplicationError('transition_not_available')
   const id = canonicalId(rawId)
-  const found = await db.tx(async (client) => {
+  await db.tx(async (client) => {
     // The opening places the classes from the roster in force (D-24), so it
     // and a roster commit take the school's lock, one after the other; the
     // school before the campaign, as everywhere.
     if (to === 'open') await lockScope(client, SCHOOL_SCOPE)
     await lockScope(client, id)
     const current = await lockedCampaign(client, id)
-    if (!current) return false
+    if (!current) throw new ApplicationError('not_found')
     const result = transition(current.state, to)
     if (!result.ok) throw new ApplicationError('invalid_transition')
     if (options.byClock && dueTransition(current, options.now ?? new Date()) !== to) throw new ApplicationError('not_due')
@@ -155,9 +154,8 @@ export async function transitionCampaign(db: Database, rawId: string, to: Campai
       scopeId: id, actor: auditActor(actor), action: 'campaign.transitioned',
       metadata: { campaignId: id, from: current.state, to, numbered, byClock: options.byClock === true, ...effects },
     })
-    return true
   })
-  return found ? readCampaign(db, id) : undefined
+  return requireCampaign(db, id)
 }
 
 /** The campaigns the caller may see, newest first. */

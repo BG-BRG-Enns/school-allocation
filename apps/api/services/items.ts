@@ -5,6 +5,8 @@
 // it checks and back, and keeps who may do what to an item: its teachers
 // while it is a draft, organizers always, audited where it is not their own.
 
+import { requireFound } from '../lib/errors.ts'
+
 import { acceptsProposals, checkItem, itemTransition, type CampaignState, type ItemState } from '@school-allocation/school-core'
 import { actorOf, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
@@ -65,10 +67,10 @@ export async function createItem(db: Database, campaignId: string, input: ItemIn
  * draft and the campaign takes proposals; an organizer may at any time but
  * withdrawn, audited unless it is their own.
  */
-export async function updateItem(db: Database, id: string, input: ItemInput, caller: Caller, organizer: boolean): Promise<Item | undefined> {
-  const found = await db.tx(async (client) => {
+export async function updateItem(db: Database, id: string, input: ItemInput, caller: Caller, organizer: boolean): Promise<Item> {
+  await db.tx(async (client) => {
     const current = await lockedItem(client, id)
-    if (!current) return false
+    if (!current) throw new ApplicationError('not_found')
     const campaign = await store.lockCampaignForUpdate(client, current)
     // What a teacher may do without organizer rights: tend their own draft
     // while the catalogue takes proposals. Everything else is an
@@ -92,9 +94,8 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
     if (!asTeacher) {
       await appendAudit(client, { scopeId: current.campaignId, actor: actorOf(caller), action: 'item.changed', metadata: { itemId: id, state: current.state } })
     }
-    return true
   })
-  return found ? readItem(db, id) : undefined
+  return requireFound(await readItem(db, id))
 }
 
 /**
@@ -103,14 +104,13 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
  * removed. Drafting is its teachers' business alone: an organizer takes
  * someone else's item out through the audited withdrawal.
  */
-export async function deleteDraft(db: Database, id: string, caller: Caller): Promise<boolean> {
+export async function deleteDraft(db: Database, id: string, caller: Caller): Promise<void> {
   return db.tx(async (client) => {
     const current = await lockedItem(client, id)
-    if (!current) return false
+    if (!current) throw new ApplicationError('not_found')
     if (!isOwn(caller, current)) throw new ApplicationError('forbidden')
     if (current.state !== 'draft' || current.number !== null) throw new ApplicationError('item_state')
     await store.deleteItem(client, id)
-    return true
   })
 }
 
@@ -127,7 +127,7 @@ async function lockedItem(client: Queryable, id: string): Promise<Item | undefin
 }
 
 /** One of an item's teachers proposes their draft; the campaign must be taking proposals. Organizers propose their own items like anyone. */
-export async function proposeItem(db: Database, id: string, caller: Caller): Promise<Item | undefined> {
+export async function proposeItem(db: Database, id: string, caller: Caller): Promise<Item> {
   return moveItem(db, id, 'proposed', caller, false, async (client, current, campaignState) => {
     if (!acceptsProposals(campaignState)) throw new ApplicationError('campaign_state')
     await store.proposeItem(client, id)
@@ -135,7 +135,7 @@ export async function proposeItem(db: Database, id: string, caller: Caller): Pro
 }
 
 /** One of an item's teachers takes their proposal back to draft. An organizer's return goes through returnItem, with its note and audit event. */
-export async function unproposeItem(db: Database, id: string, caller: Caller): Promise<Item | undefined> {
+export async function unproposeItem(db: Database, id: string, caller: Caller): Promise<Item> {
   return moveItem(db, id, 'draft', caller, false, async (client, current, campaignState) => {
     if (!acceptsProposals(campaignState)) throw new ApplicationError('campaign_state')
     if (current.state !== 'proposed') throw new ApplicationError('item_state')
@@ -144,7 +144,7 @@ export async function unproposeItem(db: Database, id: string, caller: Caller): P
 }
 
 /** An organizer approves a proposal, audited. Allowed while the catalogue takes proposals and after it is published (a late item). */
-export async function approveItem(db: Database, id: string, caller: Caller): Promise<Item | undefined> {
+export async function approveItem(db: Database, id: string, caller: Caller): Promise<Item> {
   return moveItem(db, id, 'approved', caller, true, async (client, current, campaignState) => {
     if (campaignState !== 'catalogue' && campaignState !== 'published') throw new ApplicationError('campaign_state')
     await store.approveItem(client, id, caller)
@@ -159,7 +159,7 @@ export async function approveItem(db: Database, id: string, caller: Caller): Pro
  * publication a teacher could neither edit nor propose it again, so an
  * organizer corrects a published item directly (audited) or withdraws it.
  */
-export async function returnItem(db: Database, id: string, note: string, caller: Caller): Promise<Item | undefined> {
+export async function returnItem(db: Database, id: string, note: string, caller: Caller): Promise<Item> {
   return moveItem(db, id, 'draft', caller, true, async (client, current, campaignState) => {
     if (!acceptsProposals(campaignState)) throw new ApplicationError('campaign_state')
     await store.returnItem(client, id, note)
@@ -168,7 +168,7 @@ export async function returnItem(db: Database, id: string, note: string, caller:
 }
 
 /** An organizer withdraws an item, with a reason, audited; it stays in the record. */
-export async function withdrawItem(db: Database, id: string, reason: string, caller: Caller): Promise<Item | undefined> {
+export async function withdrawItem(db: Database, id: string, reason: string, caller: Caller): Promise<Item> {
   return moveItem(db, id, 'withdrawn', caller, true, async (client, current, campaignState) => {
     await store.withdrawItem(client, id, caller, reason)
     // A class activity withdrawn while the window is open frees its classes: the placements by class go (D-24), as after an edit.
@@ -179,19 +179,18 @@ export async function withdrawItem(db: Database, id: string, reason: string, cal
 
 // Every state change: the item and its campaign under the campaign's lock,
 // the transition school-core allows, then the change itself.
-async function moveItem(db: Database, id: string, to: ItemState, caller: Caller, organizer: boolean, move: Move): Promise<Item | undefined> {
-  const found = await db.tx(async (client) => {
+async function moveItem(db: Database, id: string, to: ItemState, caller: Caller, organizer: boolean, move: Move): Promise<Item> {
+  await db.tx(async (client) => {
     const current = await lockedItem(client, id)
-    if (!current) return false
+    if (!current) throw new ApplicationError('not_found')
     const campaign = await store.lockCampaignForMove(client, current)
-    if (!campaign) return false
+    if (!campaign) throw new ApplicationError('not_found')
     if (!organizer && !isOwn(caller, current)) throw new ApplicationError('forbidden')
     const result = itemTransition(current.state, to)
     if (!result.ok) throw new ApplicationError('invalid_item_transition')
     await move(client, current, campaign.state)
-    return true
   })
-  return found ? readItem(db, id) : undefined
+  return requireFound(await readItem(db, id))
 }
 
 /** The items of a campaign the caller may see: organizers all of them; teachers their own and the approved ones; everyone else the approved ones once the catalogue is published. */
@@ -215,11 +214,9 @@ async function mustRead(db: Queryable, id: string): Promise<Item> {
 }
 
 /** Check resource visibility before applying the requested operation. */
-export async function withVisibleItem<T>(db: Database, id: string, caller: Caller, operation: () => Promise<T | undefined>): Promise<T> {
+export async function withVisibleItem<T>(db: Database, id: string, caller: Caller, operation: () => Promise<T>): Promise<T> {
   const item = await readItem(db, id)
   const campaign = item === undefined ? undefined : await readCampaign(db, item.campaignId)
   if (!item || !campaign || !canSee(caller, campaign.state)) throw new ApplicationError('not_found')
-  const result = await operation()
-  if (result === undefined) throw new ApplicationError('not_found')
-  return result
+  return operation()
 }

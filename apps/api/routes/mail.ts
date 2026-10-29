@@ -17,7 +17,6 @@ import type { Config } from '../config.ts'
 import { actorOf } from '../lib/actor.ts'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { TemplateInvalid } from '../lib/errors.ts'
 import { readTemplates, saveTemplate } from '../services/mail-templates.ts'
 import { queueTestMail } from '../services/mail.ts'
 
@@ -36,13 +35,8 @@ export async function mailRoutes(app: FastifyInstance, { config, db, guards, wak
     return { templates: await readTemplates(db), mailEnabled: config.mail !== null }
   })
 
-  registerEndpoint(app, endpoints.putAdminMailTemplatesByKind, { ...organizer }, async (request, reply) => {
-    try {
-      return { template: await saveTemplate(db, request.params.kind, request.body.subject, request.body.body, actorOf(callerOf(request))) }
-    } catch (err) {
-      if (err instanceof TemplateInvalid) return reply.code(422).send({ error: 'template_invalid', problems: err.problems })
-      throw err
-    }
+  registerEndpoint(app, endpoints.putAdminMailTemplatesByKind, { ...organizer }, async (request) => {
+    return { template: await saveTemplate(db, request.params.kind, request.body.subject, request.body.body, actorOf(callerOf(request))) }
   })
 
   // The template as it stands, with sample values, to the caller's own

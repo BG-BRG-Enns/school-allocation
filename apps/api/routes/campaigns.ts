@@ -37,20 +37,18 @@ export async function campaignsRoutes(app: FastifyInstance, { db, guards, baseUr
 
   registerEndpoint(app, endpoints.postAdminCampaigns, { ...organizer }, async (request, reply) => {
     const days = projectDays(request.body.projectDays)
-    if (typeof days === 'string') return reply.code(422).send({ error: days })
     return reply.code(201).send(await createCampaign(db, { ...request.body, projectDays: days }, actorOf(callerOf(request))))
   })
 
-  registerEndpoint(app, endpoints.patchAdminCampaignsById, { ...organizer }, async (request, reply) => {
+  registerEndpoint(app, endpoints.patchAdminCampaignsById, { ...organizer }, async (request) => {
     const days = projectDays(request.body.projectDays)
-    if (typeof days === 'string') return reply.code(422).send({ error: days })
     const campaign = await updateCampaign(db, request.params.id, { ...request.body, projectDays: days }, actorOf(callerOf(request)))
-    return campaign ?? reply.code(404).send({ error: 'not_found' })
+    return campaign
   })
 
-  registerEndpoint(app, endpoints.postAdminCampaignsByIdTransition, { ...organizer }, async (request, reply) => {
+  registerEndpoint(app, endpoints.postAdminCampaignsByIdTransition, { ...organizer }, async (request) => {
     const campaign = await transitionCampaign(db, request.params.id, request.body.to, actorOf(callerOf(request)), { baseUrl })
-    if (campaign) wakeSender?.()
-    return campaign ?? reply.code(404).send({ error: 'not_found' })
+    wakeSender?.()
+    return campaign
   })
 }
