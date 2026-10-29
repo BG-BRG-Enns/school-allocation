@@ -1,16 +1,14 @@
 // Normalize interface/object spelling while preserving optional fields and unions.
 
-import type { GrantBody } from './administration.ts'
-import type { Role } from './common.ts'
 import type * as Core from '@school-allocation/school-core'
 import type { Static } from 'typebox'
-import type { ItemStateSchema, CreditSchema, CatalogueProblemCodeSchema, CatalogueProblemSchema, DayDemandSchema } from './campaigns.ts'
-import type { RankingProblemCodeSchema, RankingProblemSchema } from './choices.ts'
-import type { RosterEntrySchema, RosterProblemCodeSchema, RosterProblemSchema, ChangedFieldSchema, RosterDiffSummarySchema } from './roster.ts'
-import type { PeriodSchema } from './settings.ts'
-import type { PersonKindSchema } from './common.ts'
-import type { BatchDetailSchema, StoredEntry } from './roster.ts'
+import type { GrantBody } from './administration.ts'
+import type { CatalogueProblemCodeSchema, CatalogueProblemSchema, CreditSchema, DayDemandSchema, ItemStateSchema } from './campaigns.ts'
 import type { CreditBody, PeriodBody } from './catalogue.ts'
+import type { RankingProblemCodeSchema, RankingProblemSchema } from './choices.ts'
+import type { PersonKindSchema, Role } from './common.ts'
+import type { BatchDetailSchema, ChangedFieldSchema, RosterDiffSummarySchema, RosterEntrySchema, RosterProblemCodeSchema, RosterProblemSchema, StoredEntry } from './roster.ts'
+import type { PeriodSchema } from './settings.ts'
 
 type Shape<T> = T extends object ? { [K in keyof T]: Shape<T[K]> } : T
 type Equal<A, B> = (<T>() => T extends Shape<A> ? 1 : 2) extends (<T>() => T extends Shape<B> ? 1 : 2) ? true : false

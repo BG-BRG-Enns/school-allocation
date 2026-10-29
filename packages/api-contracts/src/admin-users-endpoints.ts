@@ -1,8 +1,8 @@
-import { BindingBody,GrantBody,UsersQuery } from './administration.ts'
+import { BindingBody, GrantBody, UsersQuery } from './administration.ts'
 import { ReasonBody } from './catalogue.ts'
-import { ErrorResponse,IdParams } from './common.ts'
+import { ErrorResponse, IdParams } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
-import { AccountsResponse,AuditResponse,GrantSchema,GrantsResponse } from './index.ts'
+import { AccountsResponse, AuditResponse, GrantSchema, GrantsResponse } from './index.ts'
 
 export const getAdminUsers = defineEndpoint({ method: 'GET', path: '/api/admin/users', transport: 'json', schema: { querystring: UsersQuery, response: { '200': AccountsResponse, '4xx': ErrorResponse } } })
 

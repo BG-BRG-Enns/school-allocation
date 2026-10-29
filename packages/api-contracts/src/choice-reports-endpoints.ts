@@ -1,6 +1,6 @@
-import { ErrorResponse,IdParams } from './common.ts'
+import { ErrorResponse, IdParams } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
-import { CampaignMailResponse,MissingResponse } from './index.ts'
+import { CampaignMailResponse, MissingResponse } from './index.ts'
 
 export const getAdminCampaignsByIdMissing = defineEndpoint({ method: 'GET', path: '/api/admin/campaigns/:id/missing', transport: 'json', schema: { params: IdParams, response: { '200': MissingResponse, '4xx': ErrorResponse } } })
 

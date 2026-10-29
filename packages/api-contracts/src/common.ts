@@ -1,5 +1,5 @@
 import { PERSON_KINDS } from '@school-allocation/school-core'
-import { Type,type TProperties } from 'typebox'
+import { Type, type TProperties } from 'typebox'
 
 /**
  * An object schema that rejects unknown properties. Every request and

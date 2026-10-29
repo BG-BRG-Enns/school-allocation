@@ -5,10 +5,10 @@ import { endpointPath } from '@school-allocation/api-contracts/endpoint'
 import * as endpoints from '@school-allocation/api-contracts/endpoints'
 export type { DayDemand } from '@school-allocation/school-core'
 
-import type { CampaignChanges,ItemInput } from '@school-allocation/api-contracts'
+import type { CampaignChanges, ItemInput } from '@school-allocation/api-contracts'
 import { apiRequest } from './api.ts'
 
-export type { Campaign,CampaignChanges,CampaignCounts,CampaignView,CampaignWindow,ChoiceState,ChoiceView,ClassStatus,GroupView,Item,ItemInput,ItemInvalidBody,MissingStudent,RankingInvalidBody,SessionInput } from '@school-allocation/api-contracts'
+export type { Campaign, CampaignChanges, CampaignCounts, CampaignView, CampaignWindow, ChoiceState, ChoiceView, ClassStatus, GroupView, Item, ItemInput, ItemInvalidBody, MissingStudent, RankingInvalidBody, SessionInput } from '@school-allocation/api-contracts'
 export const loadCampaigns = () => apiRequest(endpoints.getCampaigns, { })
 export const loadCampaign = (id: string) => apiRequest(endpoints.getCampaignsById, { params: { id: id } })
 export const loadItems = (id: string) => apiRequest(endpoints.getCampaignsByIdItems, { params: { id: id } })

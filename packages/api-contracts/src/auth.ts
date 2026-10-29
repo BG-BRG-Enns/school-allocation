@@ -11,17 +11,17 @@ export const MePersonSchema = StrictObject({
 })
 export type MePerson = Static<typeof MePersonSchema>
 
-export // Not strict: when single sign-on cannot complete silently, Entra sends the
+// Not strict: when single sign-on cannot complete silently, Entra sends the
 // browser back here with sso_reload=true, and possibly parameters of its own.
 // Only these are read.
-const LoginQuery = Type.Object({
+export const LoginQuery = Type.Object({
   returnTo: Type.Optional(Type.String({ maxLength: 2048 })),
   sso_reload: Type.Optional(Type.String({ maxLength: 64 })),
 })
 
-export // Not strict: Entra adds parameters of its own (session_state, iss, ...).
+// Not strict: Entra adds parameters of its own (session_state, iss, ...).
 // Only these are read.
-const CallbackQuery = Type.Object({
+export const CallbackQuery = Type.Object({
   code: Type.Optional(Type.String({ maxLength: 8192 })),
   state: Type.Optional(Type.String({ maxLength: 512 })),
   error: Type.Optional(Type.String({ maxLength: 512 })),

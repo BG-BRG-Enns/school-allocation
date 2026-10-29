@@ -109,14 +109,6 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
 /** What the clock does and an organizer may not: enter the grace week. */
 const CLOCK_ONLY: readonly CampaignState[] = ['grace']
 
-/**
- * Moves a campaign to `to`, under its lock, as school-core allows: into the
- * catalogue (proposals open), published (the catalogue is final, and the
- * approved items are numbered for print), open (the pre-assignments are
- * materialized and the students invited), the grace week (by the clock)
- * and closed (the roster frozen, the students without a list told). The
- * allocation's states are refused until the slice that gives them meaning.
- */
 const due = (iso: string | null, now: Date): boolean => iso !== null && Date.parse(iso) <= now.getTime()
 
 /** The transition the clock owes a campaign at `now` (docs/domain-and-api.md §2), or none. */
@@ -128,9 +120,14 @@ export function dueTransition(campaign: Pick<Campaign, 'state' | 'opensAt' | 'cl
 }
 
 /**
- * Moves a campaign to `to`. The clock passes `byClock` with its `now`: the
- * deadline is checked again under the lock, so a window an organizer
- * postponed meanwhile is not opened on the old date (`not_due`).
+ * Moves a campaign to `to`, under its lock, as school-core allows: into the
+ * catalogue (proposals open), published (the catalogue is final, and the
+ * approved items are numbered for print), open (the pre-assignments are
+ * materialized and the students invited), the grace week (by the clock)
+ * and closed (the roster frozen, the students without a list told). The
+ * allocation's states are refused until the slice that gives them meaning.
+ * The clock checks its deadline again under the lock, so a postponed window
+ * is not opened on its old date (`not_due`).
  */
 export async function transitionCampaign(db: Database, rawId: string, to: CampaignState, actor: Actor, context: WindowContext, options: { byClock?: boolean, now?: Date } = {}): Promise<Campaign> {
   if (!AVAILABLE_TRANSITIONS.includes(to) && !(options.byClock && CLOCK_ONLY.includes(to))) throw new ApplicationError('transition_not_available')

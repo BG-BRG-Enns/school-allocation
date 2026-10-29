@@ -1,4 +1,4 @@
-import { CallbackQuery,LoginQuery,MeResponse } from './auth.ts'
+import { CallbackQuery, LoginQuery, MeResponse } from './auth.ts'
 import { ErrorResponse } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
 

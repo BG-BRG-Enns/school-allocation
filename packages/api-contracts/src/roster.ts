@@ -4,7 +4,7 @@ import { CLASS_NAME, CSV_LIMITS, GRADES, ROSTER_CHANGED_FIELDS, ROSTER_PROBLEM_C
 import { Type, type Static } from 'typebox'
 import { Literals, PersonKindSchema, SingleLineText, StrictObject, Uuid } from './common.ts'
 
-export type { PersonKind } from '@school-allocation/school-core'
+export type { ChangedField, PersonKind, RosterDiffSummary, RosterEntry, RosterProblem, RosterProblemCode } from '@school-allocation/school-core'
 
 export const RosterEntrySchema = StrictObject({
   kind: PersonKindSchema,
@@ -16,20 +16,16 @@ export const RosterEntrySchema = StrictObject({
   grade: Type.Optional(Type.Number()),
   classTeacherMail: Type.Optional(Type.String()),
 })
-export type { RosterEntry } from '@school-allocation/school-core'
 
 export const RosterProblemCodeSchema = Literals(ROSTER_PROBLEM_CODES)
-export type { RosterProblemCode } from '@school-allocation/school-core'
 
 export const RosterProblemSchema = StrictObject({
   code: RosterProblemCodeSchema,
   key: Type.Optional(Type.String()),
   line: Type.Optional(Type.Number()),
 })
-export type { RosterProblem } from '@school-allocation/school-core'
 
 export const ChangedFieldSchema = Literals(ROSTER_CHANGED_FIELDS)
-export type { ChangedField } from '@school-allocation/school-core'
 
 export const RosterDiffSummarySchema = StrictObject({
   added: Type.Number(),
@@ -37,7 +33,6 @@ export const RosterDiffSummarySchema = StrictObject({
   changed: Type.Number(),
   unchanged: Type.Number(),
 })
-export type { RosterDiffSummary } from '@school-allocation/school-core'
 
 export const BatchStateSchema = Type.Union([Type.Literal('pending'), Type.Literal('committed'), Type.Literal('discarded'), Type.Literal('rejected')])
 export type BatchState = Static<typeof BatchStateSchema>
@@ -141,11 +136,11 @@ export const GraphStartQuery = StrictObject({
   purpose: Type.Optional(Type.Union([Type.Literal('refresh'), Type.Literal('picker')])),
 })
 
-export /** Either a prefix to search for, or `classes=true` for every group named after a class. */
-const GroupsQuery = StrictObject({ q: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })), classes: Type.Optional(Type.Literal('true')) })
+/** Either a prefix to search for, or `classes=true` for every group named after a class. */
+export const GroupsQuery = StrictObject({ q: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })), classes: Type.Optional(Type.Literal('true')) })
 
-export // Not strict: Entra adds parameters of its own. Only these are read.
-const GraphCallbackQuery = Type.Object({
+// Not strict: Entra adds parameters of its own. Only these are read.
+export const GraphCallbackQuery = Type.Object({
   code: Type.Optional(Type.String({ maxLength: 8192 })),
   state: Type.Optional(Type.String({ maxLength: 512 })),
   error: Type.Optional(Type.String({ maxLength: 512 })),

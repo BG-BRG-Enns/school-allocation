@@ -180,11 +180,15 @@ export default [
     files: ['apps/api/routes/**/*.ts'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [
-        { group: ['./*', '**/routes/**', '**/dao/**'], message: 'Routes depend on services and shared HTTP helpers, not sibling routes or DAOs.' },
+        { group: ['./*', '**/routes/**', '**/dao/**', '**/audit.ts', '**/mail/outbox.ts', '**/jobs.ts'], message: 'Routes depend on services and shared HTTP helpers, not sibling routes, DAOs or persistence adapters.' },
+        { group: ['**/graph.ts'], allowImportNames: ['GraphError', 'GRAPH_BASE_URL'], message: 'Graph reads belong in application services.' },
       ] }],
       'no-restricted-syntax': ['error', {
         selector: 'CallExpression[callee.type=\'MemberExpression\'][callee.property.name=/^(query|tx)$/]',
         message: 'Application services own database operations and transactions.',
+      }, {
+        selector: 'CallExpression[callee.object.name="app"][callee.property.name=/^(get|post|put|patch|delete|route)$/]',
+        message: 'Register shared endpoint descriptors through registerEndpoint.',
       }],
     },
   },
@@ -192,11 +196,14 @@ export default [
     files: ['apps/api/services/**/*.ts'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [
-        { group: ['fastify', '@fastify/*', '**/routes/**', '**/lib/auth.ts', '**/http-errors.ts'], message: 'Services receive plain callers and dependencies; HTTP belongs in routes.' },
+        { group: ['fastify', '@fastify/*', '**/routes/**', '**/lib/auth.ts', '**/http-errors.ts', 'pg', '**/dao/*-rows.ts'], message: 'Services receive plain callers and dependencies; HTTP belongs in routes.' },
       ] }],
       'no-restricted-syntax': ['error', {
         selector: 'CallExpression[callee.type=\'MemberExpression\'][callee.property.name=\'query\']',
         message: 'Put SQL in a feature DAO and pass the current transaction client.',
+      }, {
+        selector: 'ExportNamedDeclaration[source], ExportAllDeclaration',
+        message: 'Services expose application operations, never re-export DAO functions or models.',
       }],
     },
   },
@@ -209,6 +216,31 @@ export default [
       'no-restricted-syntax': ['error', {
         selector: 'CallExpression[callee.type=\'MemberExpression\'][callee.property.name=\'tx\']',
         message: 'The calling service owns the transaction.',
+      }],
+    },
+  },
+  {
+    files: ['apps/api/lib/scheduler.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [{
+        group: ['**/dao/**', '**/audit.ts', '**/mail/outbox.ts'],
+        message: 'The timer delegates persistence and decisions to the scheduling service.',
+      }] }],
+      'no-restricted-syntax': ['error', {
+        selector: 'CallExpression[callee.type="MemberExpression"][callee.property.name=/^(query|tx)$/]',
+        message: 'The scheduling service owns database work.',
+      }, {
+        selector: 'ImportExpression',
+        message: 'Use static scheduling dependencies.',
+      }],
+    },
+  },
+  {
+    files: ['apps/web/src/lib/*api*.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', {
+        selector: 'Literal[value=/^\\/api\\//], TemplateElement[value.raw=/^\\/api\\//]',
+        message: 'Use a shared endpoint descriptor for URLs and request/response types.',
       }],
     },
   },

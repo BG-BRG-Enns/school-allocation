@@ -9,12 +9,12 @@ import type { Database } from '../lib/db.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
 import { choiceView, exemptPreAssignment, namedStudent, saveRanking } from '../services/choices.ts'
 
-export interface WindowRoutesOptions {
+export interface ChoiceAdminRoutesOptions {
   db: Database
   guards: Guards
 }
 
-export async function choiceAdminRoutes(app: FastifyInstance, { db, guards }: WindowRoutesOptions): Promise<void> {
+export async function choiceAdminRoutes(app: FastifyInstance, { db, guards }: ChoiceAdminRoutesOptions): Promise<void> {
   const organizer = { preHandler: guards.requireRole('campaign_organizer', 'school_admin') }
 
   registerEndpoint(app, endpoints.getAdminCampaignsByIdChoicesByPersonId, { ...organizer }, async (request) => {

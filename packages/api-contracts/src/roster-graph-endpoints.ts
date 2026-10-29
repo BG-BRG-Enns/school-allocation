@@ -1,7 +1,7 @@
 import { ErrorResponse } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
 import { GraphGroupsResponse } from './index.ts'
-import { GraphCallbackQuery,GraphStartQuery,GroupsQuery } from './roster.ts'
+import { GraphCallbackQuery, GraphStartQuery, GroupsQuery } from './roster.ts'
 
 export const getAdminRosterGraphStart = defineEndpoint({ method: 'GET', path: '/api/admin/roster/graph/start', transport: 'redirect', schema: { querystring: GraphStartQuery, response: { '4xx': ErrorResponse } } })
 

@@ -1,12 +1,12 @@
 // Shared HTTP shapes. Types are derived from the schemas used by Fastify.
 
 import { RANKING_PROBLEM_CODES } from '@school-allocation/school-core'
-import { Type,type Static } from 'typebox'
-import { CampaignSchema,ItemSchema,ItemStateSchema } from './campaigns.ts'
-import { Literals,StrictObject } from './common.ts'
+import { Type, type Static } from 'typebox'
+import { CampaignSchema, ItemSchema, ItemStateSchema } from './campaigns.ts'
+import { Literals, StrictObject } from './common.ts'
 
 export const RankingProblemCodeSchema = Literals(RANKING_PROBLEM_CODES)
-export type { RankingProblem,RankingProblemCode } from '@school-allocation/school-core'
+export type { RankingProblem, RankingProblemCode } from '@school-allocation/school-core'
 
 export const RankingProblemSchema = StrictObject({
   code: RankingProblemCodeSchema,

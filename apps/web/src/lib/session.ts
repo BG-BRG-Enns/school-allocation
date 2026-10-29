@@ -6,11 +6,11 @@
 import * as endpoints from '@school-allocation/api-contracts/endpoints'
 
 import type { Me } from '@school-allocation/api-contracts'
-import { computed,ref } from 'vue'
+import { computed, ref } from 'vue'
 import { apiRequest } from './api.ts'
 import { withBase } from './base.ts'
 
-export type { Me,MePerson } from '@school-allocation/api-contracts'
+export type { Me, MePerson } from '@school-allocation/api-contracts'
 
 /** undefined until loaded; null when signed out. */
 export const session = ref<Me | null | undefined>(undefined)

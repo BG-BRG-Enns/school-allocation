@@ -1,7 +1,7 @@
-import { CampaignBody,CampaignChangesBody,TransitionBody } from './catalogue.ts'
-import { ErrorResponse,IdParams } from './common.ts'
+import { CampaignBody, CampaignChangesBody, TransitionBody } from './catalogue.ts'
+import { ErrorResponse, IdParams } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
-import { CampaignListResponse,CampaignSchema,CampaignViewSchema } from './index.ts'
+import { CampaignListResponse, CampaignSchema, CampaignViewSchema } from './index.ts'
 
 export const getCampaigns = defineEndpoint({ method: 'GET', path: '/api/campaigns', transport: 'json', schema: { response: { '200': CampaignListResponse, '4xx': ErrorResponse } } })
 

@@ -1,7 +1,7 @@
-import { ClassParams,TeachersQuery } from './catalogue.ts'
-import { ErrorResponse,IdParams,StrictObject } from './common.ts'
+import { ClassParams, TeachersQuery } from './catalogue.ts'
+import { ErrorResponse, IdParams, StrictObject } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
-import { CatalogueResponse,ClassStatusSchema,DemandResponse,ItemsResponse,RosterClassesResponse,TeachersResponse } from './index.ts'
+import { CatalogueResponse, ClassStatusSchema, DemandResponse, ItemsResponse, RosterClassesResponse, TeachersResponse } from './index.ts'
 
 export const getCampaignsByIdDemand = defineEndpoint({ method: 'GET', path: '/api/campaigns/:id/demand', transport: 'json', schema: { params: IdParams, response: { '200': DemandResponse, '4xx': ErrorResponse } } })
 

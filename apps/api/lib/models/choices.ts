@@ -12,5 +12,5 @@ export interface SaveBy {
   reason?: string
 }
 
-export type ChoiceState = 'none' | 'incomplete' | 'complete'
+export type { ChoiceState } from '@school-allocation/api-contracts'
 export type StudentChoiceState = Omit<MissingStudent, 'mails'>

@@ -5,8 +5,8 @@ Self-hosted allocation of project-week activities and elective subjects for Aust
 ## Layout
 
 ```text
-packages/api-contracts/   shared TypeBox request/response schemas and derived API/browser types
-apps/api/routes/          HTTP adapters: schemas, session guards, status codes and headers
+packages/api-contracts/   shared endpoint descriptors and TypeBox wire schemas
+apps/api/routes/          HTTP adapters: endpoint registration, session guards, status codes and headers
 apps/api/services/        application operations: permissions, transactions, locks, audit and outbox orchestration
 apps/api/lib/dao/         SQL and row mapping, using the caller's query/transaction client
 apps/api/lib/models/      internal models; public shapes come from api-contracts
@@ -30,6 +30,7 @@ npm workspaces share one root `package-lock.json`. Shared tooling (ESLint, TypeS
 npm ci --ignore-scripts
 npm run lint        # ESLint + markdownlint + lint:deps + typecheck
 npm test            # node:test in every workspace; database tests need TEST_DATABASE_URL
+npm run contracts:update:routes # regenerate the route/input fixture; review its diff
 npm run test:coverage  # the same tests from the root, with one lcov file in coverage/ for SonarQube
 npm run migrate     # apply pending migrations as the PostgreSQL superuser
 npm run build       # web app → apps/web/dist
@@ -54,11 +55,13 @@ These take precedence over convenience:
 
 ## API boundaries
 
-- `api-contracts` imports only TypeBox, `school-core` and its own modules. Both the API and browser use its types; request schemas and JSON success responses are declared there. Downloads, redirects and empty responses retain their own HTTP semantics.
-- Routes call services and never import sibling routes or DAOs. `app.ts` registers them explicitly under `PUBLIC_URL`'s base path. Shared actor conversion is in `lib/actor.ts`; application errors are in `lib/errors.ts`, with HTTP translation in `lib/http-errors.ts`.
-- Services receive plain callers and dependencies, and own transactions. They call DAOs with the same client for the entire operation, including audit and outbox writes. School locks precede campaign locks; reads and checks under a lock stay under it. Wake the mail sender only after the queuing operation commits.
-- DAOs contain SQL and row mapping. They never start transactions or depend on services, routes or Fastify. Existing infrastructure such as audit, outbox and session loading keeps its focused adapters.
-- The import directions are linted. API tests compare JSON success payloads before and after serialization so a response schema cannot silently lose fields. `test/contracts.test.ts` preserves the route/input inventory; update its fixture deliberately when changing the API.
+- `school-core` owns domain vocabulary, state/code lists and rule-result shapes. Contracts import that vocabulary. Unchanged domain values keep runtime schemas, pinned to core types by compile-time checks in `domain-checks.ts`; browser code imports their types from core.
+- `api-contracts` imports only TypeBox, `school-core` and its own modules. Endpoint descriptors bind method, path, request and response schemas. Routes register them through `registerEndpoint`; browser wrappers use `apiRequest` and `endpointPath`. Downloads, redirects and empty responses retain their own HTTP semantics. Wire projections select fields explicitly; internal additions must not leak into responses.
+- Routes call services and never import sibling routes, DAOs, audit/outbox readers or Graph read operations. `app.ts` registers them explicitly under `PUBLIC_URL`'s base path. Shared actor conversion is in `lib/actor.ts`; application errors are in `lib/errors.ts`, with an exhaustive status map in `lib/http-errors.ts`. Route-facing operations throw `not_found` consistently; routes do not duplicate the global mapper.
+- Services receive plain callers and dependencies, and own transactions. They expose application operations, never re-export DAO functions, models or SQL fragments. They call DAOs with the same client for the entire operation, including audit and outbox writes. School locks precede campaign locks; reads and checks under a lock stay under it. Wake the mail sender only after the queuing operation commits.
+- DAOs contain SQL and row mapping. They return mapped records, arrays, counts or void, never PostgreSQL result objects. Raw row types stay in the DAO directory; shared roster selection is in `dao/roster-selection.ts`. Locking reads are named explicitly. DAOs never start transactions or depend on services, routes or Fastify. Existing infrastructure such as audit, outbox and session loading keeps its focused adapters.
+- The scheduler in `lib/` only drives the timer; the scheduling service owns the workflow and calls its DAO. Graph routes own OAuth/cookies, the picker-token adapter owns token storage, and services own Graph reads and import decisions. Mail-history privacy belongs in the service.
+- ESLint enforces these boundaries, with regression examples in `scripts/api-boundaries.test.mjs`. API tests compare JSON success payloads before and after serialization so a response schema cannot silently lose fields. `test/contracts.test.ts` verifies endpoint registration and the route/input inventory using the same collector as `npm run contracts:update:routes`. Tests never update the fixture; run that command deliberately and review the diff when changing the API.
 
 ## Conventions
 

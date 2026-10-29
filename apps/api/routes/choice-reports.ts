@@ -11,12 +11,12 @@ import { type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { missingWorkbook } from '../lib/xlsx.ts'
 
-export interface WindowRoutesOptions {
+export interface ChoiceReportsRoutesOptions {
   db: Database
   guards: Guards
 }
 
-export async function choiceReportsRoutes(app: FastifyInstance, { db, guards }: WindowRoutesOptions): Promise<void> {
+export async function choiceReportsRoutes(app: FastifyInstance, { db, guards }: ChoiceReportsRoutesOptions): Promise<void> {
   const auditor = { preHandler: guards.requireRole('campaign_organizer', 'school_admin', 'read_only_auditor') }
 
   registerEndpoint(app, endpoints.getAdminCampaignsByIdMissing, { ...auditor }, async (request) => {

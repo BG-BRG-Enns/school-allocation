@@ -4,9 +4,9 @@
 // is gone: the browser goes to the sign-in page and comes back to this
 // one. A 204 is an answer without content, undefined to the caller.
 
-import { endpointPath,type Endpoint,type EndpointInput,type EndpointResponse } from '@school-allocation/api-contracts/endpoint'
+import { endpointPath, type Endpoint, type EndpointInput, type EndpointResponse } from '@school-allocation/api-contracts/endpoint'
 
-import { ApiError,problemOf,signInUrl } from './api-rules.ts'
+import { ApiError, problemOf, signInUrl } from './api-rules.ts'
 import { withBase } from './base.ts'
 
 let goToSignIn: () => void = () => window.location.assign(withBase(signInUrl(window.location.pathname + window.location.search)))

@@ -5,22 +5,19 @@ import { Type, type Static } from 'typebox'
 import { Literals, StrictObject } from './common.ts'
 
 export const ItemStateSchema = Literals(ITEM_STATES)
-export type { ItemState } from '@school-allocation/school-core'
+export type { CatalogueProblem, CatalogueProblemCode, Credit, DayDemand, ItemState } from '@school-allocation/school-core'
 
 export const CreditSchema = StrictObject({
   date: Type.String(),
   minutes: Type.Number(),
 })
-export type { Credit } from '@school-allocation/school-core'
 
 export const CatalogueProblemCodeSchema = Literals(CATALOGUE_PROBLEM_CODES)
-export type { CatalogueProblemCode } from '@school-allocation/school-core'
 
 export const CatalogueProblemSchema = StrictObject({
   code: CatalogueProblemCodeSchema,
   session: Type.Optional(Type.Number()),
 })
-export type { CatalogueProblem } from '@school-allocation/school-core'
 
 export const CampaignWindowSchema = StrictObject({
   opensAt: Type.Union([Type.String(), Type.Null()]),
@@ -79,7 +76,6 @@ export const DayDemandSchema = StrictObject({
     offered: Type.Number(),
   })),
 })
-export type { DayDemand } from '@school-allocation/school-core'
 
 export const ItemSchema = StrictObject({
   id: Type.String(),
