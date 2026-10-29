@@ -6,6 +6,9 @@
 //   GET  /api/admin/classes/teachers?q=         the roster's teachers, for assigning one (administrators, organizers)
 //   PUT  /api/admin/classes/:className/teachers set the class teachers assigned in the app, audited
 
+import { classDirectory, teacherDirectory } from '../services/class-teachers.ts'
+import { periodSettings } from '../services/settings.ts'
+
 import * as endpoints from '@school-allocation/api-contracts/settings-endpoints'
 import { registerEndpoint } from '../lib/endpoint.ts'
 
@@ -14,10 +17,9 @@ import { actorOf } from '../lib/actor.ts'
 import type { Guards } from '../lib/auth.ts'
 import { callerOf } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { ApplicationError } from '../lib/errors.ts'
-import { rosterTeachers } from '../services/campaigns.ts'
-import { listClasses,replaceClassTeachers } from '../services/class-teachers.ts'
-import { PeriodsInvalid,readPeriods,replacePeriods } from '../services/settings.ts'
+import { ApplicationError, PeriodsInvalid } from '../lib/errors.ts'
+import { replaceClassTeachers } from '../services/class-teachers.ts'
+import { replacePeriods } from '../services/settings.ts'
 
 export interface SettingsRoutesOptions {
   db: Database
@@ -30,7 +32,7 @@ export async function settingsRoutes(app: FastifyInstance, { db, guards }: Setti
   const organizer = { preHandler: guards.requireRole('campaign_organizer', 'school_admin') }
 
   registerEndpoint(app, endpoints.getSettingsPeriods, { ...signedIn }, async () => {
-    return { periods: await readPeriods(db) }
+    return periodSettings(db)
   })
 
   registerEndpoint(app, endpoints.putAdminSettingsPeriods, { ...admin }, async (request, reply) => {
@@ -43,11 +45,11 @@ export async function settingsRoutes(app: FastifyInstance, { db, guards }: Setti
   })
 
   registerEndpoint(app, endpoints.getAdminClasses, { ...organizer }, async () => {
-    return { classes: await listClasses(db) }
+    return classDirectory(db)
   })
 
   registerEndpoint(app, endpoints.getAdminClassesTeachers, { ...organizer }, async (request) => {
-    return { teachers: await rosterTeachers(db, request.query.q?.trim() ?? '') }
+    return teacherDirectory(db, request.query.q)
   })
 
   registerEndpoint(app, endpoints.putAdminClassesByClassNameTeachers, { ...organizer }, async (request, reply) => {
@@ -58,6 +60,6 @@ export async function settingsRoutes(app: FastifyInstance, { db, guards }: Setti
       if (err instanceof ApplicationError) return reply.code(err.code === 'class_unknown' ? 404 : 422).send({ error: err.code })
       throw err
     }
-    return { classes: await listClasses(db) }
+    return classDirectory(db)
   })
 }

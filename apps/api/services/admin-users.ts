@@ -3,6 +3,8 @@
 // (docs/identity-and-roles.md §5). Every change writes its audit event in
 // the same transaction.
 
+import { readAudit } from '../lib/audit.ts'
+
 import { type Actor } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import * as store from '../lib/dao/admin-users.ts'
@@ -12,9 +14,6 @@ import { ApplicationError } from '../lib/errors.ts'
 import type { Grant } from '../lib/models/admin-users.ts'
 import { SQLSTATE, sqlState } from '../lib/pg-errors.ts'
 import { type Role } from '../lib/roles.ts'
-
-export { listAccounts, listGrants } from '../lib/dao/admin-users.ts'
-export type { Account, Grant } from '../lib/models/admin-users.ts'
 
 /**
  * The school must keep an administrator who can sign in: whoever this
@@ -101,4 +100,18 @@ export async function revokeGrant(db: Database, grantId: string, reason: string,
 
 function auditActor(actor: Actor) {
   return { tid: actor.tid, oid: actor.oid, name: actor.name }
+}
+
+/** Account-directory filters and limits are application policy. */
+export async function accountDirectory(db: Database, query: { q?: string, unbound?: 'true' | 'false' }) {
+  return { users: await store.listAccounts(db, query.q?.trim() ?? '', query.unbound === 'true', 500) }
+}
+
+export async function roleGrants(db: Database) {
+  return { grants: await store.listGrants(db) }
+}
+
+/** Account administration exposes only the school's audit scope. */
+export async function schoolAudit(db: Database) {
+  return { events: await readAudit(db, SCHOOL_SCOPE) }
 }

@@ -3,14 +3,14 @@
 import * as endpoints from '@school-allocation/api-contracts/items-endpoints'
 import { registerEndpoint } from '../lib/endpoint.ts'
 
-import type { FastifyInstance,FastifyReply } from 'fastify'
+import type { FastifyInstance, FastifyReply } from 'fastify'
 import { type Caller } from '../lib/actor.ts'
-import { callerOf,type Guards } from '../lib/auth.ts'
+import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { isOrganizer,mayPropose } from '../lib/policies.ts'
+import { isOrganizer, mayPropose } from '../lib/policies.ts'
 import { itemInput } from '../services/catalogue-input.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
-import { approveItem,createItem,deleteDraft,proposeItem,returnItem,unproposeItem,updateItem,withdrawItem,withVisibleItem } from '../services/items.ts'
+import { approveItem, createItem, deleteDraft, proposeItem, returnItem, unproposeItem, updateItem, withdrawItem, withVisibleItem } from '../services/items.ts'
 
 export interface ItemsRoutesOptions {
   db: Database

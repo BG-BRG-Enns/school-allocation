@@ -14,17 +14,18 @@
 // services/bindings.ts). An administrator can neither block themselves nor
 // revoke their own administration.
 
+import { accountDirectory, roleGrants, schoolAudit } from '../services/admin-users.ts'
+
 import * as endpoints from '@school-allocation/api-contracts/admin-users-endpoints'
 import { registerEndpoint } from '../lib/endpoint.ts'
 
-import type { FastifyInstance,FastifyReply } from 'fastify'
+import type { FastifyInstance, FastifyReply } from 'fastify'
 import { actorOf } from '../lib/actor.ts'
-import { readAudit,SCHOOL_SCOPE } from '../lib/audit.ts'
 import type { Guards } from '../lib/auth.ts'
 import { callerOf } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
-import { blockAccount,grantRole,listAccounts,listGrants,revokeGrant,unblockAccount } from '../services/admin-users.ts'
+import { blockAccount, grantRole, revokeGrant, unblockAccount } from '../services/admin-users.ts'
 import { bindByAdmin } from '../services/bindings.ts'
 
 export interface AdminUsersOptions {
@@ -36,7 +37,7 @@ export async function adminUsersRoutes(app: FastifyInstance, { db, guards }: Adm
   const admin = { preHandler: guards.requireRole('school_admin') }
 
   registerEndpoint(app, endpoints.getAdminUsers, { ...admin }, async (request) => {
-    return { users: await listAccounts(db, request.query.q?.trim() ?? '', request.query.unbound === 'true', 500) }
+    return accountDirectory(db, request.query)
   })
 
   registerEndpoint(app, endpoints.postAdminUsersByIdBlock, { ...admin }, async (request, reply) => {
@@ -52,7 +53,7 @@ export async function adminUsersRoutes(app: FastifyInstance, { db, guards }: Adm
   })
 
   registerEndpoint(app, endpoints.getAdminRoles, { ...admin }, async () => {
-    return { grants: await listGrants(db) }
+    return roleGrants(db)
   })
 
   registerEndpoint(app, endpoints.postAdminRoles, { ...admin }, async (request, reply) => {
@@ -71,7 +72,7 @@ export async function adminUsersRoutes(app: FastifyInstance, { db, guards }: Adm
   })
 
   registerEndpoint(app, endpoints.getAdminAudit, { preHandler: guards.requireRole('school_admin', 'read_only_auditor') }, async () => {
-    return { events: await readAudit(db, SCHOOL_SCOPE) }
+    return schoolAudit(db)
   })
 }
 

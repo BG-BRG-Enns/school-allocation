@@ -14,9 +14,6 @@ import { parse, TemplateSyntaxError, type Node } from '../lib/mail/template-pars
 import { compile } from '../lib/mail/template-render.ts'
 import type { MailTemplate, TemplateProblem } from '../lib/models/mail-templates.ts'
 
-export { MAIL_KINDS, type MailKind } from '@school-allocation/api-contracts/mail'
-export { TemplateInvalid } from '../lib/errors.ts'
-export type { MailTemplate, TemplateProblem } from '../lib/models/mail-templates.ts'
 export function isMailKind(value: unknown): value is MailKind {
   return typeof value === 'string' && (MAIL_KINDS as readonly string[]).includes(value)
 }

@@ -5,6 +5,8 @@
 // who has not chosen. The rules are school-core's; this module hands them
 // the stored rows.
 
+import { requireCampaign } from './campaigns.ts'
+
 import { acceptsChoices, checkRanking, isComplete, offeredTo, timeGroupsOf, wishesRequired, type Ranking } from '@school-allocation/school-core'
 import { type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
@@ -19,10 +21,6 @@ import type { Item } from '../lib/models/items.ts'
 import { instantOf } from '../lib/time.ts'
 import { catalogueItems } from './items.ts'
 import { reconcilePreAssignments } from './pre-assignments.ts'
-
-export { campaignStudent, campaignStudents } from '../lib/dao/choices.ts'
-export { ChoiceInvalid } from '../lib/errors.ts'
-export type { CampaignStudent, ChoiceState, ChoiceView, GroupView, SaveBy, StudentChoiceState } from '../lib/models/choices.ts'
 
 /** Places every student of a class an approved item is fixed for into it (D-24), from the roster in force; called when the window opens. */
 export async function materializePreAssignments(client: Queryable, campaign: Pick<Campaign, 'id'>): Promise<number> {
@@ -187,4 +185,10 @@ export async function namedStudent(db: Queryable, campaign: Campaign, personId: 
 export async function missingStudents(db: Queryable, campaign: Campaign) {
   const [states, mails] = await Promise.all([choiceStates(db, campaign), mailStatesByPerson(db, campaign.id)])
   return states.map((student) => ({ ...student, mails: mails.get(student.personId) ?? [] }))
+}
+
+/** Shared report input for the JSON page and workbook. */
+export async function missingReport(db: Database, id: string) {
+  const campaign = await requireCampaign(db, id)
+  return { campaign, students: await missingStudents(db, campaign) }
 }

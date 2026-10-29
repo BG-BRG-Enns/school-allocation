@@ -4,11 +4,11 @@ import * as endpoints from '@school-allocation/api-contracts/window-endpoints'
 import { registerEndpoint } from '../lib/endpoint.ts'
 
 import type { FastifyInstance } from 'fastify'
-import { callerOf,type Guards } from '../lib/auth.ts'
+import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { redactChoices } from '../lib/policies.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
-import { callerStudent,choiceView,saveRanking } from '../services/choices.ts'
+import { callerStudent, choiceView, saveRanking } from '../services/choices.ts'
 
 export interface WindowRoutesOptions {
   db: Database

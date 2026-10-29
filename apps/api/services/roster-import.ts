@@ -1,9 +1,9 @@
 import { isSchoolYear, parseRosterCsv } from '@school-allocation/school-core'
+import { readGroups } from '../lib/dao/roster-groups.ts'
 import type { Database } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import { listGroupMembers, membersToEntries, type GraphMember } from '../lib/graph.ts'
 import { runJob } from '../lib/jobs.ts'
-import { readGroups } from './roster-groups.ts'
 import { createBatch } from './roster.ts'
 
 export async function importCsvRoster(db: Database, csv: string, schoolYear: string, triggeredBy: string) {

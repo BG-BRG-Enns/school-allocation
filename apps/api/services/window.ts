@@ -6,6 +6,7 @@
 // list told, the class teachers told again. Every notice is an outbox
 // row in the transition's own transaction, once per dedupe key.
 
+import { type MailKind } from '@school-allocation/api-contracts/mail'
 import type { CampaignState } from '@school-allocation/school-core'
 import * as store from '../lib/dao/window.ts'
 import { classTeachersByClass } from '../lib/dao/window.ts'
@@ -16,10 +17,8 @@ import type { StudentChoiceState } from '../lib/models/choices.ts'
 import type { WindowContext } from '../lib/models/window.ts'
 import { SCHOOL_TIME_ZONE } from '../lib/time.ts'
 import { choiceStates, materializePreAssignments } from './choices.ts'
-import { readTemplate, renderTemplate, type MailKind } from './mail-templates.ts'
+import { readTemplate, renderTemplate } from './mail-templates.ts'
 
-export { } from '../lib/dao/window.ts'
-export type { WindowContext } from '../lib/models/window.ts'
 const whenFormat = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 const dayFormat = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
 

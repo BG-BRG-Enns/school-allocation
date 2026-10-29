@@ -10,9 +10,6 @@ import { readPeriods } from '../lib/dao/settings.ts'
 import type { Database } from '../lib/db.ts'
 import { PeriodsInvalid } from '../lib/errors.ts'
 
-export { readPeriods } from '../lib/dao/settings.ts'
-export { PeriodsInvalid } from '../lib/errors.ts'
-
 /** Replaces the grid with `periods`, which must pass school-core's check; audited. */
 export async function replacePeriods(db: Database, periods: readonly Period[], actor: Actor): Promise<Period[]> {
   const problems = checkPeriods(periods)
@@ -31,4 +28,9 @@ export async function replacePeriods(db: Database, periods: readonly Period[], a
     })
   })
   return readPeriods(db)
+}
+
+/** The grid offered to signed-in people by the settings page. */
+export async function periodSettings(db: Database) {
+  return { periods: await readPeriods(db) }
 }

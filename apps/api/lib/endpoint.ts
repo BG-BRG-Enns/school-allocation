@@ -1,5 +1,5 @@
-import type { Endpoint,EndpointResponse,Part } from '@school-allocation/api-contracts/endpoint'
-import type { FastifyInstance,FastifyReply,FastifyRequest,RouteShorthandOptions } from 'fastify'
+import type { Endpoint, EndpointResponse, Part } from '@school-allocation/api-contracts/endpoint'
+import type { FastifyInstance, FastifyReply, FastifyRequest, RouteShorthandOptions } from 'fastify'
 
 type ReadonlyPayload<T> = T extends object ? { readonly [K in keyof T]: ReadonlyPayload<T[K]> } : T
 

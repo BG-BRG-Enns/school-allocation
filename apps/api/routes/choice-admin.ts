@@ -4,10 +4,10 @@ import * as endpoints from '@school-allocation/api-contracts/choice-admin-endpoi
 import { registerEndpoint } from '../lib/endpoint.ts'
 
 import type { FastifyInstance } from 'fastify'
-import { callerOf,type Guards } from '../lib/auth.ts'
+import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
-import { choiceView,exemptPreAssignment,namedStudent,saveRanking } from '../services/choices.ts'
+import { choiceView, exemptPreAssignment, namedStudent, saveRanking } from '../services/choices.ts'
 
 export interface WindowRoutesOptions {
   db: Database

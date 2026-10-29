@@ -5,11 +5,11 @@ import { registerEndpoint } from '../lib/endpoint.ts'
 
 import type { FastifyInstance } from 'fastify'
 import { actorOf } from '../lib/actor.ts'
-import { callerOf,type Guards } from '../lib/auth.ts'
+import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { createCampaign,listCampaigns,transitionCampaign,updateCampaign } from '../services/campaigns.ts'
+import { createCampaign, listCampaigns, transitionCampaign, updateCampaign } from '../services/campaigns.ts'
 import { projectDays } from '../services/catalogue-input.ts'
-import { campaignView,visibleCampaign } from '../services/catalogue.ts'
+import { campaignView, visibleCampaign } from '../services/catalogue.ts'
 
 export interface CampaignRoutesOptions {
   db: Database

@@ -11,9 +11,6 @@ import type { Database } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import type { RosterGroup } from '../lib/models/roster-groups.ts'
 
-export { readGroups } from '../lib/dao/roster-groups.ts'
-export type { RosterGroup } from '../lib/models/roster-groups.ts'
-
 /** Replaces the labelled groups with `groups`, audited. */
 export async function replaceGroups(db: Database, groups: readonly RosterGroup[], actor: Actor): Promise<RosterGroup[]> {
   const seen = new Set<string>()

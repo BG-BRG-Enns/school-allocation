@@ -9,18 +9,14 @@ import { type Actor, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import * as store from '../lib/dao/campaigns.ts'
 import { lockedCampaign, readCampaign, rosterClassSizes } from '../lib/dao/campaigns.ts'
+import { numberApprovedItems } from '../lib/dao/items.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import type { Campaign, CampaignChanges, CampaignWindow, NewCampaign } from '../lib/models/campaigns.ts'
 import type { WindowContext } from '../lib/models/window.ts'
 import { canSee } from '../lib/policies.ts'
 import { datesOfSpan } from '../lib/time.ts'
-import { numberApprovedItems } from './items.ts'
 import { windowEffects } from './window.ts'
-
-export { campaignCounts, readCampaign, rosterClasses, rosterClassSizes, rosterTeachers } from '../lib/dao/campaigns.ts'
-export { CAMPAIGN_KINDS } from '../lib/models/campaigns.ts'
-export type { Campaign, CampaignChanges, CampaignCounts, CampaignKind, CampaignWindow, NewCampaign, RosterClass, RosterTeacher } from '../lib/models/campaigns.ts'
 
 /** The states an organizer moves a campaign into by hand; the grace week comes by the clock alone, and the allocation with a later slice. */
 export const AVAILABLE_TRANSITIONS: readonly CampaignState[] = ['catalogue', 'published', 'open', 'closed']
@@ -200,4 +196,11 @@ function auditActor(actor: Actor) {
  */
 export function canonicalId(id: string): string {
   return id.toLowerCase()
+}
+
+/** Used by privileged reports after their adapter's role guard. */
+export async function requireCampaign(db: Queryable, id: string): Promise<Campaign> {
+  const campaign = await readCampaign(db, id)
+  if (!campaign) throw new ApplicationError('not_found')
+  return campaign
 }

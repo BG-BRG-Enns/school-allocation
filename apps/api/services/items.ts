@@ -18,10 +18,6 @@ import { canSee, isOwn } from '../lib/policies.ts'
 import { datesOfSpan, instantOf } from '../lib/time.ts'
 import { reconcilePreAssignments } from './pre-assignments.ts'
 
-export { numberApprovedItems, readItem } from '../lib/dao/items.ts'
-export { ItemInvalid } from '../lib/errors.ts'
-export type { Item, ItemInput, Move, Session, SessionInput } from '../lib/models/items.ts'
-
 /**
  * Checks an activity against its campaign's project days and the roster's
  * classes and teachers, inside the caller's transaction; throws ItemInvalid.

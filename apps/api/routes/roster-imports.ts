@@ -5,7 +5,7 @@ import { registerEndpoint } from '../lib/endpoint.ts'
 
 import { ROSTER_CSV_TEMPLATE } from '@school-allocation/school-core'
 import type { FastifyInstance } from 'fastify'
-import { callerOf,type Guards } from '../lib/auth.ts'
+import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { importCsvRoster } from '../services/roster-import.ts'
 

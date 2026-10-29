@@ -1,16 +1,17 @@
 // Roster configuration, batch decisions and person search.
 
+import { personDirectory, rosterOverview } from '../services/roster.ts'
+
 import * as endpoints from '@school-allocation/api-contracts/admin-roster-endpoints'
 import { registerEndpoint } from '../lib/endpoint.ts'
 
-import { schoolYearOf } from '@school-allocation/school-core'
 import type { FastifyInstance } from 'fastify'
 import type { Config } from '../config.ts'
 import { actorOf } from '../lib/actor.ts'
-import { callerOf,type Guards } from '../lib/auth.ts'
+import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { readGroups,replaceGroups } from '../services/roster-groups.ts'
-import { commitBatch,currentBatch,discardBatch,listBatches,readBatch,searchPersons } from '../services/roster.ts'
+import { replaceGroups } from '../services/roster-groups.ts'
+import { commitBatch, discardBatch, readBatch } from '../services/roster.ts'
 
 export interface AdminRosterOptions {
   config: Config
@@ -18,19 +19,11 @@ export interface AdminRosterOptions {
   guards: Guards
 }
 
-/** The school year today falls in, by the school's clock. */
-function suggestedSchoolYear(now = new Date()): string {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Vienna', year: 'numeric', month: 'numeric' }).formatToParts(now)
-  const part = (type: string) => Number(parts.find((p) => p.type === type)?.value)
-  return schoolYearOf(part('year'), part('month'))
-}
-
 export async function adminRosterRoutes(app: FastifyInstance, { config, db, guards }: AdminRosterOptions): Promise<void> {
   const admin = { preHandler: guards.requireRole('school_admin') }
 
   registerEndpoint(app, endpoints.getAdminRoster, { ...admin }, async () => {
-    const [current, groups, batches] = await Promise.all([currentBatch(db), readGroups(db), listBatches(db)])
-    return { current: current ?? null, groups, batches, suggestedSchoolYear: suggestedSchoolYear(), graphScopes: config.graphScopes }
+    return rosterOverview(db, config.graphScopes)
   })
 
   registerEndpoint(app, endpoints.putAdminRosterGroups, { ...admin }, async (request) => {
@@ -55,6 +48,6 @@ export async function adminRosterRoutes(app: FastifyInstance, { config, db, guar
   })
 
   registerEndpoint(app, endpoints.getAdminRosterPersons, { ...admin }, async (request) => {
-    return { persons: await searchPersons(db, request.query.q?.trim() ?? '', 200) }
+    return personDirectory(db, request.query.q)
   })
 }

@@ -12,8 +12,6 @@ import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import type { AdminBinding, SignedInIdentity } from '../lib/models/bindings.ts'
 
-export type { AdminBinding, SignedInIdentity } from '../lib/models/bindings.ts'
-
 /**
  * At sign-in, inside the sign-in's transaction: when the identity is not
  * bound and exactly one unbound person of the roster in force carries one

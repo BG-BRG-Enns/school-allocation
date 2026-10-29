@@ -1,10 +1,13 @@
 import type { Caller } from '../lib/actor.ts'
+import { campaignCounts, readCampaign, rosterClasses, rosterTeachers } from '../lib/dao/campaigns.ts'
+import { campaignStudents } from '../lib/dao/choices.ts'
 import type { Database } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
+import { type StudentChoiceState } from '../lib/models/choices.ts'
 import { canSee, isOrganizer, isTeacher, mayPropose, maySeeDemand, withoutTeachers } from '../lib/policies.ts'
-import { campaignCounts, campaignDemand, readCampaign, rosterClasses, rosterTeachers } from './campaigns.ts'
-import { campaignStudents, choiceStates, type StudentChoiceState } from './choices.ts'
+import { campaignDemand, requireCampaign } from './campaigns.ts'
+import { choiceStates } from './choices.ts'
 import { catalogueItems, listItems } from './items.ts'
 
 /** A campaign outside the caller's scope is indistinguishable from a missing one. */
@@ -73,4 +76,10 @@ export async function classOptions(db: Database, campaign: Campaign, caller: Cal
 export async function teacherOptions(db: Database, campaign: Campaign, caller: Caller, q: string) {
   if (!mayPropose(caller)) throw new ApplicationError('forbidden')
   return { teachers: await rosterTeachers(db, q) }
+}
+
+/** The organizer/auditor export includes the complete approved catalogue. */
+export async function catalogueExport(db: Database, id: string) {
+  const campaign = await requireCampaign(db, id)
+  return { campaign, items: await catalogueItems(db, campaign.id) }
 }

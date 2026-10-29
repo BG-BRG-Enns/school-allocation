@@ -4,15 +4,14 @@
 // teacher sees their class's state in a campaign and places its unplaced
 // students (S3b); here, who they are.
 
+import { rosterTeachers } from '../lib/dao/campaigns.ts'
+
 import { type Actor } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import * as store from '../lib/dao/class-teachers.ts'
 import { currentSchoolYear } from '../lib/dao/class-teachers.ts'
 import type { Database } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
-
-export { classStudents, currentSchoolYear, listClasses } from '../lib/dao/class-teachers.ts'
-export type { ClassStudent, ClassTeacher, ClassWithTeachers } from '../lib/models/class-teachers.ts'
 
 /**
  * Sets the teachers assigned in the app to a class of the roster in force:
@@ -46,4 +45,12 @@ export async function replaceClassTeachers(db: Database, className: string, pers
       metadata: { schoolYear, className, teachers: wanted.length },
     })
   })
+}
+
+export async function classDirectory(db: Database) {
+  return { classes: await store.listClasses(db) }
+}
+
+export async function teacherDirectory(db: Database, query: string | undefined) {
+  return { teachers: await rosterTeachers(db, query?.trim() ?? '') }
 }

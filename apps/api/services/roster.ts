@@ -6,6 +6,9 @@
 // so the administrator can see why. The rules themselves (what a batch must
 // satisfy, what a diff is) are school-core's.
 
+import { schoolYearOf } from '@school-allocation/school-core'
+import { readGroups } from '../lib/dao/roster-groups.ts'
+
 import { addressesOf, checkRoster, diffRoster, rosterKey, summarizeDiff, type RosterDiff, type RosterDiffSummary, type RosterEntry, type RosterProblem } from '@school-allocation/school-core'
 import { createHash } from 'node:crypto'
 import { type Actor } from '../lib/actor.ts'
@@ -18,9 +21,6 @@ import { ApplicationError } from '../lib/errors.ts'
 import type { BatchDetail, NewBatch, StoredEntry } from '../lib/models/roster.ts'
 import { reconcileOpenCampaigns } from './pre-assignments.ts'
 
-export { currentBatch, entriesOf, listBatches, searchPersons } from '../lib/dao/roster.ts'
-export { BATCH_SOURCES, BATCH_STATES } from '../lib/models/roster.ts'
-export type { Batch, BatchDetail, BatchSource, BatchState, NewBatch, RosterPerson, RosterWarning, StoredEntry } from '../lib/models/roster.ts'
 const EMPTY_SUMMARY: RosterDiffSummary = { added: 0, removed: 0, changed: 0, unchanged: 0 }
 
 export async function readBatch(db: Queryable, id: string): Promise<BatchDetail | undefined> {
@@ -218,4 +218,16 @@ export async function discardBatch(db: Database, batchId: string, actor: Actor):
     return true
   })
   return found ? readBatch(db, batchId) : undefined
+}
+
+/** Roster configuration and import history, with the school-local suggested year. */
+export async function rosterOverview(db: Database, graphScopes: string[], now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Vienna', year: 'numeric', month: 'numeric' }).formatToParts(now)
+  const part = (type: string) => Number(parts.find((p) => p.type === type)?.value)
+  const [current, groups, batches] = await Promise.all([currentBatch(db), readGroups(db), store.listBatches(db)])
+  return { current: current ?? null, groups, batches, suggestedSchoolYear: schoolYearOf(part('year'), part('month')), graphScopes }
+}
+
+export async function personDirectory(db: Database, query: string | undefined) {
+  return { persons: await store.searchPersons(db, query?.trim() ?? '', 200) }
 }

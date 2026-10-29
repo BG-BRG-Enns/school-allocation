@@ -7,16 +7,18 @@
 //
 // Organizers and administrators; the texts are the school's, not a campaign's.
 
+import { mailStatus } from '../services/mail.ts'
+
 import * as endpoints from '@school-allocation/api-contracts/mail-endpoints'
 import { registerEndpoint } from '../lib/endpoint.ts'
 
 import type { FastifyInstance } from 'fastify'
 import type { Config } from '../config.ts'
 import { actorOf } from '../lib/actor.ts'
-import { callerOf,type Guards } from '../lib/auth.ts'
+import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { countQueued } from '../lib/mail/outbox.ts'
-import { readTemplates,saveTemplate,TemplateInvalid } from '../services/mail-templates.ts'
+import { TemplateInvalid } from '../lib/errors.ts'
+import { readTemplates, saveTemplate } from '../services/mail-templates.ts'
 import { queueTestMail } from '../services/mail.ts'
 
 export interface MailRoutesOptions {
@@ -52,6 +54,6 @@ export async function mailRoutes(app: FastifyInstance, { config, db, guards, wak
   })
 
   registerEndpoint(app, endpoints.getAdminMailStatus, { ...organizer }, async () => {
-    return { mailEnabled: config.mail !== null, queued: await countQueued(db) }
+    return mailStatus(db, config.mail !== null)
   })
 }

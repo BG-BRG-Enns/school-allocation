@@ -1,17 +1,18 @@
 // Graph authorization, roster refresh and group picker. Token handles belong to this app instance.
 
+import { GraphPickerTokens } from '../lib/graph-picker-tokens.ts'
+import { findGraphGroups, prepareGraphImport } from '../services/graph-picker.ts'
+
 import * as endpoints from '@school-allocation/api-contracts/roster-graph-endpoints'
 import { registerEndpoint } from '../lib/endpoint.ts'
 
-import { isSchoolYear } from '@school-allocation/school-core'
-import type { FastifyInstance,FastifyRequest } from 'fastify'
+import type { FastifyInstance } from 'fastify'
 import { randomBytes } from 'node:crypto'
 import type { Config } from '../config.ts'
-import { callerOf,withinSeconds,type Guards } from '../lib/auth.ts'
+import { callerOf, withinSeconds, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { registerGraphAuthorization,SIGN_IN_SECONDS,SignInError } from '../lib/entra.ts'
-import { GRAPH_BASE_URL,GraphError,searchClassGroups,searchGroups } from '../lib/graph.ts'
-import { readGroups } from '../services/roster-groups.ts'
+import { registerGraphAuthorization, SIGN_IN_SECONDS, SignInError } from '../lib/entra.ts'
+import { GRAPH_BASE_URL, GraphError } from '../lib/graph.ts'
 import { importGraphRoster } from '../services/roster-import.ts'
 
 export interface RosterGraphOptions {
@@ -24,20 +25,6 @@ export interface RosterGraphOptions {
   graphBaseUrl?: string
 }
 
-/**
- * How long the picker keeps an administrator's Graph token: Entra issues
- * them for about an hour; well inside that, so a search never fails on an
- * expired one it still holds.
- */
-const PICKER_TOKEN_SECONDS = 50 * 60
-
-/** A Graph token held for the picker, in this process's memory only: never stored, never logged. */
-interface PickerToken {
-  accessToken: string
-  userId: string
-  expiresAt: number
-}
-
 export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guards, entraAuthority, graphBaseUrl = GRAPH_BASE_URL }: RosterGraphOptions): Promise<void> {
   const admin = { preHandler: guards.requireRole('school_admin') }
 
@@ -47,15 +34,7 @@ export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guar
 
   // The picker's tokens, by the handle the session carries. Per server
   // instance: a restart forgets them, and the administrator authorizes again.
-  const pickerTokens = new Map<string, PickerToken>()
-
-  const pickerToken = (request: FastifyRequest): PickerToken | undefined => {
-    const now = Date.now()
-    for (const [handle, token] of pickerTokens) if (token.expiresAt <= now) pickerTokens.delete(handle)
-    const handle = request.userSession.get('graphPicker')
-    const token = handle === undefined ? undefined : pickerTokens.get(handle)
-    return token !== undefined && token.userId === callerOf(request).id ? token : undefined
-  }
+  const pickerTokens = new GraphPickerTokens()
 
   // Sets the state cookie and the pending refresh; changes nothing on the
   // server. The callback, with the token the administrator just consented
@@ -63,10 +42,7 @@ export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guar
   registerEndpoint(app, endpoints.getAdminRosterGraphStart, { ...admin, exposeHeadRoute: false }, async (request, reply) => {
     const purpose = request.query.purpose ?? 'refresh'
     const schoolYear = request.query.schoolYear ?? ''
-    if (purpose === 'refresh') {
-      if (!isSchoolYear(schoolYear)) return reply.code(422).send({ error: 'invalid_school_year' })
-      if ((await readGroups(db)).length === 0) return reply.code(409).send({ error: 'no_groups' })
-    }
+    if (purpose === 'refresh') await prepareGraphImport(db, schoolYear)
     const nonce = randomBytes(32).toString('base64url')
     request.userSession.set('graphRefresh', { nonce, schoolYear, purpose, startedAt: Date.now() })
     return reply.redirect(await graph.authorizationUrl(request, reply, nonce), 302)
@@ -102,8 +78,7 @@ export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guar
     if (pending.purpose === 'picker') {
       // Kept for the picker's searches, under a handle only this session
       // knows; the token itself never leaves the process.
-      const handle = randomBytes(24).toString('base64url')
-      pickerTokens.set(handle, { accessToken, userId: caller.id, expiresAt: Date.now() + PICKER_TOKEN_SECONDS * 1000 })
+      const handle = pickerTokens.store(caller.id, accessToken)
       session.set('graphPicker', handle)
       return reply.redirect(`${rosterPage}?gruppen=suchen`, 303)
     }
@@ -118,19 +93,17 @@ export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guar
   // The picker's search, with the token the administrator authorized for it;
   // 409 asks them to authorize (again) when there is none or it has expired.
   registerEndpoint(app, endpoints.getAdminRosterGraphGroups, { ...admin }, async (request, reply) => {
-    const token = pickerToken(request)
+    const token = pickerTokens.read(request.userSession.get('graphPicker'), callerOf(request).id)
     if (!token) return reply.code(409).send({ error: 'graph_not_authorized' })
-    const q = request.query.q?.trim() ?? ''
-    if (request.query.classes !== 'true' && q === '') return reply.code(400).send({ error: 'validation_failed' })
     try {
-      return { groups: request.query.classes === 'true' ? await searchClassGroups(graphBaseUrl, token.accessToken) : await searchGroups(graphBaseUrl, token.accessToken, q) }
+      return await findGraphGroups(graphBaseUrl, token, request.query)
     } catch (err) {
       if (!(err instanceof GraphError)) throw err
       request.log.warn({ err }, `group search failed: ${err.code}`)
       if (err.code === 'graph_unauthorized') {
         // Graph does not take the token any more: forgotten, and authorized anew.
         const handle = request.userSession.get('graphPicker')
-        if (handle !== undefined) pickerTokens.delete(handle)
+        pickerTokens.forget(handle)
         request.userSession.set('graphPicker', undefined)
         return reply.code(409).send({ error: 'graph_not_authorized' })
       }
