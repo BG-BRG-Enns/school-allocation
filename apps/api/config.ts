@@ -42,9 +42,9 @@ export interface Config {
   /**
    * The Microsoft Graph permissions an administrator's roster refresh asks
    * for, delegated, by name (lib/graph.ts): GroupMember.Read.All reads the
-   * labelled groups' members, Group.Read.All finds groups by name for the
-   * picker; a tenant whose member listing leaves the address out adds
-   * User.ReadBasic.All (docs/data-sources.md §3).
+   * labelled groups' members, User.ReadBasic.All their names and addresses
+   * (without it Graph lists ids only; verified on a tenant 2026-10-29),
+   * Group.Read.All finds groups by name for the picker (docs/data-sources.md §3).
    */
   graphScopes: string[]
   build: BuildInfo
@@ -364,8 +364,8 @@ export function parseBootstrapAdmins(raw: string | undefined): string[] {
   return [...new Set(entries)]
 }
 
-/** What a refresh asks for unless the deployment says otherwise: the least that lists a group's members, and what the group picker needs to find groups by name (D-23). */
-export const DEFAULT_GRAPH_SCOPES = ['GroupMember.Read.All', 'Group.Read.All']
+/** What a refresh asks for unless the deployment says otherwise: the least that lists a group's members with their names and addresses, and what the group picker needs to find groups by name (D-23). */
+export const DEFAULT_GRAPH_SCOPES = ['GroupMember.Read.All', 'User.ReadBasic.All', 'Group.Read.All']
 const MAX_GRAPH_SCOPES = 5
 
 // Permission names as Graph writes them (Resource.Operation.Scope), a few

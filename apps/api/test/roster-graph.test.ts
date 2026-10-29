@@ -27,7 +27,7 @@ async function refresh(h: Harness, jar: CookieJar, as: Person = ANNA, schoolYear
   assert.equal(start.statusCode, 302, start.body)
   jar.update(start)
   const location = new URL(start.headers.location as string)
-  assert.match(location.searchParams.get('scope') ?? '', /openid profile https:\/\/graph\.microsoft\.com\/GroupMember\.Read\.All/)
+  assert.match(location.searchParams.get('scope') ?? '', /openid profile https:\/\/graph\.microsoft\.com\/GroupMember\.Read\.All https:\/\/graph\.microsoft\.com\/User\.ReadBasic\.All/)
   const callback = h.entra.authorize(location.toString(), { claims: claimsOf(as) })
   const response = await h.app.inject({ method: 'GET', url: callback, headers: { cookie: jar.header() } })
   assert.equal(response.statusCode, 303, response.body)
@@ -47,12 +47,17 @@ test('labelled groups are read with the administrator\'s token, committed as pre
   assert.equal((await send(h, anna, 'PUT', '/api/admin/roster/groups', { groups: [{ groupId: TEACHERS_GROUP, label: 'x', kind: 'student' }] })).status, 422)
   assert.equal((await send(h, anna, 'PUT', '/api/admin/roster/groups', { groups: [GROUPS[1], GROUPS[1]] })).status, 422)
 
+  // The class holds Sara directly and Tim through a nested group, as a school's 3A is made of 3AR and 3AG.
+  const nested = '77777777-7777-4777-8777-777777777777'
+  h.graph.groups.set(nested, [memberOf(TIM)])
+  h.graph.groups.set(CLASS_5A_GROUP, [memberOf(SARA), { id: nested, displayName: '5A Gruppe', type: '#microsoft.graph.group' }])
   h.graph.pageSize = 2
   const location = await refresh(h, anna)
   const batchId = /\/verwaltung\/stammdaten\/import\/([0-9a-f-]+)$/.exec(location)?.[1]
   assert.ok(batchId, location)
-  // Two pages for the three teachers, one for the class.
+  // Two pages for the three teachers, two for the class (Sara, the nested group, Tim); nested groups flattened by Graph.
   assert.equal(h.graph.requests.filter((r) => r.includes(TEACHERS_GROUP)).length, 2)
+  assert.equal(h.graph.requests.filter((r) => r.includes(`${CLASS_5A_GROUP}/transitiveMembers`)).length, 2)
   assert.ok(h.graph.requests.every((r) => r.includes('$select=id,displayName,mail,userPrincipalName')))
 
   const batch = await get<BatchDetail>(h, anna, `/api/admin/roster/batches/${batchId}`)

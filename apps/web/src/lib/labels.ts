@@ -114,7 +114,7 @@ export const REFRESH_ERROR_LABELS: Readonly<Record<string, string>> = {
   no_pending_refresh: 'Es war keine Aktualisierung gestartet, oder sie ist abgelaufen. Bitte noch einmal starten.',
   graph_authorization_failed: 'Die Berechtigung für Microsoft Graph wurde nicht erteilt oder passt nicht zu Ihrem Konto.',
   graph_unauthorized: 'Microsoft Graph hat das Token nicht angenommen.',
-  graph_forbidden: 'Microsoft Graph verweigert das Lesen der Gruppen. Fehlt die Berechtigung (GroupMember.Read.All) oder die Zustimmung der IT?',
+  graph_forbidden: 'Microsoft Graph verweigert das Lesen der Gruppen. Fehlen die Berechtigungen (GroupMember.Read.All, User.ReadBasic.All) oder die Zustimmung der IT?',
   graph_not_found: 'Eine der Gruppen gibt es in Entra nicht (mehr). Bitte die Gruppen-IDs prüfen.',
   graph_failed: 'Microsoft Graph hat nicht geantwortet. Bitte später noch einmal versuchen.',
   import_failed: 'Der Import ist fehlgeschlagen.',

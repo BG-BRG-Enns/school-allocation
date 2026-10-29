@@ -44,7 +44,10 @@ export class GraphError extends Error {
  */
 export async function listGroupMembers(baseUrl: string, accessToken: string, groupId: string, fetchFn: typeof fetch = fetch): Promise<GraphMember[]> {
   const origin = new URL(baseUrl).origin
-  let next: string | undefined = `${origin}/v1.0/groups/${encodeURIComponent(groupId)}/members?$select=id,displayName,mail,userPrincipalName&$top=999`
+  // transitiveMembers, not members: a class group may hold its students in
+  // nested groups (3A made of 3AR and 3AG); Graph flattens them, and only
+  // the users among the result become entries (membersToEntries).
+  let next: string | undefined = `${origin}/v1.0/groups/${encodeURIComponent(groupId)}/transitiveMembers?$select=id,displayName,mail,userPrincipalName&$top=999`
   const members: GraphMember[] = []
   for (let page = 0; next !== undefined; page += 1) {
     if (page >= MAX_PAGES) throw new GraphError('graph_failed', 'too many pages')

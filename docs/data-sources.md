@@ -48,21 +48,23 @@ Nothing else is imported, even if Graph returns more.
    and grade. The list is replaced as a whole and audited.
 2. "Refresh roster" sends the administrator to Microsoft to consent to the Graph permissions for this
    one refresh; the callback reads the members of each labelled group with that token, writes one
-   `ImportBatch` with a diff against the roster in force, and forgets the token. Only users count as
-   members (nested groups and devices are skipped); only `id`, `displayName`, `mail` and
-   `userPrincipalName` are read. A member without an address is a warning on the batch.
+   `ImportBatch` with a diff against the roster in force, and forgets the token. The members are
+   read transitively, so a class group made of nested groups (3A of 3AR and 3AG) yields their
+   students; only users count (the nested groups themselves and devices are skipped), and only `id`,
+   `displayName`, `mail` and `userPrincipalName` are read. A member without an address is a warning
+   on the batch.
 3. Two permission models (D-22, least privilege by default):
    - **Delegated** (default, implemented): the refresh runs with the administrator's own Graph token,
      obtained during the refresh action, which the ID token of that authorization must attribute to
      the signed-in administrator. Attributable, and the app holds no standing directory permission.
      Automatic refresh at window opening is not possible; the organizer refreshes before opening. The
-     permissions asked for are the deployment's `GRAPH_DELEGATED_SCOPES`, `GroupMember.Read.All` and
-     `Group.Read.All` (the picker) unless set.
+     permissions asked for are the deployment's `GRAPH_DELEGATED_SCOPES`, `GroupMember.Read.All`,
+     `User.ReadBasic.All` and `Group.Read.All` (the picker) unless set.
    - **Application** (`GroupMember.Read.All`), opt-in, not implemented yet: the app may refresh on its
      own, e.g. when a window opens. Needs admin consent.
 
-   Which user properties `GroupMember.Read.All` returns for members must be **verified on a test
-   tenant**; if `mail` is missing, `User.ReadBasic.All` is the smallest addition.
+   Verified on a tenant (2026-10-29): with `GroupMember.Read.All` alone the member listing carries
+   ids only, no names and no addresses, so `User.ReadBasic.All` is part of the default.
 4. The `groups` claim in the ID token is **not** used: it only describes the signing-in user, so it
    cannot answer who has *not* chosen yet, and it overflows for users in many groups.
 
