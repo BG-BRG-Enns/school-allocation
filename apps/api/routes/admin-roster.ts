@@ -2,8 +2,11 @@
 //
 //   GET  /api/admin/roster                      the batch in force, the labelled groups, recent batches
 //   PUT  /api/admin/roster/groups               label the Entra groups the Graph import reads
-//   GET  /api/admin/roster/graph/start          authorize a refresh from the groups with the administrator's own Graph token
-//   GET  /api/admin/roster/graph/callback       Entra sends the browser back here; the batch is written and shown
+//   GET  /api/admin/roster/graph/start          authorize a refresh from the groups with the administrator's own Graph token,
+//                                               or (purpose=picker) a token the group picker searches with
+//   GET  /api/admin/roster/graph/callback       Entra sends the browser back here; the batch is written and shown, or the
+//                                               picker's token is kept in memory for its lifetime
+//   GET  /api/admin/roster/graph/groups?q=      the tenant's groups by name, with that token (D-23)
 //   POST /api/admin/roster/csv                  a CSV roster, as a pending batch with its diff
 //   GET  /api/admin/roster/csv/template         the file to start from
 //   GET  /api/admin/roster/batches/:id          a batch with its diff, problems and warnings
@@ -22,7 +25,7 @@ import type { Config } from '../config.ts'
 import { callerOf, withinSeconds, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { registerGraphAuthorization, SIGN_IN_SECONDS, SignInError } from '../lib/entra.ts'
-import { GRAPH_BASE_URL, GraphError, listGroupMembers, membersToEntries, type GraphMember } from '../lib/graph.ts'
+import { GRAPH_BASE_URL, GraphError, listGroupMembers, membersToEntries, searchGroups, type GraphMember } from '../lib/graph.ts'
 import { runJob } from '../lib/jobs.ts'
 import { commitBatch, createBatch, currentBatch, discardBatch, listBatches, readBatch, RosterConflict, searchPersons, type Actor } from '../lib/roster.ts'
 import { readGroups, replaceGroups } from '../lib/roster-groups.ts'
@@ -57,7 +60,25 @@ const CsvBody = StrictObject({
 const CSV_BODY_LIMIT = 12 * 1024 * 1024
 
 const IdParams = StrictObject({ id: Uuid })
-const GraphStartQuery = StrictObject({ schoolYear: SchoolYear })
+const GraphStartQuery = StrictObject({
+  schoolYear: Type.Optional(SchoolYear),
+  purpose: Type.Optional(Type.Union([Type.Literal('refresh'), Type.Literal('picker')])),
+})
+const GroupsQuery = StrictObject({ q: Type.String({ minLength: 1, maxLength: 100 }) })
+
+/**
+ * How long the picker keeps an administrator's Graph token: Entra issues
+ * them for about an hour; well inside that, so a search never fails on an
+ * expired one it still holds.
+ */
+const PICKER_TOKEN_SECONDS = 50 * 60
+
+/** A Graph token held for the picker, in this process's memory only: never stored, never logged. */
+interface PickerToken {
+  accessToken: string
+  userId: string
+  expiresAt: number
+}
 // Not strict: Entra adds parameters of its own. Only these are read.
 const GraphCallbackQuery = Type.Object({
   code: Type.Optional(Type.String({ maxLength: 8192 })),
@@ -70,6 +91,16 @@ export async function adminRosterRoutes(app: FastifyInstance, { config, db, guar
   const admin = { preHandler: guards.requireRole('school_admin') }
   const graph = await registerGraphAuthorization(app, config.entra, `${config.publicUrl}/api/admin/roster/graph/callback`, config.basePath, config.graphScopes, entraAuthority)
   const rosterPage = `${config.basePath}/verwaltung/stammdaten`
+  // The picker's tokens, by the handle the session carries. Per server
+  // instance: a restart forgets them, and the administrator authorizes again.
+  const pickerTokens = new Map<string, PickerToken>()
+  const pickerToken = (request: FastifyRequest): PickerToken | undefined => {
+    const now = Date.now()
+    for (const [handle, token] of pickerTokens) if (token.expiresAt <= now) pickerTokens.delete(handle)
+    const handle = request.userSession.get('graphPicker')
+    const token = handle === undefined ? undefined : pickerTokens.get(handle)
+    return token !== undefined && token.userId === callerOf(request).id ? token : undefined
+  }
 
   app.get('/api/admin/roster', { ...admin, schema: { response: { '4xx': ErrorResponse } } }, async () => {
     const [current, groups, batches] = await Promise.all([currentBatch(db), readGroups(db), listBatches(db)])
@@ -99,10 +130,14 @@ export async function adminRosterRoutes(app: FastifyInstance, { config, db, guar
     exposeHeadRoute: false,
     schema: { querystring: GraphStartQuery, response: { '4xx': ErrorResponse } },
   }, async (request, reply) => {
-    if (!isSchoolYear(request.query.schoolYear)) return reply.code(422).send({ error: 'invalid_school_year' })
-    if ((await readGroups(db)).length === 0) return reply.code(409).send({ error: 'no_groups' })
+    const purpose = request.query.purpose ?? 'refresh'
+    const schoolYear = request.query.schoolYear ?? ''
+    if (purpose === 'refresh') {
+      if (!isSchoolYear(schoolYear)) return reply.code(422).send({ error: 'invalid_school_year' })
+      if ((await readGroups(db)).length === 0) return reply.code(409).send({ error: 'no_groups' })
+    }
     const nonce = randomBytes(32).toString('base64url')
-    request.userSession.set('graphRefresh', { nonce, schoolYear: request.query.schoolYear, startedAt: Date.now() })
+    request.userSession.set('graphRefresh', { nonce, schoolYear, purpose, startedAt: Date.now() })
     return reply.redirect(await graph.authorizationUrl(request, reply, nonce), 302)
   })
 
@@ -137,6 +172,14 @@ export async function adminRosterRoutes(app: FastifyInstance, { config, db, guar
     } catch (err) {
       return failed('graph_authorization_failed', err)
     }
+    if (pending.purpose === 'picker') {
+      // Kept for the picker's searches, under a handle only this session
+      // knows; the token itself never leaves the process.
+      const handle = randomBytes(24).toString('base64url')
+      pickerTokens.set(handle, { accessToken, userId: caller.id, expiresAt: Date.now() + PICKER_TOKEN_SECONDS * 1000 })
+      session.set('graphPicker', handle)
+      return reply.redirect(`${rosterPage}?gruppen=suchen`, 303)
+    }
     try {
       const batch = await runJob(db, 'roster_import_graph', caller.id, async () => {
         const groups = await readGroups(db)
@@ -148,6 +191,27 @@ export async function adminRosterRoutes(app: FastifyInstance, { config, db, guar
       return reply.redirect(`${rosterPage}/import/${batch.id}`, 303)
     } catch (err) {
       return failed(err instanceof GraphError ? err.code : 'import_failed', err)
+    }
+  })
+
+  // The picker's search, with the token the administrator authorized for it;
+  // 409 asks them to authorize (again) when there is none or it has expired.
+  app.get<{ Querystring: Static<typeof GroupsQuery> }>('/api/admin/roster/graph/groups', { ...admin, schema: { querystring: GroupsQuery, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
+    const token = pickerToken(request)
+    if (!token) return reply.code(409).send({ error: 'graph_not_authorized' })
+    try {
+      return { groups: await searchGroups(graphBaseUrl, token.accessToken, request.query.q.trim()) }
+    } catch (err) {
+      if (!(err instanceof GraphError)) throw err
+      request.log.warn({ err }, `group search failed: ${err.code}`)
+      if (err.code === 'graph_unauthorized') {
+        // Graph does not take the token any more: forgotten, and authorized anew.
+        const handle = request.userSession.get('graphPicker')
+        if (handle !== undefined) pickerTokens.delete(handle)
+        request.userSession.set('graphPicker', undefined)
+        return reply.code(409).send({ error: 'graph_not_authorized' })
+      }
+      return reply.code(err.code === 'graph_forbidden' ? 403 : 502).send({ error: err.code })
     }
   })
 

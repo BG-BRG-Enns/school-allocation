@@ -48,12 +48,13 @@ export interface PendingSignIn {
   startedAt: number
 }
 
-/** Between an administrator's start of a Graph roster refresh and its callback. */
+/** Between an administrator's start of a Graph authorization and its callback: a roster refresh, or the group picker's token. */
 export interface PendingGraphRefresh {
   /** Must come back inside the ID token of the authorization. */
   nonce: string
-  /** The school year the batch is for. */
+  /** The school year the batch is for (a refresh). */
   schoolYear: string
+  purpose: 'refresh' | 'picker'
   startedAt: number
 }
 
@@ -61,6 +62,8 @@ export interface UserSessionData {
   user: SessionUser
   signIn: PendingSignIn
   graphRefresh: PendingGraphRefresh
+  /** The handle of the Graph token the picker searches groups with; the token itself stays in the server's memory (routes/admin-roster.ts). */
+  graphPicker: string
 }
 
 declare module 'fastify' {

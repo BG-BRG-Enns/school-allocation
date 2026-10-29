@@ -73,6 +73,46 @@ export async function listGroupMembers(baseUrl: string, accessToken: string, gro
   return members
 }
 
+/** A group as the picker lists it. */
+export interface GraphGroup {
+  id: string
+  displayName: string
+  description: string | null
+}
+
+const MAX_GROUPS = 50
+
+/**
+ * The tenant's groups whose name starts with `q` (D-23; Group.Read.All,
+ * delegated): fifty at most, by name. The filter is Graph's own; the quote
+ * inside it is doubled, as OData escapes it, so a name cannot end the
+ * filter early.
+ */
+export async function searchGroups(baseUrl: string, accessToken: string, q: string, fetchFn: typeof fetch = fetch): Promise<GraphGroup[]> {
+  const origin = new URL(baseUrl).origin
+  const filter = `startswith(displayName,'${q.replaceAll('\'', '\'\'')}')`
+  const url = `${origin}/v1.0/groups?$filter=${encodeURIComponent(filter)}&$select=id,displayName,description&$top=${MAX_GROUPS}&$orderby=displayName`
+  let response: Response
+  try {
+    response = await fetchFn(url, { headers: { authorization: `Bearer ${accessToken}`, accept: 'application/json' }, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
+  } catch {
+    throw new GraphError('graph_failed', 'request failed')
+  }
+  if (response.status === 401) throw new GraphError('graph_unauthorized')
+  if (response.status === 403) throw new GraphError('graph_forbidden')
+  if (!response.ok) throw new GraphError('graph_failed', `status ${response.status}`)
+  const body = await response.json().catch(() => undefined) as { value?: unknown } | undefined
+  if (!body || !Array.isArray(body.value)) throw new GraphError('graph_failed', 'not a listing')
+  const groups: GraphGroup[] = []
+  for (const item of body.value) {
+    if (typeof item !== 'object' || item === null) continue
+    const record = item as Record<string, unknown>
+    if (typeof record.id !== 'string' || !GUID.test(record.id.toLowerCase())) continue
+    groups.push({ id: record.id.toLowerCase(), displayName: boundedName(text(record.displayName)) ?? record.id.toLowerCase(), description: text(record.description)?.slice(0, 200) ?? null })
+  }
+  return groups
+}
+
 function toMember(item: unknown): GraphMember | undefined {
   if (typeof item !== 'object' || item === null) return undefined
   const record = item as Record<string, unknown>

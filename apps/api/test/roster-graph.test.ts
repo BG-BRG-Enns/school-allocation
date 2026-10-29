@@ -178,6 +178,50 @@ test('a member without an address is a warning, a member in two groups rejects t
   assert.deepEqual(batches.body.batches.map((b) => b.state), ['rejected', 'rejected', 'pending'])
 })
 
+test('the group picker searches the tenant\'s groups with a token the administrator authorized for it, which lives in the server\'s memory only', DB, async (t) => {
+  const h = await harness(t, ADMIN)
+  const anna = await signIn(h, ANNA)
+  const search = (jar: CookieJar, q: string) => get<{ groups: { id: string, displayName: string }[], error?: string }>(h, jar, `/api/admin/roster/graph/groups?q=${encodeURIComponent(q)}`)
+  const before = await search(anna, 'Kl')
+  assert.equal(before.status, 409)
+  assert.equal(before.body.error, 'graph_not_authorized')
+
+  // No school year and no groups needed for the picker's authorization.
+  const start = await h.app.inject({ method: 'GET', url: '/api/admin/roster/graph/start?purpose=picker', headers: { cookie: anna.header() } })
+  assert.equal(start.statusCode, 302, start.body)
+  anna.update(start)
+  const location = new URL(start.headers.location as string)
+  assert.match(location.searchParams.get('scope') ?? '', /https:\/\/graph\.microsoft\.com\/Group\.Read\.All/)
+  const callback = await h.app.inject({ method: 'GET', url: h.entra.authorize(location.toString(), { claims: claimsOf(ANNA) }), headers: { cookie: anna.header() } })
+  assert.equal(callback.statusCode, 303)
+  assert.equal(callback.headers.location, '/verwaltung/stammdaten?gruppen=suchen')
+  anna.update(callback)
+  assert.deepEqual(h.graph.requests, [], 'authorizing reads nothing yet')
+
+  const found = await search(anna, 'Kl')
+  assert.equal(found.status, 200, JSON.stringify(found.body))
+  assert.deepEqual(found.body.groups, [{ id: CLASS_5A_GROUP, displayName: 'Klasse 5A', description: null }])
+  assert.deepEqual((await search(anna, 'x')).body.groups, [])
+  assert.deepEqual((await search(anna, 'L')).body.groups.map((g) => g.displayName), ['Lehrkräfte'])
+  // A quote in the search cannot end Graph's filter early.
+  assert.equal((await search(anna, 'O\'Brien')).status, 200)
+  const searches: string[] = h.graph.requests
+  assert.ok(searches.every((r: string) => r.startsWith('GET /v1.0/groups?')))
+  // As the URL leaves the server: the comma from encodeURIComponent, the quotes from the URL's own query encoding.
+  assert.ok(searches.some((r: string) => r.includes('$filter=startswith(displayName%2C%27O%27%27Brien%27)')), searches.join('\n'))
+
+  // The handle is this session's; another browser of Anna's has no token, nor has a teacher.
+  const other = await signIn(h, ANNA)
+  assert.equal((await search(other, 'Kl')).status, 409)
+  const bernd = await signIn(h, BERND)
+  assert.equal((await search(bernd, 'Kl')).status, 403)
+  // Graph refusing the token: forgotten, authorize again.
+  h.graph.failWith = 401
+  assert.equal((await search(anna, 'Kl')).status, 409)
+  h.graph.failWith = undefined
+  assert.equal((await search(anna, 'Kl')).status, 409, 'the token was dropped with the refusal')
+})
+
 test('the Graph token must be the signed-in administrator\'s own, from a refresh this browser started', DB, async (t) => {
   const h = await harness(t, ADMIN)
   const anna = await signIn(h, ANNA)

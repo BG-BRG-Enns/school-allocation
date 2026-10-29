@@ -22,6 +22,8 @@ export interface FakeGraph {
   baseUrl: string
   /** The groups and their members; a test changes them in place. */
   groups: Map<string, FakeMember[]>
+  /** What the groups are called in the tenant, for the picker's search; a group without a name here is "Gruppe <id…>". */
+  names: Map<string, string>
   /** Members per page; Graph's own limit is 999. */
   pageSize: number
   /** When set, every listing fails with this status. */
@@ -51,7 +53,8 @@ export function defaultGroups(): Map<string, FakeMember[]> {
 export async function startFakeGraph(accepted: readonly string[], groups = defaultGroups()): Promise<FakeGraph> {
   const requests: string[] = []
   let baseUrl = ''
-  const graph: FakeGraph = { baseUrl, groups, pageSize: 999, requests, close: async () => {} }
+  const names = new Map([[CLASS_5A_GROUP, 'Klasse 5A'], [TEACHERS_GROUP, 'Lehrkräfte']])
+  const graph: FakeGraph = { baseUrl, groups, names, pageSize: 999, requests, close: async () => {} }
 
   const server = createServer((request, response) => {
     requests.push(`${request.method} ${request.url}`)
@@ -60,6 +63,15 @@ export async function startFakeGraph(accepted: readonly string[], groups = defau
     const token = request.headers.authorization?.replace(/^Bearer /, '')
     if (token === undefined || !accepted.includes(token)) return json(response, 401, { error: { code: 'InvalidAuthenticationToken' } })
     if (graph.failWith !== undefined) return json(response, graph.failWith, { error: { code: 'Failed' } })
+    if (request.method === 'GET' && url.pathname === '/v1.0/groups') {
+      // The picker's search: startswith(displayName,'…') over the groups' names, which here are their labels.
+      const prefix = /^startswith\(displayName,'(.*)'\)$/.exec(url.searchParams.get('$filter') ?? '')?.[1]?.replaceAll('\'\'', '\'') ?? ''
+      const value = [...graph.groups.keys()]
+        .map((id) => ({ id, displayName: graph.names.get(id) ?? `Gruppe ${id.slice(0, 8)}`, description: null }))
+        .filter((group) => group.displayName.toLowerCase().startsWith(prefix.toLowerCase()))
+        .sort((a, b) => a.displayName.localeCompare(b.displayName))
+      return json(response, 200, { value })
+    }
     if (request.method !== 'GET' || !match) return json(response, 404, { error: { code: 'ResourceNotFound' } })
     const members = graph.groups.get(decodeURIComponent(match[1] ?? ''))
     if (!members) return json(response, 404, { error: { code: 'Request_ResourceNotFound' } })

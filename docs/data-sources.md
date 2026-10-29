@@ -41,9 +41,11 @@ Nothing else is imported, even if Graph returns more.
 
 ### A. Entra groups via Microsoft Graph
 
-1. The administrator enters the group IDs (or picks groups from a searchable list, if the school
-   grants `Group.Read.All`; D-23) and labels each group: **students** or **teachers**, and for student
-   groups the class name and grade. The list is replaced as a whole and audited.
+1. The administrator picks the groups from a search over the tenant's groups by name (D-23;
+   `Group.Read.All`, delegated: the administrator authorizes a token for it at Microsoft, which the
+   server keeps in memory for the token's lifetime and never stores or logs), or enters their IDs by
+   hand, and labels each group: **students** or **teachers**, and for student groups the class name
+   and grade. The list is replaced as a whole and audited.
 2. "Refresh roster" sends the administrator to Microsoft to consent to the Graph permissions for this
    one refresh; the callback reads the members of each labelled group with that token, writes one
    `ImportBatch` with a diff against the roster in force, and forgets the token. Only users count as
@@ -54,8 +56,8 @@ Nothing else is imported, even if Graph returns more.
      obtained during the refresh action, which the ID token of that authorization must attribute to
      the signed-in administrator. Attributable, and the app holds no standing directory permission.
      Automatic refresh at window opening is not possible; the organizer refreshes before opening. The
-     permissions asked for are the deployment's `GRAPH_DELEGATED_SCOPES`, `GroupMember.Read.All` unless
-     set.
+     permissions asked for are the deployment's `GRAPH_DELEGATED_SCOPES`, `GroupMember.Read.All` and
+     `Group.Read.All` (the picker) unless set.
    - **Application** (`GroupMember.Read.All`), opt-in, not implemented yet: the app may refresh on its
      own, e.g. when a window opens. Needs admin consent.
 
