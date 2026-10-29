@@ -5,7 +5,8 @@
 
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { csvTemplatePath, graphStartPath, loadRoster, saveGroups, uploadCsv, type RosterGroup, type RosterOverview } from '../lib/admin-api.ts'
+import { csvTemplatePath, graphPickerStartPath, graphStartPath, loadRoster, saveGroups, searchGraphGroups, uploadCsv, type GraphGroup, type RosterGroup, type RosterOverview } from '../lib/admin-api.ts'
+import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
 import { BATCH_STATE_LABELS, KIND_LABELS, REFRESH_ERROR_LABELS, SOURCE_LABELS } from '../lib/labels.ts'
@@ -45,6 +46,37 @@ onMounted(load)
 
 function addGroup(): void {
   groups.value.push({ key: nextKey++, groupId: '', label: '', kind: 'student', className: '', grade: undefined })
+}
+
+// The picker (D-23): a search over the tenant's groups by name, with a
+// token the administrator authorizes at Microsoft; the callback brings the
+// browser back here with the search open.
+const pickerOpen = ref(route.query.gruppen === 'suchen')
+const pickerQuery = ref('')
+const pickerResults = ref<GraphGroup[]>([])
+const pickerFeedback = useFeedback()
+/** The authorization has lapsed or was never given: offered again. */
+const pickerNeedsAuthorization = ref(false)
+
+async function findGroups(): Promise<void> {
+  const q = pickerQuery.value.trim()
+  if (q === '') {
+    pickerResults.value = []
+    return
+  }
+  await pickerFeedback.run(async () => {
+    try {
+      pickerResults.value = (await searchGraphGroups(q)).groups.filter((group) => !groups.value.some((row) => row.groupId.toLowerCase() === group.id))
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'graph_not_authorized') pickerNeedsAuthorization.value = true
+      throw err
+    }
+  })
+}
+
+function takeGroup(group: GraphGroup): void {
+  groups.value.push({ key: nextKey++, groupId: group.id, label: group.displayName, kind: 'student', className: '', grade: undefined })
+  pickerResults.value = pickerResults.value.filter((g) => g.id !== group.id)
 }
 
 function removeGroup(key: number): void {
@@ -131,7 +163,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
 
   <section v-if="overview">
     <h2>Entra-Gruppen</h2>
-    <p>Die Gruppen der Schule, aus denen die Personenliste gelesen wird: je Klasse eine Schülergruppe mit Klasse und Schulstufe, dazu die Gruppe der Lehrkräfte. Die Gruppen-ID steht in Entra bei der Gruppe (Objekt-ID).</p>
+    <p>Die Gruppen der Schule, aus denen die Personenliste gelesen wird: je Klasse eine Schülergruppe mit Klasse und Schulstufe, dazu die Gruppe der Lehrkräfte. Suchen Sie die Gruppen bei Microsoft nach ihrem Namen, oder tragen Sie die Gruppen-ID ein, die in Entra bei der Gruppe steht (Objekt-ID).</p>
     <form @submit.prevent="onSaveGroups">
       <table
         v-if="groups.length > 0"
@@ -231,6 +263,62 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
       <p v-else>
         Noch keine Gruppen eingetragen.
       </p>
+      <div
+        v-if="pickerOpen"
+        class="panel"
+      >
+        <h3>Gruppen suchen</h3>
+        <p
+          v-if="pickerNeedsAuthorization"
+          class="notice"
+        >
+          Für die Suche ist eine Anmeldung bei Microsoft nötig: <a :href="withBase(graphPickerStartPath)">Bei Microsoft anmelden und Gruppen suchen</a>.
+        </p>
+        <p class="field">
+          <label for="group-search">Name der Gruppe beginnt mit</label>
+          <input
+            id="group-search"
+            v-model="pickerQuery"
+            type="search"
+            maxlength="100"
+            @input="findGroups"
+          >
+        </p>
+        <ul
+          v-if="pickerResults.length > 0"
+          class="plain choices"
+        >
+          <li
+            v-for="group in pickerResults"
+            :key="group.id"
+          >
+            <button
+              type="button"
+              class="ghost"
+              @click="takeGroup(group)"
+            >
+              {{ group.displayName }} übernehmen
+            </button>
+            <span
+              v-if="group.description"
+              class="muted"
+            > · {{ group.description }}</span>
+          </li>
+        </ul>
+        <p
+          v-else-if="pickerQuery.trim() !== '' && !pickerFeedback.busy.value && !pickerFeedback.error.value"
+          class="muted"
+        >
+          Keine Gruppe mit diesem Anfang.
+        </p>
+        <p
+          v-if="pickerFeedback.error.value && !pickerNeedsAuthorization"
+          role="alert"
+          class="alert"
+        >
+          {{ pickerFeedback.error.value }}
+        </p>
+      </div>
       <p class="actions">
         <button
           type="button"
@@ -239,6 +327,11 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
         >
           Gruppe hinzufügen
         </button>
+        <a
+          v-if="!pickerOpen"
+          class="button ghost-link"
+          :href="withBase(graphPickerStartPath)"
+        >Gruppen bei Microsoft suchen</a>
         <button
           type="submit"
           :disabled="groupsFeedback.busy.value"

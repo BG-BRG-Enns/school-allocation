@@ -3,6 +3,8 @@
 // same zone, and the zone is named here so a browser elsewhere shows the
 // school's time too.
 
+import { periodsOfSpan, type Period } from '@school-allocation/school-core'
+
 export const SCHOOL_TIME_ZONE = 'Europe/Vienna'
 
 const day = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -20,6 +22,29 @@ export function formatSpan(startsAt: string, endsAt: string): string {
   const start = new Date(startsAt)
   const end = new Date(endsAt)
   return localDate.format(start) === localDate.format(end) ? `${dayTime.format(start)} – ${time.format(end)}` : `${dayTime.format(start)} – ${dayTime.format(end)}`
+}
+
+/**
+ * A span's periods on the school's grid as "2.–3. EH" (one period: "2. EH"),
+ * when it starts and ends on the grid's lines on one day; null otherwise,
+ * and the clock times stand.
+ */
+export function periodLabel(grid: readonly Period[], startsAt: string, endsAt: string): string | null {
+  if (localDateOf(startsAt) !== localDateOf(endsAt)) return null
+  const span = periodsOfSpan(grid, localTimeOf(startsAt), localTimeOf(endsAt))
+  if (!span) return null
+  return span.from === span.to ? `${span.from}. EH` : `${span.from}.–${span.to}. EH`
+}
+
+/** A span as the catalogue shows it: the day with its periods when the grid has them, the clock times otherwise. */
+export function formatSpanOnGrid(grid: readonly Period[], startsAt: string, endsAt: string): string {
+  const label = periodLabel(grid, startsAt, endsAt)
+  return label === null ? formatSpan(startsAt, endsAt) : `${formatDay(localDateOf(startsAt))}, ${label} (${localTimeOf(startsAt)} – ${localTimeOf(endsAt)})`
+}
+
+/** An instant as "Mo., 01.03. 08:00" in the school's zone; "–" for none. */
+export function formatWhenShort(iso: string | null): string {
+  return iso === null ? '–' : dayTime.format(new Date(iso))
 }
 
 /** Cents as "15,00 €"; "–" for nothing. */

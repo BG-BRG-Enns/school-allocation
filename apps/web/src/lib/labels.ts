@@ -99,6 +99,15 @@ export const CATALOGUE_PROBLEM_LABELS: Readonly<Record<string, string>> = {
   teacher_twice: 'Eine Lehrkraft ist zweimal eingetragen',
 }
 
+/** Why a period grid was refused (school-core PERIOD_PROBLEM_CODES). */
+export const PERIOD_PROBLEM_LABELS: Readonly<Record<string, string>> = {
+  no_periods: 'Mindestens eine Einheit ist nötig',
+  period_numbering: 'Die Einheiten sind ohne Lücke von 1 an zu nummerieren',
+  period_time_invalid: 'Eine Uhrzeit ist keine (HH:MM)',
+  period_ends_before_start: 'Eine Einheit endet nicht nach ihrem Beginn',
+  periods_overlap: 'Eine Einheit beginnt, bevor die vorige endet',
+}
+
 /** What went wrong with a roster refresh from Entra groups, as the callback reports it in the page's query. */
 export const REFRESH_ERROR_LABELS: Readonly<Record<string, string>> = {
   state_mismatch: 'Die Rückkehr von Microsoft passte nicht zu diesem Browser. Bitte noch einmal starten.',

@@ -4,10 +4,10 @@
 // organizers review, move the campaign on and export the catalogue.
 
 import { computed, onMounted, ref, watch } from 'vue'
-import { approveItem, catalogueExportPath, deleteItem, loadCampaign, loadItems, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignView, type Item } from '../lib/campaigns-api.ts'
+import { approveItem, catalogueExportPath, deleteItem, loadCampaign, loadClasses, loadDemand, loadItems, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignView, type DayDemand, type Item } from '../lib/campaigns-api.ts'
 import { withBase } from '../lib/base.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { formatDay, formatFee, formatSpan } from '../lib/format.ts'
+import { formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf } from '../lib/format.ts'
 import { CAMPAIGN_STATE_LABELS, ITEM_STATE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
@@ -15,6 +15,8 @@ import { session } from '../lib/session.ts'
 const props = defineProps<{ id: string }>()
 const view = ref<CampaignView | null>(null)
 const items = ref<Item[]>([])
+const demand = ref<DayDemand[]>([])
+const grades = ref<number[]>([])
 const loading = useFeedback()
 const action = useFeedback()
 usePageTitle(() => view.value?.campaign.name ?? 'Wahl')
@@ -24,6 +26,11 @@ async function load(): Promise<void> {
     const [v, list] = await Promise.all([loadCampaign(props.id), loadItems(props.id)])
     view.value = v
     items.value = list.items
+    if (v.may.seeDemand) {
+      const [d, c] = await Promise.all([loadDemand(props.id), loadClasses(props.id)])
+      demand.value = d.demand
+      grades.value = [...new Set(c.classes.map((cl) => cl.grade))].sort((a, b) => a - b)
+    }
   })
 }
 onMounted(load)
@@ -32,6 +39,36 @@ watch(() => props.id, load)
 const campaign = computed(() => view.value?.campaign)
 const organizes = computed(() => view.value?.may.organize ?? false)
 const published = computed(() => campaign.value !== undefined && !['draft', 'catalogue'].includes(campaign.value.state))
+/** The set-up (name, year, days) changes while the campaign is set up or takes proposals; the window's settings until it opens. */
+const setUpEditable = computed(() => campaign.value !== undefined && ['draft', 'catalogue'].includes(campaign.value.state))
+const windowEditable = computed(() => campaign.value !== undefined && ['draft', 'catalogue', 'published'].includes(campaign.value.state))
+/** The grades the demand lists: those of the roster, or those the demand knows. */
+const demandGrades = computed(() => grades.value.length > 0 ? grades.value : [...new Set(demand.value.flatMap((d) => d.grades.map((g) => g.grade)))].sort((a, b) => a - b))
+
+/** The window in one line, once a date is set: "Wahl von … bis …, Nachfrist bis …, Ummelden von … bis … · 3 Wünsche je Zeitgruppe". */
+const windowSummary = computed(() => {
+  const c = campaign.value
+  if (!c || (c.opensAt === null && c.closesAt === null)) return ''
+  const parts = [`Wahl von ${formatWhenShort(c.opensAt)} bis ${formatWhenShort(c.closesAt)}`]
+  if (c.lateUntil !== null) parts.push(`Nachfrist bis ${formatWhenShort(c.lateUntil)}`)
+  if (c.swapFrom !== null) parts.push(`Ummelden von ${formatWhenShort(c.swapFrom)} bis ${formatWhenShort(c.swapUntil)}`)
+  return `${parts.join(', ')} · ${c.wishesPerGroup} Wünsche je Zeitgruppe`
+})
+
+function demandOf(day: DayDemand, grade: number): DayDemand['grades'][number] | undefined {
+  return day.grades.find((g) => g.grade === grade)
+}
+
+/** An instant as the datetime-local input takes it, in the school's zone; '' for none. */
+function localInput(iso: string | null): string {
+  return iso === null ? '' : `${localDateOf(iso)}T${localTimeOf(iso)}`
+}
+
+/** A datetime-local value as an instant; null for none. */
+function instantOrNull(value: string): string | null {
+  const [date, time] = value.split('T')
+  return date && time ? instantInSchoolZone(date, time) : null
+}
 
 /** Whether the item is the signed-in person's: proposed by them or taught by them. */
 function own(item: Item): boolean {
@@ -44,16 +81,45 @@ const editing = ref(false)
 const name = ref('')
 const schoolYear = ref('')
 const days = ref<string[]>([])
+const opensAt = ref('')
+const closesAt = ref('')
+const lateUntil = ref('')
+const swapFrom = ref('')
+const swapUntil = ref('')
+const wishesPerGroup = ref(3)
+// Strings as typed, numbers once Vue casts a number input: both are read as text below.
+const dailyMinimum = ref<Record<string, string | number>>({})
+const showTeachers = ref(true)
 function startEditing(): void {
-  if (!campaign.value) return
-  name.value = campaign.value.name
-  schoolYear.value = campaign.value.schoolYear
-  days.value = [...campaign.value.projectDays]
+  const c = campaign.value
+  if (!c) return
+  name.value = c.name
+  schoolYear.value = c.schoolYear
+  days.value = [...c.projectDays]
+  opensAt.value = localInput(c.opensAt)
+  closesAt.value = localInput(c.closesAt)
+  lateUntil.value = localInput(c.lateUntil)
+  swapFrom.value = localInput(c.swapFrom)
+  swapUntil.value = localInput(c.swapUntil)
+  wishesPerGroup.value = c.wishesPerGroup
+  dailyMinimum.value = Object.fromEntries(demandGrades.value.map((grade) => [String(grade), c.dailyMinimum[String(grade)] === undefined ? '' : String(c.dailyMinimum[String(grade)])]))
+  showTeachers.value = c.showTeachers
   editing.value = true
 }
 async function onSaveSettings(): Promise<void> {
   const ok = await action.run(async () => {
-    await updateCampaign(props.id, { name: name.value.trim(), schoolYear: schoolYear.value.trim(), projectDays: days.value.filter(Boolean) })
+    const changes: CampaignChanges = { name: name.value.trim(), schoolYear: schoolYear.value.trim(), projectDays: days.value.filter(Boolean) }
+    if (windowEditable.value) {
+      changes.opensAt = instantOrNull(opensAt.value)
+      changes.closesAt = instantOrNull(closesAt.value)
+      changes.lateUntil = instantOrNull(lateUntil.value)
+      changes.swapFrom = instantOrNull(swapFrom.value)
+      changes.swapUntil = instantOrNull(swapUntil.value)
+      changes.wishesPerGroup = Number(wishesPerGroup.value)
+      changes.dailyMinimum = Object.fromEntries(Object.entries(dailyMinimum.value).filter(([, minutes]) => String(minutes).trim() !== '').map(([grade, minutes]) => [grade, Number(minutes)]))
+      changes.showTeachers = showTeachers.value
+    }
+    await updateCampaign(props.id, changes)
   }, 'Gespeichert.')
   if (ok) {
     editing.value = false
@@ -111,6 +177,25 @@ function onSubmitPending(): void {
       Schuljahr {{ campaign.schoolYear }} · Projekttage: {{ campaign.projectDays.map(formatDay).join(', ') }}
     </p>
     <p
+      v-if="windowSummary"
+      class="muted"
+    >
+      {{ windowSummary }}
+    </p>
+    <p
+      v-if="view.may.classTeacherOf.length > 0"
+      class="actions"
+    >
+      <RouterLink
+        v-for="className in view.may.classTeacherOf"
+        :key="className"
+        class="button ghost-link"
+        :to="`/wahlen/${campaign.id}/klasse/${encodeURIComponent(className)}`"
+      >
+        Meine Klasse {{ className }}
+      </RouterLink>
+    </p>
+    <p
       v-if="action.error.value"
       role="alert"
       class="alert"
@@ -151,7 +236,7 @@ function onSubmitPending(): void {
           Katalog veröffentlichen
         </button>
         <button
-          v-if="!editing && (campaign.state === 'draft' || campaign.state === 'catalogue')"
+          v-if="!editing && windowEditable"
           type="button"
           class="ghost"
           @click="startEditing"
@@ -162,6 +247,12 @@ function onSubmitPending(): void {
           class="button ghost-link"
           :href="withBase(catalogueExportPath(campaign.id))"
         >Katalog als Excel</a>
+        <RouterLink
+          class="button ghost-link"
+          to="/verwaltung/klassen"
+        >
+          Klassenvorstände
+        </RouterLink>
       </p>
       <form
         v-if="editing"
@@ -176,6 +267,7 @@ function onSubmitPending(): void {
             v-model="name"
             required
             maxlength="200"
+            :disabled="!setUpEditable"
           >
         </p>
         <p class="field">
@@ -186,9 +278,13 @@ function onSubmitPending(): void {
             required
             pattern="[0-9]{4}/[0-9]{2}"
             size="8"
+            :disabled="!setUpEditable"
           >
         </p>
-        <fieldset class="field">
+        <fieldset
+          class="field"
+          :disabled="!setUpEditable"
+        >
           <legend>Projekttage</legend>
           <p
             v-for="(_, index) in days"
@@ -221,6 +317,90 @@ function onSubmitPending(): void {
             </button>
           </p>
         </fieldset>
+        <fieldset class="field">
+          <legend>Wahl</legend>
+          <div class="row">
+            <p class="field">
+              <label for="edit-opens">Beginn</label>
+              <input
+                id="edit-opens"
+                v-model="opensAt"
+                type="datetime-local"
+              >
+            </p>
+            <p class="field">
+              <label for="edit-closes">Ende</label>
+              <input
+                id="edit-closes"
+                v-model="closesAt"
+                type="datetime-local"
+              >
+            </p>
+            <p class="field">
+              <label for="edit-late">Nachfrist bis</label>
+              <input
+                id="edit-late"
+                v-model="lateUntil"
+                type="datetime-local"
+              >
+            </p>
+          </div>
+          <div class="row">
+            <p class="field">
+              <label for="edit-swap-from">Ummelden von</label>
+              <input
+                id="edit-swap-from"
+                v-model="swapFrom"
+                type="datetime-local"
+              >
+            </p>
+            <p class="field">
+              <label for="edit-swap-until">Ummelden bis</label>
+              <input
+                id="edit-swap-until"
+                v-model="swapUntil"
+                type="datetime-local"
+              >
+            </p>
+            <p class="field">
+              <label for="edit-wishes">Wünsche je Zeitgruppe</label>
+              <input
+                id="edit-wishes"
+                v-model.number="wishesPerGroup"
+                type="number"
+                min="1"
+                max="10"
+                required
+              >
+            </p>
+          </div>
+          <div class="row">
+            <p
+              v-for="grade in demandGrades"
+              :key="grade"
+              class="field"
+            >
+              <label :for="`edit-min-${grade}`">Mindestminuten je Tag, {{ grade }}. Schulstufe</label>
+              <input
+                :id="`edit-min-${grade}`"
+                v-model="dailyMinimum[String(grade)]"
+                type="number"
+                min="0"
+                max="1440"
+                step="5"
+              >
+            </p>
+          </div>
+          <p class="field">
+            <label>
+              <input
+                v-model="showTeachers"
+                type="checkbox"
+              >
+              Der Katalog nennt die Lehrkräfte der Aktivitäten
+            </label>
+          </p>
+        </fieldset>
         <p class="actions">
           <button
             type="submit"
@@ -237,6 +417,47 @@ function onSubmitPending(): void {
           </button>
         </p>
       </form>
+    </section>
+
+    <section v-if="view.may.seeDemand && demand.length > 0">
+      <h2>Bedarf</h2>
+      <p class="muted">
+        Je Projekttag und Schulstufe: wie viele Schüler/innen einen Platz brauchen (ohne die in einer Klassenaktivität), und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten.
+      </p>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">
+              Tag
+            </th>
+            <th
+              v-for="grade in demandGrades"
+              :key="grade"
+              scope="col"
+            >
+              {{ grade }}. Schulstufe
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="day in demand"
+            :key="day.date"
+          >
+            <th scope="row">
+              {{ formatDay(day.date) }}
+            </th>
+            <td
+              v-for="grade in demandGrades"
+              :key="grade"
+            >
+              <template v-if="demandOf(day, grade)">
+                {{ demandOf(day, grade)?.needing }} brauchen · {{ demandOf(day, grade)?.offered }} angeboten
+              </template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
     <section>

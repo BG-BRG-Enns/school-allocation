@@ -4,7 +4,20 @@
 import type { CatalogueProblem, Credit, ItemState } from '@school-allocation/school-core'
 import { apiDelete, apiGet, apiPatch, apiPost } from './api.ts'
 
-export interface Campaign {
+/** The choice window and what it asks (D-05, D-06, D-13); dates are ISO instants, null until set. */
+export interface CampaignWindow {
+  opensAt: string | null
+  closesAt: string | null
+  lateUntil: string | null
+  swapFrom: string | null
+  swapUntil: string | null
+  wishesPerGroup: number
+  /** Grade → minutes a day must credit at least. */
+  dailyMinimum: Record<string, number>
+  showTeachers: boolean
+}
+
+export interface Campaign extends CampaignWindow {
   id: string
   kind: 'project_week' | 'wpf'
   name: string
@@ -25,7 +38,22 @@ export interface CampaignCounts {
 export interface CampaignView {
   campaign: Campaign
   counts: CampaignCounts | null
-  may: { propose: boolean, organize: boolean }
+  may: { propose: boolean, organize: boolean, seeDemand: boolean, classTeacherOf: string[] }
+}
+
+export type CampaignChanges = { name: string, schoolYear: string, projectDays: string[] } & Partial<CampaignWindow>
+
+/** Places needed against places offered on one project day, per grade (school-core demandByDay). */
+export interface DayDemand {
+  date: string
+  grades: { grade: number, students: number, fixed: number, needing: number, offered: number }[]
+}
+
+/** A class as its class teacher sees it in a campaign. */
+export interface ClassStatus {
+  className: string
+  students: { personId: string, displayName: string }[]
+  classActivities: { id: string, title: string, state: ItemState, sessions: { startsAt: string, endsAt: string }[] }[]
 }
 
 export interface SessionInput {
@@ -98,7 +126,9 @@ export const proposeItem = (id: string) => apiPost<Item>(`/api/items/${encodeURI
 export const unproposeItem = (id: string) => apiPost<Item>(`/api/items/${encodeURIComponent(id)}/unpropose`)
 
 export const createCampaign = (input: { kind: 'project_week', name: string, schoolYear: string, projectDays: string[] }) => apiPost<Campaign>('/api/admin/campaigns', input)
-export const updateCampaign = (id: string, input: { name: string, schoolYear: string, projectDays: string[] }) => apiPatch<Campaign>(`/api/admin/campaigns/${encodeURIComponent(id)}`, input)
+export const updateCampaign = (id: string, input: CampaignChanges) => apiPatch<Campaign>(`/api/admin/campaigns/${encodeURIComponent(id)}`, input)
+export const loadDemand = (id: string) => apiGet<{ demand: DayDemand[] }>(`/api/campaigns/${encodeURIComponent(id)}/demand`)
+export const loadClassStatus = (id: string, className: string) => apiGet<ClassStatus>(`/api/campaigns/${encodeURIComponent(id)}/classes/${encodeURIComponent(className)}/status`)
 export const transitionCampaign = (id: string, to: 'catalogue' | 'published') => apiPost<Campaign>(`/api/admin/campaigns/${encodeURIComponent(id)}/transition`, { to })
 export const approveItem = (id: string) => apiPost<Item>(`/api/admin/items/${encodeURIComponent(id)}/approve`)
 export const returnItem = (id: string, note: string) => apiPost<Item>(`/api/admin/items/${encodeURIComponent(id)}/return`, { note })

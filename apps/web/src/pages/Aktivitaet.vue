@@ -1,15 +1,19 @@
 <script setup lang="ts">
 // Proposing or editing an activity: what it is, who teaches it, when it
 // takes place and what each session credits per project day, how many may
-// rank it and who, which classes are fixed into it, what it costs. The
-// rules are the server's (school-core); a refusal names them here.
+// rank it and who, which classes are fixed into it, what it costs. A
+// session is placed in the school's period grid ("from the 2nd period, 2
+// periods") or, for a trip, by the clock. The rules are the server's
+// (school-core); a refusal names them here.
 
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { spanOfPeriods, type Period } from '@school-allocation/school-core'
+import { loadPeriods } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { createItem, loadCampaign, loadClasses, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, touchedDates } from '../lib/format.ts'
+import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodLabel, touchedDates } from '../lib/format.ts'
 import { CATALOGUE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
@@ -20,6 +24,7 @@ usePageTitle(() => props.itemId ? 'Aktivität bearbeiten' : 'Neue Aktivität')
 
 const campaign = ref<Campaign | null>(null)
 const classes = ref<{ className: string, grade: number }[]>([])
+const grid = ref<Period[]>([])
 const existing = ref<Item | null>(null)
 const loading = useFeedback()
 const saving = useFeedback()
@@ -40,7 +45,15 @@ const teachers = ref<{ personId: string, displayName: string }[]>([])
 const teacherQuery = ref('')
 const teacherResults = ref<{ personId: string, displayName: string }[]>([])
 
+/** The default a session starts from: the 2nd period, two periods long. */
+const DEFAULT_FROM = 2
+const DEFAULT_COUNT = 2
+
 interface SessionForm {
+  /** Placed in the grid (periods) or by the clock. */
+  mode: 'periods' | 'clock'
+  fromPeriod: number
+  count: number
   date: string
   start: string
   endDate: string
@@ -52,15 +65,17 @@ const sessions = ref<SessionForm[]>([])
 
 const grades = computed(() => [...new Set(classes.value.map((c) => c.grade))].sort((a, b) => a - b))
 const isFixed = computed(() => fixedClasses.value.length > 0)
+const lastPeriod = computed(() => grid.value.at(-1)?.period ?? 0)
 
-/** The campaign, the roster's classes and, when editing, the item; again when the route names another. */
+/** The campaign, the roster's classes, the grid and, when editing, the item; again when the route names another. */
 async function load(): Promise<void> {
   problems.value = []
   sessions.value = []
   await loading.run(async () => {
-    const [view, found] = await Promise.all([loadCampaign(props.id), loadClasses(props.id)])
+    const [view, found, periods] = await Promise.all([loadCampaign(props.id), loadClasses(props.id), loadPeriods()])
     campaign.value = view.campaign
     classes.value = found.classes
+    grid.value = periods.periods
     if (props.itemId) {
       const item = (await loadItems(props.id)).items.find((i) => i.id === props.itemId)
       if (!item) throw new ApiError(404, 'not_found')
@@ -77,14 +92,7 @@ async function load(): Promise<void> {
       eligibleGrades.value = [...item.eligibleGrades]
       eligibleClasses.value = [...item.eligibleClasses]
       teachers.value = [...item.teachers]
-      sessions.value = item.sessions.map((s) => ({
-        date: localDateOf(s.startsAt),
-        start: localTimeOf(s.startsAt),
-        endDate: localDateOf(s.endsAt),
-        end: localTimeOf(s.endsAt),
-        location: s.location,
-        credits: Object.fromEntries(s.credits.map((c) => [c.date, c.minutes])),
-      }))
+      sessions.value = item.sessions.map(fromStored)
     } else {
       existing.value = null
       const me = session.value
@@ -96,13 +104,48 @@ async function load(): Promise<void> {
 onMounted(load)
 watch(() => [props.id, props.itemId], load)
 
+/** A stored session as the form shows it: on the grid when its times are the grid's, by the clock otherwise. */
+function fromStored(s: Item['sessions'][number]): SessionForm {
+  const form: SessionForm = {
+    mode: 'clock',
+    fromPeriod: DEFAULT_FROM,
+    count: DEFAULT_COUNT,
+    date: localDateOf(s.startsAt),
+    start: localTimeOf(s.startsAt),
+    endDate: localDateOf(s.endsAt),
+    end: localTimeOf(s.endsAt),
+    location: s.location,
+    credits: Object.fromEntries(s.credits.map((c) => [c.date, c.minutes])),
+  }
+  const label = periodLabel(grid.value, s.startsAt, s.endsAt)
+  if (label !== null) {
+    const [from, to] = label.replace(' EH', '').split('.–').map((part) => Number.parseInt(part, 10))
+    form.mode = 'periods'
+    form.fromPeriod = from ?? DEFAULT_FROM
+    form.count = (to ?? from ?? DEFAULT_FROM) - (from ?? DEFAULT_FROM) + 1
+  }
+  return form
+}
+
 function addSession(): void {
   const day = campaign.value?.projectDays[0] ?? ''
-  sessions.value.push({ date: day, start: '08:00', endDate: day, end: '13:00', location: '', credits: {} })
+  const s: SessionForm = { mode: grid.value.length > 0 ? 'periods' : 'clock', fromPeriod: DEFAULT_FROM, count: DEFAULT_COUNT, date: day, start: '08:00', endDate: day, end: '13:00', location: '', credits: {} }
+  syncPeriods(s)
+  sessions.value.push(s)
 }
 
 function removeSession(index: number): void {
   sessions.value.splice(index, 1)
+}
+
+/** In period mode the clock fields follow the grid; the credit of a day not yet entered follows the clock. */
+function syncPeriods(s: SessionForm): void {
+  if (s.mode !== 'periods') return
+  const span = spanOfPeriods(grid.value, Number(s.fromPeriod), Number(s.count))
+  if (!span) return
+  s.start = span.starts
+  s.end = span.ends
+  s.endDate = s.date
 }
 
 /** The days a session touches, which it may credit; an end at midnight does not touch the next day. */
@@ -124,6 +167,11 @@ function creditOf(s: SessionForm, date: string): number {
 
 function setCredit(s: SessionForm, date: string, value: string): void {
   s.credits[date] = Number(value)
+}
+
+/** The periods a session may span from its first one: up to the grid's last. */
+function maxCount(s: SessionForm): number {
+  return Math.max(1, lastPeriod.value - Number(s.fromPeriod) + 1)
 }
 
 async function findTeachers(): Promise<void> {
@@ -171,12 +219,15 @@ function input(): ItemInput {
     eligibleGrades: eligibleGrades.value,
     eligibleClasses: eligibleClasses.value,
     teachers: teachers.value.map((t) => t.personId),
-    sessions: sessions.value.map((s) => ({
-      startsAt: instant(s.date, s.start),
-      endsAt: instant(s.endDate || s.date, s.end),
-      location: s.location.trim() || undefined,
-      credits: touched(s).map((date) => ({ date, minutes: creditOf(s, date) })),
-    })),
+    sessions: sessions.value.map((s) => {
+      syncPeriods(s)
+      return {
+        startsAt: instant(s.date, s.start),
+        endsAt: instant(s.endDate || s.date, s.end),
+        location: s.location.trim() || undefined,
+        credits: touched(s).map((date) => ({ date, minutes: creditOf(s, date) })),
+      }
+    }),
   }
 }
 
@@ -295,7 +346,7 @@ async function save(propose: boolean): Promise<void> {
 
     <h2>Termine</h2>
     <p class="muted">
-      Angerechnet werden die Minuten, die die Lehrkraft je Projekttag angibt; Anreise und Pausen zählen nicht.
+      Ein Termin liegt in den Unterrichtseinheiten der Schule oder, etwa ein Ausflug, nach der Uhr. Angerechnet werden die Minuten, die die Lehrkraft je Projekttag angibt; Anreise und Pausen zählen nicht.
     </p>
     <div
       v-for="(s, index) in sessions"
@@ -303,7 +354,89 @@ async function save(propose: boolean): Promise<void> {
       class="session"
     >
       <h3>Termin {{ index + 1 }}</h3>
-      <div class="row">
+      <p class="field">
+        <label :for="`s-${index}-mode`">Eingabe</label>
+        <select
+          :id="`s-${index}-mode`"
+          v-model="s.mode"
+          @change="syncPeriods(s)"
+        >
+          <option
+            value="periods"
+            :disabled="grid.length === 0"
+          >
+            nach Einheiten
+          </option>
+          <option value="clock">
+            nach Uhrzeit
+          </option>
+        </select>
+      </p>
+      <div
+        v-if="s.mode === 'periods'"
+        class="row"
+      >
+        <p class="field">
+          <label :for="`s-${index}-day`">Tag</label>
+          <select
+            :id="`s-${index}-day`"
+            v-model="s.date"
+            required
+            @change="syncPeriods(s)"
+          >
+            <option
+              v-for="day in campaign.projectDays"
+              :key="day"
+              :value="day"
+            >
+              {{ formatDay(day) }}
+            </option>
+          </select>
+        </p>
+        <p class="field">
+          <label :for="`s-${index}-from`">ab Einheit</label>
+          <select
+            :id="`s-${index}-from`"
+            v-model.number="s.fromPeriod"
+            @change="s.count = Math.min(Number(s.count), maxCount(s)); syncPeriods(s)"
+          >
+            <option
+              v-for="p in grid"
+              :key="p.period"
+              :value="p.period"
+            >
+              {{ p.period }}. EH ({{ p.starts }})
+            </option>
+          </select>
+        </p>
+        <p class="field">
+          <label :for="`s-${index}-count`">Einheiten</label>
+          <input
+            :id="`s-${index}-count`"
+            v-model.number="s.count"
+            type="number"
+            min="1"
+            :max="maxCount(s)"
+            required
+            @input="syncPeriods(s)"
+          >
+        </p>
+        <p class="field">
+          <span class="muted">{{ s.start }} – {{ s.end }}</span>
+        </p>
+        <p class="field">
+          <label :for="`s-${index}-location`">Ort</label>
+          <input
+            :id="`s-${index}-location`"
+            v-model="s.location"
+            maxlength="200"
+          >
+        </p>
+      </div>
+      <div
+        v-else
+        class="row"
+      >
         <p class="field">
           <label :for="`s-${index}-date`">Beginn am</label>
           <input
