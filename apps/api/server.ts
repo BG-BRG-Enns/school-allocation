@@ -38,7 +38,10 @@ if (problems.length > 0) {
 
 const server = await buildApp(config, { db })
 started.app = server
-server.addHook('onClose', () => db.close())
+server.addHook('onClose', async () => {
+  await server.stopBackground()
+  await db.close()
+})
 server.log.info({ database: describeDatabase(config.databaseUrl) }, 'database connection checked')
 
 // This process is the only one that runs jobs: whatever is still unfinished

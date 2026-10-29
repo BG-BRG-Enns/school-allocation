@@ -24,6 +24,13 @@ import { Sender } from './lib/mail/sender.ts'
 import { createMailTransport } from './lib/mail/transport.ts'
 import { startScheduler } from './lib/scheduler.ts'
 
+declare module 'fastify' {
+  interface FastifyInstance {
+    /** Stops the scheduler and the sender, waiting for a session in flight; idempotent. The process calls it before closing the database. */
+    stopBackground: () => Promise<void>
+  }
+}
+
 export interface AppOptions {
   db: Database
   /** Where log lines go; tests capture them. Defaults to stdout. */
@@ -135,17 +142,26 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   await app.register(settingsRoutes, { db, guards, ...under })
   await app.register(windowRoutes, { db, guards, ...under })
   await app.register(mailRoutes, { config, db, guards, wakeSender, ...under })
+  // Stopping the background work is the process's first step at shutdown,
+  // before it closes the database pool (server.ts): Fastify runs onClose
+  // hooks last-registered first, so the hook below alone would run after
+  // the pool is gone and a session in flight could not record its result.
+  let scheduler: { stop: () => void } | null = null
+  let stopped: Promise<void> | null = null
+  app.decorate('stopBackground', () => {
+    stopped ??= (async () => {
+      scheduler?.stop()
+      if (sender) await sender.stop()
+    })()
+    return stopped
+  })
   if (options.background !== false) {
-    let scheduler: { stop: () => void } | null = null
     app.addHook('onReady', async () => {
       if (sender) await sender.start()
       scheduler = startScheduler(db, { baseUrl: config.publicUrl }, app.log, 60_000, wakeSender)
       if (config.mail === null) app.log.warn('mail is off: no SMTP_HOST; notices queue in the outbox and go out once it is set')
     })
-    app.addHook('onClose', async () => {
-      scheduler?.stop()
-      if (sender) await sender.stop()
-    })
+    app.addHook('onClose', () => app.stopBackground())
   }
 
   // The health check also says whether a job is executing: the

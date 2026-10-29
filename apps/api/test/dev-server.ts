@@ -61,6 +61,7 @@ if (problems.length > 0) {
 
 const server = await buildApp(config, { db, entraAuthority: entra.authority, graphBaseUrl: graph.baseUrl })
 server.addHook('onClose', async () => {
+  await server.stopBackground()
   await db.close()
   await entra.close()
   await graph.close()

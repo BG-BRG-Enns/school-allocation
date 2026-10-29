@@ -37,6 +37,7 @@ export class Sender {
   private timer: NodeJS.Timeout | null = null
   private running: Promise<void> | null = null
   private stopping = false
+  private stopped: Promise<void> | null = null
 
   constructor(options: SenderOptions) {
     this.db = options.db
@@ -83,12 +84,15 @@ export class Sender {
     })
   }
 
-  /** Stops taking new work and waits for the session in flight. */
-  async stop(): Promise<void> {
-    this.stopping = true
-    if (this.timer !== null) clearInterval(this.timer)
-    await this.running
-    this.transport.close()
+  /** Stops taking new work and waits for the session in flight; a second call waits for the first. */
+  stop(): Promise<void> {
+    this.stopped ??= (async () => {
+      this.stopping = true
+      if (this.timer !== null) clearInterval(this.timer)
+      await this.running
+      this.transport.close()
+    })()
+    return this.stopped
   }
 
   private async deliver(mail: OutboxMail): Promise<boolean> {

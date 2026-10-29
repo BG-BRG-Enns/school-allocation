@@ -8,12 +8,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readAudit } from '../lib/audit.ts'
-import type { Campaign } from '../lib/campaigns.ts'
+import { transitionCampaign, type Campaign } from '../lib/campaigns.ts'
 import type { ChoiceView } from '../lib/choices.ts'
 import { createDatabase } from '../lib/db.ts'
 import type { Item } from '../lib/items.ts'
-import type { BatchDetail } from '../lib/roster.ts'
-import { tick } from '../lib/scheduler.ts'
+import { RosterConflict, type BatchDetail } from '../lib/roster.ts'
+import { CLOCK_ACTOR, tick } from '../lib/scheduler.ts'
 import type { CookieJar } from './helpers/fake-entra.ts'
 import { DB, get, harness, send, signIn, type Harness } from './helpers/harness.ts'
 import { ANNA, BERND, CARLA, SARA, TIM } from './helpers/personas.ts'
@@ -266,4 +266,10 @@ test('the clock opens a published campaign at its time and closes one without a 
   // No reminder was ever due: the catch-up jumped over the window, the second run had none configured in time.
   const kinds = await owner.query<{ kind: string }>('select distinct kind from outbox_mail where campaign_id = $1 order by kind', [id])
   assert.deepEqual(kinds.rows.map((r) => r.kind), ['choice_invitation', 'class_missing', 'grace_invitation', 'missed_deadline'])
+
+  // A window postponed after the clock chose to open it: the deadline is checked again under the lock, the campaign stays published.
+  await owner.query('update campaign set state = \'published\', roster_batch_id = null, opens_at = \'2027-04-01T08:00:00+02:00\', closes_at = \'2027-04-08T20:00:00+02:00\' where id = $1', [id])
+  await assert.rejects(transitionCampaign(s.db, id, 'open', CLOCK_ACTOR, CONTEXT, { byClock: true, now: new Date('2027-03-01T08:00:00+01:00') }), (err: unknown) => err instanceof RosterConflict && err.code === 'not_due')
+  assert.deepEqual(await tick(s.db, CONTEXT, new Date('2027-03-01T08:00:00+01:00')), { transitions: 0, reminders: 0 })
+  assert.equal((await get<{ campaign: Campaign }>(s, s.anna, `/api/campaigns/${id}`)).body.campaign.state, 'published')
 })

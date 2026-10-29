@@ -7,10 +7,10 @@
 // move an organizer would make, by the clock as actor.
 
 import type { FastifyBaseLogger } from 'fastify'
-import { transitionCampaign, type Campaign } from './campaigns.ts'
+import { dueTransition, readCampaign, transitionCampaign, type Campaign } from './campaigns.ts'
 import { choiceStates } from './choices.ts'
 import type { Database } from './db.ts'
-import type { Actor } from './roster.ts'
+import { RosterConflict, type Actor } from './roster.ts'
 import { notifyStudents, type WindowContext } from './window.ts'
 
 /** The clock as an audit actor: the nil identity, named for what it is. */
@@ -42,23 +42,21 @@ export async function tick(db: Database, context: WindowContext, now = new Date(
   return outcome
 }
 
-const due = (iso: string | null, now: Date): boolean => iso !== null && Date.parse(iso) <= now.getTime()
-
 /** The transition a campaign is due for, applied; 1 when one was. */
 async function advance(db: Database, context: WindowContext, id: string, now: Date): Promise<number> {
-  const { rows: [c] } = await db.query<{ state: Campaign['state'], opens_at: Date | null, closes_at: Date | null, late_until: Date | null }>(
-    'select state, opens_at, closes_at, late_until from campaign where id = $1', [id],
-  )
-  if (!c) return 0
-  const at = (value: Date | null) => value?.toISOString() ?? null
-  let to: Campaign['state'] | undefined
-  if (c.state === 'published' && due(at(c.opens_at), now)) to = 'open'
-  else if (c.state === 'open' && due(at(c.closes_at), now)) to = c.late_until !== null && c.late_until.getTime() > c.closes_at!.getTime() ? 'grace' : 'closed'
-  else if (c.state === 'grace' && due(at(c.late_until), now)) to = 'closed'
+  const campaign = await readCampaign(db, id)
+  if (!campaign) return 0
+  const to = dueTransition(campaign, now)
   if (to === undefined) return 0
-  // transitionCampaign reads the campaign again under its lock, so a
-  // transition an organizer made meanwhile is refused, not repeated.
-  await transitionCampaign(db, id, to, CLOCK_ACTOR, context, { byClock: true })
+  try {
+    // transitionCampaign reads the campaign again under its lock and checks
+    // the deadline there: a transition an organizer made meanwhile is
+    // refused, not repeated, and a window postponed meanwhile stays shut.
+    await transitionCampaign(db, id, to, CLOCK_ACTOR, context, { byClock: true, now })
+  } catch (err) {
+    if (err instanceof RosterConflict && (err.code === 'not_due' || err.code === 'invalid_transition')) return 0
+    throw err
+  }
   return 1
 }
 

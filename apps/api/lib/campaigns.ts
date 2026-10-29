@@ -206,15 +206,35 @@ const CLOCK_ONLY: readonly CampaignState[] = ['grace']
  * and closed (the roster frozen, the students without a list told). The
  * allocation's states are refused until the slice that gives them meaning.
  */
-export async function transitionCampaign(db: Database, rawId: string, to: CampaignState, actor: Actor, context: WindowContext, options: { byClock?: boolean } = {}): Promise<Campaign | undefined> {
+const due = (iso: string | null, now: Date): boolean => iso !== null && Date.parse(iso) <= now.getTime()
+
+/** The transition the clock owes a campaign at `now` (docs/domain-and-api.md §2), or none. */
+export function dueTransition(campaign: Pick<Campaign, 'state' | 'opensAt' | 'closesAt' | 'lateUntil'>, now: Date): CampaignState | undefined {
+  if (campaign.state === 'published' && due(campaign.opensAt, now)) return 'open'
+  if (campaign.state === 'open' && due(campaign.closesAt, now)) return campaign.lateUntil !== null && Date.parse(campaign.lateUntil) > Date.parse(campaign.closesAt as string) ? 'grace' : 'closed'
+  if (campaign.state === 'grace' && due(campaign.lateUntil, now)) return 'closed'
+  return undefined
+}
+
+/**
+ * Moves a campaign to `to`. The clock passes `byClock` with its `now`: the
+ * deadline is checked again under the lock, so a window an organizer
+ * postponed meanwhile is not opened on the old date (`not_due`).
+ */
+export async function transitionCampaign(db: Database, rawId: string, to: CampaignState, actor: Actor, context: WindowContext, options: { byClock?: boolean, now?: Date } = {}): Promise<Campaign | undefined> {
   if (!AVAILABLE_TRANSITIONS.includes(to) && !(options.byClock && CLOCK_ONLY.includes(to))) throw new RosterConflict('transition_not_available')
   const id = canonicalId(rawId)
   const found = await db.tx(async (client) => {
+    // The opening places the classes from the roster in force (D-24), so it
+    // and a roster commit take the school's lock, one after the other; the
+    // school before the campaign, as everywhere.
+    if (to === 'open') await lockScope(client, SCHOOL_SCOPE)
     await lockScope(client, id)
     const current = await lockedCampaign(client, id)
     if (!current) return false
     const result = transition(current.state, to)
     if (!result.ok) throw new RosterConflict('invalid_transition')
+    if (options.byClock && dueTransition(current, options.now ?? new Date()) !== to) throw new RosterConflict('not_due')
     let numbered = 0
     if (to === 'published') numbered = await numberApprovedItems(client, id)
     await client.query('update campaign set state = $2, updated_at = now() where id = $1', [id, to])
