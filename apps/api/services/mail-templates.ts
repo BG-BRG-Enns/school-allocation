@@ -29,6 +29,10 @@ export const PLACEHOLDERS: Readonly<Record<MailKind, readonly string[]>> = {
   grace_reminder: [...COMMON, 'frist'],
   missed_deadline: [...COMMON],
   class_missing: [...COMMON, 'klasse', 'fenster', 'liste'],
+  // The publication (S4c): a student's programme, the class teacher's list of those without a full place, a teacher's cancelled item.
+  result_published: [...COMMON, 'zuteilung', 'tauschfenster'],
+  class_unplaced: [...COMMON, 'klasse', 'liste'],
+  item_cancelled: [...COMMON, 'aktivitaet', 'anmeldungen', 'minimum'],
 }
 
 /** Sample values for a test mail, so the organizer sees every placeholder filled. */
@@ -42,6 +46,11 @@ export const SAMPLE_DATA: Readonly<Record<string, string>> = {
   klasse: '5A',
   fenster: 'Anmeldefenster 1',
   liste: '- Maria Muster\n- Max Muster',
+  zuteilung: 'Mo., 21.06.: 3. Klettern (08:30 – 12:15)\nDi., 22.06.: 7. Wien (Klasse)',
+  tauschfenster: 'Mo., 05.07.2027, 08:00 bis Mo., 12.07.2027, 20:00',
+  aktivitaet: 'Töpfern',
+  anmeldungen: '3',
+  minimum: '8',
 }
 
 /** Every placeholder name a parsed template reads, blocks included. */

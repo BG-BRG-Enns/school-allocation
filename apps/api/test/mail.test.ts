@@ -34,7 +34,7 @@ test('a template is checked against the subset and its kind\'s placeholders; a s
   const anna = await signIn(h, ANNA)
   const list = await get<{ templates: { kind: string, placeholders: string[] }[], mailEnabled: boolean }>(h, anna, '/api/admin/mail-templates')
   assert.equal(list.status, 200)
-  assert.deepEqual(list.body.templates.map((tpl) => tpl.kind), ['choice_invitation', 'choice_reminder', 'class_missing', 'grace_invitation', 'grace_reminder', 'missed_deadline'])
+  assert.deepEqual(list.body.templates.map((tpl) => tpl.kind), ['choice_invitation', 'choice_reminder', 'class_missing', 'class_unplaced', 'grace_invitation', 'grace_reminder', 'item_cancelled', 'missed_deadline', 'result_published'])
   assert.deepEqual(list.body.templates.find((tpl) => tpl.kind === 'class_missing')?.placeholders, ['vorname', 'name', 'wahl', 'link', 'klasse', 'fenster', 'liste'])
   assert.equal(list.body.mailEnabled, false)
   assert.equal((await get(h, await signIn(h, BERND), '/api/admin/mail-templates')).status, 403)

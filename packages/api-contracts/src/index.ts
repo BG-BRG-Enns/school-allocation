@@ -1,5 +1,6 @@
 export * from './administration.ts'
 export * from './allocation.ts'
+export * from './publication.ts'
 export * from './auth.ts'
 export * from './campaigns.ts'
 export * from './catalogue.ts'

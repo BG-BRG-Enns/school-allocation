@@ -43,6 +43,14 @@ export const getAdminCampaignsByIdRunsByRunId = { method: 'GET', path: '/api/adm
 
 export const getAdminCampaignsByIdRunsByRunIdExportXlsx = { method: 'GET', path: '/api/admin/campaigns/:id/runs/:runId/export.xlsx', transport: 'download' } as const satisfies EndpointMetadata
 
+export const postAdminCampaignsByIdRunsByRunIdPublish = { method: 'POST', path: '/api/admin/campaigns/:id/runs/:runId/publish', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getAdminCampaignsByIdExportAssignmentsXlsx = { method: 'GET', path: '/api/admin/campaigns/:id/export/assignments.xlsx', transport: 'download' } as const satisfies EndpointMetadata
+
+export const getCampaignsByIdMyResult = { method: 'GET', path: '/api/campaigns/:id/my-result', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getCampaignsByIdItemsByItemIdParticipants = { method: 'GET', path: '/api/campaigns/:id/items/:itemId/participants', transport: 'json' } as const satisfies EndpointMetadata
+
 export const getAdminAudit = { method: 'GET', path: '/api/admin/audit', transport: 'json' } as const satisfies EndpointMetadata
 
 export const getAuthLogin = { method: 'GET', path: '/api/auth/login', transport: 'redirect' } as const satisfies EndpointMetadata

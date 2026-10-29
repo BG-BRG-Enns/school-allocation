@@ -54,6 +54,26 @@
   },
   {
     "method": "GET",
+    "url": "/api/admin/campaigns/:id/export/assignments.xlsx",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/admin/campaigns/:id/export/catalogue.xlsx",
     "body": null,
     "params": {
@@ -604,7 +624,52 @@
   },
   {
     "method": "GET",
+    "url": "/api/campaigns/:id/items/:itemId/participants",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "itemId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "itemId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/campaigns/:id/my-choice",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
+    "url": "/api/campaigns/:id/my-result",
     "body": null,
     "params": {
       "type": "object",
@@ -1112,6 +1177,47 @@
   },
   {
     "method": "POST",
+    "url": "/api/admin/campaigns/:id/runs/:runId/publish",
+    "body": {
+      "type": "object",
+      "required": [
+        "cancelledItemIds"
+      ],
+      "properties": {
+        "cancelledItemIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "maxItems": 200
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "runId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "POST",
     "url": "/api/admin/campaigns/:id/transition",
     "body": {
       "type": "object",
@@ -1263,7 +1369,10 @@
             "grace_invitation",
             "grace_reminder",
             "missed_deadline",
-            "class_missing"
+            "class_missing",
+            "result_published",
+            "class_unplaced",
+            "item_cancelled"
           ]
         }
       },
@@ -1823,7 +1932,10 @@
             "grace_invitation",
             "grace_reminder",
             "missed_deadline",
-            "class_missing"
+            "class_missing",
+            "result_published",
+            "class_unplaced",
+            "item_cancelled"
           ]
         }
       },
