@@ -56,10 +56,10 @@ export function demandByDay(projectDays: readonly string[], classes: readonly Cl
       if (item.places <= 0) continue
       const eligible = classes.filter((c) => mayRank(c, item))
       const need = eligible.reduce((sum, c) => sum + (needing.get(c.className) ?? 0), 0)
-      for (const c of eligible) {
-        // Nobody left to place in any eligible class: the places go nowhere.
-        const share = need === 0 ? 0 : item.places * ((needing.get(c.className) ?? 0) / need)
-        offered.set(c.className, (offered.get(c.className) ?? 0) + share)
+      // Nobody left to place in any eligible class: the places go nowhere.
+      if (need === 0) continue
+      for (const [className, share] of splitWhole(item.places, eligible.map((c) => [c.className, (needing.get(c.className) ?? 0) / need]))) {
+        offered.set(className, (offered.get(className) ?? 0) + share)
       }
     }
     const grades = [...new Set(classes.map((c) => c.grade))].sort((a, b) => a - b).map((grade) => {
@@ -71,11 +71,27 @@ export function demandByDay(projectDays: readonly string[], classes: readonly Cl
         students,
         fixed: students - stillNeeding,
         needing: stillNeeding,
-        offered: Math.round(own.reduce((sum, c) => sum + (offered.get(c.className) ?? 0), 0)),
+        offered: own.reduce((sum, c) => sum + (offered.get(c.className) ?? 0), 0),
       }
     })
     return { date, grades }
   })
+}
+
+/**
+ * `total` whole places over the keys by their fractions (which sum to 1),
+ * largest remainder first, so the shares add up to `total` exactly and no
+ * item is counted for more places than it has.
+ */
+function splitWhole(total: number, fractions: readonly [string, number][]): [string, number][] {
+  const floors = fractions.map(([key, fraction]) => ({ key, exact: total * fraction, share: Math.floor(total * fraction) }))
+  let remainder = total - floors.reduce((sum, f) => sum + f.share, 0)
+  for (const f of [...floors].sort((a, b) => (b.exact - b.share) - (a.exact - a.share) || a.key.localeCompare(b.key, 'en'))) {
+    if (remainder <= 0) break
+    f.share += 1
+    remainder -= 1
+  }
+  return floors.map((f) => [f.key, f.share])
 }
 
 /** Whether students of the class may rank the item: not fixed into it, and within its grade and class rules. */

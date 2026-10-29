@@ -19,6 +19,8 @@ const mayEdit = computed(() => (session.value?.roles ?? []).some((role) => role 
 const editing = ref<{ className: string, teachers: { personId: string, displayName: string }[] } | null>(null)
 const query = ref('')
 const results = ref<{ personId: string, displayName: string }[]>([])
+/** The search sent last; an answer to an earlier one is dropped, so typing fast never shows stale results. */
+let latestSearch = 0
 
 onMounted(() => loading.run(async () => {
   classes.value = (await loadClasses()).classes
@@ -43,7 +45,10 @@ async function find(): Promise<void> {
     return
   }
   const chosen = new Set(editing.value.teachers.map((t) => t.personId))
-  results.value = (await searchClassTeachers(q)).teachers.filter((t) => !chosen.has(t.personId))
+  const search = ++latestSearch
+  const found = (await searchClassTeachers(q)).teachers
+  if (search !== latestSearch) return
+  results.value = found.filter((t) => !chosen.has(t.personId))
 }
 
 function add(person: { personId: string, displayName: string }): void {

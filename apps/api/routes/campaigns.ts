@@ -75,7 +75,7 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
       may: {
         propose: mayPropose(caller) && campaign.state === 'catalogue',
         organize: isOrganizer(caller),
-        seeDemand: mayPropose(caller),
+        seeDemand: maySeeDemand(caller, campaign),
         /** The classes the caller may open the class page of: their own as class teacher. Organizers open any from the class list. */
         classTeacherOf: caller.classTeacherOf,
       },
@@ -85,7 +85,7 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
   app.get<{ Params: Static<typeof IdParams> }>('/api/campaigns/:id/demand', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
     const campaign = await visible(request, reply, request.params.id)
     if (!campaign) return
-    if (!mayPropose(callerOf(request))) return reply.code(403).send({ error: 'forbidden' })
+    if (!maySeeDemand(callerOf(request), campaign)) return reply.code(403).send({ error: 'forbidden' })
     return { demand: await campaignDemand(db, campaign) }
   })
 
@@ -250,6 +250,11 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
 /** Who may propose: teachers of the roster in force, and organizers on anyone's behalf. */
 function mayPropose(caller: Caller): boolean {
   return isTeacher(caller) || isOrganizer(caller)
+}
+
+/** Who sees the demand (D-13): organizers always, teachers while proposals are taken. */
+function maySeeDemand(caller: Caller, campaign: Pick<Campaign, 'state'>): boolean {
+  return isOrganizer(caller) || (isTeacher(caller) && campaign.state === 'catalogue')
 }
 
 /**

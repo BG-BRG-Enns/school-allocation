@@ -57,6 +57,8 @@ const pickerResults = ref<GraphGroup[]>([])
 const pickerFeedback = useFeedback()
 /** The authorization has lapsed or was never given: offered again. */
 const pickerNeedsAuthorization = ref(false)
+/** The search sent last; an answer to an earlier one is dropped, so typing fast never shows stale results. */
+let latestGroupSearch = 0
 
 async function findGroups(): Promise<void> {
   const q = pickerQuery.value.trim()
@@ -64,9 +66,12 @@ async function findGroups(): Promise<void> {
     pickerResults.value = []
     return
   }
+  const search = ++latestGroupSearch
   await pickerFeedback.run(async () => {
     try {
-      pickerResults.value = (await searchGraphGroups(q)).groups.filter((group) => !groups.value.some((row) => row.groupId.toLowerCase() === group.id))
+      const found = (await searchGraphGroups(q)).groups
+      if (search !== latestGroupSearch) return
+      pickerResults.value = found.filter((group) => !groups.value.some((row) => row.groupId.toLowerCase() === group.id))
     } catch (err) {
       if (err instanceof ApiError && err.code === 'graph_not_authorized') pickerNeedsAuthorization.value = true
       throw err

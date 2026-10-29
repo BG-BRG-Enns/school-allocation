@@ -34,6 +34,15 @@ test('places of an item open to several grades split by what each still needs, a
   assert.deepEqual(covered?.grades.map((g) => [g.needing, g.offered]), [[0, 0], [30, 18]], 'the fifth grade is away, the sixth gets every place')
 })
 
+test('the shares of an item add up to its places exactly, whatever the rounding would do', () => {
+  // One place over two grades: rounding each half would make two.
+  const [day] = demandByDay(['2027-06-21'], classes, [open(1, ['2027-06-21'])])
+  assert.equal(day?.grades.reduce((sum, g) => sum + g.offered, 0), 1)
+  // Seven places over three classes of 20, 20 and 30: 2, 2, 3 by the largest remainder.
+  const [seven] = demandByDay(['2027-06-21'], classes, [open(7, ['2027-06-21'])])
+  assert.deepEqual(seven?.grades.map((g) => g.offered), [4, 3])
+})
+
 test('eligibility by class narrows the split, an item nobody can rank offers nothing, and a day without items is reported too', () => {
   const only1B = open(12, ['2027-06-22'], { eligibleClasses: ['1B'] })
   const [, tuesday] = demandByDay(DAYS, classes, [only1B])

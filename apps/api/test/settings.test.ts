@@ -153,6 +153,8 @@ test('the window\'s settings are kept in order and changeable until it opens; th
   assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, dailyMinimum: { 14: 100 } })).status, 400, 'grades 1 to 13')
   const thirteenth = await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, opensAt: '2027-13-01T08:00:00Z' })
   assert.deepEqual([thirteenth.status, thirteenth.body.error], [422, 'invalid_instant'], 'a month the calendar does not have passes the shape and is refused here, not by the database')
+  const thirtieth = await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, opensAt: '2027-02-30T08:00:00Z' })
+  assert.deepEqual([thirtieth.status, thirtieth.body.error], [422, 'invalid_instant'], 'Date.parse would make it the 2nd of March')
   const window = { opensAt: '2027-03-01T00:00:00+01:00', closesAt: '2027-03-08T00:00:00+01:00', lateUntil: '2027-03-12T00:00:00+01:00', swapFrom: '2027-03-15T00:00:00+01:00', swapUntil: '2027-03-19T00:00:00+01:00', wishesPerGroup: 5, dailyMinimum: { 9: 240 }, showTeachers: false }
   const set = await send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, ...window })
   assert.equal(set.status, 200, JSON.stringify(set.body))
@@ -190,6 +192,9 @@ test('the window\'s settings are kept in order and changeable until it opens; th
   await send(s, s.anna, 'POST', `/api/admin/items/${course.body.id}/approve`)
   await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'published' })
   assert.equal((await get(s, s.sara, `/api/campaigns/${id}/demand`)).status, 403)
+  assert.equal((await get(s, s.bernd, `/api/campaigns/${id}/demand`)).status, 403, 'a teacher sees the demand while proposing, not after (D-13)')
+  assert.equal((await get<{ may: { seeDemand: boolean } }>(s, s.bernd, `/api/campaigns/${id}`)).body.may.seeDemand, false)
+  assert.equal((await get(s, s.anna, `/api/campaigns/${id}/demand`)).status, 200)
   const forSara = await get<{ items: Item[] }>(s, s.sara, `/api/campaigns/${id}/catalogue`)
   assert.deepEqual(forSara.body.items.map((i) => [i.teachers, i.proposedBy.displayName]), [[[], '']], 'the school chose not to name the teachers, the proposer included')
   assert.deepEqual((await get<{ items: Item[] }>(s, s.sara, `/api/campaigns/${id}/items`)).body.items.map((i) => [i.teachers, i.proposedBy.displayName]), [[[], '']], 'nor on the campaign page')

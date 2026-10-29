@@ -79,9 +79,14 @@ const WINDOW_FIELDS = ['opensAt', 'closesAt', 'lateUntil', 'swapFrom', 'swapUnti
  */
 export function checkWindow(window: CampaignWindow): 'invalid_instant' | 'window_order' | 'grace_order' | 'swap_order' | undefined {
   const ms = (iso: string | null) => (iso === null ? null : Date.parse(iso))
-  // The schema checks the shape; a 13th month passes it and the database would refuse it as a 500.
+  // The schema checks the shape; a 13th month passes it and the database
+  // would refuse it as a 500, and Date.parse quietly turns a 30th of
+  // February into the 2nd of March, so the calendar day is checked to exist.
   for (const iso of [window.opensAt, window.closesAt, window.lateUntil, window.swapFrom, window.swapUntil]) {
-    if (iso !== null && Number.isNaN(Date.parse(iso))) return 'invalid_instant'
+    if (iso === null) continue
+    const day = iso.slice(0, 10)
+    const dayMs = Date.parse(`${day}T00:00:00Z`)
+    if (Number.isNaN(Date.parse(iso)) || Number.isNaN(dayMs) || new Date(dayMs).toISOString().slice(0, 10) !== day) return 'invalid_instant'
   }
   const opens = ms(window.opensAt)
   const closes = ms(window.closesAt)
