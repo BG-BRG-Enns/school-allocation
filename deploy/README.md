@@ -97,6 +97,12 @@ The app image runs as uid 10001, the app and the migrator alike, so the migrator
 
 `~/school-allocation/.env`, from `deploy/.env.example`: `PUBLIC_URL`, `TRUST_PROXY`, `LOG_LEVEL`, `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `BOOTSTRAP_ADMINS`, optionally `GRAPH_DELEGATED_SCOPES`, and the mail settings below. The app refuses to start with a missing or unsafe value and names it in the journal.
 
+## The solver
+
+The allocation is computed by the solver container (`school-allocation-solver`), OR-Tools CP-SAT behind a small HTTP service on the internal network: it holds no data and no credentials, has no way out, and sees nothing but small integers; the app checks every answer against the rules before it stores a run. The app's unit sets `SOLVER_URL=http://school-allocation-solver:8000`; without it the organizer's page says that no solver is set up and no run can start. A run is a job: the health check says `busy` while it executes, so the nightly update waits for it, and a run interrupted by a restart is marked so and started again by hand.
+
+A run's time limit is per level of the objective, in CP-SAT's deterministic seconds, which the organizer sets on the page (5 unless changed, 60 at most); one of them is several seconds of wall-clock time on a small machine, so a school-sized run takes a minute or a few. The solver runs on one core; the same seed and limit give the same allocation on the same release. The host needs about half a gigabyte of memory for it.
+
 ## Mail
 
 The app sends its notices (the invitation to a choice window, reminders, the lists to the class teachers, the notice to those who missed the deadline, the organizer's test mail) over the school's own SMTP submission, authenticated, over STARTTLS (port 587) or implicit TLS (port 465). Set in `.env`:

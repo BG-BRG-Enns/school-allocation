@@ -24,7 +24,7 @@ Status: proposal for review · 2026-10-27 · revised 2026-10-29 for the decision
 | `CurriculumProfile` | `id`, `sfkz[]`, `name` | SFKZ → profile mapping |
 | `Choice` | `campaign_id`, `person_id`, `ranked` (per time group: item ids in order, at most the campaign's cap), `window` (`first` / `late`, from the time of the last save), `version`, `updated_at`, `entered_by` (self / organizer) | Whole-list replace; history kept in `ChoiceRevision` |
 | `WpfPlan` | `campaign_id`, `person_id`, `items_by_year`, `alternatives?`, `rule_version_id`, `validation` | Multi-year plan, chosen at once |
-| `AllocationRun` | `id`, `campaign_id`, `snapshot_sha256`, `seed`, `core_version`, `solver_version`, `ortools_version`, `status`, `levels[]` (value, proven), `started_by`, `published_at?` | Many per campaign, at most one published |
+| `AllocationRun` | `id`, `campaign_id`, `seq` (Lauf 1, 2, …), `status` (`running` / `succeeded` / `failed` / `interrupted`), `seed`, `limits`, `core_version`, `contract`, `solver_version`, `ortools_version`, `snapshot` (the compiled input, ids only) and `snapshot_sha256` (without seed and limit, so a changed campaign shows as stale), `warnings`, `passes[]` (per pass the solver's status, level values with `proven`, pairs, cancelled), `cancelled_items`, `failure` and `detail` (why it failed), `problems` (the validator's), `started_by`, `published_at?` | Many per campaign, at most one published; a finished run changes only by being published |
 | `Assignment` | `run_id`, `person_id`, `item_id`, `source` (`fixed` / `solver` / `fallback` / `swap` / `manual`) | Fixed rows are copied from the pre-assignments; `fallback` is a placement into a fee-free item outside the student's wishes (D-06); `swap` a student's own move in the swap window; manual rows reference a reason |
 | `Attendance` | `session_id`, `person_id`, `status`, `recorded_by` | Separate from assignments |
 | `OutboxMail` | `id`, `kind`, `campaign_id?`, `person_id?`, `to_address`, `subject`, `body`, `dedupe_key` (unique), `state` (`queued` / `sending` / `sent` / `failed`), `attempts`, `next_attempt_at`, `detail`, `message_id`, `sent_at` | Written in the triggering transaction; the unique `dedupe_key` (e.g. `choice_reminder:<campaign>:<person>:reminder:<close>`) prevents double notices; rows stay as the record of what was sent |
@@ -45,12 +45,16 @@ stateDiagram-v2
   open --> grace: closes_at reached (class teachers get their class's missing submissions)
   grace --> closed: late_until reached (missed-deadline mails queued, roster batch frozen)
   closed --> allocating: organizer starts run
-  allocating --> review: run stored and validated
+  allocating --> review: run stored, succeeded or failed
   review --> allocating: another run (other seed / settings)
   review --> results: organizer publishes one run (swap window opens at swap_from)
   results --> results: swap by the student / manual change (validated, audited)
   results --> archived: after the event and attendance
 ```
+
+A run is a job (`busy` in the health check while it executes); the campaign is `allocating` meanwhile and
+`review` once the run is stored, whatever came of it: a failed run is stored with its reason and the
+organizer starts another. A run left running by a restart is marked interrupted at the next start.
 
 The grace week (`grace`) is the second window of D-06: a student may still submit or change, and the
 saved list is marked `late`. The swap window (`swap_from` to `swap_until`, inside `results`) is the one
@@ -353,7 +357,9 @@ it deliberately with `npm run contracts:update:routes` and review the diff.
 | `GET /api/admin/roles` · `POST /api/admin/roles` · `POST /api/admin/roles/:id/revoke` | admin | School-wide grants (reason required); an administrator cannot revoke their own |
 | `PUT /api/admin/campaigns/:id/choices/:personId` | organizer | On-behalf entry (reason required) |
 | `POST /api/admin/campaigns/:id/preassignments/:personId/:itemId/exempt` | organizer | Exempt a student from a fixed class activity (reason required) |
-| `POST /api/admin/campaigns/:id/runs` · `GET …/runs/:runId` · `POST …/runs/:runId/publish` | organizer | Allocation |
+| `GET /api/admin/solver` | organizer, auditor | Whether a solver is configured and answers, and which OR-Tools it runs |
+| `POST /api/admin/campaigns/:id/runs` · `GET …/runs` · `GET …/runs/:runId` · `GET …/runs/:runId/export.xlsx` | organizer (start), auditor (read) | Start a run on a closed campaign (seed and limit optional; 202, the job finishes it), the runs with their status and levels, the review of one (levels per pass, every student's places and missing minutes, the items' counts, the cancelled items, whether the campaign changed since), and the review as a workbook |
+| `POST …/runs/:runId/publish` | organizer | Publication (S4c) |
 | `POST /api/admin/campaigns/:id/assignments` | organizer | Manual change (validated, reason required) |
 | `GET /api/campaigns/:id/items/:itemId/participants` | teacher (own, after results), organizer, auditor | Participant list |
 | `PUT /api/sessions/:id/attendance` | KV (own class), organizer; admin for WPF | Attendance |
