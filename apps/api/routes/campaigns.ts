@@ -255,7 +255,9 @@ function projectDays(values: readonly string[]): string[] | 'invalid_date' | 'pr
     const ms = Date.parse(`${day}T00:00:00Z`)
     if (!Number.isFinite(ms) || new Date(ms).toISOString().slice(0, 10) !== day) return 'invalid_date'
   }
-  const days = [...new Set(values)].sort()
+  // YYYY-MM-DD sorts chronologically by its characters; the comparator says
+  // so, since sort() without one is sort by code unit only by convention.
+  const days = [...new Set(values)].sort((a, b) => Number(a > b) - Number(a < b))
   return days.length === values.length ? days : 'project_day_twice'
 }
 
