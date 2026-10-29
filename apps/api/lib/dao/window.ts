@@ -1,9 +1,10 @@
 import type { Queryable } from '../db.ts'
 import type { Campaign } from '../models/campaigns.ts'
+import { campaignRosterBatch, CURRENT_BATCH_ID } from './roster-selection.ts'
 
 /** The class teachers of the campaign's roster with an address, by class: assigned in the app for the roster's year, or named by the roster's column. */
 export async function classTeachersByClass(client: Queryable, campaign: Campaign): Promise<Map<string, { personId: string, displayName: string, address: string }[]>> {
-  const batch = campaign.rosterBatchId === null ? '(select id from import_batch where state = \'committed\' order by decided_at desc limit 1)' : `'${campaign.rosterBatchId}'::uuid`
+  const batch = campaignRosterBatch(campaign)
   const { rows } = await client.query<{ class_name: string, person_id: string, display_name: string, address: string }>(
     `with b as (select id, school_year from import_batch where id = ${batch}),
      teachers as (select e.person_id, e.display_name, coalesce(e.mail, e.upn) as address, lower(e.mail) as mail, lower(e.upn) as upn
@@ -25,6 +26,6 @@ export async function classTeachersByClass(client: Queryable, campaign: Campaign
   return byClass
 }
 
-export function freezeRoster(db: Queryable, campaign: Campaign) {
-  return db.query('update campaign set roster_batch_id = (select id from import_batch where state = \'committed\' order by decided_at desc limit 1) where id = $1', [campaign.id])
+export async function freezeRoster(db: Queryable, campaign: Campaign) {
+  await db.query(`update campaign set roster_batch_id = ${CURRENT_BATCH_ID} where id = $1`, [campaign.id])
 }

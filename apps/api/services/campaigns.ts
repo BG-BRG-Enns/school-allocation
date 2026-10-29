@@ -8,7 +8,7 @@ import { demandByDay, transition, type CampaignState, type DayDemand, type Offer
 import { type Actor, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import * as store from '../lib/dao/campaigns.ts'
-import { lockedCampaign, readCampaign, rosterClassSizes, toCampaign } from '../lib/dao/campaigns.ts'
+import { lockedCampaign, readCampaign, rosterClassSizes } from '../lib/dao/campaigns.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import type { Campaign, CampaignChanges, CampaignWindow, NewCampaign } from '../lib/models/campaigns.ts'
@@ -20,7 +20,7 @@ import { windowEffects } from './window.ts'
 
 export { campaignCounts, readCampaign, rosterClasses, rosterClassSizes, rosterTeachers } from '../lib/dao/campaigns.ts'
 export { CAMPAIGN_KINDS } from '../lib/models/campaigns.ts'
-export type { Campaign, CampaignChanges, CampaignCounts, CampaignKind, CampaignRow, CampaignWindow, NewCampaign, RosterClass, RosterTeacher } from '../lib/models/campaigns.ts'
+export type { Campaign, CampaignChanges, CampaignCounts, CampaignKind, CampaignWindow, NewCampaign, RosterClass, RosterTeacher } from '../lib/models/campaigns.ts'
 
 /** The states an organizer moves a campaign into by hand; the grace week comes by the clock alone, and the allocation with a later slice. */
 export const AVAILABLE_TRANSITIONS: readonly CampaignState[] = ['catalogue', 'published', 'open', 'closed']
@@ -60,7 +60,7 @@ export function checkWindow(window: CampaignWindow): 'invalid_instant' | 'window
 export async function createCampaign(db: Database, input: NewCampaign, actor: Actor): Promise<Campaign> {
   const id = await db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
-    const { rows: [row] } = await store.insertCampaign(client, input, actor)
+    const row = await store.insertCampaign(client, input, actor)
     if (!row) throw new Error('campaign insert returned no row')
     await appendAudit(client, {
       scopeId: SCHOOL_SCOPE, actor: auditActor(actor), action: 'campaign.created',
@@ -97,8 +97,8 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     const order = checkWindow(window)
     if (order !== undefined) throw new ApplicationError(order)
     const days = new Set(changes.projectDays)
-    const { rows: sessions } = await store.listActiveSessions(client, id)
-    if (sessions.some((s) => datesOfSpan(s.starts_at.getTime(), s.ends_at.getTime()).some((date) => !days.has(date)))) {
+    const sessions = await store.listActiveSessions(client, id)
+    if (sessions.some((s) => datesOfSpan(s.startsAt.getTime(), s.endsAt.getTime()).some((date) => !days.has(date)))) {
       throw new ApplicationError('sessions_outside_days')
     }
     await store.updateSettings(client, id, changes, window)
@@ -166,8 +166,8 @@ export async function transitionCampaign(db: Database, rawId: string, to: Campai
 
 /** The campaigns the caller may see, newest first. */
 export async function listCampaigns(db: Queryable, caller: Pick<Caller, 'roles' | 'person'>): Promise<Campaign[]> {
-  const { rows } = await store.listCampaignRows(db)
-  return rows.map(toCampaign).filter((campaign) => canSee(caller, campaign.state))
+  const rows = await store.listCampaigns(db)
+  return rows.filter((campaign) => canSee(caller, campaign.state))
 }
 
 /**
@@ -178,12 +178,12 @@ export async function listCampaigns(db: Queryable, caller: Pick<Caller, 'roles' 
  */
 export async function campaignDemand(db: Queryable, campaign: Campaign): Promise<DayDemand[]> {
   const classes = await rosterClassSizes(db)
-  const { rows } = await store.listDemandSessions(db, campaign)
+  const rows = await store.listDemandSessions(db, campaign)
   // One row per session; an item counts once per date its sessions touch.
   const items = new Map<string, OfferedItem>()
   for (const row of rows) {
-    const item = items.get(row.id) ?? { fixedClasses: row.fixed_classes, eligibleGrades: row.eligible_grades, eligibleClasses: row.eligible_classes, places: row.places, dates: [] }
-    const dates = new Set([...item.dates, ...datesOfSpan(row.starts_at.getTime(), row.ends_at.getTime())])
+    const item = items.get(row.id) ?? { fixedClasses: row.fixedClasses, eligibleGrades: row.eligibleGrades, eligibleClasses: row.eligibleClasses, places: row.places, dates: [] }
+    const dates = new Set([...item.dates, ...datesOfSpan(row.startsAt.getTime(), row.endsAt.getTime())])
     items.set(row.id, { ...item, dates: [...dates] })
   }
   return demandByDay(campaign.projectDays, classes, [...items.values()])

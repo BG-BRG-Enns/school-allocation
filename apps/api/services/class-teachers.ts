@@ -24,15 +24,15 @@ export async function replaceClassTeachers(db: Database, className: string, pers
     await lockScope(client, SCHOOL_SCOPE)
     const schoolYear = await currentSchoolYear(client)
     if (schoolYear === undefined) throw new ApplicationError('no_roster')
-    const { rows: [known] } = await store.countClassStudents(client, className)
-    if (known?.n === '0') throw new ApplicationError('class_unknown')
+    const known = await store.countClassStudents(client, className)
+    if (known === 0) throw new ApplicationError('class_unknown')
     const wanted = [...new Set(personIds)]
-    const { rows: teachers } = await store.findRosterTeachers(client, wanted)
+    const teachers = await store.findRosterTeachers(client, wanted)
     if (teachers.length !== wanted.length) throw new ApplicationError('teacher_unknown')
-    const { rows: current } = await store.listAssignments(client, schoolYear, className)
-    const have = new Set(current.map((row) => row.person_id))
+    const current = await store.listAssignments(client, schoolYear, className)
+    const have = new Set(current.map((row) => row.personId))
     for (const row of current) {
-      if (!wanted.includes(row.person_id)) await store.revokeAssignment(client, row, actor)
+      if (!wanted.includes(row.personId)) await store.revokeAssignment(client, row, actor)
     }
     for (const personId of wanted) {
       if (!have.has(personId)) {

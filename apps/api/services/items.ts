@@ -10,7 +10,7 @@ import { actorOf, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
 import { readCampaign } from '../lib/dao/campaigns.ts'
 import * as store from '../lib/dao/items.ts'
-import { numberApprovedItems, readItem, readItems, writeParts } from '../lib/dao/items.ts'
+import { numberApprovedItems, readItem, writeParts } from '../lib/dao/items.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError, ItemInvalid } from '../lib/errors.ts'
 import type { Item, ItemInput, Move } from '../lib/models/items.ts'
@@ -20,24 +20,24 @@ import { reconcilePreAssignments } from './pre-assignments.ts'
 
 export { numberApprovedItems, readItem } from '../lib/dao/items.ts'
 export { ItemInvalid } from '../lib/errors.ts'
-export type { Item, ItemInput, ItemRow, Move, Session, SessionInput } from '../lib/models/items.ts'
+export type { Item, ItemInput, Move, Session, SessionInput } from '../lib/models/items.ts'
 
 /**
  * Checks an activity against its campaign's project days and the roster's
  * classes and teachers, inside the caller's transaction; throws ItemInvalid.
  */
 async function validate(client: Queryable, campaignId: string, input: ItemInput): Promise<void> {
-  const { rows: [campaign] } = await store.findProjectDays(client, campaignId)
-  const { rows: classes } = await store.listRosterClasses(client)
-  const { rows: teachers } = await store.findItemTeachers(client, input)
-  const known = new Set(teachers.map((row) => row.person_id))
+  const campaign = await store.findProjectDays(client, campaignId)
+  const classes = await store.listRosterClasses(client)
+  const teachers = await store.findItemTeachers(client, input)
+  const known = new Set(teachers.map((row) => row.personId))
   const unknownTeachers = input.teachers.filter((id) => !known.has(id))
   const sessions = input.sessions.map((session) => {
     const startMs = instantOf(session.startsAt) ?? Number.NaN
     const endMs = instantOf(session.endsAt) ?? Number.NaN
     return { startMs, endMs, dates: Number.isFinite(startMs) && Number.isFinite(endMs) ? datesOfSpan(startMs, endMs) : [], credits: session.credits }
   })
-  const problems = checkItem({ sessions, rules: input, teachers: input.teachers }, { projectDays: campaign?.project_days ?? [], classes: classes.map((row) => row.class_name) })
+  const problems = checkItem({ sessions, rules: input, teachers: input.teachers }, { projectDays: campaign?.projectDays ?? [], classes: classes.map((row) => row.className) })
   if (problems.length > 0 || unknownTeachers.length > 0) throw new ItemInvalid(problems, unknownTeachers)
 }
 
@@ -49,11 +49,11 @@ async function validate(client: Queryable, campaignId: string, input: ItemInput)
 export async function createItem(db: Database, campaignId: string, input: ItemInput, caller: Caller): Promise<Item> {
   const id = await db.tx(async (client) => {
     await lockScope(client, campaignId)
-    const { rows: [campaign] } = await store.lockCampaignForCreate(client, campaignId)
+    const campaign = await store.lockCampaignForCreate(client, campaignId)
     if (!campaign) throw new ApplicationError('not_found')
     if (!acceptsProposals(campaign.state)) throw new ApplicationError('campaign_state')
     await validate(client, campaignId, input)
-    const { rows: [row] } = await store.insertItem(client, campaignId, input, caller)
+    const row = await store.insertItem(client, campaignId, input, caller)
     if (!row) throw new Error('catalog_item insert returned no row')
     await writeParts(client, row.id, input)
     if (caller.person?.kind !== 'teacher') {
@@ -73,7 +73,7 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
   const found = await db.tx(async (client) => {
     const current = await lockedItem(client, id)
     if (!current) return false
-    const { rows: [campaign] } = await store.lockCampaignForUpdate(client, current)
+    const campaign = await store.lockCampaignForUpdate(client, current)
     // What a teacher may do without organizer rights: tend their own draft
     // while the catalogue takes proposals. Everything else is an
     // organizer's change and is recorded, their own item or not; an
@@ -187,7 +187,7 @@ async function moveItem(db: Database, id: string, to: ItemState, caller: Caller,
   const found = await db.tx(async (client) => {
     const current = await lockedItem(client, id)
     if (!current) return false
-    const { rows: [campaign] } = await store.lockCampaignForMove(client, current)
+    const campaign = await store.lockCampaignForMove(client, current)
     if (!campaign) return false
     if (!organizer && !isOwn(caller, current)) throw new ApplicationError('forbidden')
     const result = itemTransition(current.state, to)
@@ -200,7 +200,7 @@ async function moveItem(db: Database, id: string, to: ItemState, caller: Caller,
 
 /** The items of a campaign the caller may see: organizers all of them; teachers their own and the approved ones; everyone else the approved ones once the catalogue is published. */
 export async function listItems(db: Queryable, campaign: { id: string, state: CampaignState }, caller: Caller, organizer: boolean): Promise<Item[]> {
-  const items = await readItems(db, 'where i.campaign_id = $1', [campaign.id])
+  const items = await store.listCampaignItems(db, campaign.id)
   if (organizer) return items
   const published = campaign.state !== 'draft' && campaign.state !== 'catalogue'
   return items.filter((item) => isOwn(caller, item) || (item.state === 'approved' && (published || caller.person?.kind === 'teacher')))
@@ -208,7 +208,7 @@ export async function listItems(db: Queryable, campaign: { id: string, state: Ca
 
 /** The published catalogue: the approved items, numbered, in print order. */
 export async function catalogueItems(db: Queryable, campaignId: string): Promise<Item[]> {
-  const items = await readItems(db, 'where i.campaign_id = $1 and i.state = \'approved\'', [campaignId])
+  const items = await store.listApprovedItems(db, campaignId)
   return items.sort((a, b) => (a.number ?? Number.MAX_SAFE_INTEGER) - (b.number ?? Number.MAX_SAFE_INTEGER) || a.title.localeCompare(b.title, 'de'))
 }
 

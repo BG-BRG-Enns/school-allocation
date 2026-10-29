@@ -12,7 +12,7 @@ import { type Actor } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { canonicalJson, CanonicalJsonError } from '../lib/canonical-json.ts'
 import * as store from '../lib/dao/roster.ts'
-import { currentBatch, entriesOf, toBatch } from '../lib/dao/roster.ts'
+import { currentBatch, entriesOf } from '../lib/dao/roster.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import type { BatchDetail, NewBatch, StoredEntry } from '../lib/models/roster.ts'
@@ -20,14 +20,14 @@ import { reconcileOpenCampaigns } from './pre-assignments.ts'
 
 export { currentBatch, entriesOf, listBatches, searchPersons } from '../lib/dao/roster.ts'
 export { BATCH_SOURCES, BATCH_STATES } from '../lib/models/roster.ts'
-export type { Batch, BatchDetail, BatchRow, BatchSource, BatchState, EntryRow, NewBatch, RosterPerson, RosterWarning, StoredEntry } from '../lib/models/roster.ts'
+export type { Batch, BatchDetail, BatchSource, BatchState, NewBatch, RosterPerson, RosterWarning, StoredEntry } from '../lib/models/roster.ts'
 const EMPTY_SUMMARY: RosterDiffSummary = { added: 0, removed: 0, changed: 0, unchanged: 0 }
 
 export async function readBatch(db: Queryable, id: string): Promise<BatchDetail | undefined> {
-  const { rows } = await store.findBatchRow(db, id)
+  const rows = await store.findBatch(db, id)
   const row = rows[0]
   if (row === undefined) return undefined
-  const batch = toBatch(row)
+  const batch = row
   const diff: RosterDiff<StoredEntry> = batch.state === 'rejected'
     ? { added: [], removed: [], changed: [], unchanged: 0 }
     : diffRoster(
@@ -54,7 +54,7 @@ export async function createBatch(db: Database, input: NewBatch): Promise<BatchD
     // A rejected batch is decided as it is written, by the database's
     // clock like fetched_at, so the two are one instant whatever this
     // process's clock says.
-    const { rows: [row] } = await store.insertBatch(client, input, hash, current, summary, problems, warnings, rejected)
+    const row = await store.insertBatch(client, input, hash, current, summary, problems, warnings, rejected)
     if (!row) throw new Error('import_batch insert returned no row')
     if (!rejected) {
       await store.insertEntries(client, row.id, input.entries)
@@ -107,11 +107,11 @@ function payloadHash(entries: readonly RosterEntry[]): string {
 export async function commitBatch(db: Database, batchId: string, actor: Actor, tid: string): Promise<BatchDetail | undefined> {
   const found = await db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
-    const { rows: [batch] } = await store.lockBatchForCommit(client, batchId)
+    const batch = await store.lockBatchForCommit(client, batchId)
     if (!batch) return false
     if (batch.state !== 'pending') throw new ApplicationError('batch_not_pending')
     const current = await currentBatch(client)
-    if ((current?.id ?? null) !== batch.previous_batch_id) throw new ApplicationError('batch_superseded')
+    if ((current?.id ?? null) !== batch.previousBatchId) throw new ApplicationError('batch_superseded')
 
     // Who is already known, in the order the identity invariant wants it:
     // the person bound to the member's object id; else the person the key
@@ -123,15 +123,15 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
     // old address is a new person until an administrator says otherwise.
     const knownByKey = new Map<string, string>()
     {
-      const { rows } = await store.listKnownPersons(client)
-      for (const row of rows) knownByKey.set(row.entry_key, row.person_id)
+      const rows = await store.listKnownPersons(client)
+      for (const row of rows) knownByKey.set(row.entryKey, row.personId)
     }
     const currentByAddress = new Map<string, string[]>()
     if (current !== undefined) {
-      const { rows } = await store.listCurrentAddresses(client, current)
+      const rows = await store.listCurrentAddresses(client, current)
       for (const row of rows) {
         for (const address of addressesOf({ mail: row.mail ?? undefined, upn: row.upn ?? undefined })) {
-          currentByAddress.set(address, [...(currentByAddress.get(address) ?? []), row.person_id])
+          currentByAddress.set(address, [...(currentByAddress.get(address) ?? []), row.personId])
         }
       }
     }
@@ -145,13 +145,13 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
     const personByOid = new Map<string, string>()
     const oidByPerson = new Map<string, string>()
     {
-      const { rows } = await store.listTenantBindings(client, tid)
+      const rows = await store.listTenantBindings(client, tid)
       for (const row of rows) {
-        personByOid.set(row.oid, row.person_id)
-        oidByPerson.set(row.person_id, row.oid)
+        personByOid.set(row.oid, row.personId)
+        oidByPerson.set(row.personId, row.oid)
       }
     }
-    const { rows: entries } = await store.listEntriesToBind(client, batchId)
+    const entries = await store.listEntriesToBind(client, batchId)
 
     let created = 0
     let bound = 0
@@ -159,7 +159,7 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
     for (const entry of entries) {
       let personId = entry.oid === null ? undefined : personByOid.get(entry.oid)
       if (personId === undefined) {
-        const candidate = knownByKey.get(entry.entry_key) ?? byAddress(entry)
+        const candidate = knownByKey.get(entry.entryKey) ?? byAddress(entry)
         const boundElsewhere = candidate !== undefined && entry.oid !== null && oidByPerson.has(candidate) && oidByPerson.get(candidate) !== entry.oid
         if (candidate !== undefined && !boundElsewhere) personId = candidate
       }
@@ -167,7 +167,7 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
       // the same person (the index would refuse it) is somebody new.
       if (personId !== undefined && taken.has(personId)) personId = undefined
       if (personId === undefined) {
-        const { rows: [person] } = await store.insertPerson(client)
+        const person = await store.insertPerson(client)
         if (!person) throw new Error('person insert returned no row')
         personId = person.id
         created += 1
@@ -194,7 +194,7 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
       scopeId: SCHOOL_SCOPE,
       actor: { tid: actor.tid, oid: actor.oid, name: actor.name },
       action: 'roster.imported',
-      metadata: { batchId, source: batch.source, schoolYear: batch.school_year, rowCount: batch.row_count, ...batch.diff_summary, personsCreated: created, identitiesBound: bound },
+      metadata: { batchId, source: batch.source, schoolYear: batch.schoolYear, rowCount: batch.rowCount, ...batch.diffSummary, personsCreated: created, identitiesBound: bound },
     })
     return true
   })
@@ -205,7 +205,7 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
 export async function discardBatch(db: Database, batchId: string, actor: Actor): Promise<BatchDetail | undefined> {
   const found = await db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
-    const { rows: [batch] } = await store.lockBatchForDiscard(client, batchId)
+    const batch = await store.lockBatchForDiscard(client, batchId)
     if (!batch) return false
     if (batch.state !== 'pending') throw new ApplicationError('batch_not_pending')
     await store.discardBatch(client, batchId, actor)

@@ -5,24 +5,24 @@
 // who has not chosen. The rules are school-core's; this module hands them
 // the stored rows.
 
-import { acceptsChoices,checkRanking,isComplete,offeredTo,timeGroupsOf,wishesRequired,type Ranking } from '@school-allocation/school-core'
+import { acceptsChoices, checkRanking, isComplete, offeredTo, timeGroupsOf, wishesRequired, type Ranking } from '@school-allocation/school-core'
 import { type Caller } from '../lib/actor.ts'
-import { appendAudit,lockScope } from '../lib/audit.ts'
+import { appendAudit, lockScope } from '../lib/audit.ts'
 import * as store from '../lib/dao/choices.ts'
-import { campaignStudent,campaignStudents,fixedItemIds } from '../lib/dao/choices.ts'
-import type { Database,Queryable } from '../lib/db.ts'
-import { ApplicationError,ChoiceInvalid } from '../lib/errors.ts'
+import { campaignStudent, campaignStudents, fixedItemIds } from '../lib/dao/choices.ts'
+import type { Database, Queryable } from '../lib/db.ts'
+import { ApplicationError, ChoiceInvalid } from '../lib/errors.ts'
 import { mailStatesByPerson } from '../lib/mail/outbox.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
-import type { CampaignStudent,ChoiceState,ChoiceView,SaveBy,StudentChoiceState } from '../lib/models/choices.ts'
+import type { CampaignStudent, ChoiceState, ChoiceView, SaveBy, StudentChoiceState } from '../lib/models/choices.ts'
 import type { Item } from '../lib/models/items.ts'
 import { instantOf } from '../lib/time.ts'
 import { catalogueItems } from './items.ts'
 import { reconcilePreAssignments } from './pre-assignments.ts'
 
-export { campaignStudent,campaignStudents,rosterBatchClause } from '../lib/dao/choices.ts'
+export { campaignStudent, campaignStudents } from '../lib/dao/choices.ts'
 export { ChoiceInvalid } from '../lib/errors.ts'
-export type { CampaignStudent,ChoiceState,ChoiceView,GroupView,SaveBy,StudentChoiceState } from '../lib/models/choices.ts'
+export type { CampaignStudent, ChoiceState, ChoiceView, GroupView, SaveBy, StudentChoiceState } from '../lib/models/choices.ts'
 
 /** Places every student of a class an approved item is fixed for into it (D-24), from the roster in force; called when the window opens. */
 export async function materializePreAssignments(client: Queryable, campaign: Pick<Campaign, 'id'>): Promise<number> {
@@ -54,7 +54,7 @@ export async function choiceView(db: Queryable, campaign: Campaign, student: Cam
     items: group.itemIds.map((id) => byId.get(id)).filter((item): item is Item => item !== undefined),
     required: wishesRequired(group, campaign.wishesPerGroup),
   }))
-  const { rows: [saved] } = await store.findChoice(db, campaign, student)
+  const saved = await store.findChoice(db, campaign, student)
   // Only what is offered now counts: a group or item the catalogue lost since the save is pruned from the
   // view (the revisions keep it), so a save never fails on a key the student cannot see.
   const ranking: Ranking = {}
@@ -66,7 +66,7 @@ export async function choiceView(db: Queryable, campaign: Campaign, student: Cam
     fixed,
     groups,
     ranking,
-    window: saved?.saved_in ?? null,
+    window: saved?.savedIn ?? null,
     version: saved?.version ?? 0,
     cap: campaign.wishesPerGroup,
     complete: isComplete(ranking, groups, campaign.wishesPerGroup),
@@ -89,12 +89,12 @@ export async function saveRanking(db: Database, campaign: Campaign, personId: st
   await db.tx(async (client) => {
     await lockScope(client, campaign.id)
     const now = new Date()
-    const { rows: [current] } = await store.lockChoiceWindow(client, campaign)
+    const current = await store.lockChoiceWindow(client, campaign)
     if (!current || !acceptsChoices(current.state)) throw new ApplicationError('campaign_state')
     // The clock under the lock, not the last tick: after the window's end nothing is taken, whatever the state still says.
-    const end = current.late_until ?? current.closes_at
+    const end = current.lateUntil ?? current.closesAt
     if (end !== null && now.getTime() > end.getTime()) throw new ApplicationError('campaign_state')
-    student = await campaignStudent(client, { rosterBatchId: current.roster_batch_id }, personId)
+    student = await campaignStudent(client, { rosterBatchId: current.rosterBatchId }, personId)
     if (!student) throw new ApplicationError('not_a_student')
     const view = await choiceView(client, { ...campaign, state: current.state }, student)
     const problems = checkRanking(ranking, view.groups, campaign.wishesPerGroup)
@@ -106,8 +106,8 @@ export async function saveRanking(db: Database, campaign: Campaign, personId: st
       if (ids !== undefined && ids.length > 0) canonical[group.key] = [...ids]
     }
     // Late in the grace week, or after the close before the clock moved the state: the save is late either way.
-    const window = current.state === 'grace' || (current.closes_at !== null && now.getTime() > current.closes_at.getTime()) ? 'late' : 'first'
-    const { rows: [row] } = await store.upsertRanking(client, campaign, student, canonical, window, by)
+    const window = current.state === 'grace' || (current.closesAt !== null && now.getTime() > current.closesAt.getTime()) ? 'late' : 'first'
+    const row = await store.upsertRanking(client, campaign, student, canonical, window, by)
     await store.insertRevision(client, campaign, student, row, canonical, window, by)
     if (by.reason !== undefined) {
       await appendAudit(client, {
@@ -131,11 +131,11 @@ export async function saveRanking(db: Database, campaign: Campaign, personId: st
 export async function exemptPreAssignment(db: Database, campaign: Campaign, personId: string, itemId: string, reason: string, caller: Caller): Promise<boolean> {
   return db.tx(async (client) => {
     await lockScope(client, campaign.id)
-    const { rows: [current] } = await store.lockExemptionWindow(client, campaign)
+    const current = await store.lockExemptionWindow(client, campaign)
     if (!current || !acceptsChoices(current.state)) throw new ApplicationError('campaign_state')
-    const { rows: [row] } = await store.lockPreAssignment(client, campaign, personId, itemId)
+    const row = await store.lockPreAssignment(client, campaign, personId, itemId)
     if (!row) return false
-    if (row.exempted_at !== null) throw new ApplicationError('already_exempted')
+    if (row.exemptedAt !== null) throw new ApplicationError('already_exempted')
     await store.exemptPreAssignment(client, campaign, personId, itemId, caller, reason)
     await appendAudit(client, {
       scopeId: campaign.id,
@@ -155,8 +155,8 @@ export async function exemptPreAssignment(db: Database, campaign: Campaign, pers
  */
 export async function choiceStates(db: Queryable, campaign: Campaign, className?: string): Promise<StudentChoiceState[]> {
   const students = await campaignStudents(db, campaign, className)
-  const { rows } = await store.listChoices(db, campaign)
-  const saved = new Map(rows.map((row) => [row.person_id, row]))
+  const rows = await store.listChoices(db, campaign)
+  const saved = new Map(rows.map((row) => [row.personId, row]))
   const result: StudentChoiceState[] = []
   for (const student of students) {
     // Each student's groups depend on their class and fixed items; computed per student, which a school's roster allows.
@@ -164,7 +164,7 @@ export async function choiceStates(db: Queryable, campaign: Campaign, className?
     const choice = saved.get(student.personId)
     // Nothing to rank (every day taken by class activities) is complete without a row.
     const state: ChoiceState = view.groups.length === 0 || (choice !== undefined && view.complete) ? 'complete' : (choice === undefined ? 'none' : 'incomplete')
-    result.push({ ...student, state, window: choice?.saved_in ?? null, updatedAt: choice?.updated_at.toISOString() ?? null })
+    result.push({ ...student, state, window: choice?.savedIn ?? null, updatedAt: choice?.updatedAt.toISOString() ?? null })
   }
   return result
 }

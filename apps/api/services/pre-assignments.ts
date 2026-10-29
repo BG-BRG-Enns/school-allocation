@@ -15,9 +15,9 @@ import type { Queryable } from '../lib/db.ts'
  * item of it; returns how many were added and how many went.
  */
 export async function reconcilePreAssignments(client: Queryable, campaignId: string, itemId?: string): Promise<{ placed: number, removed: number }> {
-  const { rowCount: placed } = await store.insertClassPlacements(client, campaignId, itemId)
-  const { rowCount: removed } = await store.deleteObsoletePlacements(client, campaignId, itemId)
-  return { placed: placed ?? 0, removed: removed ?? 0 }
+  const placed = await store.insertClassPlacements(client, campaignId, itemId)
+  const removed = await store.deleteObsoletePlacements(client, campaignId, itemId)
+  return { placed, removed }
 }
 
 /**
@@ -27,12 +27,12 @@ export async function reconcilePreAssignments(client: Queryable, campaignId: str
  * cross: the one that takes the lock first decides what the other sees.
  */
 export async function reconcileOpenCampaigns(client: Queryable): Promise<number> {
-  const { rows } = await store.listOpenCampaigns(client)
+  const rows = await store.listOpenCampaigns(client)
   let reconciled = 0
   for (const { id } of rows) {
     await lockScope(client, id)
-    const { rowCount } = await store.lockOpenCampaign(client, id)
-    if (!rowCount) continue
+    const affected = await store.lockOpenCampaign(client, id)
+    if (!affected) continue
     await reconcilePreAssignments(client, id)
     reconciled += 1
   }

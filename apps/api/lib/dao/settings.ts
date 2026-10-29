@@ -8,10 +8,10 @@ export async function readPeriods(db: Queryable): Promise<Period[]> {
   return rows.map((row) => ({ period: row.period, starts: row.starts, ends: row.ends }))
 }
 
-export function deletePeriods(db: Queryable) {
-  return db.query('delete from period_grid')
+export async function deletePeriods(db: Queryable) {
+  await db.query('delete from period_grid')
 }
 
-export function insertPeriod(db: Queryable, period: Period) {
-  return db.query('insert into period_grid (period, starts, ends) values ($1, $2::time, $3::time)', [period.period, period.starts, period.ends])
+export async function insertPeriod(db: Queryable, period: Period) {
+  await db.query('insert into period_grid (period, starts, ends) values ($1, $2::time, $3::time)', [period.period, period.starts, period.ends])
 }

@@ -89,9 +89,9 @@ export function checkTemplate(kind: MailKind, subject: string, body: string): Te
 }
 
 export async function readTemplates(db: Queryable): Promise<MailTemplate[]> {
-  const { rows } = await store.listTemplateRows(db)
+  const rows = await store.listTemplates(db)
   return rows.filter((row) => isMailKind(row.kind)).map((row) => ({
-    kind: row.kind, subject: row.subject, body: row.body, placeholders: PLACEHOLDERS[row.kind], updatedAt: row.updated_at.toISOString(), updatedBy: row.updated_by,
+    kind: row.kind, subject: row.subject, body: row.body, placeholders: PLACEHOLDERS[row.kind], updatedAt: row.updatedAt.toISOString(), updatedBy: row.updatedBy,
   }))
 }
 

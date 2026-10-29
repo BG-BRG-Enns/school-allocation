@@ -1,4 +1,4 @@
-import { type PersonKind, type RosterDiffSummary, type RosterEntry, type RosterProblem } from '@school-allocation/school-core'
+import { type RosterEntry, type RosterProblem } from '@school-allocation/school-core'
 
 export type BatchSource = typeof BATCH_SOURCES[number]
 
@@ -24,34 +24,6 @@ export interface NewBatch {
   warnings?: RosterWarning[]
   /** app_user.id */
   triggeredBy: string
-}
-
-export interface BatchRow {
-  id: string
-  source: BatchSource
-  state: BatchState
-  school_year: string
-  fetched_at: Date
-  row_count: number
-  triggered_by: string
-  previous_batch_id: string | null
-  diff_summary: RosterDiffSummary
-  problems: RosterProblem[]
-  warnings: RosterWarning[]
-  decided_at: Date | null
-}
-
-export interface EntryRow {
-  id: string
-  person_id: string | null
-  kind: PersonKind
-  oid: string | null
-  upn: string | null
-  mail: string | null
-  display_name: string
-  class_name: string | null
-  grade: number | null
-  class_teacher_mail: string | null
 }
 
 export const BATCH_SOURCES = ['graph:groups', 'csv'] as const

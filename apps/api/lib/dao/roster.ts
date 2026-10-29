@@ -1,11 +1,13 @@
 import { type PersonKind, type RosterDiffSummary, type RosterProblem } from '@school-allocation/school-core'
 import { type Actor } from '../actor.ts'
 import type { Queryable } from '../db.ts'
-import type { Batch, BatchRow, EntryRow, NewBatch, RosterPerson, RosterWarning, StoredEntry } from '../models/roster.ts'
+import type { Batch, NewBatch, RosterPerson, RosterWarning, StoredEntry } from '../models/roster.ts'
+import type { BatchRow, EntryRow } from './roster-rows.ts'
+import { CURRENT_BATCH_ID } from './roster-selection.ts'
 
 /** The batch in force: the committed one decided last. */
 export async function currentBatch(db: Queryable): Promise<Batch | undefined> {
-  const { rows } = await db.query<BatchRow>(`${BATCH_SELECT} where b.state = 'committed' order by b.decided_at desc limit 1`)
+  const { rows } = await db.query<BatchRow>(`${BATCH_SELECT} where b.id = ${CURRENT_BATCH_ID}`)
   return rows[0] === undefined ? undefined : toBatch(rows[0])
 }
 
@@ -34,7 +36,7 @@ export async function searchPersons(db: Queryable, q: string, limit: number): Pr
   const { rows } = await db.query<{ person_id: string, display_name: string, kind: PersonKind, class_name: string | null, grade: number | null, mail: string | null, account: string | null }>(
     `select e.person_id, e.display_name, e.kind, e.class_name, e.grade, e.mail, u.display_name as account
        from roster_entry e
-       join (select id from import_batch where state = 'committed' order by decided_at desc limit 1) c on c.id = e.batch_id
+       join ${CURRENT_BATCH_ID} c on c.id = e.batch_id
        left join identity_binding b on b.person_id = e.person_id and b.unbound_at is null
        left join app_user u on u.tid = b.tid and u.oid = b.oid
       where e.person_id is not null
@@ -54,12 +56,12 @@ export async function searchPersons(db: Queryable, q: string, limit: number): Pr
   }))
 }
 
-export const BATCH_SELECT = `
+const BATCH_SELECT = `
   select b.id, b.source, b.state, b.school_year, b.fetched_at, b.row_count, u.display_name as triggered_by,
          b.previous_batch_id, b.diff_summary, b.problems, b.warnings, b.decided_at
     from import_batch b join app_user u on u.id = b.triggered_by`
 
-export function toBatch(row: BatchRow): Batch {
+function toBatch(row: BatchRow): Batch {
   return {
     id: row.id,
     source: row.source,
@@ -76,7 +78,7 @@ export function toBatch(row: BatchRow): Batch {
   }
 }
 
-export function toEntry(row: EntryRow): StoredEntry {
+function toEntry(row: EntryRow): StoredEntry {
   const entry: StoredEntry = { id: row.id, personId: row.person_id, kind: row.kind, displayName: row.display_name }
   if (row.oid !== null) entry.oid = row.oid
   if (row.upn !== null) entry.upn = row.upn
@@ -87,12 +89,13 @@ export function toEntry(row: EntryRow): StoredEntry {
   return entry
 }
 
-export function findBatchRow(db: Queryable, id: string) {
-  return db.query<BatchRow>(`${BATCH_SELECT} where b.id = $1`, [id])
+export async function findBatch(db: Queryable, id: string) {
+  const { rows } = await db.query<BatchRow>(`${BATCH_SELECT} where b.id = $1`, [id])
+  return rows.map((row) => toBatch(row))
 }
 
-export function insertBatch(db: Queryable, input: NewBatch, hash: string, current: Batch | undefined, summary: RosterDiffSummary, problems: RosterProblem[], warnings: RosterWarning[], rejected: boolean) {
-  return db.query<{ id: string }>(
+export async function insertBatch(db: Queryable, input: NewBatch, hash: string, current: Batch | undefined, summary: RosterDiffSummary, problems: RosterProblem[], warnings: RosterWarning[], rejected: boolean) {
+  const { rows: [row] } = await db.query<{ id: string }>(
     `insert into import_batch (source, state, school_year, payload_sha256, row_count, triggered_by, previous_batch_id, diff_summary, problems, warnings, decided_at, decided_by)
        values ($1, case when $10::boolean then 'rejected' else 'pending' end, $2, $3, $4, $5::uuid, $6, $7, $8, $9,
                case when $10::boolean then now() end, case when $10::boolean then $5::uuid end) returning id`,
@@ -102,74 +105,82 @@ export function insertBatch(db: Queryable, input: NewBatch, hash: string, curren
       rejected,
     ],
   )
+  return row === undefined ? undefined : ({ id: row.id })
 }
 
-export function insertEntryRows(db: Queryable, tuples: string[], values: unknown[]) {
-  return db.query(
+async function insertEntryRows(db: Queryable, tuples: string[], values: unknown[]) {
+  await db.query(
     `insert into roster_entry (batch_id, kind, oid, upn, mail, display_name, class_name, grade, class_teacher_mail) values ${tuples.join(', ')}`,
     values,
   )
 }
 
-export function lockBatchForCommit(db: Queryable, batchId: string) {
-  return db.query<{ state: string, previous_batch_id: string | null, source: string, school_year: string, row_count: number, diff_summary: RosterDiffSummary }>(
+export async function lockBatchForCommit(db: Queryable, batchId: string) {
+  const { rows: [row] } = await db.query<{ state: string, previous_batch_id: string | null, source: string, school_year: string, row_count: number, diff_summary: RosterDiffSummary }>(
     'select state, previous_batch_id, source, school_year, row_count, diff_summary from import_batch where id = $1 for update',
     [batchId],
   )
+  return row === undefined ? undefined : ({ state: row.state, previousBatchId: row.previous_batch_id, source: row.source, schoolYear: row.school_year, rowCount: row.row_count, diffSummary: row.diff_summary })
 }
 
-export function listKnownPersons(db: Queryable) {
-  return db.query<{ entry_key: string, person_id: string }>(
+export async function listKnownPersons(db: Queryable) {
+  const { rows } = await db.query<{ entry_key: string, person_id: string }>(
     `select distinct on (e.entry_key) e.entry_key, e.person_id
            from roster_entry e join import_batch b on b.id = e.batch_id
           where b.state = 'committed' and e.person_id is not null
           order by e.entry_key, b.decided_at desc`,
   )
+  return rows.map((row) => ({ entryKey: row.entry_key, personId: row.person_id }))
 }
 
-export function listCurrentAddresses(db: Queryable, current: Batch) {
-  return db.query<{ mail: string | null, upn: string | null, person_id: string }>(
+export async function listCurrentAddresses(db: Queryable, current: Batch) {
+  const { rows } = await db.query<{ mail: string | null, upn: string | null, person_id: string }>(
     'select mail, upn, person_id from roster_entry where batch_id = $1 and person_id is not null', [current.id],
   )
+  return rows.map((row) => ({ mail: row.mail, upn: row.upn, personId: row.person_id }))
 }
 
-export function listTenantBindings(db: Queryable, tid: string) {
-  return db.query<{ oid: string, person_id: string }>(
+export async function listTenantBindings(db: Queryable, tid: string) {
+  const { rows } = await db.query<{ oid: string, person_id: string }>(
     'select oid::text as oid, person_id from identity_binding where tid = $1 and unbound_at is null', [tid],
   )
+  return rows.map((row) => ({ oid: row.oid, personId: row.person_id }))
 }
 
-export function listEntriesToBind(db: Queryable, batchId: string) {
-  return db.query<{ id: string, oid: string | null, mail: string | null, upn: string | null, entry_key: string }>(
+export async function listEntriesToBind(db: Queryable, batchId: string) {
+  const { rows } = await db.query<{ id: string, oid: string | null, mail: string | null, upn: string | null, entry_key: string }>(
     'select id, oid::text as oid, mail, upn, entry_key from roster_entry where batch_id = $1 order by entry_key', [batchId],
   )
+  return rows.map((row) => ({ id: row.id, oid: row.oid, mail: row.mail, upn: row.upn, entryKey: row.entry_key }))
 }
 
-export function insertPerson(db: Queryable) {
-  return db.query<{ id: string }>('insert into person default values returning id')
+export async function insertPerson(db: Queryable) {
+  const { rows: [row] } = await db.query<{ id: string }>('insert into person default values returning id')
+  return row === undefined ? undefined : ({ id: row.id })
 }
 
-export function insertGraphBinding(db: Queryable, personId: string, tid: string, entry: { id: string, oid: string | null, mail: string | null, upn: string | null, entry_key: string }, actor: Actor, batchId: string) {
-  return db.query(
+export async function insertGraphBinding(db: Queryable, personId: string, tid: string, entry: { id: string, oid: string | null, mail: string | null, upn: string | null, entryKey: string }, actor: Actor, batchId: string) {
+  await db.query(
     `insert into identity_binding (person_id, tid, oid, method, bound_by, import_batch_id) values ($1, $2, $3, 'graph', $4, $5)`,
     [personId, tid, entry.oid, actor.id, batchId],
   )
 }
 
-export function bindEntry(db: Queryable, entry: { id: string, oid: string | null, mail: string | null, upn: string | null, entry_key: string }, personId: string) {
-  return db.query('update roster_entry set person_id = $2 where id = $1', [entry.id, personId])
+export async function bindEntry(db: Queryable, entry: { id: string, oid: string | null, mail: string | null, upn: string | null, entryKey: string }, personId: string) {
+  await db.query('update roster_entry set person_id = $2 where id = $1', [entry.id, personId])
 }
 
-export function commitBatch(db: Queryable, batchId: string, actor: Actor) {
-  return db.query(`update import_batch set state = 'committed', decided_at = now(), decided_by = $2 where id = $1`, [batchId, actor.id])
+export async function commitBatch(db: Queryable, batchId: string, actor: Actor) {
+  await db.query(`update import_batch set state = 'committed', decided_at = now(), decided_by = $2 where id = $1`, [batchId, actor.id])
 }
 
-export function lockBatchForDiscard(db: Queryable, batchId: string) {
-  return db.query<{ state: string, source: string }>('select state, source from import_batch where id = $1 for update', [batchId])
+export async function lockBatchForDiscard(db: Queryable, batchId: string) {
+  const { rows: [row] } = await db.query<{ state: string, source: string }>('select state, source from import_batch where id = $1 for update', [batchId])
+  return row === undefined ? undefined : ({ state: row.state, source: row.source })
 }
 
-export function discardBatch(db: Queryable, batchId: string, actor: Actor) {
-  return db.query(`update import_batch set state = 'discarded', decided_at = now(), decided_by = $2 where id = $1`, [batchId, actor.id])
+export async function discardBatch(db: Queryable, batchId: string, actor: Actor) {
+  await db.query(`update import_batch set state = 'discarded', decided_at = now(), decided_by = $2 where id = $1`, [batchId, actor.id])
 }
 
 export async function insertEntries(client: Queryable, batchId: string, entries: readonly import('@school-allocation/school-core').RosterEntry[]): Promise<void> {
