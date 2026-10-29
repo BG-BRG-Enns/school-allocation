@@ -36,8 +36,16 @@ export interface SolverClient {
 }
 
 export interface SolverClientOptions {
-  /** How long the whole exchange of a solve may take before the solver counts as gone. */
+  /** The least a solve may take before the solver counts as gone; a request with more levels or a higher limit gets more (solveTimeoutMs). */
   timeoutMs?: number
+}
+
+/** A deterministic second has taken up to seven wall-clock seconds on a small machine; thirty leave room, per level and deterministic second, plus a start-up minute. */
+const WALL_MS_PER_DETERMINISTIC_SECOND = 30_000
+
+/** The bound of one solve: what the request permits the solver, generously, never less than the client's floor. */
+export function solveTimeoutMs(request: SolveRequest, floorMs: number): number {
+  return Math.max(floorMs, request.levels.length * request.limits.deterministicTimePerLevel * WALL_MS_PER_DETERMINISTIC_SECOND + 60_000)
 }
 
 /** One request to the solver, the body read whole, bounded in time; the status and the parsed body, or why not. */
@@ -88,7 +96,7 @@ export function createSolverClient(baseUrl: string, options: SolverClientOptions
       return { ortools, contract }
     },
     async solve(request) {
-      const body = await call('/v1/solve', 'POST', JSON.stringify(request), timeoutMs)
+      const body = await call('/v1/solve', 'POST', JSON.stringify(request), solveTimeoutMs(request, timeoutMs))
       if (!Value.Check(SolveResponseSchema, body)) {
         const first = [...Value.Errors(SolveResponseSchema, body)][0]
         throw new SolverError('solver_answer_invalid', `the answer does not follow the contract: ${first?.message ?? 'unknown problem'}`)

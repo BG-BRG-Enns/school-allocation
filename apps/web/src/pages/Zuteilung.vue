@@ -48,9 +48,10 @@ async function load(): Promise<void> {
 }
 
 let timer: ReturnType<typeof setTimeout> | undefined
+/** Asks again while a run executes, or while the campaign still says allocating (the two reads of load() are not one moment). */
 function schedule(): void {
   clearTimeout(timer)
-  if (running.value) timer = setTimeout(() => void load().then(schedule), 2000)
+  if (running.value || campaign.value?.state === 'allocating') timer = setTimeout(() => void load().then(schedule), 2000)
 }
 onMounted(() => void load().then(schedule))
 onBeforeUnmount(() => clearTimeout(timer))

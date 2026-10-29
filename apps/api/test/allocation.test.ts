@@ -11,6 +11,7 @@ import type { AllocationRun, RunReviewResponse } from '@school-allocation/api-co
 import { readAudit } from '../lib/audit.ts'
 import { createDatabase, type Database } from '../lib/db.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
+import { solveTimeoutMs } from '../lib/solver-client.ts'
 import { recoverInterruptedRuns } from '../services/allocation.ts'
 import { startFakeSolver, type FakeSolver } from './helpers/fake-solver.ts'
 import { DB, get, send, type Harness } from './helpers/harness.ts'
@@ -52,6 +53,13 @@ async function finished(s: Harness & { anna: Ready['anna'] }, campaignId: string
 }
 
 const startRun = (s: Closed, body: object = {}) => send<{ run: AllocationRun } & { error?: string, message?: string }>(s, s.anna, 'POST', `/api/admin/campaigns/${s.campaign.id}/runs`, body)
+
+test('the bound of a solve grows with what the request permits the solver', () => {
+  const request = { levels: ['a', 'b'], limits: { deterministicTimePerLevel: 5 } } as never
+  assert.equal(solveTimeoutMs(request, 15 * 60_000), 15 * 60_000, 'the floor for a small request')
+  const large = { levels: new Array<string>(13).fill('l'), limits: { deterministicTimePerLevel: 60 } } as never
+  assert.equal(solveTimeoutMs(large, 15 * 60_000), 13 * 60 * 30_000 + 60_000)
+})
 
 test('a run on a closed campaign: compiled, solved, validated, stored and reviewed; the campaign in review; both audited', DB, async (t) => {
   const s = await closedSchool(t)
