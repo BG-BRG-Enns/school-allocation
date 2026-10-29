@@ -16,39 +16,12 @@
 //        guessing ids reveals nothing (campaign routes, later);
 //   409  allowed, but not in the campaign's current state.
 
-import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { PersonKind } from '@school-allocation/school-core'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import { SESSION_SECONDS, type SessionUser } from '../plugins/session.ts'
+import { type Caller } from './actor.ts'
 import type { Queryable } from './db.ts'
 import { isRole, type Role } from './roles.ts'
-
-/**
- * The person of the roster the caller's identity is bound to, as the
- * roster in force has them; `kind` null when the roster in force does not
- * list them (any more).
- */
-export interface CallerPerson {
-  id: string
-  kind: PersonKind | null
-  className: string | null
-  grade: number | null
-}
-
-/** The caller a guard let through: the identity, the school-wide roles held now, and the roster person. */
-export interface Caller {
-  /** app_user.id */
-  id: string
-  tid: string
-  oid: string
-  displayName: string
-  /** The address the token carried at sign-in; null when it carried none. */
-  email: string | null
-  roles: Role[]
-  /** null until a roster entry is bound to this identity. */
-  person: CallerPerson | null
-  /** The classes the caller is class teacher of in the roster's school year: assigned in the app, or named by the roster's class-teacher address. */
-  classTeacherOf: string[]
-}
 
 /** The signed-in caller as the cookie has it, or undefined. A session past its lifetime, or without a sign-in time, counts as none. */
 export function currentUser(request: FastifyRequest, now = Date.now()): SessionUser | undefined {
@@ -160,3 +133,5 @@ export function createGuards(db: Queryable): Guards {
     },
   }
 }
+
+export type { Caller, CallerPerson } from './actor.ts'

@@ -17,6 +17,7 @@ export {
   GRADES,
   PERSON_KINDS,
   ROSTER_PROBLEM_CODES,
+  ROSTER_CHANGED_FIELDS,
   addressesOf,
   checkEntry,
   checkRoster,

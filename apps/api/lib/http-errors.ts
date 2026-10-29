@@ -1,0 +1,54 @@
+import { ApplicationError, type ApplicationErrorCode, ChoiceInvalid, ItemInvalid, PeriodsInvalid, TemplateInvalid } from './errors.ts'
+
+/** Every new application code must choose its HTTP status at compile time. */
+export const APPLICATION_ERROR_STATUS = {
+  already_blocked: 409,
+  already_bound: 409,
+  already_exempted: 409,
+  already_granted: 409,
+  already_revoked: 409,
+  batch_not_pending: 409,
+  batch_superseded: 409,
+  campaign_state: 409,
+  cannot_block_self: 409,
+  cannot_revoke_self: 409,
+  class_unknown: 404,
+  csv_invalid: 422,
+  duplicate_group: 422,
+  forbidden: 403,
+  grace_order: 422,
+  group_label_incomplete: 422,
+  invalid_date: 422,
+  invalid_instant: 422,
+  invalid_item_transition: 409,
+  invalid_school_year: 422,
+  invalid_transition: 409,
+  item_state: 409,
+  last_admin: 409,
+  mail_off: 409,
+  no_address: 409,
+  no_groups: 409,
+  no_roster: 422,
+  not_a_student: 403,
+  not_blocked: 409,
+  not_due: 409,
+  not_found: 404,
+  project_day_twice: 422,
+  sessions_outside_days: 409,
+  swap_order: 422,
+  teacher_unknown: 422,
+  transition_not_available: 409,
+  validation_failed: 400,
+  window_order: 422,
+} as const satisfies Record<ApplicationErrorCode, 400 | 403 | 404 | 409 | 422>
+
+/** Expected application refusals; unexpected errors retain the sanitized 500 handler. */
+export function applicationFailure(error: unknown): { status: number, body: object } | undefined {
+  if (error instanceof ItemInvalid) return { status: 422, body: { error: 'item_invalid', problems: error.problems, unknownTeachers: error.unknownTeachers } }
+  if (error instanceof ChoiceInvalid) return { status: 422, body: { error: 'ranking_invalid', problems: error.problems } }
+  if (error instanceof PeriodsInvalid) return { status: 422, body: { error: 'period_grid_invalid', problems: error.problems } }
+  if (error instanceof TemplateInvalid) return { status: 422, body: { error: 'template_invalid', problems: error.problems } }
+  if (!(error instanceof ApplicationError)) return undefined
+  const status = APPLICATION_ERROR_STATUS[error.code]
+  return { status, body: { error: error.code, ...(error.detail === undefined ? {} : { message: error.detail }) } }
+}

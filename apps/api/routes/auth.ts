@@ -15,20 +15,18 @@
 // the sealed session; state and nonce are set in this browser by the login
 // that started this sign-in, and used once.
 
-import { randomBytes } from 'node:crypto'
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import * as endpoints from '@school-allocation/api-contracts/auth-endpoints'
+import { registerEndpoint } from '../lib/endpoint.ts'
+
 import rateLimit from '@fastify/rate-limit'
-import { Type, type Static } from 'typebox'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { randomBytes } from 'node:crypto'
 import type { Config } from '../config.ts'
-import { upsertAppUser } from '../lib/app-user.ts'
-import { lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { currentUser, loadCaller, withinSeconds } from '../lib/auth.ts'
-import { bindAtSignIn } from '../lib/bindings.ts'
 import type { Database } from '../lib/db.ts'
 import { registerEntra, SIGN_IN_SECONDS, SignInError } from '../lib/entra.ts'
 import { safeReturnTo } from '../lib/return-to.ts'
-import { bootstrapAdmin, ROLES } from '../lib/roles.ts'
-import { ErrorResponse, PersonSummary, StrictObject } from '../lib/schemas/common.ts'
+import { recordSignIn } from '../services/sign-in.ts'
 
 export interface AuthRoutesOptions {
   config: Config
@@ -36,30 +34,6 @@ export interface AuthRoutesOptions {
   /** Where Entra is reached; only tests set it. */
   entraAuthority?: string
 }
-
-// Not strict: when single sign-on cannot complete silently, Entra sends the
-// browser back here with sso_reload=true, and possibly parameters of its own.
-// Only these are read.
-const LoginQuery = Type.Object({
-  returnTo: Type.Optional(Type.String({ maxLength: 2048 })),
-  sso_reload: Type.Optional(Type.String({ maxLength: 64 })),
-})
-
-// Not strict: Entra adds parameters of its own (session_state, iss, ...).
-// Only these are read.
-const CallbackQuery = Type.Object({
-  code: Type.Optional(Type.String({ maxLength: 8192 })),
-  state: Type.Optional(Type.String({ maxLength: 512 })),
-  error: Type.Optional(Type.String({ maxLength: 512 })),
-})
-
-const MeResponse = StrictObject({
-  id: Type.String(),
-  displayName: Type.String(),
-  roles: Type.Array(Type.Union(ROLES.map((role) => Type.Literal(role)))),
-  /** The roster person this account is bound to; null until the roster knows the account. */
-  person: Type.Union([PersonSummary, Type.Null()]),
-})
 
 // Starting and completing a sign-in is limited per client address: generous
 // enough for a class behind one NAT address, tight enough that nobody can
@@ -77,22 +51,14 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
   // Sets the state cookie and the pending sign-in; changes nothing on the
   // server. After an sso_reload the same URL would fail silently again, so
   // that retry asks for the interactive sign-in page once.
-  app.get<{ Querystring: Static<typeof LoginQuery> }>('/api/auth/login', {
-    exposeHeadRoute: false,
-    config: { rateLimit: SIGN_IN_RATE_LIMIT },
-    schema: { querystring: LoginQuery, response: { '4xx': ErrorResponse } },
-  }, async (request, reply) => {
+  registerEndpoint(app, endpoints.getAuthLogin, { exposeHeadRoute: false, config: { rateLimit: SIGN_IN_RATE_LIMIT } }, async (request, reply) => {
     const nonce = randomBytes(32).toString('base64url')
     request.userSession.set('signIn', { nonce, returnTo: safeReturnTo(request.query.returnTo, config.basePath), startedAt: Date.now() })
     const interactive = request.query.sso_reload === 'true'
     return reply.redirect(await entra.authorizationUrl(request, reply, nonce, interactive), 302)
   })
 
-  app.get<{ Querystring: Static<typeof CallbackQuery> }>('/api/auth/callback', {
-    exposeHeadRoute: false,
-    config: { rateLimit: SIGN_IN_RATE_LIMIT },
-    schema: { querystring: CallbackQuery, response: { '4xx': ErrorResponse } },
-  }, async (request, reply) => {
+  registerEndpoint(app, endpoints.getAuthCallback, { exposeHeadRoute: false, config: { rateLimit: SIGN_IN_RATE_LIMIT } }, async (request, reply) => {
     // Only the callback of this browser's own sign-in may use it up. The
     // session cookie is Lax, so another site can send the browser here, and
     // that must not cancel a sign-in in progress. Entra returns the state
@@ -120,15 +86,7 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
     // The school scope's lock comes first, before the person's row is
     // touched: the administrative changes take it first too and then write
     // app_user (a block), so the two never wait for each other.
-    const user = await db.tx(async (client) => {
-      await lockScope(client, SCHOOL_SCOPE)
-      const signedIn = await upsertAppUser(client, identity)
-      if (!signedIn.blocked) {
-        await bootstrapAdmin(client, { ...identity, id: signedIn.id }, config.bootstrapAdmins)
-        await bindAtSignIn(client, identity, signedIn.id, identity.displayName)
-      }
-      return signedIn
-    })
+    const user = await recordSignIn(db, identity, config.bootstrapAdmins)
     if (user.blocked) {
       request.log.warn('sign-in refused: blocked')
       return reply.code(403).send({ error: 'blocked' })
@@ -138,7 +96,7 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
     return reply.redirect(safeReturnTo(pending.returnTo, config.basePath), 303)
   })
 
-  app.post('/api/auth/logout', (request, reply) => {
+  registerEndpoint(app, endpoints.postAuthLogout, { }, (request, reply) => {
     request.userSession.delete()
     void reply.code(204).send()
   })
@@ -147,9 +105,7 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
   // (204), not a refusal: a browser logs every error status it gets, and a
   // signed-out visit is not an error. The roles come from the database on
   // every call, so a grant or a block shows at the next page load.
-  app.get('/api/auth/me', {
-    schema: { response: { '200': MeResponse, '4xx': ErrorResponse } },
-  }, async (request, reply) => {
+  registerEndpoint(app, endpoints.getAuthMe, { }, async (request, reply) => {
     const user = currentUser(request)
     const caller = user ? await loadCaller(db, user.id) : undefined
     if (!caller) {

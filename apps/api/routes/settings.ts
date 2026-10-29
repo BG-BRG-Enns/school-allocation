@@ -6,65 +6,49 @@
 //   GET  /api/admin/classes/teachers?q=         the roster's teachers, for assigning one (administrators, organizers)
 //   PUT  /api/admin/classes/:className/teachers set the class teachers assigned in the app, audited
 
+import { classDirectory, teacherDirectory } from '../services/class-teachers.ts'
+import { periodSettings } from '../services/settings.ts'
+
+import * as endpoints from '@school-allocation/api-contracts/settings-endpoints'
+import { registerEndpoint } from '../lib/endpoint.ts'
+
 import type { FastifyInstance } from 'fastify'
-import { Type, type Static } from 'typebox'
+import { actorOf } from '../lib/actor.ts'
 import type { Guards } from '../lib/auth.ts'
-import { rosterTeachers } from '../lib/campaigns.ts'
-import { listClasses, replaceClassTeachers } from '../lib/class-teachers.ts'
+import { callerOf } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { RosterConflict } from '../lib/roster.ts'
-import { ClassParams, ClassTeachersBody, PeriodsBody, PeriodsInvalidResponse } from '../lib/schemas/catalogue.ts'
-import { ErrorResponse, StrictObject } from '../lib/schemas/common.ts'
-import { PeriodsInvalid, readPeriods, replacePeriods } from '../lib/settings.ts'
-import { actorOf } from './admin-roster.ts'
+import { replaceClassTeachers } from '../services/class-teachers.ts'
+import { replacePeriods } from '../services/settings.ts'
 
 export interface SettingsRoutesOptions {
   db: Database
   guards: Guards
 }
 
-const TeachersQuery = StrictObject({ q: Type.Optional(Type.String({ maxLength: 100 })) })
-
 export async function settingsRoutes(app: FastifyInstance, { db, guards }: SettingsRoutesOptions): Promise<void> {
   const signedIn = { preHandler: guards.requireSession }
   const admin = { preHandler: guards.requireRole('school_admin') }
   const organizer = { preHandler: guards.requireRole('campaign_organizer', 'school_admin') }
 
-  app.get('/api/settings/periods', { ...signedIn, schema: { response: { '4xx': ErrorResponse } } }, async () => {
-    return { periods: await readPeriods(db) }
+  registerEndpoint(app, endpoints.getSettingsPeriods, { ...signedIn }, async () => {
+    return periodSettings(db)
   })
 
-  app.put<{ Body: Static<typeof PeriodsBody> }>('/api/admin/settings/periods', {
-    ...admin,
-    schema: { body: PeriodsBody, response: { '422': PeriodsInvalidResponse, '4xx': ErrorResponse } },
-  }, async (request, reply) => {
-    try {
-      return { periods: await replacePeriods(db, request.body.periods, actorOf(request)) }
-    } catch (err) {
-      if (err instanceof PeriodsInvalid) return reply.code(422).send({ error: 'period_grid_invalid', problems: err.problems })
-      throw err
-    }
+  registerEndpoint(app, endpoints.putAdminSettingsPeriods, { ...admin }, async (request) => {
+    return { periods: await replacePeriods(db, request.body.periods, actorOf(callerOf(request))) }
   })
 
-  app.get('/api/admin/classes', { ...organizer, schema: { response: { '4xx': ErrorResponse } } }, async () => {
-    return { classes: await listClasses(db) }
+  registerEndpoint(app, endpoints.getAdminClasses, { ...organizer }, async () => {
+    return classDirectory(db)
   })
 
-  app.get<{ Querystring: Static<typeof TeachersQuery> }>('/api/admin/classes/teachers', { ...organizer, schema: { querystring: TeachersQuery, response: { '4xx': ErrorResponse } } }, async (request) => {
-    return { teachers: await rosterTeachers(db, request.query.q?.trim() ?? '') }
+  registerEndpoint(app, endpoints.getAdminClassesTeachers, { ...organizer }, async (request) => {
+    return teacherDirectory(db, request.query.q)
   })
 
-  app.put<{ Params: Static<typeof ClassParams>, Body: Static<typeof ClassTeachersBody> }>('/api/admin/classes/:className/teachers', {
-    ...organizer,
-    schema: { params: ClassParams, body: ClassTeachersBody, response: { '4xx': ErrorResponse } },
-  }, async (request, reply) => {
-    try {
-      // Ids as PostgreSQL returns them, so a spelling in upper case is the same teacher.
-      await replaceClassTeachers(db, request.params.className, request.body.teachers.map((id) => id.toLowerCase()), actorOf(request))
-    } catch (err) {
-      if (err instanceof RosterConflict) return reply.code(err.code === 'class_unknown' ? 404 : 422).send({ error: err.code })
-      throw err
-    }
-    return { classes: await listClasses(db) }
+  registerEndpoint(app, endpoints.putAdminClassesByClassNameTeachers, { ...organizer }, async (request) => {
+    // Ids as PostgreSQL returns them, so a spelling in upper case is the same teacher.
+    await replaceClassTeachers(db, request.params.className, request.body.teachers.map((id) => id.toLowerCase()), actorOf(callerOf(request)))
+    return classDirectory(db)
   })
 }

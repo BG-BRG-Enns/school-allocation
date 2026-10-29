@@ -199,8 +199,9 @@ export function previousOf<E extends RosterEntry>(previous: readonly E[]): (entr
 }
 
 /** How an entry changed between two batches: the fields that differ. The user principal name is an identity hint, not roster content, and is not compared. */
-export type ChangedField = 'kind' | 'displayName' | 'className' | 'grade' | 'mail' | 'classTeacherMail'
-const COMPARED: readonly ChangedField[] = ['kind', 'displayName', 'className', 'grade', 'mail', 'classTeacherMail']
+export const ROSTER_CHANGED_FIELDS = ['kind', 'displayName', 'className', 'grade', 'mail', 'classTeacherMail'] as const
+export type ChangedField = typeof ROSTER_CHANGED_FIELDS[number]
+const COMPARED = ROSTER_CHANGED_FIELDS
 
 export interface RosterChange<E extends RosterEntry = RosterEntry> {
   key: string

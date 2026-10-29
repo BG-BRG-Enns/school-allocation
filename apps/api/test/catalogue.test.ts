@@ -4,14 +4,14 @@
 // the approved items are numbered, and every reader sees what their role
 // allows and nothing else.
 
-import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readAudit } from '../lib/audit.ts'
+import { test } from 'node:test'
 import { verifyAuditChain } from '../lib/audit-chain.ts'
-import type { Campaign } from '../lib/campaigns.ts'
+import { readAudit } from '../lib/audit.ts'
 import { createDatabase } from '../lib/db.ts'
-import type { Item } from '../lib/items.ts'
-import type { BatchDetail } from '../lib/roster.ts'
+import type { Campaign } from '../lib/models/campaigns.ts'
+import type { Item } from '../lib/models/items.ts'
+import type { BatchDetail } from '../lib/models/roster.ts'
 import type { CookieJar } from './helpers/fake-entra.ts'
 import { DB, get, harness, send, signIn, type Harness } from './helpers/harness.ts'
 import { ANNA, BERND, CARLA, SARA, TIM } from './helpers/personas.ts'

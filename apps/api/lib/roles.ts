@@ -3,10 +3,11 @@
 // later migration adds; these roles are granted in the application, audited,
 // and never derived from Entra (docs/identity-and-roles.md §5).
 
+import { ROLES } from '@school-allocation/api-contracts/common'
 import { appendAudit, SCHOOL_SCOPE } from './audit.ts'
 import type { Queryable } from './db.ts'
 
-export const ROLES = ['school_admin', 'campaign_organizer', 'read_only_auditor'] as const
+export { ROLES } from '@school-allocation/api-contracts/common'
 export type Role = typeof ROLES[number]
 
 export function isRole(value: unknown): value is Role {

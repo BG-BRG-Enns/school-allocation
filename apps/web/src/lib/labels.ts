@@ -14,7 +14,7 @@ export const KIND_LABELS: Readonly<Record<string, string>> = {
   teacher: 'Lehrkraft',
 }
 
-/** Where a batch came from (apps/api/lib/roster.ts BATCH_SOURCES). */
+/** Where a batch came from (apps/api/lib/models/roster.ts BATCH_SOURCES). */
 export const SOURCE_LABELS: Readonly<Record<string, string>> = {
   'graph:groups': 'Entra-Gruppen',
   'csv': 'CSV-Datei',
@@ -44,7 +44,7 @@ export const PROBLEM_LABELS: Readonly<Record<string, string>> = {
   invalid_kind: 'Ungültige Art (student oder teacher)',
 }
 
-/** What an accepted batch should be looked at for (apps/api/lib/roster.ts RosterWarning). */
+/** What an accepted batch should be looked at for (apps/api/lib/models/roster.ts RosterWarning). */
 export const WARNING_LABELS: Readonly<Record<string, string>> = {
   no_address: 'Ohne E-Mail-Adresse: Benachrichtigungen erreichen diese Person nicht',
 }
@@ -108,7 +108,7 @@ export const RANKING_PROBLEM_LABELS: Readonly<Record<string, string>> = {
   too_many_wishes: 'Mehr Wünsche als erlaubt',
 }
 
-/** The state of a student's list (apps/api/lib/choices.ts ChoiceState). */
+/** The state of a student's list (packages/api-contracts/src/choices.ts ChoiceState). */
 export const CHOICE_STATE_LABELS: Readonly<Record<string, string>> = {
   none: 'keine Wünsche',
   incomplete: 'unvollständig',
@@ -121,7 +121,7 @@ export const WINDOW_LABELS: Readonly<Record<string, string>> = {
   late: 'Nachfrist',
 }
 
-/** The kinds of mail the window sends (apps/api/lib/mail/templates.ts MAIL_KINDS). */
+/** The kinds of mail the window sends (packages/api-contracts/src/mail.ts MAIL_KINDS). */
 export const MAIL_KIND_LABELS: Readonly<Record<string, string>> = {
   choice_invitation: 'Einladung zur Wahl',
   choice_reminder: 'Erinnerung vor Ende der Wahl',
@@ -139,7 +139,7 @@ export const MAIL_STATE_LABELS: Readonly<Record<string, string>> = {
   failed: 'fehlgeschlagen',
 }
 
-/** Why a template was refused (apps/api/lib/mail/templates.ts TemplateProblem). */
+/** Why a template was refused (apps/api/lib/models/mail-templates.ts TemplateProblem). */
 export const TEMPLATE_PROBLEM_LABELS: Readonly<Record<string, string>> = {
   subject_syntax: 'Betreff: Fehler in einem Platzhalter',
   body_syntax: 'Text: Fehler in einem Platzhalter',

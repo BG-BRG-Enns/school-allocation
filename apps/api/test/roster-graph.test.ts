@@ -5,13 +5,13 @@
 // without any matching. Paging, a missing address, a member in two groups
 // and a refused Graph each do what the design says.
 
-import { test } from 'node:test'
-import assert from 'node:assert/strict'
 import type { FastifyInstance } from 'fastify'
-import type { Batch, BatchDetail } from '../lib/roster.ts'
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import type { Batch, BatchDetail } from '../lib/models/roster.ts'
+import { withClient } from './helpers/db.ts'
 import type { CookieJar } from './helpers/fake-entra.ts'
 import { CLASS_5A_GROUP, memberOf, TEACHERS_GROUP } from './helpers/fake-graph.ts'
-import { withClient } from './helpers/db.ts'
 import { DB, get, harness, me, send, signIn, type Harness } from './helpers/harness.ts'
 import { ANNA, BERND, CARLA, claimsOf, SARA, TIM, type Person } from './helpers/personas.ts'
 

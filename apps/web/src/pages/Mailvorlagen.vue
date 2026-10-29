@@ -3,6 +3,7 @@
 // each may use; edited here by the organizer or the administration, and
 // tried out with a test mail to one's own address.
 
+import type { MailKind } from '@school-allocation/api-contracts'
 import { computed, onMounted, ref } from 'vue'
 import { loadMailTemplates, saveMailTemplate, sendTestMail, type MailTemplate, type TemplateInvalidBody } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
@@ -17,7 +18,7 @@ const mailEnabled = ref(false)
 const loading = useFeedback()
 const saving = useFeedback()
 const problems = ref<string[]>([])
-const editing = ref<{ kind: string, subject: string, body: string } | null>(null)
+const editing = ref<{ kind: MailKind, subject: string, body: string } | null>(null)
 const mayEdit = computed(() => (session.value?.roles ?? []).some((role) => role === 'school_admin' || role === 'campaign_organizer'))
 
 onMounted(() => loading.run(async () => {
@@ -55,7 +56,7 @@ async function onSave(): Promise<void> {
   if (ok) editing.value = null
 }
 
-async function onTest(kind: string): Promise<void> {
+async function onTest(kind: MailKind): Promise<void> {
   await saving.run(async () => {
     await sendTestMail(kind)
   }, 'Testmail an Ihre Adresse in die Warteschlange gestellt.')

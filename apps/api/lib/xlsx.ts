@@ -3,8 +3,8 @@
 // so the sheet sorts and sums; nothing about students is in it.
 
 import writeXlsxFile from 'write-excel-file/node'
-import type { StudentChoiceState } from './choices.ts'
-import type { Item } from './items.ts'
+import type { StudentChoiceState } from './models/choices.ts'
+import type { Item } from './models/items.ts'
 import { SCHOOL_TIME_ZONE } from './time.ts'
 
 /** A student's row of the organizer's list: the state of their list and what was sent to them. */

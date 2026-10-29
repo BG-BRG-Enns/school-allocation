@@ -4,16 +4,16 @@
 // server's acceptance, retried on a transient reply, failed on a permanent
 // one or after the last attempt, and interrupted work failed at start.
 
-import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { test } from 'node:test'
 import { loadConfig } from '../config.ts'
 import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { createDatabase } from '../lib/db.ts'
 import { recoverInterruptedMails } from '../lib/mail/outbox.ts'
 import { Sender } from '../lib/mail/sender.ts'
-import { checkTemplate, renderTemplate } from '../lib/mail/templates.ts'
 import { createMailTransport } from '../lib/mail/transport.ts'
-import { ORIGIN, SERVER_ENV, secretFile } from './helpers/env.ts'
+import { checkTemplate, renderTemplate } from '../services/mail-templates.ts'
+import { ORIGIN, secretFile, SERVER_ENV } from './helpers/env.ts'
 import { bodyOf, decodeHeader, headerOf, startFakeSmtp, type FakeSmtp } from './helpers/fake-smtp.ts'
 import { DB, get, harness, send, signIn } from './helpers/harness.ts'
 import { ANNA, BERND } from './helpers/personas.ts'

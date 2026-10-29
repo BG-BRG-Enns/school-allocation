@@ -1,0 +1,19 @@
+{
+  "name": "@school-allocation/api-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared HTTP request and response schemas and derived TypeScript types.",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@school-allocation/school-core": "0.1.0",
+    "typebox": "1.4.3"
+  }
+}

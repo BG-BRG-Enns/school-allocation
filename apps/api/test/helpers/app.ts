@@ -1,15 +1,15 @@
+import type { FastifyInstance } from 'fastify'
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { Writable } from 'node:stream'
-import type { FastifyInstance } from 'fastify'
 import { buildApp, type AppOptions } from '../../app.ts'
 import { loadConfig } from '../../config.ts'
 import type { Database } from '../../lib/db.ts'
+import { preserveResponseShape } from './contracts.ts'
 import { ORIGIN, SERVER_ENV } from './env.ts'
 
 export { ORIGIN }
-
 export interface TestApp {
   app: FastifyInstance
   /** Every log line written so far, raw. */
@@ -35,7 +35,10 @@ export async function buildTestApp(env: Record<string, string> = {}, db: Databas
   })
   const config = loadConfig({ ...SERVER_ENV, PUBLIC_URL: ORIGIN, WEB_DIST_DIR: path.join(tmpdir(), 'no-web-build-here'), ...env })
   // The clock and the sender are driven by the tests that need them.
-  const app = await buildApp(config, { db, logStream, background: false, ...options })
+  const app = await buildApp(config, { db, logStream, background: false, ...options, onRoute: (route) => {
+    preserveResponseShape(route)
+    options.onRoute?.(route)
+  } })
   return { app, logs: () => captured }
 }
 

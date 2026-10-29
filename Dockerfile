@@ -16,6 +16,7 @@ FROM docker.io/library/node:26.12.1-trixie-slim@sha256:36793bcbb160a6a16cede1e62
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/school-core/package.json packages/school-core/
+COPY packages/api-contracts/package.json packages/api-contracts/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 RUN --mount=type=cache,target=/root/.npm \
@@ -24,6 +25,7 @@ RUN --mount=type=cache,target=/root/.npm \
 FROM deps AS web
 COPY tsconfig.base.json ./
 COPY packages/school-core packages/school-core
+COPY packages/api-contracts packages/api-contracts
 COPY apps/web apps/web
 RUN npm run build --workspace apps/web
 
@@ -31,6 +33,7 @@ FROM docker.io/library/node:26.12.1-trixie-slim@sha256:36793bcbb160a6a16cede1e62
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/school-core/package.json packages/school-core/
+COPY packages/api-contracts/package.json packages/api-contracts/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 RUN --mount=type=cache,target=/root/.npm \
@@ -51,7 +54,9 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 # "type":"module" to decide ESM vs CJS, and the .ts files only run as ESM.
 COPY package.json ./
 COPY packages/school-core/package.json packages/school-core/
+COPY packages/api-contracts/package.json packages/api-contracts/
 COPY packages/school-core/src packages/school-core/src
+COPY packages/api-contracts/src packages/api-contracts/src
 COPY apps/api apps/api
 COPY --from=web /app/apps/web/dist apps/web/dist
 

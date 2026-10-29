@@ -2,10 +2,10 @@
 // database: each takes effect at the next request, each is audited, and
 // an administrator cannot lock themselves out.
 
-import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
+import { test } from 'node:test'
 import { verifyAuditChain } from '../lib/audit-chain.ts'
+import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { createDatabase } from '../lib/db.ts'
 import { withClient } from './helpers/db.ts'
 import { TENANT_ID } from './helpers/env.ts'
@@ -62,7 +62,7 @@ test('an administrator grants and revokes roles, which count at the next request
   const back = await send<Grant>(h, bernd, 'POST', '/api/admin/roles', { userId: annaId, role: 'school_admin', reason: 'zurück' })
   assert.equal(back.status, 201)
   await withClient(h.ownerUrl, (c) => c.query('update role_grant set revoked_at = now(), revoked_by = user_id where id = $1', [second.body.id]))
-  const { revokeGrant, blockAccount } = await import('../lib/admin-users.ts')
+  const { revokeGrant, blockAccount } = await import('../services/admin-users.ts')
   const berndActor = { id: berndId, tid: TENANT_ID, oid: BERND.oid, name: BERND.name }
   await assert.rejects(revokeGrant(h.db, back.body.id, 'auch weg', berndActor), (err: unknown) => (err as { code?: string }).code === 'last_admin')
   await assert.rejects(blockAccount(h.db, annaId, 'auch gesperrt', berndActor), (err: unknown) => (err as { code?: string }).code === 'last_admin')

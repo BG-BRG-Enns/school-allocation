@@ -1,14 +1,19 @@
-import { existsSync } from 'node:fs'
-import type { Writable } from 'node:stream'
-import Fastify, { LogController, type FastifyError, type FastifyInstance, type FastifyReply, type FastifyRequest, type RouteOptions } from 'fastify'
 import helmet from '@fastify/helmet'
 import fastifyStatic from '@fastify/static'
+import { getHealth } from '@school-allocation/api-contracts/health-endpoints'
 import { CORE_VERSION } from '@school-allocation/school-core'
+import Fastify, { LogController, type FastifyError, type FastifyInstance, type FastifyReply, type FastifyRequest, type RouteOptions } from 'fastify'
+import { existsSync } from 'node:fs'
+import type { Writable } from 'node:stream'
 import type { Config } from './config.ts'
 import { createGuards } from './lib/auth.ts'
 import type { Database } from './lib/db.ts'
+import { registerEndpoint } from './lib/endpoint.ts'
+import { applicationFailure } from './lib/http-errors.ts'
 import { isBusy } from './lib/jobs.ts'
-import { ErrorResponse, HealthResponse } from './lib/schemas/common.ts'
+import { Sender } from './lib/mail/sender.ts'
+import { createMailTransport } from './lib/mail/transport.ts'
+import { startScheduler } from './lib/scheduler.ts'
 import { pathOf } from './lib/url.ts'
 import { loadWebIndex, sendWebIndex } from './lib/web-index.ts'
 import { applyHardening } from './plugins/hardening.ts'
@@ -16,13 +21,16 @@ import { registerSessions } from './plugins/session.ts'
 import { adminRosterRoutes } from './routes/admin-roster.ts'
 import { adminUsersRoutes } from './routes/admin-users.ts'
 import { authRoutes } from './routes/auth.ts'
-import { campaignRoutes } from './routes/campaigns.ts'
+import { campaignsRoutes } from './routes/campaigns.ts'
+import { catalogueRoutes } from './routes/catalogue.ts'
+import { choiceAdminRoutes } from './routes/choice-admin.ts'
+import { choiceReportsRoutes } from './routes/choice-reports.ts'
+import { itemsRoutes } from './routes/items.ts'
 import { mailRoutes } from './routes/mail.ts'
+import { rosterGraphRoutes } from './routes/roster-graph.ts'
+import { rosterImportsRoutes } from './routes/roster-imports.ts'
 import { settingsRoutes } from './routes/settings.ts'
 import { windowRoutes } from './routes/window.ts'
-import { Sender } from './lib/mail/sender.ts'
-import { createMailTransport } from './lib/mail/transport.ts'
-import { startScheduler } from './lib/scheduler.ts'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -108,6 +116,8 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   // quotes the body) get their code alone. A 5xx is logged and answered with
   // a fixed body, so no stack trace or database message reaches a client.
   app.setErrorHandler((err: FastifyError, request, reply) => {
+    const failure = applicationFailure(err)
+    if (failure) return reply.code(failure.status).send(failure.body)
     const status = err.statusCode !== undefined && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500
     if (status >= 500) {
       request.log.error({ err, req: request }, 'request failed')
@@ -131,16 +141,22 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   await registerSessions(app, config)
   const guards = createGuards(db)
   await app.register(authRoutes, { config, db, entraAuthority: options.entraAuthority, ...under })
-  await app.register(adminRosterRoutes, { config, db, guards, entraAuthority: options.entraAuthority, graphBaseUrl: options.graphBaseUrl, ...under })
+  await app.register(adminRosterRoutes, { config, db, guards, ...under })
   await app.register(adminUsersRoutes, { db, guards, ...under })
   // The sender, when mail is set up; the scheduler always. Both start once
   // the app is ready and stop with it, so a shutdown waits for a session in
   // flight and opens no new one.
   const sender = config.mail === null || options.background === false ? null : new Sender({ db, transport: createMailTransport(config.mail), config: config.mail, log: app.log })
   const wakeSender = () => sender?.wake()
-  await app.register(campaignRoutes, { db, guards, baseUrl: config.publicUrl, wakeSender, ...under })
+  await app.register(campaignsRoutes, { db, guards, baseUrl: config.publicUrl, wakeSender, ...under })
   await app.register(settingsRoutes, { db, guards, ...under })
   await app.register(windowRoutes, { db, guards, ...under })
+  await app.register(catalogueRoutes, { db, guards, ...under })
+  await app.register(itemsRoutes, { db, guards, ...under })
+  await app.register(rosterImportsRoutes, { db, guards, ...under })
+  await app.register(rosterGraphRoutes, { config, db, guards, entraAuthority: options.entraAuthority, graphBaseUrl: options.graphBaseUrl, ...under })
+  await app.register(choiceAdminRoutes, { db, guards, ...under })
+  await app.register(choiceReportsRoutes, { db, guards, ...under })
   await app.register(mailRoutes, { config, db, guards, wakeSender, ...under })
   // Stopping the background work is the process's first step at shutdown,
   // before it closes the database pool (server.ts): Fastify runs onClose
@@ -167,7 +183,7 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   // The health check also says whether a job is executing: the
   // deployment's nightly update asks it and stays away while one does
   // (deploy/not-busy.sh). The answer names nothing and nobody.
-  app.get(`${config.basePath}/api/health`, { schema: { response: { '200': HealthResponse, '503': HealthResponse, '4xx': ErrorResponse } } }, async (_request, reply) => {
+  registerEndpoint(app, { ...getHealth, path: `${config.basePath}${getHealth.path}` }, {}, async (_request, reply) => {
     const { version, gitSha } = config.build
     try {
       const busy = await isBusy(db)

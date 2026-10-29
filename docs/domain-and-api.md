@@ -276,6 +276,14 @@ Response:
 
 ## 8. API surface (sketch)
 
+Executable request and JSON response contracts live in `packages/api-contracts/src`, with
+shared endpoint descriptors binding methods and URLs to their input and output types. Domain
+vocabulary belongs to `school-core`; unchanged domain schemas are checked against its types. Route adapters are split
+by campaign administration, catalogue, item review, roster imports, choices and reports.
+The refactoring into services and DAOs preserves the URLs, HTTP statuses and payload fields
+listed here. `apps/api/test/fixtures/routes.json` records the request-schema inventory; regenerate
+it deliberately with `npm run contracts:update:routes` and review the diff.
+
 | Method and path | Role | Purpose |
 | --------------- | ---- | ------- |
 | `GET /api/auth/login`, `GET /api/auth/callback`, `POST /api/auth/logout` | — | Entra sign-in |
