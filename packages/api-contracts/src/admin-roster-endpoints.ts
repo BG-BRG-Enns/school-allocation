@@ -1,6 +1,6 @@
 import { ErrorResponse, IdParams } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
-import { BatchDetailSchema, GroupsResponse, PersonsResponse, RosterOverviewSchema } from './index.ts'
+import { BatchDetailSchema, GroupsResponse, PersonsResponse, RosterOverviewSchema } from './roster.ts'
 import { GroupsBody, PersonsQuery } from './roster.ts'
 
 export const getAdminRoster = defineEndpoint({ method: 'GET', path: '/api/admin/roster', transport: 'json', schema: { response: { '200': RosterOverviewSchema, '4xx': ErrorResponse } } })

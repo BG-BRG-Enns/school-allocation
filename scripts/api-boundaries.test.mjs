@@ -51,3 +51,8 @@ test('the scheduler is a timer adapter and browser wrappers use descriptor URLs'
   }
   assert.deepEqual(await violations('apps/web/src/lib/campaigns-api.ts', 'apiRequest(getCampaigns, {})'), [])
 })
+
+test('endpoint modules import schemas directly from their feature, never the package barrel', async () => {
+  assert.ok((await violations('packages/api-contracts/src/campaigns-endpoints.ts', 'import { CampaignSchema } from \'./index.ts\'')).length)
+  assert.deepEqual(await violations('packages/api-contracts/src/campaigns-endpoints.ts', 'import { CampaignSchema } from \'./campaigns.ts\''), [])
+})

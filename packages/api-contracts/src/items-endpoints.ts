@@ -1,7 +1,7 @@
 import { ItemBody, ItemInvalidResponse, NoteBody, ReasonBody } from './catalogue.ts'
 import { ErrorResponse, IdParams } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
-import { ItemSchema } from './index.ts'
+import { ItemSchema } from './campaigns.ts'
 
 export const postCampaignsByIdItems = defineEndpoint({ method: 'POST', path: '/api/campaigns/:id/items', transport: 'json', schema: { params: IdParams, body: ItemBody, response: { '422': ItemInvalidResponse, '4xx': ErrorResponse, '201': ItemSchema } } })
 

@@ -250,6 +250,9 @@ export default [
       'no-restricted-imports': ['error', { patterns: [{
         regex: String.raw`^(?!\./|typebox$|@school-allocation/school-core$)`,
         message: 'Contracts are shared with the browser: only TypeBox, school-core and sibling contracts are allowed.',
+      }, {
+        group: ['./index.ts'],
+        message: 'Import contracts from their feature module, never the package barrel.',
       }] }],
     },
   },

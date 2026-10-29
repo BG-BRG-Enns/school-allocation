@@ -1,7 +1,8 @@
 import { ClassParams, ClassTeachersBody, PeriodsBody, PeriodsInvalidResponse, TeachersQuery } from './catalogue.ts'
 import { ErrorResponse } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
-import { ClassesResponse, PeriodsResponse, TeachersResponse } from './index.ts'
+import { ClassesResponse, PeriodsResponse } from './settings.ts'
+import { TeachersResponse } from './campaigns.ts'
 
 export const getSettingsPeriods = defineEndpoint({ method: 'GET', path: '/api/settings/periods', transport: 'json', schema: { response: { '200': PeriodsResponse, '4xx': ErrorResponse } } })
 

@@ -1,6 +1,6 @@
 import { ErrorResponse } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
-import { MailStatusResponse, QueuedResponse, TemplateResponse, TemplatesResponse } from './index.ts'
+import { MailStatusResponse, QueuedResponse, TemplateResponse, TemplatesResponse } from './mail.ts'
 import { KindParams, TemplateBody, TemplateInvalidResponse } from './window.ts'
 
 export const getAdminMailTemplates = defineEndpoint({ method: 'GET', path: '/api/admin/mail-templates', transport: 'json', schema: { response: { '200': TemplatesResponse, '4xx': ErrorResponse } } })

@@ -1,6 +1,6 @@
 import { ErrorResponse, IdParams } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
-import { ChoiceViewSchema } from './index.ts'
+import { ChoiceViewSchema } from './choices.ts'
 import { RankingBody, RankingInvalidResponse } from './window.ts'
 
 export const getCampaignsByIdMyChoice = defineEndpoint({ method: 'GET', path: '/api/campaigns/:id/my-choice', transport: 'json', schema: { params: IdParams, response: { '200': ChoiceViewSchema, '4xx': ErrorResponse } } })
