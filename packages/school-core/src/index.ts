@@ -75,6 +75,20 @@ export {
   type StudentOf,
 } from './catalogue.ts'
 
+export {
+  CLOCK_TIME,
+  DEFAULT_PERIODS,
+  PERIOD_PROBLEM_CODES,
+  checkPeriods,
+  minutesOf,
+  periodsOfSpan,
+  spanOfPeriods,
+  type Period,
+  type PeriodProblemCode,
+} from './periods.ts'
+
+export { demandByDay, type ClassSize, type DayDemand, type GradeDemand, type OfferedItem } from './demand.ts'
+
 /**
  * The version of the domain rules a stored result was computed with. Bumped
  * whenever a change here would give a different allocation or validation
