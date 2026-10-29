@@ -35,6 +35,13 @@ export function datesOfSpan(startMs: number, endMs: number): string[] {
   return datesBetween(localDateOf(startMs), localDateOf(endMs - 1))
 }
 
+const timeFormatter = new Intl.DateTimeFormat('sv-SE', { timeZone: SCHOOL_TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+
+/** The local clock time (HH:MM) of an instant in the school's zone, for matching a session against the period grid. */
+export function localTimeOf(ms: number): string {
+  return timeFormatter.format(new Date(ms))
+}
+
 /** An ISO 8601 instant as epoch milliseconds, or undefined when it is not one. */
 export function instantOf(iso: string): number | undefined {
   const ms = Date.parse(iso)

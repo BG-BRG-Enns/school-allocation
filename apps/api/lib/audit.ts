@@ -45,6 +45,10 @@ export const AUDIT_ACTIONS = [
   'item.returned',
   'item.withdrawn',
   'item.changed',
+  // The school's settings (school scope): the period grid replaced; the
+  // class teachers of a class set.
+  'settings.periods-changed',
+  'class.teachers-changed',
 ] as const
 
 export type AuditAction = typeof AUDIT_ACTIONS[number]

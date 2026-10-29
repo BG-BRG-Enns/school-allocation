@@ -4,7 +4,7 @@
 // they are: organizers see every campaign, teachers also the ones taking
 // proposals, everyone else what has been published.
 
-import { transition, type CampaignState } from '@school-allocation/school-core'
+import { demandByDay, transition, type CampaignState, type ClassSize, type DayDemand, type OfferedItem } from '@school-allocation/school-core'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from './audit.ts'
 import type { Caller } from './auth.ts'
 import type { Database, Queryable } from './db.ts'
@@ -18,7 +18,26 @@ export type CampaignKind = typeof CAMPAIGN_KINDS[number]
 /** The states this release moves a campaign into; the choice window and everything after come with later slices. */
 export const AVAILABLE_TRANSITIONS: readonly CampaignState[] = ['catalogue', 'published']
 
-export interface Campaign {
+/**
+ * The choice window and what it asks (D-05, D-06, D-13): when students
+ * choose, until when a late list is still taken, when they may swap after
+ * publication; how many wishes per time group; the daily minimum in
+ * minutes per grade; whether the catalogue names the teachers.
+ */
+export interface CampaignWindow {
+  /** ISO instants, null until set. */
+  opensAt: string | null
+  closesAt: string | null
+  lateUntil: string | null
+  swapFrom: string | null
+  swapUntil: string | null
+  wishesPerGroup: number
+  /** Grade → minutes; a grade not listed has no minimum. */
+  dailyMinimum: Record<string, number>
+  showTeachers: boolean
+}
+
+export interface Campaign extends CampaignWindow {
   id: string
   kind: CampaignKind
   name: string
@@ -45,7 +64,31 @@ export interface NewCampaign {
   projectDays: string[]
 }
 
-export type CampaignChanges = Omit<NewCampaign, 'kind'>
+/** What an organizer changes: the set-up (while it is being set up or taking proposals) and the window settings (until the window opens). */
+export type CampaignChanges = Omit<NewCampaign, 'kind'> & Partial<CampaignWindow>
+
+/** The states in which the window's settings may still change: everything before the window opens. */
+const WINDOW_SETTABLE: readonly CampaignState[] = ['draft', 'catalogue', 'published']
+
+const WINDOW_FIELDS = ['opensAt', 'closesAt', 'lateUntil', 'swapFrom', 'swapUntil', 'wishesPerGroup', 'dailyMinimum', 'showTeachers'] as const
+
+/**
+ * The window as it would be after `changes`, or the rule it breaks: the
+ * window closes after it opens, the grace week ends no earlier than the
+ * close, the swap window ends no earlier than it starts.
+ */
+export function checkWindow(window: CampaignWindow): 'window_order' | 'grace_order' | 'swap_order' | undefined {
+  const ms = (iso: string | null) => (iso === null ? null : Date.parse(iso))
+  const opens = ms(window.opensAt)
+  const closes = ms(window.closesAt)
+  const late = ms(window.lateUntil)
+  const swapFrom = ms(window.swapFrom)
+  const swapUntil = ms(window.swapUntil)
+  if (opens !== null && closes !== null && !(opens < closes)) return 'window_order'
+  if (closes !== null && late !== null && !(closes <= late)) return 'grace_order'
+  if (swapFrom !== null && swapUntil !== null && !(swapFrom <= swapUntil)) return 'swap_order'
+  return undefined
+}
 
 /** Whether the caller organizes: a school-wide organizer or an administrator. */
 export function isOrganizer(caller: Pick<Caller, 'roles'>): boolean {
@@ -97,9 +140,19 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
   const id = canonicalId(rawId)
   const found = await db.tx(async (client) => {
     await lockScope(client, id)
-    const { rows: [current] } = await client.query<{ state: CampaignState }>('select state from campaign where id = $1 for update', [id])
+    const current = await lockedCampaign(client, id)
     if (!current) return false
-    if (current.state !== 'draft' && current.state !== 'catalogue') throw new RosterConflict('campaign_state')
+    const setUpChanged = changes.name !== current.name || changes.schoolYear !== current.schoolYear || changes.projectDays.join() !== current.projectDays.join()
+    if (setUpChanged && current.state !== 'draft' && current.state !== 'catalogue') throw new RosterConflict('campaign_state')
+    const window: CampaignWindow = { ...current }
+    for (const field of WINDOW_FIELDS) {
+      const value = changes[field]
+      if (value !== undefined) Object.assign(window, { [field]: value })
+    }
+    const windowChanged = WINDOW_FIELDS.some((field) => JSON.stringify(window[field]) !== JSON.stringify(current[field]))
+    if (windowChanged && !WINDOW_SETTABLE.includes(current.state)) throw new RosterConflict('campaign_state')
+    const order = checkWindow(window)
+    if (order !== undefined) throw new RosterConflict(order)
     const days = new Set(changes.projectDays)
     const { rows: sessions } = await client.query<{ starts_at: Date, ends_at: Date }>(
       `select s.starts_at, s.ends_at from item_session s join catalog_item i on i.id = s.item_id where i.campaign_id = $1 and i.state <> 'withdrawn'`, [id],
@@ -108,13 +161,24 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
       throw new RosterConflict('sessions_outside_days')
     }
     await client.query(
-      'update campaign set name = $2, school_year = $3, project_days = $4::date[], updated_at = now() where id = $1',
-      [id, changes.name, changes.schoolYear, changes.projectDays],
+      `update campaign set name = $2, school_year = $3, project_days = $4::date[], opens_at = $5, closes_at = $6, late_until = $7, swap_from = $8, swap_until = $9,
+              wishes_per_group = $10, daily_minimum = $11, show_teachers = $12, updated_at = now() where id = $1`,
+      [id, changes.name, changes.schoolYear, changes.projectDays, window.opensAt, window.closesAt, window.lateUntil, window.swapFrom, window.swapUntil,
+        window.wishesPerGroup, JSON.stringify(window.dailyMinimum), window.showTeachers],
     )
-    await appendAudit(client, { scopeId: id, actor: auditActor(actor), action: 'campaign.changed', metadata: { campaignId: id, projectDays: changes.projectDays.length } })
+    await appendAudit(client, {
+      scopeId: id, actor: auditActor(actor), action: 'campaign.changed',
+      metadata: { campaignId: id, projectDays: changes.projectDays.length, setUp: setUpChanged, window: windowChanged },
+    })
     return true
   })
   return found ? readCampaign(db, id) : undefined
+}
+
+/** The campaign row locked for update, as a Campaign; the caller holds the scope lock already. */
+async function lockedCampaign(client: Queryable, id: string): Promise<Campaign | undefined> {
+  const { rows: [row] } = await client.query<CampaignRow>(`${SELECT} where c.id = $1 for update of c`, [id])
+  return row === undefined ? undefined : toCampaign(row)
 }
 
 /**
@@ -168,13 +232,43 @@ export interface RosterClass {
 }
 
 export async function rosterClasses(db: Queryable): Promise<RosterClass[]> {
-  const { rows } = await db.query<{ class_name: string, grade: number }>(
-    `select distinct e.class_name, e.grade from roster_entry e
+  return (await rosterClassSizes(db)).map(({ className, grade }) => ({ className, grade }))
+}
+
+/** The classes of the roster in force with how many students each has, for the demand. */
+export async function rosterClassSizes(db: Queryable): Promise<ClassSize[]> {
+  const { rows } = await db.query<{ class_name: string, grade: number, students: string }>(
+    `select e.class_name, e.grade, count(*)::text as students from roster_entry e
        join (select id from import_batch where state = 'committed' order by decided_at desc limit 1) c on c.id = e.batch_id
       where e.kind = 'student' and e.class_name is not null and e.grade is not null
+      group by e.class_name, e.grade
       order by e.grade, e.class_name`,
   )
-  return rows.map((row) => ({ className: row.class_name, grade: row.grade }))
+  return rows.map((row) => ({ className: row.class_name, grade: row.grade, students: Number(row.students) }))
+}
+
+/**
+ * Places needed against places offered per project day and grade (D-13):
+ * the roster's class sizes against the items that are proposed or approved,
+ * by the dates their sessions touch. Drafts and withdrawn items count for
+ * nothing.
+ */
+export async function campaignDemand(db: Queryable, campaign: Campaign): Promise<DayDemand[]> {
+  const classes = await rosterClassSizes(db)
+  const { rows } = await db.query<{ id: string, fixed_classes: string[], eligible_grades: number[], eligible_classes: string[], places: number, starts_at: Date, ends_at: Date }>(
+    `select i.id, i.fixed_classes, i.eligible_grades, i.eligible_classes, i.places, s.starts_at, s.ends_at
+       from catalog_item i join item_session s on s.item_id = i.id
+      where i.campaign_id = $1 and i.state in ('proposed', 'approved')`,
+    [campaign.id],
+  )
+  // One row per session; an item counts once per date its sessions touch.
+  const items = new Map<string, OfferedItem>()
+  for (const row of rows) {
+    const item = items.get(row.id) ?? { fixedClasses: row.fixed_classes, eligibleGrades: row.eligible_grades, eligibleClasses: row.eligible_classes, places: row.places, dates: [] }
+    const dates = new Set([...item.dates, ...datesOfSpan(row.starts_at.getTime(), row.ends_at.getTime())])
+    items.set(row.id, { ...item, dates: [...dates] })
+  }
+  return demandByDay(campaign.projectDays, classes, [...items.values()])
 }
 
 /** A teacher of the roster in force, for naming the teachers of an activity. */
@@ -202,15 +296,25 @@ interface CampaignRow {
   school_year: string
   state: CampaignState
   project_days: string[]
+  opens_at: Date | null
+  closes_at: Date | null
+  late_until: Date | null
+  swap_from: Date | null
+  swap_until: Date | null
+  wishes_per_group: number
+  daily_minimum: Record<string, number>
+  show_teachers: boolean
   created_at: Date
   updated_at: Date
 }
 
 // Dates come back as text: the driver would otherwise make them Dates at
 // local midnight, which is not what a project day is.
-const SELECT = 'select c.id, c.kind, c.name, c.school_year, c.state, c.project_days::text[] as project_days, c.created_at, c.updated_at from campaign c'
+const SELECT = `select c.id, c.kind, c.name, c.school_year, c.state, c.project_days::text[] as project_days,
+  c.opens_at, c.closes_at, c.late_until, c.swap_from, c.swap_until, c.wishes_per_group, c.daily_minimum, c.show_teachers, c.created_at, c.updated_at from campaign c`
 
 function toCampaign(row: CampaignRow): Campaign {
+  const iso = (value: Date | null) => value?.toISOString() ?? null
   return {
     id: row.id,
     kind: row.kind,
@@ -218,6 +322,14 @@ function toCampaign(row: CampaignRow): Campaign {
     schoolYear: row.school_year,
     state: row.state,
     projectDays: row.project_days,
+    opensAt: iso(row.opens_at),
+    closesAt: iso(row.closes_at),
+    lateUntil: iso(row.late_until),
+    swapFrom: iso(row.swap_from),
+    swapUntil: iso(row.swap_until),
+    wishesPerGroup: row.wishes_per_group,
+    dailyMinimum: row.daily_minimum,
+    showTeachers: row.show_teachers,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   }

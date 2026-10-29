@@ -44,6 +44,8 @@ export interface Caller {
   roles: Role[]
   /** null until a roster entry is bound to this identity. */
   person: CallerPerson | null
+  /** The classes the caller is class teacher of in the roster's school year: assigned in the app, or named by the roster's class-teacher address. */
+  classTeacherOf: string[]
 }
 
 /** The signed-in caller as the cookie has it, or undefined. A session past its lifetime, or without a sign-in time, counts as none. */
@@ -86,17 +88,27 @@ interface CallerRow {
   kind: PersonKind | null
   class_name: string | null
   grade: number | null
+  classes: string[]
 }
 
 export async function loadCaller(db: Queryable, userId: string): Promise<Caller | undefined> {
   const { rows: [row] } = await db.query<CallerRow>(
-    `select u.tid, u.oid, u.display_name, u.blocked_at is not null as blocked,
+    `with current as (select id, school_year from import_batch where state = 'committed' order by decided_at desc limit 1)
+     select u.tid, u.oid, u.display_name, u.blocked_at is not null as blocked,
             coalesce((select array_agg(g.role order by g.role) from role_grant g where g.user_id = u.id and g.campaign_id is null and g.revoked_at is null), '{}') as roles,
-            b.person_id, e.kind, e.class_name, e.grade
+            b.person_id, e.kind, e.class_name, e.grade,
+            case when e.kind = 'teacher' then coalesce((
+              select array_agg(distinct c order by c) from (
+                select a.class_name as c from class_teacher a, current
+                 where a.person_id = e.person_id and a.school_year = current.school_year and a.revoked_at is null
+                union
+                select s.class_name from roster_entry s, current
+                 where s.batch_id = current.id and s.kind = 'student' and s.class_name is not null
+                   and lower(s.class_teacher_mail) in (lower(e.mail), lower(e.upn))
+              ) k), '{}') else '{}' end as classes
        from app_user u
        left join identity_binding b on b.tid = u.tid and b.oid = u.oid and b.unbound_at is null
-       left join roster_entry e on e.person_id = b.person_id
-            and e.batch_id = (select id from import_batch where state = 'committed' order by decided_at desc limit 1)
+       left join roster_entry e on e.person_id = b.person_id and e.batch_id = (select id from current)
       where u.id = $1`,
     [userId],
   )
@@ -108,6 +120,7 @@ export async function loadCaller(db: Queryable, userId: string): Promise<Caller 
     displayName: row.display_name,
     roles: row.roles.filter(isRole),
     person: row.person_id === null ? null : { id: row.person_id, kind: row.kind, className: row.class_name, grade: row.grade },
+    classTeacherOf: row.classes,
   }
 }
 
