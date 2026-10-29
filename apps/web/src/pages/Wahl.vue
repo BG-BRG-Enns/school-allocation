@@ -42,6 +42,8 @@ const published = computed(() => campaign.value !== undefined && !['draft', 'cat
 /** From the opening on: the window has a state worth showing. */
 const windowOpened = computed(() => campaign.value !== undefined && !['draft', 'catalogue', 'published'].includes(campaign.value.state))
 const isStudent = computed(() => session.value?.person?.kind === 'student')
+/** From publication on: a student has a result to see. */
+const resultsOut = computed(() => campaign.value !== undefined && (campaign.value.state === 'results' || campaign.value.state === 'archived'))
 const missing = ref<MissingStudent[]>([])
 const missingLoading = useFeedback()
 async function loadMissing(): Promise<void> {
@@ -481,13 +483,20 @@ function onSubmitPending(): void {
     </section>
 
     <section v-if="isStudent && published">
-      <h2>Meine Wünsche</h2>
+      <h2>{{ resultsOut ? 'Mein Ergebnis' : 'Meine Wünsche' }}</h2>
       <p class="actions">
         <RouterLink
+          v-if="resultsOut"
           class="button"
+          :to="`/wahlen/${campaign.id}/ergebnis`"
+        >
+          Mein Ergebnis ansehen
+        </RouterLink>
+        <RouterLink
+          :class="resultsOut ? 'button ghost-link' : 'button'"
           :to="`/wahlen/${campaign.id}/wuensche`"
         >
-          {{ windowOpened ? 'Wünsche abgeben oder ändern' : 'Was zur Wahl steht' }}
+          {{ resultsOut ? 'Meine Wünsche' : windowOpened ? 'Wünsche abgeben oder ändern' : 'Was zur Wahl steht' }}
         </RouterLink>
       </p>
     </section>

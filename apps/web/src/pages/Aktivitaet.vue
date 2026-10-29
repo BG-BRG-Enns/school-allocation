@@ -10,11 +10,12 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { spanOfPeriods, type Period } from '@school-allocation/school-core'
 import { loadPeriods } from '../lib/admin-api.ts'
+import { loadParticipants, type ParticipantsResponse } from '../lib/allocation-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { createItem, loadCampaign, loadClasses, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodLabel, touchedDates } from '../lib/format.ts'
-import { CATALOGUE_PROBLEM_LABELS } from '../lib/labels.ts'
+import { ASSIGNMENT_SOURCE_LABELS, CATALOGUE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
@@ -26,6 +27,8 @@ const campaign = ref<Campaign | null>(null)
 const classes = ref<{ className: string, grade: number }[]>([])
 const grid = ref<Period[]>([])
 const existing = ref<Item | null>(null)
+/** The participants of this activity in the published run, when there is one and the caller may see them. */
+const participantsView = ref<ParticipantsResponse | null>(null)
 const loading = useFeedback()
 const saving = useFeedback()
 const problems = ref<string[]>([])
@@ -100,6 +103,15 @@ async function load(): Promise<void> {
       addSession()
     }
   })
+  // From publication on, the people in it: the organizer's and the auditor's always, a teacher's for their own item.
+  participantsView.value = null
+  if (props.itemId && campaign.value && (campaign.value.state === 'results' || campaign.value.state === 'archived')) {
+    try {
+      participantsView.value = await loadParticipants(props.id, props.itemId)
+    } catch (err) {
+      if (!(err instanceof ApiError && (err.status === 403 || err.status === 409))) throw err
+    }
+  }
 }
 onMounted(load)
 watch(() => [props.id, props.itemId], load)
@@ -667,4 +679,28 @@ async function save(propose: boolean): Promise<void> {
       </button>
     </p>
   </form>
+  <section v-if="participantsView">
+    <h2>Teilnehmer/innen ({{ participantsView.participants.length }})</h2>
+    <p
+      v-if="participantsView.item.cancelled"
+      class="alert"
+      role="status"
+    >
+      Diese Aktivität wurde bei der Zuteilung abgesagt: zu wenige Wünsche für ihre Mindestteilnehmerzahl.
+    </p>
+    <ul v-else-if="participantsView.participants.length > 0">
+      <li
+        v-for="p in participantsView.participants"
+        :key="p.personId"
+      >
+        {{ p.displayName }} ({{ p.className }}) <span class="muted">{{ ASSIGNMENT_SOURCE_LABELS[p.source] ?? p.source }}</span>
+      </li>
+    </ul>
+    <p
+      v-else
+      class="muted"
+    >
+      Niemand wurde dieser Aktivität zugeteilt.
+    </p>
+  </section>
 </template>

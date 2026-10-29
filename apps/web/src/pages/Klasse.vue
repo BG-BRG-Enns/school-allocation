@@ -3,11 +3,11 @@
 // the class activities that take the class on which days. Who has chosen
 // comes with the choice window.
 
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { loadCampaign, loadClassStatus, type Campaign, type ClassStatus } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatSpan } from '../lib/format.ts'
-import { CHOICE_STATE_LABELS, ITEM_STATE_LABELS } from '../lib/labels.ts'
+import { ASSIGNMENT_SOURCE_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string, className: string }>()
@@ -15,6 +15,9 @@ const campaign = ref<Campaign | null>(null)
 const status = ref<ClassStatus | null>(null)
 const loading = useFeedback()
 usePageTitle(() => `Klasse ${props.className}`)
+const published = computed(() => status.value?.students.some((s) => s.placement !== null && s.placement !== undefined) ?? false)
+const unplaced = computed(() => status.value?.students.filter((s) => (s.placement?.deficit ?? 0) > 0) ?? [])
+const placementText = (s: ClassStatus['students'][number]): string => s.placement?.items.map((i) => `${i.title} (${ASSIGNMENT_SOURCE_LABELS[i.source] ?? i.source})`).join(', ') || 'kein Platz'
 
 async function load(): Promise<void> {
   await loading.run(async () => {
@@ -67,6 +70,28 @@ watch(() => [props.id, props.className], load)
         </li>
       </ul>
     </section>
+    <section v-if="published">
+      <h2>Nicht vollständig zugeteilt ({{ unplaced.length }})</h2>
+      <p
+        v-if="unplaced.length === 0"
+        class="muted"
+      >
+        Alle Schüler/innen der Klasse haben an jedem Tag ihr Programm.
+      </p>
+      <ul v-else>
+        <li
+          v-for="s in unplaced"
+          :key="s.personId"
+        >
+          <strong>{{ s.displayName }}</strong>: {{ s.placement?.deficit }} Minuten fehlen<template v-if="s.placement && s.placement.items.length > 0">
+            · bisher {{ s.placement.items.map((i) => i.title).join(', ') }}
+          </template>
+        </li>
+      </ul>
+      <p class="muted">
+        Die händische Zuteilung in eine Aktivität mit freien Plätzen kommt mit dem nächsten Schritt.
+      </p>
+    </section>
     <section>
       <h2>Schüler/innen ({{ status.students.length }})</h2>
       <p
@@ -82,9 +107,13 @@ watch(() => [props.id, props.className], load)
         >
           {{ s.displayName }}
           <span
-            v-if="s.choice !== null"
+            v-if="s.choice !== null && !published"
             :class="['badge', s.choice === 'complete' ? 'badge-approved' : 'badge-proposed']"
           >{{ CHOICE_STATE_LABELS[s.choice] ?? s.choice }}</span>
+          <span
+            v-if="s.placement"
+            class="muted"
+          > · {{ placementText(s) }}</span>
         </li>
       </ul>
     </section>

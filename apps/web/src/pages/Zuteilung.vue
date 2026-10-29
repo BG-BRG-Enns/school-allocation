@@ -7,7 +7,7 @@
 // asks again until it is through. Publication comes with the next step.
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { loadRun, loadRuns, loadSolverStatus, runExportPath, startRun, type AllocationRun, type ReviewStudent, type RunReviewResponse, type SolverStatusResponse } from '../lib/allocation-api.ts'
+import { assignmentsExportPath, loadRun, loadRuns, loadSolverStatus, publishRun, runExportPath, startRun, type AllocationRun, type ReviewStudent, type RunReviewResponse, type SolverStatusResponse } from '../lib/allocation-api.ts'
 import { withBase } from '../lib/base.ts'
 import { loadCampaign, type Campaign } from '../lib/campaigns-api.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
@@ -32,6 +32,22 @@ const seed = ref<number | ''>('')
 const limit = ref(5)
 
 const canStart = computed(() => campaign.value !== null && ['closed', 'review'].includes(campaign.value.state) && solverConfigured.value && !runs.value.some((r) => r.status === 'running'))
+/** The publication: a succeeded run of a campaign in review, not stale, its cancellations confirmed. */
+const publishing = ref(false)
+const cancellationsConfirmed = ref(false)
+const canPublish = computed(() => campaign.value?.state === 'review' && selected.value?.run.status === 'succeeded' && !selected.value.stale)
+const publishedRun = computed(() => runs.value.find((r) => r.publishedAt !== null) ?? null)
+
+async function onPublish(): Promise<void> {
+  if (!selected.value) return
+  const run = selected.value.run
+  await action.run(async () => {
+    await publishRun(props.id, run.id, run.cancelledItemIds)
+    publishing.value = false
+    cancellationsConfirmed.value = false
+    await load()
+  }, 'Das Ergebnis ist veröffentlicht; die Benachrichtigungen sind unterwegs.')
+}
 const running = computed(() => runs.value.some((r) => r.status === 'running'))
 
 async function load(): Promise<void> {
@@ -159,6 +175,18 @@ const levelDelta = (name: string): number | null => {
     <p class="muted">
       {{ campaign.name }} · <span class="badge">{{ CAMPAIGN_STATE_LABELS[campaign.state] ?? campaign.state }}</span>
     </p>
+    <section v-if="publishedRun">
+      <h2>Veröffentlicht</h2>
+      <p>
+        Lauf {{ publishedRun.seq }} ist das Ergebnis dieser Wahl (veröffentlicht {{ formatWhen(publishedRun.publishedAt) }}). Die Schüler/innen sehen ihr Programm, die Lehrkräfte ihre Teilnehmer/innen, die Klassenvorstände die Plätze ihrer Klasse.
+      </p>
+      <p class="actions">
+        <a
+          class="button ghost-link"
+          :href="withBase(assignmentsExportPath(props.id))"
+        >Zuteilung als Excel</a>
+      </p>
+    </section>
 
     <section>
       <h2>Lauf starten</h2>
@@ -358,6 +386,69 @@ const levelDelta = (name: string): number | null => {
       </div>
 
       <template v-if="selected.summary">
+        <div
+          v-if="canPublish"
+          class="panel"
+        >
+          <h3>Veröffentlichen</h3>
+          <p v-if="!publishing">
+            Dieser Lauf wird das Ergebnis der Wahl: die Schüler/innen erhalten ihr Programm, die Klassenvorstände die Liste der nicht vollständig Zugeteilten, die Lehrkräfte abgesagter Aktivitäten die Absage. Danach ist kein weiterer Lauf möglich.
+          </p>
+          <p
+            v-if="!publishing"
+            class="actions"
+          >
+            <button
+              type="button"
+              :disabled="action.busy.value"
+              @click="publishing = true"
+            >
+              Lauf {{ selected.run.seq }} veröffentlichen …
+            </button>
+          </p>
+          <form
+            v-else
+            aria-label="Veröffentlichung bestätigen"
+            @submit.prevent="onPublish"
+          >
+            <p v-if="selected.run.cancelledItemIds.length === 0">
+              Keine Aktivität wird abgesagt.
+            </p>
+            <template v-else>
+              <p>Diese Aktivitäten finden nicht statt, weil zu wenige sie gewünscht haben:</p>
+              <ul>
+                <li
+                  v-for="itemId in selected.run.cancelledItemIds"
+                  :key="itemId"
+                >
+                  {{ itemTitle(selected, itemId) }}
+                </li>
+              </ul>
+              <label class="checks">
+                <input
+                  v-model="cancellationsConfirmed"
+                  type="checkbox"
+                >
+                Ich bestätige diese Absagen.
+              </label>
+            </template>
+            <p class="actions">
+              <button
+                type="submit"
+                :disabled="action.busy.value || (selected.run.cancelledItemIds.length > 0 && !cancellationsConfirmed)"
+              >
+                Jetzt veröffentlichen
+              </button>
+              <button
+                type="button"
+                class="ghost"
+                @click="publishing = false"
+              >
+                Abbrechen
+              </button>
+            </p>
+          </form>
+        </div>
         <p class="muted">
           Seed {{ selected.run.seed }} · Limit {{ selected.run.limits.deterministicTimePerLevel }} · Solver {{ selected.run.versions?.solver }} (OR-Tools {{ selected.run.versions?.ortools }}) · Regeln Version {{ selected.run.coreVersion }}
         </p>
