@@ -2,8 +2,8 @@
 // (apps/api/routes/admin-roster.ts, admin-users.ts).
 
 import type { MailKind, Role } from '@school-allocation/api-contracts'
-import { endpointPath } from '@school-allocation/api-contracts/endpoint'
-import * as endpoints from '@school-allocation/api-contracts/endpoints'
+import { endpointPath } from '@school-allocation/api-contracts/client-endpoint'
+import * as endpoints from '@school-allocation/api-contracts/endpoint-metadata'
 import type { Period } from '@school-allocation/school-core'
 export type { Period } from '@school-allocation/school-core'
 

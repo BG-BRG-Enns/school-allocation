@@ -4,7 +4,7 @@
 // is gone: the browser goes to the sign-in page and comes back to this
 // one. A 204 is an answer without content, undefined to the caller.
 
-import { endpointPath, type Endpoint, type EndpointInput, type EndpointResponse } from '@school-allocation/api-contracts/endpoint'
+import { endpointPath, type ClientEndpoint, type ClientInput, type ClientResponse } from '@school-allocation/api-contracts/client-endpoint'
 
 import { ApiError, problemOf, signInUrl } from './api-rules.ts'
 import { withBase } from './base.ts'
@@ -17,11 +17,11 @@ export function onUnauthenticated(handler: () => void): void {
 }
 
 /** The selected endpoint determines its URL, method, body and successful response. */
-export async function apiRequest<E extends Endpoint & { transport: 'json' | 'empty' }>(endpoint: E, input: EndpointInput<NoInfer<E>>): Promise<EndpointResponse<E>> {
+export async function apiRequest<E extends ClientEndpoint & { transport: 'json' | 'empty' }>(endpoint: E, input: ClientInput<NoInfer<E>>): Promise<ClientResponse<E>> {
   const response = await send(endpoint.method, endpointPath(endpoint, input), input.body)
   // The server validates and serializes against this same endpoint's schema.
-  if (response.status === 204) return undefined as EndpointResponse<E>
-  return response.json() as Promise<EndpointResponse<E>>
+  if (response.status === 204) return undefined as ClientResponse<E>
+  return response.json() as Promise<ClientResponse<E>>
 }
 
 /** The request, with a refusal thrown and a 401 sent to sign-in; the response for the caller to read. */

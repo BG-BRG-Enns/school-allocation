@@ -71,7 +71,11 @@ re-exporting persistence symbols; roster-batch selection is shared inside the DA
 It depends only on TypeBox and `school-core`. Core owns domain vocabulary and rule-result shapes;
 unchanged domain schemas are checked against those core types at compile time. The browser imports
 the domain types from core. Endpoint descriptors bind methods and paths to request/response
-schemas, used by both server registration and the typed browser client. Every JSON success response declares a schema. Redirects, empty responses
+schemas. Server descriptors spread shared method/path/transport metadata and add schemas;
+the browser imports only that metadata and the client helper as values. The helper derives its
+types from the full descriptors through type-only imports. Endpoint modules import schemas
+directly from their features. ESLint guards browser imports, and the Vite build rejects schema
+modules and TypeBox in emitted browser chunks. Every JSON success response declares a schema. Redirects, empty responses
 and CSV/XLSX exports keep their existing transport behavior. Audit metadata remains an extensible
 JSON object so serialization preserves the content used to verify its hash.
 

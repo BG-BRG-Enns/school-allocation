@@ -3,7 +3,7 @@
 // Signing out ends the session on the server and brings the browser to
 // the sign-in page.
 
-import * as endpoints from '@school-allocation/api-contracts/endpoints'
+import * as endpoints from '@school-allocation/api-contracts/endpoint-metadata'
 
 import type { Me } from '@school-allocation/api-contracts'
 import { computed, ref } from 'vue'

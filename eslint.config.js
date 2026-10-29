@@ -236,6 +236,16 @@ export default [
     },
   },
   {
+    files: ['apps/web/src/**/*.{ts,vue}', 'apps/web/test/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [{
+        regex: '^@school-allocation/api-contracts(?:$|/(?!endpoint-metadata$|client-endpoint$))',
+        allowTypeImports: true,
+        message: 'Browser values come from endpoint-metadata and client-endpoint; import server contracts as types only.',
+      }] }],
+    },
+  },
+  {
     files: ['apps/web/src/lib/*api*.ts'],
     rules: {
       'no-restricted-syntax': ['error', {

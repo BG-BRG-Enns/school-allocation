@@ -56,3 +56,11 @@ test('endpoint modules import schemas directly from their feature, never the pac
   assert.ok((await violations('packages/api-contracts/src/campaigns-endpoints.ts', 'import { CampaignSchema } from \'./index.ts\'')).length)
   assert.deepEqual(await violations('packages/api-contracts/src/campaigns-endpoints.ts', 'import { CampaignSchema } from \'./campaigns.ts\''), [])
 })
+
+test('browser imports permit contract types and schema-free values, but reject server values', async () => {
+  for (const source of ['@school-allocation/api-contracts', '@school-allocation/api-contracts/endpoints', '@school-allocation/api-contracts/auth-endpoints', '@school-allocation/api-contracts/auth']) {
+    assert.ok((await violations('apps/web/src/lib/api.ts', `import * as contracts from '${source}'`)).length, source)
+    assert.deepEqual(await violations('apps/web/src/lib/api.ts', `import type * as contracts from '${source}'`), [], source)
+  }
+  assert.deepEqual(await violations('apps/web/src/lib/api.ts', 'import * as metadata from \'@school-allocation/api-contracts/endpoint-metadata\'\nimport { endpointPath } from \'@school-allocation/api-contracts/client-endpoint\''), [])
+})

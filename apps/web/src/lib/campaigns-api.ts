@@ -1,8 +1,8 @@
 // The campaigns' and the catalogue's API, typed as the server answers it
 // (apps/api/routes/campaigns.ts).
 
-import { endpointPath } from '@school-allocation/api-contracts/endpoint'
-import * as endpoints from '@school-allocation/api-contracts/endpoints'
+import { endpointPath } from '@school-allocation/api-contracts/client-endpoint'
+import * as endpoints from '@school-allocation/api-contracts/endpoint-metadata'
 export type { DayDemand } from '@school-allocation/school-core'
 
 import type { CampaignChanges, ItemInput } from '@school-allocation/api-contracts'

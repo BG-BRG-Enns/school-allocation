@@ -1,5 +1,5 @@
-import { endpointPath } from '@school-allocation/api-contracts/endpoint'
-import { getAdminRosterGraphStart, getAdminRosterPersons, putAdminClassesByClassNameTeachers } from '@school-allocation/api-contracts/endpoints'
+import { endpointPath } from '@school-allocation/api-contracts/client-endpoint'
+import { getAdminRosterGraphStart, getAdminRosterPersons, putAdminClassesByClassNameTeachers } from '@school-allocation/api-contracts/endpoint-metadata'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 

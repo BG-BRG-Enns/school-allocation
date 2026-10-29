@@ -2,7 +2,22 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), {
+    name: 'browser-contract-boundary',
+    generateBundle(_options, bundle) {
+      // Check emitted modules, including indirect imports, rather than a byte
+      // budget that could miss schemas after an unrelated size reduction.
+      for (const output of Object.values(bundle)) {
+        if (output.type !== 'chunk') continue
+        for (const id of Object.keys(output.modules)) {
+          const contract = /packages\/api-contracts\/src\/(.+)$/.exec(id)?.[1]
+          if ((contract !== undefined && !['endpoint-metadata.ts', 'client-endpoint.ts'].includes(contract)) || /node_modules\/typebox\//.test(id)) {
+            this.error(`Server schemas must not enter the browser bundle: ${id}`)
+          }
+        }
+      }
+    },
+  }],
   // Relative asset references: the build does not know under which path
   // the app will run. The server makes them absolute under its base path
   // when it sends index.html, and names the base path to the app

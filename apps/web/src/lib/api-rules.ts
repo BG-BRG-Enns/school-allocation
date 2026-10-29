@@ -2,8 +2,8 @@
 // node:test can check it: how a refusal is represented, and where a
 // signed-out person is sent.
 
-import { getAuthLogin } from '@school-allocation/api-contracts/auth-endpoints'
-import { endpointPath } from '@school-allocation/api-contracts/endpoint'
+import { getAuthLogin } from '@school-allocation/api-contracts/endpoint-metadata'
+import { endpointPath } from '@school-allocation/api-contracts/client-endpoint'
 
 /** A refused request: the API's error code, for a validation error its message, and the whole body for a refusal that says more. */
 export class ApiError extends Error {

@@ -1,3 +1,4 @@
+import * as metadata from '@school-allocation/api-contracts/endpoint-metadata'
 import * as endpoints from '@school-allocation/api-contracts/endpoints'
 import type { Endpoint } from '@school-allocation/api-contracts/endpoint'
 import assert from 'node:assert/strict'
@@ -27,4 +28,13 @@ test('registered routes match shared descriptors and preserve the input inventor
   assert.deepEqual([...seen].sort(), descriptors.map((e) => `${e.method} ${e.path}`).sort(), 'every descriptor must be registered')
   const expected: unknown = JSON.parse(readFileSync(new URL('./fixtures/routes.json', import.meta.url), 'utf8'))
   assert.deepEqual(actual, expected, 'Regenerate deliberately with npm run contracts:update:routes')
+})
+
+test('browser endpoint metadata matches every server descriptor without exposing schemas', () => {
+  assert.deepEqual(Object.keys(metadata).sort(), Object.keys(endpoints).sort())
+  for (const [name, value] of Object.entries(metadata)) {
+    const descriptor = endpoints[name as keyof typeof endpoints]
+    assert.deepEqual(value, { method: descriptor.method, path: descriptor.path, transport: descriptor.transport }, name)
+    assert.deepEqual(Object.keys(value).sort(), ['method', 'path', 'transport'], name)
+  }
 })
