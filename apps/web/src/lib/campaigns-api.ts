@@ -1,39 +1,41 @@
-import type { DayDemand } from '@school-allocation/school-core'
-export type { DayDemand } from '@school-allocation/school-core'
 // The campaigns' and the catalogue's API, typed as the server answers it
 // (apps/api/routes/campaigns.ts).
 
-import type { Campaign, CampaignChanges, CampaignView, ChoiceView, ClassStatus, Item, ItemInput, MissingStudent } from '@school-allocation/api-contracts'
-import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from './api.ts'
+import { endpointPath } from '@school-allocation/api-contracts/endpoint'
+import * as endpoints from '@school-allocation/api-contracts/endpoints'
+export type { DayDemand } from '@school-allocation/school-core'
 
-export type { Campaign, CampaignChanges, CampaignCounts, CampaignView, CampaignWindow, ChoiceState, ChoiceView, ClassStatus, GroupView, Item, ItemInput, ItemInvalidBody, MissingStudent, RankingInvalidBody, SessionInput } from '@school-allocation/api-contracts'
-export const loadCampaigns = () => apiGet<{ campaigns: Campaign[] }>('/api/campaigns')
-export const loadCampaign = (id: string) => apiGet<CampaignView>(`/api/campaigns/${encodeURIComponent(id)}`)
-export const loadItems = (id: string) => apiGet<{ items: Item[] }>(`/api/campaigns/${encodeURIComponent(id)}/items`)
-export const loadCatalogue = (id: string) => apiGet<{ campaign: Campaign, items: Item[] }>(`/api/campaigns/${encodeURIComponent(id)}/catalogue`)
-export const loadClasses = (id: string) => apiGet<{ classes: { className: string, grade: number }[] }>(`/api/campaigns/${encodeURIComponent(id)}/classes`)
-export const searchTeachers = (id: string, q: string) => apiGet<{ teachers: { personId: string, displayName: string }[] }>(`/api/campaigns/${encodeURIComponent(id)}/teachers?q=${encodeURIComponent(q)}`)
-export const createItem = (campaignId: string, input: ItemInput) => apiPost<Item>(`/api/campaigns/${encodeURIComponent(campaignId)}/items`, input)
-export const updateItem = (id: string, input: ItemInput) => apiPatch<Item>(`/api/items/${encodeURIComponent(id)}`, input)
-export const deleteItem = (id: string) => apiDelete(`/api/items/${encodeURIComponent(id)}`)
-export const proposeItem = (id: string) => apiPost<Item>(`/api/items/${encodeURIComponent(id)}/propose`)
-export const unproposeItem = (id: string) => apiPost<Item>(`/api/items/${encodeURIComponent(id)}/unpropose`)
+import type { CampaignChanges,ItemInput } from '@school-allocation/api-contracts'
+import { apiRequest } from './api.ts'
 
-export const createCampaign = (input: { kind: 'project_week', name: string, schoolYear: string, projectDays: string[] }) => apiPost<Campaign>('/api/admin/campaigns', input)
+export type { Campaign,CampaignChanges,CampaignCounts,CampaignView,CampaignWindow,ChoiceState,ChoiceView,ClassStatus,GroupView,Item,ItemInput,ItemInvalidBody,MissingStudent,RankingInvalidBody,SessionInput } from '@school-allocation/api-contracts'
+export const loadCampaigns = () => apiRequest(endpoints.getCampaigns, { })
+export const loadCampaign = (id: string) => apiRequest(endpoints.getCampaignsById, { params: { id: id } })
+export const loadItems = (id: string) => apiRequest(endpoints.getCampaignsByIdItems, { params: { id: id } })
+export const loadCatalogue = (id: string) => apiRequest(endpoints.getCampaignsByIdCatalogue, { params: { id: id } })
+export const loadClasses = (id: string) => apiRequest(endpoints.getCampaignsByIdClasses, { params: { id: id } })
+export const searchTeachers = (id: string, q: string) => apiRequest(endpoints.getCampaignsByIdTeachers, { params: { id: id }, query: { q } })
+export const createItem = (campaignId: string, input: ItemInput) => apiRequest(endpoints.postCampaignsByIdItems, { params: { id: campaignId }, body: input })
+export const updateItem = (id: string, input: ItemInput) => apiRequest(endpoints.patchItemsById, { params: { id: id }, body: input })
+export const deleteItem = (id: string) => apiRequest(endpoints.deleteItemsById, { params: { id: id } })
+export const proposeItem = (id: string) => apiRequest(endpoints.postItemsByIdPropose, { params: { id: id } })
+export const unproposeItem = (id: string) => apiRequest(endpoints.postItemsByIdUnpropose, { params: { id: id } })
 
-export const loadMyChoice = (id: string) => apiGet<ChoiceView>(`/api/campaigns/${encodeURIComponent(id)}/my-choice`)
-export const saveMyChoice = (id: string, ranking: Record<string, string[]>) => apiPut<ChoiceView>(`/api/campaigns/${encodeURIComponent(id)}/my-choice`, { ranking })
-export const loadChoiceOf = (id: string, personId: string) => apiGet<ChoiceView>(`/api/admin/campaigns/${encodeURIComponent(id)}/choices/${encodeURIComponent(personId)}`)
-export const saveChoiceOf = (id: string, personId: string, ranking: Record<string, string[]>, reason: string) => apiPut<ChoiceView>(`/api/admin/campaigns/${encodeURIComponent(id)}/choices/${encodeURIComponent(personId)}`, { ranking, reason })
-export const exemptStudent = (id: string, personId: string, itemId: string, reason: string) => apiPost<ChoiceView>(`/api/admin/campaigns/${encodeURIComponent(id)}/preassignments/${encodeURIComponent(personId)}/${encodeURIComponent(itemId)}/exempt`, { reason })
-export const loadMissing = (id: string) => apiGet<{ students: MissingStudent[] }>(`/api/admin/campaigns/${encodeURIComponent(id)}/missing`)
-export const missingExportPath = (id: string) => `/api/admin/campaigns/${encodeURIComponent(id)}/export/missing.xlsx`
+export const createCampaign = (input: { kind: 'project_week', name: string, schoolYear: string, projectDays: string[] }) => apiRequest(endpoints.postAdminCampaigns, { body: input })
 
-export const updateCampaign = (id: string, input: CampaignChanges) => apiPatch<Campaign>(`/api/admin/campaigns/${encodeURIComponent(id)}`, input)
-export const loadDemand = (id: string) => apiGet<{ demand: DayDemand[] }>(`/api/campaigns/${encodeURIComponent(id)}/demand`)
-export const loadClassStatus = (id: string, className: string) => apiGet<ClassStatus>(`/api/campaigns/${encodeURIComponent(id)}/classes/${encodeURIComponent(className)}/status`)
-export const transitionCampaign = (id: string, to: 'catalogue' | 'published' | 'open' | 'closed') => apiPost<Campaign>(`/api/admin/campaigns/${encodeURIComponent(id)}/transition`, { to })
-export const approveItem = (id: string) => apiPost<Item>(`/api/admin/items/${encodeURIComponent(id)}/approve`)
-export const returnItem = (id: string, note: string) => apiPost<Item>(`/api/admin/items/${encodeURIComponent(id)}/return`, { note })
-export const withdrawItem = (id: string, reason: string) => apiPost<Item>(`/api/admin/items/${encodeURIComponent(id)}/withdraw`, { reason })
-export const catalogueExportPath = (id: string) => `/api/admin/campaigns/${encodeURIComponent(id)}/export/catalogue.xlsx`
+export const loadMyChoice = (id: string) => apiRequest(endpoints.getCampaignsByIdMyChoice, { params: { id: id } })
+export const saveMyChoice = (id: string, ranking: Record<string, string[]>) => apiRequest(endpoints.putCampaignsByIdMyChoice, { params: { id: id }, body: { ranking } })
+export const loadChoiceOf = (id: string, personId: string) => apiRequest(endpoints.getAdminCampaignsByIdChoicesByPersonId, { params: { id: id, personId: personId } })
+export const saveChoiceOf = (id: string, personId: string, ranking: Record<string, string[]>, reason: string) => apiRequest(endpoints.putAdminCampaignsByIdChoicesByPersonId, { params: { id: id, personId: personId }, body: { ranking, reason } })
+export const exemptStudent = (id: string, personId: string, itemId: string, reason: string) => apiRequest(endpoints.postAdminCampaignsByIdPreassignmentsByPersonIdByItemIdExempt, { params: { id: id, personId: personId, itemId: itemId }, body: { reason } })
+export const loadMissing = (id: string) => apiRequest(endpoints.getAdminCampaignsByIdMissing, { params: { id: id } })
+export const missingExportPath = (id: string) => endpointPath(endpoints.getAdminCampaignsByIdExportMissingXlsx, { params: { id } })
+
+export const updateCampaign = (id: string, input: CampaignChanges) => apiRequest(endpoints.patchAdminCampaignsById, { params: { id: id }, body: input })
+export const loadDemand = (id: string) => apiRequest(endpoints.getCampaignsByIdDemand, { params: { id: id } })
+export const loadClassStatus = (id: string, className: string) => apiRequest(endpoints.getCampaignsByIdClassesByClassNameStatus, { params: { id: id, className: className } })
+export const transitionCampaign = (id: string, to: 'catalogue' | 'published' | 'open' | 'closed') => apiRequest(endpoints.postAdminCampaignsByIdTransition, { params: { id: id }, body: { to } })
+export const approveItem = (id: string) => apiRequest(endpoints.postAdminItemsByIdApprove, { params: { id: id } })
+export const returnItem = (id: string, note: string) => apiRequest(endpoints.postAdminItemsByIdReturn, { params: { id: id }, body: { note } })
+export const withdrawItem = (id: string, reason: string) => apiRequest(endpoints.postAdminItemsByIdWithdraw, { params: { id: id }, body: { reason } })
+export const catalogueExportPath = (id: string) => endpointPath(endpoints.getAdminCampaignsByIdExportCatalogueXlsx, { params: { id } })

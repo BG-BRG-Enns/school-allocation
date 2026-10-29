@@ -1,18 +1,17 @@
 // Shared HTTP shapes. Types are derived from the schemas used by Fastify.
 
 import { RANKING_PROBLEM_CODES } from '@school-allocation/school-core'
-import { Type, type Static } from 'typebox'
-import { CampaignSchema, ItemSchema, ItemStateSchema } from './campaigns.ts'
-import { Literals, StrictObject } from './common.ts'
+import { Type,type Static } from 'typebox'
+import { CampaignSchema,ItemSchema,ItemStateSchema } from './campaigns.ts'
+import { Literals,StrictObject } from './common.ts'
 
 export const RankingProblemCodeSchema = Literals(RANKING_PROBLEM_CODES)
-export type { RankingProblemCode } from '@school-allocation/school-core'
+export type { RankingProblem,RankingProblemCode } from '@school-allocation/school-core'
 
 export const RankingProblemSchema = StrictObject({
   code: RankingProblemCodeSchema,
   group: Type.Optional(Type.String()),
 })
-export type { RankingProblem } from '@school-allocation/school-core'
 
 export const ChoiceStateSchema = Type.Union([Type.Literal('none'), Type.Literal('incomplete'), Type.Literal('complete')])
 export type ChoiceState = Static<typeof ChoiceStateSchema>
@@ -47,6 +46,7 @@ export const ClassStatusSchema = StrictObject({
 })
 export type ClassStatus = Static<typeof ClassStatusSchema>
 
+/** Millisecond spans and itemIds are legacy wire fields, retained for compatibility. */
 export const GroupViewSchema = StrictObject({
   startMs: Type.Number(),
   endMs: Type.Number(),

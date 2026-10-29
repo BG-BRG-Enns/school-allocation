@@ -1,6 +1,6 @@
 import helmet from '@fastify/helmet'
 import fastifyStatic from '@fastify/static'
-import { ErrorResponse, HealthResponse } from '@school-allocation/api-contracts/common'
+import { getHealth } from '@school-allocation/api-contracts/health-endpoints'
 import { CORE_VERSION } from '@school-allocation/school-core'
 import Fastify, { LogController, type FastifyError, type FastifyInstance, type FastifyReply, type FastifyRequest, type RouteOptions } from 'fastify'
 import { existsSync } from 'node:fs'
@@ -8,6 +8,7 @@ import type { Writable } from 'node:stream'
 import type { Config } from './config.ts'
 import { createGuards } from './lib/auth.ts'
 import type { Database } from './lib/db.ts'
+import { registerEndpoint } from './lib/endpoint.ts'
 import { applicationFailure } from './lib/http-errors.ts'
 import { isBusy } from './lib/jobs.ts'
 import { Sender } from './lib/mail/sender.ts'
@@ -182,7 +183,7 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   // The health check also says whether a job is executing: the
   // deployment's nightly update asks it and stays away while one does
   // (deploy/not-busy.sh). The answer names nothing and nobody.
-  app.get(`${config.basePath}/api/health`, { schema: { response: { '200': HealthResponse, '503': HealthResponse, '4xx': ErrorResponse } } }, async (_request, reply) => {
+  registerEndpoint(app, { ...getHealth, path: `${config.basePath}${getHealth.path}` }, {}, async (_request, reply) => {
     const { version, gitSha } = config.build
     try {
       const busy = await isBusy(db)

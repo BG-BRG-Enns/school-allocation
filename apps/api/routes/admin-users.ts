@@ -14,19 +14,17 @@
 // services/bindings.ts). An administrator can neither block themselves nor
 // revoke their own administration.
 
-import { AccountsResponse, AuditResponse, GrantSchema, GrantsResponse } from '@school-allocation/api-contracts'
-import { BindingBody, GrantBody, UsersQuery } from '@school-allocation/api-contracts/administration'
-import { ReasonBody } from '@school-allocation/api-contracts/catalogue'
-import { ErrorResponse, IdParams } from '@school-allocation/api-contracts/common'
-import type { FastifyInstance, FastifyReply } from 'fastify'
-import { type Static } from 'typebox'
+import * as endpoints from '@school-allocation/api-contracts/admin-users-endpoints'
+import { registerEndpoint } from '../lib/endpoint.ts'
+
+import type { FastifyInstance,FastifyReply } from 'fastify'
 import { actorOf } from '../lib/actor.ts'
-import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
+import { readAudit,SCHOOL_SCOPE } from '../lib/audit.ts'
 import type { Guards } from '../lib/auth.ts'
 import { callerOf } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
-import { blockAccount, grantRole, listAccounts, listGrants, revokeGrant, unblockAccount } from '../services/admin-users.ts'
+import { blockAccount,grantRole,listAccounts,listGrants,revokeGrant,unblockAccount } from '../services/admin-users.ts'
 import { bindByAdmin } from '../services/bindings.ts'
 
 export interface AdminUsersOptions {
@@ -37,27 +35,27 @@ export interface AdminUsersOptions {
 export async function adminUsersRoutes(app: FastifyInstance, { db, guards }: AdminUsersOptions): Promise<void> {
   const admin = { preHandler: guards.requireRole('school_admin') }
 
-  app.get<{ Querystring: Static<typeof UsersQuery> }>('/api/admin/users', { ...admin, schema: { querystring: UsersQuery, response: { '200': AccountsResponse, '4xx': ErrorResponse } } }, async (request) => {
+  registerEndpoint(app, endpoints.getAdminUsers, { ...admin }, async (request) => {
     return { users: await listAccounts(db, request.query.q?.trim() ?? '', request.query.unbound === 'true', 500) }
   })
 
-  app.post<{ Params: Static<typeof IdParams>, Body: Static<typeof ReasonBody> }>('/api/admin/users/:id/block', { ...admin, schema: { params: IdParams, body: ReasonBody, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
+  registerEndpoint(app, endpoints.postAdminUsersByIdBlock, { ...admin }, async (request, reply) => {
     return done(reply, () => blockAccount(db, request.params.id, request.body.reason, actorOf(callerOf(request))))
   })
 
-  app.post<{ Params: Static<typeof IdParams>, Body: Static<typeof ReasonBody> }>('/api/admin/users/:id/unblock', { ...admin, schema: { params: IdParams, body: ReasonBody, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
+  registerEndpoint(app, endpoints.postAdminUsersByIdUnblock, { ...admin }, async (request, reply) => {
     return done(reply, () => unblockAccount(db, request.params.id, request.body.reason, actorOf(callerOf(request))))
   })
 
-  app.post<{ Body: Static<typeof BindingBody> }>('/api/admin/bindings', { ...admin, schema: { body: BindingBody, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
+  registerEndpoint(app, endpoints.postAdminBindings, { ...admin }, async (request, reply) => {
     return done(reply, () => bindByAdmin(db, request.body, actorOf(callerOf(request))))
   })
 
-  app.get('/api/admin/roles', { ...admin, schema: { response: { '200': GrantsResponse, '4xx': ErrorResponse } } }, async () => {
+  registerEndpoint(app, endpoints.getAdminRoles, { ...admin }, async () => {
     return { grants: await listGrants(db) }
   })
 
-  app.post<{ Body: Static<typeof GrantBody> }>('/api/admin/roles', { ...admin, schema: { body: GrantBody, response: { '201': GrantSchema, '4xx': ErrorResponse } } }, async (request, reply) => {
+  registerEndpoint(app, endpoints.postAdminRoles, { ...admin }, async (request, reply) => {
     try {
       const grant = await grantRole(db, request.body.userId, request.body.role, request.body.reason, actorOf(callerOf(request)))
       if (!grant) return reply.code(404).send({ error: 'not_found' })
@@ -68,11 +66,11 @@ export async function adminUsersRoutes(app: FastifyInstance, { db, guards }: Adm
     }
   })
 
-  app.post<{ Params: Static<typeof IdParams>, Body: Static<typeof ReasonBody> }>('/api/admin/roles/:id/revoke', { ...admin, schema: { params: IdParams, body: ReasonBody, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
+  registerEndpoint(app, endpoints.postAdminRolesByIdRevoke, { ...admin }, async (request, reply) => {
     return done(reply, () => revokeGrant(db, request.params.id, request.body.reason, actorOf(callerOf(request))))
   })
 
-  app.get('/api/admin/audit', { preHandler: guards.requireRole('school_admin', 'read_only_auditor'), schema: { response: { '200': AuditResponse, '4xx': ErrorResponse } } }, async () => {
+  registerEndpoint(app, endpoints.getAdminAudit, { preHandler: guards.requireRole('school_admin', 'read_only_auditor') }, async () => {
     return { events: await readAudit(db, SCHOOL_SCOPE) }
   })
 }

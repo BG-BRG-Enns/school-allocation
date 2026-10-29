@@ -5,24 +5,24 @@
 // who has not chosen. The rules are school-core's; this module hands them
 // the stored rows.
 
-import { acceptsChoices, checkRanking, isComplete, offeredTo, timeGroupsOf, wishesRequired, type Ranking } from '@school-allocation/school-core'
+import { acceptsChoices,checkRanking,isComplete,offeredTo,timeGroupsOf,wishesRequired,type Ranking } from '@school-allocation/school-core'
 import { type Caller } from '../lib/actor.ts'
-import { appendAudit, lockScope } from '../lib/audit.ts'
+import { appendAudit,lockScope } from '../lib/audit.ts'
 import * as store from '../lib/dao/choices.ts'
-import { campaignStudent, campaignStudents, fixedItemIds } from '../lib/dao/choices.ts'
-import type { Database, Queryable } from '../lib/db.ts'
-import { ApplicationError, ChoiceInvalid } from '../lib/errors.ts'
+import { campaignStudent,campaignStudents,fixedItemIds } from '../lib/dao/choices.ts'
+import type { Database,Queryable } from '../lib/db.ts'
+import { ApplicationError,ChoiceInvalid } from '../lib/errors.ts'
 import { mailStatesByPerson } from '../lib/mail/outbox.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
-import type { CampaignStudent, ChoiceState, ChoiceView, SaveBy, StudentChoiceState } from '../lib/models/choices.ts'
+import type { CampaignStudent,ChoiceState,ChoiceView,SaveBy,StudentChoiceState } from '../lib/models/choices.ts'
 import type { Item } from '../lib/models/items.ts'
 import { instantOf } from '../lib/time.ts'
 import { catalogueItems } from './items.ts'
 import { reconcilePreAssignments } from './pre-assignments.ts'
 
-export { campaignStudent, campaignStudents, rosterBatchClause } from '../lib/dao/choices.ts'
+export { campaignStudent,campaignStudents,rosterBatchClause } from '../lib/dao/choices.ts'
 export { ChoiceInvalid } from '../lib/errors.ts'
-export type { CampaignStudent, ChoiceState, ChoiceView, GroupView, SaveBy, StudentChoiceState } from '../lib/models/choices.ts'
+export type { CampaignStudent,ChoiceState,ChoiceView,GroupView,SaveBy,StudentChoiceState } from '../lib/models/choices.ts'
 
 /** Places every student of a class an approved item is fixed for into it (D-24), from the roster in force; called when the window opens. */
 export async function materializePreAssignments(client: Queryable, campaign: Pick<Campaign, 'id'>): Promise<number> {
@@ -44,7 +44,11 @@ export async function choiceView(db: Queryable, campaign: Campaign, student: Cam
   const offered = offeredTo({ className: student.className, grade: student.grade }, offerable, fixedSpans)
   const byId = new Map(items.map((item) => [item.id, item]))
   const groups = timeGroupsOf(offered).map((group) => ({
-    ...group,
+    // Legacy wire fields are retained explicitly; new core fields must not leak.
+    key: group.key,
+    startMs: group.startMs,
+    endMs: group.endMs,
+    itemIds: group.itemIds,
     startsAt: new Date(group.startMs).toISOString(),
     endsAt: new Date(group.endMs).toISOString(),
     items: group.itemIds.map((id) => byId.get(id)).filter((item): item is Item => item !== undefined),

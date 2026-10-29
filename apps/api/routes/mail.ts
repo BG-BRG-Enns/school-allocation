@@ -7,17 +7,16 @@
 //
 // Organizers and administrators; the texts are the school's, not a campaign's.
 
-import { MailStatusResponse, QueuedResponse, TemplateResponse, TemplatesResponse } from '@school-allocation/api-contracts'
-import { ErrorResponse } from '@school-allocation/api-contracts/common'
-import { KindParams, TemplateBody, TemplateInvalidResponse } from '@school-allocation/api-contracts/window'
+import * as endpoints from '@school-allocation/api-contracts/mail-endpoints'
+import { registerEndpoint } from '../lib/endpoint.ts'
+
 import type { FastifyInstance } from 'fastify'
-import type { Static } from 'typebox'
 import type { Config } from '../config.ts'
 import { actorOf } from '../lib/actor.ts'
-import { callerOf, type Guards } from '../lib/auth.ts'
+import { callerOf,type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { countQueued } from '../lib/mail/outbox.ts'
-import { readTemplates, saveTemplate, TemplateInvalid } from '../services/mail-templates.ts'
+import { readTemplates,saveTemplate,TemplateInvalid } from '../services/mail-templates.ts'
 import { queueTestMail } from '../services/mail.ts'
 
 export interface MailRoutesOptions {
@@ -31,13 +30,11 @@ export interface MailRoutesOptions {
 export async function mailRoutes(app: FastifyInstance, { config, db, guards, wakeSender }: MailRoutesOptions): Promise<void> {
   const organizer = { preHandler: guards.requireRole('campaign_organizer', 'school_admin') }
 
-  app.get('/api/admin/mail-templates', { ...organizer, schema: { response: { '200': TemplatesResponse, '4xx': ErrorResponse } } }, async () => {
+  registerEndpoint(app, endpoints.getAdminMailTemplates, { ...organizer }, async () => {
     return { templates: await readTemplates(db), mailEnabled: config.mail !== null }
   })
 
-  app.put<{ Params: Static<typeof KindParams>, Body: Static<typeof TemplateBody> }>('/api/admin/mail-templates/:kind', {
-    ...organizer, schema: { params: KindParams, body: TemplateBody, response: { '200': TemplateResponse, '422': TemplateInvalidResponse, '4xx': ErrorResponse } },
-  }, async (request, reply) => {
+  registerEndpoint(app, endpoints.putAdminMailTemplatesByKind, { ...organizer }, async (request, reply) => {
     try {
       return { template: await saveTemplate(db, request.params.kind, request.body.subject, request.body.body, actorOf(callerOf(request))) }
     } catch (err) {
@@ -48,13 +45,13 @@ export async function mailRoutes(app: FastifyInstance, { config, db, guards, wak
 
   // The template as it stands, with sample values, to the caller's own
   // address: what a recipient will get, through the real outbox and server.
-  app.post<{ Params: Static<typeof KindParams> }>('/api/admin/mail-templates/:kind/test', { ...organizer, schema: { params: KindParams, response: { '202': QueuedResponse, '4xx': ErrorResponse } } }, async (request, reply) => {
+  registerEndpoint(app, endpoints.postAdminMailTemplatesByKindTest, { ...organizer }, async (request, reply) => {
     await queueTestMail(db, request.params.kind, callerOf(request), config.mail !== null)
     wakeSender?.()
     return reply.code(202).send({ queued: true })
   })
 
-  app.get('/api/admin/mail/status', { ...organizer, schema: { response: { '200': MailStatusResponse, '4xx': ErrorResponse } } }, async () => {
+  registerEndpoint(app, endpoints.getAdminMailStatus, { ...organizer }, async () => {
     return { mailEnabled: config.mail !== null, queued: await countQueued(db) }
   })
 }

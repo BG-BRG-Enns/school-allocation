@@ -4,7 +4,9 @@
 // is gone: the browser goes to the sign-in page and comes back to this
 // one. A 204 is an answer without content, undefined to the caller.
 
-import { ApiError, problemOf, signInUrl } from './api-rules.ts'
+import { endpointPath,type Endpoint,type EndpointInput,type EndpointResponse } from '@school-allocation/api-contracts/endpoint'
+
+import { ApiError,problemOf,signInUrl } from './api-rules.ts'
 import { withBase } from './base.ts'
 
 let goToSignIn: () => void = () => window.location.assign(withBase(signInUrl(window.location.pathname + window.location.search)))
@@ -14,30 +16,12 @@ export function onUnauthenticated(handler: () => void): void {
   goToSignIn = handler
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
-  return call<T>('GET', path)
-}
-
-export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
-  return call<T>('POST', path, body)
-}
-
-export async function apiPut<T>(path: string, body: unknown): Promise<T> {
-  return call<T>('PUT', path, body)
-}
-
-export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
-  return call<T>('PATCH', path, body)
-}
-
-export async function apiDelete(path: string): Promise<void> {
-  await call<undefined>('DELETE', path)
-}
-
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const response = await send(method, path, body)
-  if (response.status === 204) return undefined as T
-  return response.json() as Promise<T>
+/** The selected endpoint determines its URL, method, body and successful response. */
+export async function apiRequest<E extends Endpoint & { transport: 'json' | 'empty' }>(endpoint: E, input: EndpointInput<NoInfer<E>>): Promise<EndpointResponse<E>> {
+  const response = await send(endpoint.method, endpointPath(endpoint, input), input.body)
+  // The server validates and serializes against this same endpoint's schema.
+  if (response.status === 204) return undefined as EndpointResponse<E>
+  return response.json() as Promise<EndpointResponse<E>>
 }
 
 /** The request, with a refusal thrown and a 401 sent to sign-in; the response for the caller to read. */

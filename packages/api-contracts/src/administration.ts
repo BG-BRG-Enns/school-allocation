@@ -1,7 +1,7 @@
 // Shared HTTP shapes. Types are derived from the schemas used by Fastify.
 
-import { Type, type Static } from 'typebox'
-import { ROLES, Reason, StrictObject, Uuid } from './common.ts'
+import { Type,type Static } from 'typebox'
+import { Reason,ROLES,StrictObject,Uuid } from './common.ts'
 
 export const AccountSchema = StrictObject({
   id: Type.String(),
@@ -49,4 +49,4 @@ export const UsersQuery = StrictObject({
 
 export const BindingBody = StrictObject({ userId: Uuid, personId: Uuid, reason: Reason })
 
-export const GrantBody = StrictObject({ userId: Uuid, role: Type.Union(ROLES.map((role) => Type.Literal(role))), reason: Reason })
+export const GrantBody = StrictObject({ userId: Uuid, role: Type.Union([Type.Literal(ROLES[0]), Type.Literal(ROLES[1]), Type.Literal(ROLES[2])]), reason: Reason })

@@ -5,6 +5,7 @@
 // and revoked here. Every action asks for a reason, which the audit log
 // keeps.
 
+import type { Role } from '@school-allocation/api-contracts'
 import { computed, onMounted, ref } from 'vue'
 import { bindAccount, blockAccount, grantRole, loadAccounts, loadGrants, revokeGrant, searchPersons, unblockAccount, type Account, type Grant, type RosterPerson } from '../lib/admin-api.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
@@ -24,7 +25,7 @@ type Action = 'bind' | 'block' | 'unblock' | 'grant'
 /** The account an action is being prepared for, and which. */
 const active = ref<{ account: Account, action: Action } | null>(null)
 const reason = ref('')
-const role = ref('campaign_organizer')
+const role = ref<Role>('campaign_organizer')
 const personQuery = ref('')
 const persons = ref<RosterPerson[]>([])
 const chosenPerson = ref<string | null>(null)

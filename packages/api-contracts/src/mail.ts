@@ -1,10 +1,11 @@
 // Shared HTTP shapes. Types are derived from the schemas used by Fastify.
 
-import { Type, type Static } from 'typebox'
-import { Literals, StrictObject } from './common.ts'
+import { Type,type Static } from 'typebox'
+import { Literals,StrictObject } from './common.ts'
 
+export const MAIL_KINDS = ['choice_invitation', 'choice_reminder', 'grace_invitation', 'grace_reminder', 'missed_deadline', 'class_missing'] as const
 export const MailTemplateSchema = StrictObject({
-  kind: Type.String(),
+  kind: Literals(MAIL_KINDS),
   subject: Type.String(),
   body: Type.String(),
   placeholders: Type.Array(Type.String()),
@@ -31,7 +32,6 @@ export const OutboxMailSchema = StrictObject({
 })
 export type OutboxMail = Static<typeof OutboxMailSchema>
 
-export const MAIL_KINDS = ['choice_invitation', 'choice_reminder', 'grace_invitation', 'grace_reminder', 'missed_deadline', 'class_missing'] as const
 export type MailKind = typeof MAIL_KINDS[number]
 
 export const TemplatesResponse = StrictObject({ templates: Type.Array(MailTemplateSchema), mailEnabled: Type.Boolean() })

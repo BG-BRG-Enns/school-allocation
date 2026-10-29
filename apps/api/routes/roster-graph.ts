@@ -1,17 +1,16 @@
 // Graph authorization, roster refresh and group picker. Token handles belong to this app instance.
 
-import { GraphGroupsResponse } from '@school-allocation/api-contracts'
-import { ErrorResponse } from '@school-allocation/api-contracts/common'
-import { GraphCallbackQuery, GraphStartQuery, GroupsQuery } from '@school-allocation/api-contracts/roster'
+import * as endpoints from '@school-allocation/api-contracts/roster-graph-endpoints'
+import { registerEndpoint } from '../lib/endpoint.ts'
+
 import { isSchoolYear } from '@school-allocation/school-core'
-import type { FastifyInstance, FastifyRequest } from 'fastify'
+import type { FastifyInstance,FastifyRequest } from 'fastify'
 import { randomBytes } from 'node:crypto'
-import { type Static } from 'typebox'
 import type { Config } from '../config.ts'
-import { callerOf, withinSeconds, type Guards } from '../lib/auth.ts'
+import { callerOf,withinSeconds,type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { registerGraphAuthorization, SIGN_IN_SECONDS, SignInError } from '../lib/entra.ts'
-import { GRAPH_BASE_URL, GraphError, searchClassGroups, searchGroups } from '../lib/graph.ts'
+import { registerGraphAuthorization,SIGN_IN_SECONDS,SignInError } from '../lib/entra.ts'
+import { GRAPH_BASE_URL,GraphError,searchClassGroups,searchGroups } from '../lib/graph.ts'
 import { readGroups } from '../services/roster-groups.ts'
 import { importGraphRoster } from '../services/roster-import.ts'
 
@@ -61,11 +60,7 @@ export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guar
   // Sets the state cookie and the pending refresh; changes nothing on the
   // server. The callback, with the token the administrator just consented
   // to, does the reading.
-  app.get<{ Querystring: Static<typeof GraphStartQuery> }>('/api/admin/roster/graph/start', {
-    ...admin,
-    exposeHeadRoute: false,
-    schema: { querystring: GraphStartQuery, response: { '4xx': ErrorResponse } },
-  }, async (request, reply) => {
+  registerEndpoint(app, endpoints.getAdminRosterGraphStart, { ...admin, exposeHeadRoute: false }, async (request, reply) => {
     const purpose = request.query.purpose ?? 'refresh'
     const schoolYear = request.query.schoolYear ?? ''
     if (purpose === 'refresh') {
@@ -83,11 +78,7 @@ export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guar
   // comes with the Graph token must name the administrator who is signed
   // in, so the token read with is their own. The browser ends up on the
   // batch's page, or on the roster page with what went wrong.
-  app.get<{ Querystring: Static<typeof GraphCallbackQuery> }>('/api/admin/roster/graph/callback', {
-    ...admin,
-    exposeHeadRoute: false,
-    schema: { querystring: GraphCallbackQuery, response: { '4xx': ErrorResponse } },
-  }, async (request, reply) => {
+  registerEndpoint(app, endpoints.getAdminRosterGraphCallback, { ...admin, exposeHeadRoute: false }, async (request, reply) => {
     const failed = (code: string, err?: unknown) => {
       request.log.warn({ err }, `roster refresh failed: ${code}`)
       return reply.redirect(`${rosterPage}?fehler=${encodeURIComponent(code)}`, 303)
@@ -126,7 +117,7 @@ export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guar
 
   // The picker's search, with the token the administrator authorized for it;
   // 409 asks them to authorize (again) when there is none or it has expired.
-  app.get<{ Querystring: Static<typeof GroupsQuery> }>('/api/admin/roster/graph/groups', { ...admin, schema: { querystring: GroupsQuery, response: { '200': GraphGroupsResponse, '4xx': ErrorResponse } } }, async (request, reply) => {
+  registerEndpoint(app, endpoints.getAdminRosterGraphGroups, { ...admin }, async (request, reply) => {
     const token = pickerToken(request)
     if (!token) return reply.code(409).send({ error: 'graph_not_authorized' })
     const q = request.query.q?.trim() ?? ''
