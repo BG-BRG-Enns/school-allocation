@@ -515,8 +515,8 @@ jobs:
           answer="$(curl -fsS -X POST -H 'content-type: application/json' http://127.0.0.1:8000/v1/solve -d '{
             "contract":"allocation/v1","runId":"ci","seed":7,"limits":{"deterministicTimePerLevel":5},
             "students":[
-              {"s":0,"required":[{"d":0,"min":100}],"options":[{"o":0,"cost":1000,"tie":5,"credit":[{"d":0,"min":100}]},{"o":1,"cost":2000,"tie":9,"credit":[{"d":0,"min":100}]}]},
-              {"s":1,"required":[{"d":0,"min":100}],"options":[{"o":0,"cost":1000,"tie":10,"credit":[{"d":0,"min":100}]},{"o":1,"cost":2000,"tie":1,"credit":[{"d":0,"min":100}]}]}],
+              {"s":0,"required":[{"d":0,"min":100}],"norm":100,"options":[{"o":0,"cost":1000,"weight":100,"tie":5,"credit":[{"d":0,"min":100}]},{"o":1,"cost":2000,"weight":200,"tie":9,"credit":[{"d":0,"min":100}]}]},
+              {"s":1,"required":[{"d":0,"min":100}],"norm":100,"options":[{"o":0,"cost":1000,"weight":100,"tie":10,"credit":[{"d":0,"min":100}]},{"o":1,"cost":2000,"weight":200,"tie":1,"credit":[{"d":0,"min":100}]}]}],
             "items":[{"o":0,"max":1,"min":0,"cancellable":true},{"o":1,"max":1,"min":0,"cancellable":true}],
             "conflicts":[[0,1]],"fixed":[],
             "levels":["students_with_deficit","deficit_minutes","over:2000","total_cost","tiebreak"]}')"
