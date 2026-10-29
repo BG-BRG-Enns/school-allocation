@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs'
 import { isIP } from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseMailbox } from './lib/mail/mailbox.ts'
 
 export interface Config {
   host: string
@@ -47,7 +48,26 @@ export interface Config {
    * Group.Read.All finds groups by name for the picker (docs/data-sources.md §3).
    */
   graphScopes: string[]
+  /** How notices leave the school (D-18); null when SMTP_HOST is unset, and the outbox then only queues. */
+  mail: MailConfig | null
   build: BuildInfo
+}
+
+/** The SMTP submission the sender uses (lib/mail/transport.ts): authenticated, over STARTTLS or implicit TLS. */
+export interface MailConfig {
+  host: string
+  port: number
+  /** Implicit TLS from the first byte (port 465); otherwise STARTTLS. */
+  secure: boolean
+  /** Refuse to send without STARTTLS when `secure` is false; off only for a test server on a private network. */
+  requireTls: boolean
+  user: string
+  password: string
+  /** The From header: a mailbox such as "SchulWahl <wahl@schule.example.org>". */
+  from: string
+  replyTo: string | null
+  /** The envelope sender, where bounces go; the From address when unset. */
+  envelopeFrom: string | null
 }
 
 /**
@@ -125,6 +145,7 @@ export function loadConfig(env: Env): Config {
     sessionSecret: check(() => sessionSecret(env), Buffer.alloc(0)),
     bootstrapAdmins: check(() => parseBootstrapAdmins(env.BOOTSTRAP_ADMINS), []),
     graphScopes: check(() => parseGraphScopes(env.GRAPH_DELEGATED_SCOPES), []),
+    mail: check(() => parseMail(env), null),
     build: {
       version: check(() => buildValue(env, 'APP_VERSION', 'dev', /^[0-9A-Za-z][0-9A-Za-z.+_-]{0,63}$/, 'a release tag such as v1.2.0'), ''),
       gitSha: check(() => buildValue(env, 'GIT_SHA', 'unknown', /^[0-9a-f]{7,64}$/, 'a commit hash in lower-case hex'), ''),
@@ -362,6 +383,53 @@ export function parseBootstrapAdmins(raw: string | undefined): string[] {
     throw new ConfigError(`BOOTSTRAP_ADMINS must list Entra object ids or school e-mail addresses separated by commas, got ${bad.join(', ')}`)
   }
   return [...new Set(entries)]
+}
+
+/**
+ * The mail settings, all or nothing: with SMTP_HOST set, the server, the
+ * credentials (SMTP_USER and SMTP_PASSWORD_FILE) and MAIL_FROM are
+ * required; without it, mail is off and the outbox only queues.
+ */
+function parseMail(env: Env): MailConfig | null {
+  const host = env.SMTP_HOST?.trim()
+  if (!host) {
+    for (const name of ['SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD_FILE', 'MAIL_FROM']) {
+      if (env[name]?.trim()) throw new ConfigError(`${name} is set but SMTP_HOST is not; set SMTP_HOST to send mail, or unset the rest`)
+    }
+    return null
+  }
+  if (!/^[A-Za-z0-9.-]{1,253}$/.test(host)) throw new ConfigError('SMTP_HOST must be a host name')
+  const port = env.SMTP_PORT?.trim() ? Number(env.SMTP_PORT) : 587
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new ConfigError('SMTP_PORT must be a port number')
+  const user = env.SMTP_USER?.trim()
+  if (!user) throw new ConfigError('SMTP_USER must be set when SMTP_HOST is')
+  const password = printableAscii(readSecret(env, 'SMTP_PASSWORD'), 'SMTP_PASSWORD_FILE')
+  const from = env.MAIL_FROM?.trim()
+  if (!from || parseMailbox(from) === null) throw new ConfigError('MAIL_FROM must be a mailbox such as "SchulWahl <wahl@schule.example.org>"')
+  const replyTo = env.MAIL_REPLY_TO?.trim() || null
+  if (replyTo !== null && parseMailbox(replyTo) === null) throw new ConfigError('MAIL_REPLY_TO must be a mailbox')
+  const envelopeFrom = env.MAIL_ENVELOPE_FROM?.trim() || null
+  if (envelopeFrom !== null && parseMailbox(envelopeFrom)?.name !== null) throw new ConfigError('MAIL_ENVELOPE_FROM must be a bare address')
+  return {
+    host,
+    port,
+    secure: flag(env, 'SMTP_SECURE', false),
+    requireTls: flag(env, 'SMTP_REQUIRE_TLS', true),
+    user,
+    password,
+    from,
+    replyTo,
+    envelopeFrom,
+  }
+}
+
+/** `true` or `false`, or the default when unset. */
+function flag(env: Env, name: string, fallback: boolean): boolean {
+  const value = env[name]?.trim().toLowerCase()
+  if (!value) return fallback
+  if (value === 'true') return true
+  if (value === 'false') return false
+  throw new ConfigError(`${name} must be true or false`)
 }
 
 /** What a refresh asks for unless the deployment says otherwise: the least that lists a group's members with their names and addresses, and what the group picker needs to find groups by name (D-23). */
