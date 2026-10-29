@@ -19,18 +19,22 @@ Network=school-allocation-egress.network
 # 3000 is taken: a drop-in with PublishPort= (README.md, Host).
 PublishPort=127.0.0.1:3000:3000
 # PUBLIC_URL, TRUST_PROXY, LOG_LEVEL, ENTRA_TENANT_ID, ENTRA_CLIENT_ID,
-# BOOTSTRAP_ADMINS.
+# BOOTSTRAP_ADMINS, and the SMTP settings when the school sends mail.
 EnvironmentFile=%h/school-allocation/.env
 # The unprivileged runtime role the migrator creates. Only its password,
-# the Entra client secret and the session key reach the app; the
-# superuser password stays with the database and the migrator.
+# the Entra client secret, the session key and the SMTP password reach
+# the app; the superuser password stays with the database and the
+# migrator. The SMTP password file exists on every host, empty where no
+# mail is sent (README.md, Secret files).
 Environment=DATABASE_URL=postgres://school_allocation_app@school-allocation-postgres:5432/school_allocation
 Environment=DATABASE_PASSWORD_FILE=/run/secrets/db-runtime-password
 Environment=ENTRA_CLIENT_SECRET_FILE=/run/secrets/entra-client-secret
 Environment=SESSION_KEY_FILE=/run/secrets/session-key
+Environment=SMTP_PASSWORD_FILE=/run/secrets/smtp-password
 Volume=%h/school-allocation/secrets/db-runtime-password:/run/secrets/db-runtime-password:ro,z
 Volume=%h/school-allocation/secrets/entra-client-secret:/run/secrets/entra-client-secret:ro,z
 Volume=%h/school-allocation/secrets/session-key:/run/secrets/session-key:ro,z
+Volume=%h/school-allocation/secrets/smtp-password:/run/secrets/smtp-password:ro,z
 ReadOnly=true
 Tmpfs=/tmp:mode=1777,size=16m
 DropCapability=ALL

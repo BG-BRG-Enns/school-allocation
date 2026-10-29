@@ -200,7 +200,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
 
   <section v-if="overview">
     <h2>Entra-Gruppen</h2>
-    <p>Die Gruppen der Schule, aus denen die Personenliste gelesen wird: je Klasse eine Schülergruppe mit Klasse und Schulstufe, dazu die Gruppe der Lehrkräfte. Suchen Sie die Gruppen bei Microsoft nach ihrem Namen, oder tragen Sie die Gruppen-ID ein, die in Entra bei der Gruppe steht (Objekt-ID).</p>
+    <p>Die Gruppen der Schule, aus denen die Personenliste gelesen wird: je Klasse eine Schülergruppe mit Klasse und Schulstufe, dazu die Gruppe der Lehrkräfte. Suchen Sie die Gruppen bei Microsoft nach ihrem Namen, oder tragen Sie die Gruppen-ID ein, die in Entra bei der Gruppe steht (Objekt-ID). Untergruppen werden mitgelesen: Eine Klasse, deren Schüler/innen in Untergruppen stehen, wird nur einmal eingetragen, entweder die Klassengruppe oder ihre Untergruppen (3A, oder 3AR und 3AG), sonst stehen die Personen doppelt in der Liste.</p>
     <form @submit.prevent="onSaveGroups">
       <table
         v-if="groups.length > 0"

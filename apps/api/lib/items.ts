@@ -9,6 +9,7 @@ import { acceptsProposals, checkItem, itemTransition, type CampaignState, type C
 import { appendAudit, lockScope } from './audit.ts'
 import type { Caller } from './auth.ts'
 import type { Database, Queryable } from './db.ts'
+import { reconcilePreAssignments } from './pre-assignments.ts'
 import { RosterConflict } from './roster.ts'
 import { datesOfSpan, instantOf } from './time.ts'
 
@@ -64,6 +65,11 @@ export class ItemInvalid extends Error {
 }
 
 /** Whether the caller is one of the item's people: its proposer or one of its teachers. */
+/** The item as a student sees it when the campaign keeps the teachers out (D-13): no teachers, no proposer's name. */
+export function withoutTeachers(item: Item): Item {
+  return { ...item, teachers: [], proposedBy: { id: item.proposedBy.id, displayName: '' } }
+}
+
 export function isOwn(caller: Pick<Caller, 'id' | 'person'>, item: Pick<Item, 'proposedBy' | 'teachers'>): boolean {
   return item.proposedBy.id === caller.id || (caller.person !== null && item.teachers.some((teacher) => teacher.personId === caller.person?.id))
 }
@@ -156,6 +162,9 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
     await client.query('delete from item_teacher where item_id = $1', [id])
     await client.query('delete from item_session where item_id = $1', [id])
     await writeParts(client, id, input)
+    if (campaign !== undefined && current.state === 'approved' && (campaign.state === 'open' || campaign.state === 'grace')) {
+      await reconcilePreAssignments(client, current.campaignId, id)
+    }
     if (!asTeacher) {
       await appendAudit(client, { scopeId: current.campaignId, actor: actorOf(caller), action: 'item.changed', metadata: { itemId: id, state: current.state } })
     }
@@ -236,8 +245,10 @@ export async function returnItem(db: Database, id: string, note: string, caller:
 
 /** An organizer withdraws an item, with a reason, audited; it stays in the record. */
 export async function withdrawItem(db: Database, id: string, reason: string, caller: Caller): Promise<Item | undefined> {
-  return moveItem(db, id, 'withdrawn', caller, true, async (client, current) => {
+  return moveItem(db, id, 'withdrawn', caller, true, async (client, current, campaignState) => {
     await client.query('update catalog_item set state = $2, withdrawn_at = now(), withdrawn_by = $3, withdraw_reason = $4, updated_at = now() where id = $1', [id, 'withdrawn', caller.id, reason])
+    // A class activity withdrawn while the window is open frees its classes: the placements by class go (D-24), as after an edit.
+    if (current.state === 'approved' && (campaignState === 'open' || campaignState === 'grace')) await reconcilePreAssignments(client, current.campaignId, id)
     await appendAudit(client, { scopeId: current.campaignId, actor: actorOf(caller), action: 'item.withdrawn', metadata: { itemId: id, from: current.state, reason } })
   })
 }

@@ -43,5 +43,11 @@ usePageTitle(() => 'Verwaltung')
       </RouterLink>
       <p>Die Unterrichtseinheiten der Schule, in denen Lehrkräfte ihre Termine angeben.</p>
     </li>
+    <li>
+      <RouterLink to="/verwaltung/mailvorlagen">
+        Mailvorlagen
+      </RouterLink>
+      <p>Die Texte der Nachrichten, die eine Wahl verschickt: Einladungen, Erinnerungen, Listen an die Klassenvorstände.</p>
+    </li>
   </ul>
 </template>

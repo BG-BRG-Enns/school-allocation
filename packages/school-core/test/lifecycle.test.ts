@@ -18,7 +18,7 @@ test('every state is reachable from draft, and archived is the end', () => {
 })
 
 test('the forward path runs in order; review may go back to allocating but nothing else goes back', () => {
-  const forward: CampaignState[] = ['draft', 'catalogue', 'published', 'open', 'closed', 'allocating', 'review', 'results', 'archived']
+  const forward: CampaignState[] = ['draft', 'catalogue', 'published', 'open', 'grace', 'closed', 'allocating', 'review', 'results', 'archived']
   for (let i = 0; i + 1 < forward.length; i++) {
     const from = forward[i] as CampaignState
     const to = forward[i + 1] as CampaignState
@@ -41,10 +41,12 @@ test('a transition that is not listed is refused with its states, and a state ne
   }
 })
 
-test('choices are accepted only while the window is open', () => {
+test('choices are accepted while the window is open and in the grace week after it', () => {
   for (const state of CAMPAIGN_STATES) {
-    assert.equal(acceptsChoices(state), state === 'open', state)
+    assert.equal(acceptsChoices(state), state === 'open' || state === 'grace', state)
   }
+  // A campaign without a grace week closes straight from open.
+  assert.deepEqual(transition('open', 'closed'), { ok: true, state: 'closed' })
 })
 
 test('isCampaignState tells the states from everything else', () => {

@@ -3,7 +3,10 @@
 // dropped afterwards. In CI the database tests must run: without
 // TEST_DATABASE_URL they fail instead of being skipped quietly.
 
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
 import type { TestContext } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import pg from 'pg'
 import { migrate, RUNTIME_ROLE } from '../../scripts/migrate.ts'
 
@@ -25,9 +28,43 @@ export interface TestDatabase {
 export const DB = { skip: databaseSkipReason() }
 
 function databaseSkipReason(): string | false {
-  if (process.env.TEST_DATABASE_URL) return false
+  if (process.env.TEST_DATABASE_URL) {
+    refuseDevelopmentServer(process.env.TEST_DATABASE_URL)
+    return false
+  }
   if (process.env.CI === 'true') throw new Error('TEST_DATABASE_URL must be set in CI; database tests must not be skipped')
   return 'TEST_DATABASE_URL is not set'
+}
+
+/**
+ * The tests migrate every throwaway database with their own runtime
+ * password, and a role's password is the server's, not a database's: run
+ * on the development server, they lock the development API out of its
+ * database (28P01 at the next start). Refuse the server apps/api/.env
+ * names; `npm run db:test` starts a second one.
+ */
+function refuseDevelopmentServer(testUrl: string): void {
+  let env: string
+  try {
+    env = readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '.env'), 'utf8')
+  } catch {
+    return
+  }
+  const line = env.split(/\r?\n/).find((l) => /^\s*DATABASE_URL\s*=/.test(l))
+  if (!line) return
+  const value = line.slice(line.indexOf('=') + 1).trim().replace(/^(['"])(.*)\1$/, '$2')
+  const server = (url: string) => {
+    const u = new URL(url)
+    return `${u.hostname}:${u.port || '5432'}`
+  }
+  try {
+    if (server(testUrl) === server(value)) {
+      throw new Error(`TEST_DATABASE_URL names the development server (${server(testUrl)}, DATABASE_URL in apps/api/.env); the tests would reset the runtime role's password there. Start a second server with npm run db:test and point TEST_DATABASE_URL at it.`)
+    }
+  } catch (err) {
+    if (err instanceof TypeError) return // not a URL: the connection fails on its own terms
+    throw err
+  }
 }
 
 let counter = 0

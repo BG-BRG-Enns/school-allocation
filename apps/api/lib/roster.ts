@@ -12,6 +12,7 @@ import { appendAudit, lockScope, SCHOOL_SCOPE } from './audit.ts'
 import type { AuditActor } from './audit-chain.ts'
 import { canonicalJson, CanonicalJsonError } from './canonical-json.ts'
 import type { Database, Queryable } from './db.ts'
+import { reconcileOpenCampaigns } from './pre-assignments.ts'
 
 export const BATCH_SOURCES = ['graph:groups', 'csv'] as const
 export type BatchSource = typeof BATCH_SOURCES[number]
@@ -305,6 +306,8 @@ export async function commitBatch(db: Database, batchId: string, actor: Actor, t
       await client.query('update roster_entry set person_id = $2 where id = $1', [entry.id, personId])
     }
     await client.query(`update import_batch set state = 'committed', decided_at = now(), decided_by = $2 where id = $1`, [batchId, actor.id])
+    // A window open on the roster in force follows it: the placements by class (D-24) are made true to the new roster, each campaign under its lock.
+    await reconcileOpenCampaigns(client)
     await appendAudit(client, {
       scopeId: SCHOOL_SCOPE,
       actor: { tid: actor.tid, oid: actor.oid, name: actor.name },

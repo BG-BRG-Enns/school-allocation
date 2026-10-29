@@ -45,7 +45,7 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
     table: ['SELECT', 'INSERT'],
     updateColumns: [
       'name', 'school_year', 'project_days', 'config', 'state', 'roster_batch_id', 'updated_at',
-      'opens_at', 'closes_at', 'late_until', 'swap_from', 'swap_until', 'wishes_per_group', 'daily_minimum', 'show_teachers',
+      'opens_at', 'closes_at', 'late_until', 'swap_from', 'swap_until', 'wishes_per_group', 'daily_minimum', 'show_teachers', 'reminder_days',
     ],
   },
   // An activity is edited while it is a draft or by an organizer, reviewed,
@@ -66,6 +66,19 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   // A class teacher is assigned and revoked, never changed otherwise or
   // removed; a trigger keeps it so whoever writes.
   class_teacher: { table: ['SELECT', 'INSERT'], updateColumns: ['revoked_at', 'revoked_by'] },
+  // A pre-assignment is made when the window opens and exempted by an
+  // organizer; a placement by class goes when the class is no longer fixed
+  // (the trigger keeps the rest).
+  pre_assignment: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['exempted_at', 'exempted_by', 'exempt_reason'] },
+  // A ranking is replaced as a whole on every save; its revisions are
+  // appended and never touched.
+  choice: { table: ['SELECT', 'INSERT'], updateColumns: ['ranking', 'saved_in', 'version', 'updated_at', 'entered_by'] },
+  choice_revision: { table: ['SELECT', 'INSERT'] },
+  // Templates are seeded by a migration and edited in the app; a kind a
+  // later release adds is inserted by its migration.
+  mail_template: { table: ['SELECT'], updateColumns: ['subject', 'body', 'updated_at', 'updated_by'] },
+  // A mail is queued and moved through its states by the sender; never removed.
+  outbox_mail: { table: ['SELECT', 'INSERT'], updateColumns: ['state', 'attempts', 'detail', 'message_id', 'next_attempt_at', 'updated_at', 'sent_at'] },
 }
 
 /** Functions the runtime role may execute, by their signature as PostgreSQL prints a regprocedure: argument types without spaces between them. */

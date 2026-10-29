@@ -65,6 +65,7 @@ export const CAMPAIGN_STATE_LABELS: Readonly<Record<string, string>> = {
   catalogue: 'Aktivitäten werden gesammelt',
   published: 'Katalog veröffentlicht',
   open: 'Wahl läuft',
+  grace: 'Nachfrist',
   closed: 'Wahl beendet',
   allocating: 'Zuteilung läuft',
   review: 'Zuteilung in Prüfung',
@@ -97,6 +98,53 @@ export const CATALOGUE_PROBLEM_LABELS: Readonly<Record<string, string>> = {
   fixed_class_also_eligible: 'Eine Klasse ist fix zugeteilt und zugleich als wählbar eingetragen',
   no_teacher: 'Mindestens eine Lehrkraft ist nötig',
   teacher_twice: 'Eine Lehrkraft ist zweimal eingetragen',
+}
+
+/** Why a ranking was refused (school-core RANKING_PROBLEM_CODES). */
+export const RANKING_PROBLEM_LABELS: Readonly<Record<string, string>> = {
+  unknown_group: 'Eine Zeitgruppe steht nicht zur Wahl',
+  unknown_item: 'Eine Aktivität steht in dieser Zeitgruppe nicht zur Wahl',
+  item_twice: 'Eine Aktivität ist zweimal gereiht',
+  too_many_wishes: 'Mehr Wünsche als erlaubt',
+}
+
+/** The state of a student's list (apps/api/lib/choices.ts ChoiceState). */
+export const CHOICE_STATE_LABELS: Readonly<Record<string, string>> = {
+  none: 'keine Wünsche',
+  incomplete: 'unvollständig',
+  complete: 'vollständig',
+}
+
+/** The window a list was saved in. */
+export const WINDOW_LABELS: Readonly<Record<string, string>> = {
+  first: 'Anmeldefenster',
+  late: 'Nachfrist',
+}
+
+/** The kinds of mail the window sends (apps/api/lib/mail/templates.ts MAIL_KINDS). */
+export const MAIL_KIND_LABELS: Readonly<Record<string, string>> = {
+  choice_invitation: 'Einladung zur Wahl',
+  choice_reminder: 'Erinnerung vor Ende der Wahl',
+  grace_invitation: 'Einladung zur Nachfrist',
+  grace_reminder: 'Erinnerung vor Ende der Nachfrist',
+  missed_deadline: 'Frist versäumt',
+  class_missing: 'Fehlende Wünsche an den Klassenvorstand',
+}
+
+/** The state of a mail in the outbox (apps/api/lib/mail/outbox.ts MAIL_STATES). */
+export const MAIL_STATE_LABELS: Readonly<Record<string, string>> = {
+  queued: 'in der Warteschlange',
+  sending: 'wird gesendet',
+  sent: 'gesendet',
+  failed: 'fehlgeschlagen',
+}
+
+/** Why a template was refused (apps/api/lib/mail/templates.ts TemplateProblem). */
+export const TEMPLATE_PROBLEM_LABELS: Readonly<Record<string, string>> = {
+  subject_syntax: 'Betreff: Fehler in einem Platzhalter',
+  body_syntax: 'Text: Fehler in einem Platzhalter',
+  unknown_placeholder: 'Unbekannter Platzhalter',
+  subject_empty: 'Der Betreff darf nicht leer werden',
 }
 
 /** Why a period grid was refused (school-core PERIOD_PROBLEM_CODES). */

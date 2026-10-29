@@ -35,6 +35,8 @@ export const CampaignChangesBody = StrictObject({
   /** Grade → minutes a day must credit at least; a grade left out has no minimum. */
   dailyMinimum: Type.Optional(Type.Record(Type.String({ pattern: '^([1-9]|1[0-3])$' }), Type.Integer({ minimum: 0, maximum: 24 * 60 }), { maxProperties: 13, additionalProperties: false })),
   showTeachers: Type.Optional(Type.Boolean()),
+  /** Days before a close the reminder goes out; 0 for none. */
+  reminderDays: Type.Optional(Type.Integer({ minimum: 0, maximum: 14 })),
 })
 
 export const PeriodBody = StrictObject({
@@ -51,7 +53,7 @@ export const ClassTeachersBody = StrictObject({ teachers: Type.Array(Uuid, { max
 export const ClassParams = StrictObject({ className: Type.String({ pattern: CLASS_NAME.source, maxLength: 16 }) })
 
 export const TransitionBody = StrictObject({
-  to: Type.Union([Type.Literal('catalogue'), Type.Literal('published')]),
+  to: Type.Union([Type.Literal('catalogue'), Type.Literal('published'), Type.Literal('open'), Type.Literal('closed')]),
 })
 
 export const CreditBody = StrictObject({

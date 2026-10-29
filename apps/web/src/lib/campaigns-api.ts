@@ -1,8 +1,8 @@
 // The campaigns' and the catalogue's API, typed as the server answers it
 // (apps/api/routes/campaigns.ts).
 
-import type { CatalogueProblem, Credit, ItemState } from '@school-allocation/school-core'
-import { apiDelete, apiGet, apiPatch, apiPost } from './api.ts'
+import type { CatalogueProblem, Credit, ItemState, RankingProblem } from '@school-allocation/school-core'
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from './api.ts'
 
 /** The choice window and what it asks (D-05, D-06, D-13); dates are ISO instants, null until set. */
 export interface CampaignWindow {
@@ -15,6 +15,8 @@ export interface CampaignWindow {
   /** Grade → minutes a day must credit at least. */
   dailyMinimum: Record<string, number>
   showTeachers: boolean
+  /** Days before a close the reminder goes out; 0 for none. */
+  reminderDays: number
 }
 
 export interface Campaign extends CampaignWindow {
@@ -49,10 +51,10 @@ export interface DayDemand {
   grades: { grade: number, students: number, fixed: number, needing: number, offered: number }[]
 }
 
-/** A class as its class teacher sees it in a campaign. */
+/** A class as its class teacher sees it in a campaign; `choice` is null until the window has opened. */
 export interface ClassStatus {
   className: string
-  students: { personId: string, displayName: string }[]
+  students: { personId: string, displayName: string, choice: ChoiceState | null, window: 'first' | 'late' | null }[]
   classActivities: { id: string, title: string, state: ItemState, sessions: { startsAt: string, endsAt: string }[] }[]
 }
 
@@ -126,10 +128,62 @@ export const proposeItem = (id: string) => apiPost<Item>(`/api/items/${encodeURI
 export const unproposeItem = (id: string) => apiPost<Item>(`/api/items/${encodeURIComponent(id)}/unpropose`)
 
 export const createCampaign = (input: { kind: 'project_week', name: string, schoolYear: string, projectDays: string[] }) => apiPost<Campaign>('/api/admin/campaigns', input)
+/** A time group as the choice page shows it: the items offered in one span, and how many wishes it asks for. */
+export interface GroupView {
+  key: string
+  startsAt: string
+  endsAt: string
+  items: Item[]
+  required: number
+}
+
+/** What a student sees and may rank (apps/api/routes/window.ts). */
+export interface ChoiceView {
+  campaign: Campaign
+  fixed: Item[]
+  groups: GroupView[]
+  ranking: Record<string, string[]>
+  window: 'first' | 'late' | null
+  version: number
+  cap: number
+  complete: boolean
+  acceptsChoices: boolean
+  student: { personId: string, displayName: string, className: string, grade: number }
+}
+
+/** The body of a 422 on a ranking: the rules it breaks. */
+export interface RankingInvalidBody {
+  error: 'ranking_invalid'
+  problems: RankingProblem[]
+}
+
+export type ChoiceState = 'none' | 'incomplete' | 'complete'
+
+/** A student in the organizer's list: the state of their list and what was sent to them. */
+export interface MissingStudent {
+  personId: string
+  displayName: string
+  className: string
+  grade: number
+  address: string | null
+  state: ChoiceState
+  window: 'first' | 'late' | null
+  updatedAt: string | null
+  mails: { kind: string, state: string, createdAt: string }[]
+}
+
+export const loadMyChoice = (id: string) => apiGet<ChoiceView>(`/api/campaigns/${encodeURIComponent(id)}/my-choice`)
+export const saveMyChoice = (id: string, ranking: Record<string, string[]>) => apiPut<ChoiceView>(`/api/campaigns/${encodeURIComponent(id)}/my-choice`, { ranking })
+export const loadChoiceOf = (id: string, personId: string) => apiGet<ChoiceView>(`/api/admin/campaigns/${encodeURIComponent(id)}/choices/${encodeURIComponent(personId)}`)
+export const saveChoiceOf = (id: string, personId: string, ranking: Record<string, string[]>, reason: string) => apiPut<ChoiceView>(`/api/admin/campaigns/${encodeURIComponent(id)}/choices/${encodeURIComponent(personId)}`, { ranking, reason })
+export const exemptStudent = (id: string, personId: string, itemId: string, reason: string) => apiPost<ChoiceView>(`/api/admin/campaigns/${encodeURIComponent(id)}/preassignments/${encodeURIComponent(personId)}/${encodeURIComponent(itemId)}/exempt`, { reason })
+export const loadMissing = (id: string) => apiGet<{ students: MissingStudent[] }>(`/api/admin/campaigns/${encodeURIComponent(id)}/missing`)
+export const missingExportPath = (id: string) => `/api/admin/campaigns/${encodeURIComponent(id)}/export/missing.xlsx`
+
 export const updateCampaign = (id: string, input: CampaignChanges) => apiPatch<Campaign>(`/api/admin/campaigns/${encodeURIComponent(id)}`, input)
 export const loadDemand = (id: string) => apiGet<{ demand: DayDemand[] }>(`/api/campaigns/${encodeURIComponent(id)}/demand`)
 export const loadClassStatus = (id: string, className: string) => apiGet<ClassStatus>(`/api/campaigns/${encodeURIComponent(id)}/classes/${encodeURIComponent(className)}/status`)
-export const transitionCampaign = (id: string, to: 'catalogue' | 'published') => apiPost<Campaign>(`/api/admin/campaigns/${encodeURIComponent(id)}/transition`, { to })
+export const transitionCampaign = (id: string, to: 'catalogue' | 'published' | 'open' | 'closed') => apiPost<Campaign>(`/api/admin/campaigns/${encodeURIComponent(id)}/transition`, { to })
 export const approveItem = (id: string) => apiPost<Item>(`/api/admin/items/${encodeURIComponent(id)}/approve`)
 export const returnItem = (id: string, note: string) => apiPost<Item>(`/api/admin/items/${encodeURIComponent(id)}/return`, { note })
 export const withdrawItem = (id: string, reason: string) => apiPost<Item>(`/api/admin/items/${encodeURIComponent(id)}/withdraw`, { reason })

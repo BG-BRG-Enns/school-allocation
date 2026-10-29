@@ -92,6 +92,22 @@ export {
 
 export { demandByDay, type ClassSize, type DayDemand, type GradeDemand, type OfferedItem } from './demand.ts'
 
+export {
+  RANKING_PROBLEM_CODES,
+  checkRanking,
+  groupKeyOf,
+  isComplete,
+  offeredTo,
+  timeGroupsOf,
+  wishesRequired,
+  type GroupableItem,
+  type OfferableItem,
+  type Ranking,
+  type RankingProblem,
+  type RankingProblemCode,
+  type TimeGroup,
+} from './choices.ts'
+
 /**
  * The version of the domain rules a stored result was computed with. Bumped
  * whenever a change here would give a different allocation or validation

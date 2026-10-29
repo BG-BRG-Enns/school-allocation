@@ -124,6 +124,23 @@ export const loadClasses = () => apiGet<{ classes: ClassWithTeachers[] }>('/api/
 export const searchClassTeachers = (q: string) => apiGet<{ teachers: { personId: string, displayName: string }[] }>(`/api/admin/classes/teachers?q=${encodeURIComponent(q)}`)
 export const saveClassTeachers = (className: string, teachers: string[]) => apiPut<{ classes: ClassWithTeachers[] }>(`/api/admin/classes/${encodeURIComponent(className)}/teachers`, { teachers })
 
+export interface MailTemplate {
+  kind: string
+  subject: string
+  body: string
+  placeholders: string[]
+  updatedAt: string
+  updatedBy: string | null
+}
+export interface TemplateInvalidBody {
+  error: 'template_invalid'
+  problems: { code: string, message: string }[]
+}
+export const loadMailTemplates = () => apiGet<{ templates: MailTemplate[], mailEnabled: boolean }>('/api/admin/mail-templates')
+export const saveMailTemplate = (kind: string, subject: string, body: string) => apiPut<{ template: MailTemplate }>(`/api/admin/mail-templates/${encodeURIComponent(kind)}`, { subject, body })
+export const sendTestMail = (kind: string) => apiPost<{ queued: boolean }>(`/api/admin/mail-templates/${encodeURIComponent(kind)}/test`)
+export const loadMailStatus = () => apiGet<{ mailEnabled: boolean, queued: number }>('/api/admin/mail/status')
+
 export const loadAccounts = (q: string, unboundOnly: boolean) => apiGet<{ users: Account[] }>(`/api/admin/users?q=${encodeURIComponent(q)}${unboundOnly ? '&unbound=true' : ''}`)
 export const blockAccount = (id: string, reason: string) => apiPost<undefined>(`/api/admin/users/${encodeURIComponent(id)}/block`, { reason })
 export const unblockAccount = (id: string, reason: string) => apiPost<undefined>(`/api/admin/users/${encodeURIComponent(id)}/unblock`, { reason })

@@ -75,7 +75,7 @@ test('a campaign is visible by role and state; its settings change only while it
   // The id in whatever case the URL carries it: the audit scope stays the stored one.
   assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id.toUpperCase()}`, { name: 'Projektwoche Juni 2027', schoolYear: '2026/27', projectDays: DAYS.slice(0, 2) })).status, 200)
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'published' })).status, 409, 'published does not follow draft')
-  assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'open' })).status, 400, 'not a transition this release offers')
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'allocating' })).status, 400, 'not a transition this release offers')
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'catalogue' })).status, 200)
 
   // Taking proposals: teachers see it, students do not.

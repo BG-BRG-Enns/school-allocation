@@ -12,6 +12,8 @@
     "apps/web"
   ],
   "scripts": {
+    "db:dev": "scripts/postgres.sh school-allocation-db 5432 apps/api/.secrets/db-owner-password",
+    "db:test": "scripts/postgres.sh school-allocation-test-db 5433 apps/api/.secrets/db-owner-password",
     "dev:api": "npm run dev --workspace apps/api",
     "dev:api:fake-entra": "npm run dev:fake-entra --workspace apps/api",
     "dev:web": "npm run dev --workspace apps/web",

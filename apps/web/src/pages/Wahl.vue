@@ -4,11 +4,11 @@
 // organizers review, move the campaign on and export the catalogue.
 
 import { computed, onMounted, ref, watch } from 'vue'
-import { approveItem, catalogueExportPath, deleteItem, loadCampaign, loadClasses, loadDemand, loadItems, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignView, type DayDemand, type Item } from '../lib/campaigns-api.ts'
+import { approveItem, catalogueExportPath, deleteItem, loadCampaign, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignView, type DayDemand, type Item, type MissingStudent } from '../lib/campaigns-api.ts'
 import { withBase } from '../lib/base.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf } from '../lib/format.ts'
-import { CAMPAIGN_STATE_LABELS, ITEM_STATE_LABELS } from '../lib/labels.ts'
+import { CAMPAIGN_STATE_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS, MAIL_KIND_LABELS, MAIL_STATE_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
@@ -39,6 +39,24 @@ watch(() => props.id, load)
 const campaign = computed(() => view.value?.campaign)
 const organizes = computed(() => view.value?.may.organize ?? false)
 const published = computed(() => campaign.value !== undefined && !['draft', 'catalogue'].includes(campaign.value.state))
+/** From the opening on: the window has a state worth showing. */
+const windowOpened = computed(() => campaign.value !== undefined && !['draft', 'catalogue', 'published'].includes(campaign.value.state))
+const isStudent = computed(() => session.value?.person?.kind === 'student')
+const missing = ref<MissingStudent[]>([])
+const missingLoading = useFeedback()
+async function loadMissing(): Promise<void> {
+  if (!organizes.value || !windowOpened.value) return
+  await missingLoading.run(async () => {
+    missing.value = (await loadMissingList(props.id)).students
+  })
+}
+watch(view, loadMissing)
+const missingCount = computed(() => missing.value.filter((s) => s.state !== 'complete').length)
+
+/** What was sent to a student, as "kind: state" pairs; a dash for nothing. */
+function mailSummary(s: MissingStudent): string {
+  return s.mails.map((m) => `${MAIL_KIND_LABELS[m.kind] ?? m.kind}: ${MAIL_STATE_LABELS[m.state] ?? m.state}`).join('; ') || '–'
+}
 /** The set-up (name, year, days) changes while the campaign is set up or takes proposals; the window's settings until it opens. */
 const setUpEditable = computed(() => campaign.value !== undefined && ['draft', 'catalogue'].includes(campaign.value.state))
 const windowEditable = computed(() => campaign.value !== undefined && ['draft', 'catalogue', 'published'].includes(campaign.value.state))
@@ -128,7 +146,7 @@ async function onSaveSettings(): Promise<void> {
     await load()
   }
 }
-async function onTransition(to: 'catalogue' | 'published'): Promise<void> {
+async function onTransition(to: 'catalogue' | 'published' | 'open' | 'closed'): Promise<void> {
   const ok = await action.run(async () => {
     await transitionCampaign(props.id, to)
   })
@@ -238,6 +256,23 @@ function onSubmitPending(): void {
           Katalog veröffentlichen
         </button>
         <button
+          v-if="campaign.state === 'published'"
+          type="button"
+          :disabled="action.busy.value"
+          @click="onTransition('open')"
+        >
+          Wahl öffnen
+        </button>
+        <button
+          v-if="campaign.state === 'open' || campaign.state === 'grace'"
+          type="button"
+          class="ghost"
+          :disabled="action.busy.value"
+          @click="onTransition('closed')"
+        >
+          Wahl beenden
+        </button>
+        <button
           v-if="!editing && windowEditable"
           type="button"
           class="ghost"
@@ -254,6 +289,12 @@ function onSubmitPending(): void {
           to="/verwaltung/klassen"
         >
           Klassenvorstände
+        </RouterLink>
+        <RouterLink
+          class="button ghost-link"
+          to="/verwaltung/mailvorlagen"
+        >
+          Mailvorlagen
         </RouterLink>
       </p>
       <form
@@ -419,6 +460,87 @@ function onSubmitPending(): void {
           </button>
         </p>
       </form>
+    </section>
+
+    <section v-if="isStudent && published">
+      <h2>Meine Wünsche</h2>
+      <p class="actions">
+        <RouterLink
+          class="button"
+          :to="`/wahlen/${campaign.id}/wuensche`"
+        >
+          {{ windowOpened ? 'Wünsche abgeben oder ändern' : 'Was zur Wahl steht' }}
+        </RouterLink>
+      </p>
+    </section>
+
+    <section v-if="organizes && windowOpened">
+      <h2>Wahlstand</h2>
+      <p
+        v-if="missingLoading.error.value"
+        role="alert"
+        class="alert"
+      >
+        {{ missingLoading.error.value }}
+      </p>
+      <p class="muted">
+        {{ missing.length }} Schüler/innen, {{ missingCount }} ohne vollständige Wünsche.
+      </p>
+      <p class="actions">
+        <a
+          class="button ghost-link"
+          :href="withBase(missingExportPath(campaign.id))"
+        >Wahlstand als Excel</a>
+      </p>
+      <table
+        v-if="missing.length > 0"
+        class="table"
+      >
+        <thead>
+          <tr>
+            <th scope="col">
+              Klasse
+            </th>
+            <th scope="col">
+              Name
+            </th>
+            <th scope="col">
+              Stand
+            </th>
+            <th scope="col">
+              Nachrichten
+            </th>
+            <th scope="col">
+              <span class="visually-hidden">Aktionen</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="s in missing"
+            :key="s.personId"
+          >
+            <td>{{ s.className }}</td>
+            <td>{{ s.displayName }}</td>
+            <td>
+              <span :class="['badge', s.state === 'complete' ? 'badge-approved' : 'badge-proposed']">{{ CHOICE_STATE_LABELS[s.state] ?? s.state }}</span>
+              <span
+                v-if="s.window"
+                class="muted"
+              > ({{ WINDOW_LABELS[s.window] ?? s.window }})</span>
+            </td>
+            <td>{{ mailSummary(s) }}</td>
+            <td class="row-actions">
+              <RouterLink
+                class="button ghost-link small"
+                :to="`/wahlen/${campaign.id}/wuensche/${s.personId}`"
+              >
+                Eingeben
+              </RouterLink>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
     <section v-if="view.may.seeDemand && demand.length > 0">

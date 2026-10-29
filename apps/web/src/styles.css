@@ -402,3 +402,12 @@ ul.plain {
     padding: 0;
   }
 }
+
+/* A mail template's text as it will be sent: the lines kept, the page's font. */
+.mail-body {
+  white-space: pre-wrap;
+  font: inherit;
+  background: var(--panel, #f6f7f9);
+  padding: 0.75rem;
+  border-radius: 6px;
+}

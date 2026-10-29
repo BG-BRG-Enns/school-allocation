@@ -51,7 +51,9 @@ Nothing else is imported, even if Graph returns more.
    `ImportBatch` with a diff against the roster in force, and forgets the token. The members are
    read transitively, so a class group made of nested groups (3A of 3AR and 3AG) yields their
    students; only users count (the nested groups themselves and devices are skipped), and only `id`,
-   `displayName`, `mail` and `userPrincipalName` are read. A member without an address is a warning
+   `displayName`, `mail` and `userPrincipalName` are read. A class with nested groups is labelled
+   **once**: either the class group or its nested groups, not both (3A, or 3AR and 3AG), since a
+   student listed by two groups is refused as a duplicate. A member without an address is a warning
    on the batch.
 3. Two permission models (D-22, least privilege by default):
    - **Delegated** (default, implemented): the refresh runs with the administrator's own Graph token,

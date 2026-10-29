@@ -14,6 +14,8 @@ export const CAMPAIGN_STATES = [
   'published',
   /** Students rank; every save is kept. */
   'open',
+  /** The grace week (D-06): a list may still be saved, and counts as late. */
+  'grace',
   /** The window has closed; the roster batch is frozen. */
   'closed',
   /** An allocation run is executing. */
@@ -33,7 +35,9 @@ export const CAMPAIGN_TRANSITIONS: Readonly<Record<CampaignState, readonly Campa
   draft: ['catalogue'],
   catalogue: ['published'],
   published: ['open'],
-  open: ['closed'],
+  // Into the grace week when there is one, straight to closed when not.
+  open: ['grace', 'closed'],
+  grace: ['closed'],
   closed: ['allocating'],
   allocating: ['review'],
   // Another run with another seed or other settings, or the publication of one.
@@ -55,7 +59,7 @@ export function transition(from: CampaignState, to: CampaignState): TransitionRe
     : { ok: false, code: 'invalid_transition', from, to }
 }
 
-/** Whether a student may submit or change a ranked list: only while the window is open. */
+/** Whether a student may submit or change a ranked list: while the window is open, and in the grace week after it (a list saved then is late). */
 export function acceptsChoices(state: CampaignState): boolean {
-  return state === 'open'
+  return state === 'open' || state === 'grace'
 }

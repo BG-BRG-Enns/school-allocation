@@ -23,7 +23,7 @@ An administrator can read the school's roster from the class groups and the teac
 
 A school that enters group ids by hand and wants no group search leaves `Group.Read.All` out of the registration and sets `GRAPH_DELEGATED_SCOPES=GroupMember.Read.All,User.ReadBasic.All` in `.env`.
 
-In the app, under **Verwaltung → Stammdaten**, the administrator picks the groups from a search by name (authorizing a token for it at Microsoft, which the server keeps in memory for the token's lifetime, never on disk) or enters their object ids, labels them (a class with its grade, or the teachers), then starts the refresh. The members become a pending batch with a diff against the roster in force, which the administrator commits or discards.
+In the app, under **Verwaltung → Stammdaten**, the administrator picks the groups from a search by name (authorizing a token for it at Microsoft, which the server keeps in memory for the token's lifetime, never on disk) or enters their object ids, labels them (a class with its grade, or the teachers), then starts the refresh. Members are read through nested groups, so a class whose students sit in nested groups is labelled once: either the class group or its nested groups, not both (3A, or 3AR and 3AG), or the students come in twice and the batch is refused. The members become a pending batch with a diff against the roster in force, which the administrator commits or discards.
 
 ## Host
 
@@ -69,7 +69,7 @@ The key pair is the maintainers' and is created once: `cosign generate-key-pair`
 
 ## Secret files
 
-Four files under `~/school-allocation/secrets/`, each holding one value and nothing else. The containers run as fixed ids, so the files are chowned into the user namespace with `podman unshare`; afterwards they can only be changed or removed through `podman unshare` as well.
+Five files under `~/school-allocation/secrets/`, each holding one value and nothing else. The containers run as fixed ids, so the files are chowned into the user namespace with `podman unshare`; afterwards they can only be changed or removed through `podman unshare` as well.
 
 ```bash
 umask 077
@@ -78,9 +78,10 @@ openssl rand -hex 24 > db-owner-password
 openssl rand -hex 24 > db-runtime-password
 openssl rand -hex 32 > session-key
 printf '%s' '<the client secret from Entra>' > entra-client-secret
-chmod 400 db-runtime-password entra-client-secret session-key
+printf '%s' '<the password of the SMTP account>' > smtp-password   # or `: > smtp-password` when no mail is sent
+chmod 400 db-runtime-password entra-client-secret session-key smtp-password
 chmod 440 db-owner-password
-podman unshare chown 10001:10001 db-runtime-password entra-client-secret session-key
+podman unshare chown 10001:10001 db-runtime-password entra-client-secret session-key smtp-password
 podman unshare chown 10001:70 db-owner-password
 ```
 
@@ -90,10 +91,22 @@ The app image runs as uid 10001, the app and the migrator alike, so the migrator
 - `db-runtime-password`: the unprivileged role the app connects as. The migrator sets it.
 - `session-key`: seals the session cookies. A new key signs everyone out.
 - `entra-client-secret`: the client secret of the app registration. When Entra's expires, write the new one and `systemctl --user restart school-allocation`.
+- `smtp-password`: the password of the account the app sends mail as (Mail, below). The unit mounts the file on every host; where no mail is sent it stays empty.
 
 ## Configuration
 
-`~/school-allocation/.env`, from `deploy/.env.example`: `PUBLIC_URL`, `TRUST_PROXY`, `LOG_LEVEL`, `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `BOOTSTRAP_ADMINS`, optionally `GRAPH_DELEGATED_SCOPES`. The app refuses to start with a missing or unsafe value and names it in the journal.
+`~/school-allocation/.env`, from `deploy/.env.example`: `PUBLIC_URL`, `TRUST_PROXY`, `LOG_LEVEL`, `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `BOOTSTRAP_ADMINS`, optionally `GRAPH_DELEGATED_SCOPES`, and the mail settings below. The app refuses to start with a missing or unsafe value and names it in the journal.
+
+## Mail
+
+The app sends its notices (the invitation to a choice window, reminders, the lists to the class teachers, the notice to those who missed the deadline, the organizer's test mail) over the school's own SMTP submission, authenticated, over STARTTLS (port 587) or implicit TLS (port 465). Set in `.env`:
+
+- `SMTP_HOST`: the submission server. Unset, mail is off: notices still go into the outbox and go out once it is set, and the organizer's pages say so.
+- `SMTP_PORT`: 587 unless set. `SMTP_SECURE=true` for implicit TLS on 465. `SMTP_REQUIRE_TLS` is `true` unless set, and `false` only for a test server on a private network that offers no TLS.
+- `SMTP_USER`: the account; its password is the file `secrets/smtp-password`.
+- `MAIL_FROM`: the From header, a mailbox such as `SchulWahl <wahl@schule.example.org>`; the sending domain's SPF and DKIM are the school's mail setup. Optionally `MAIL_REPLY_TO` (where answers go) and `MAIL_ENVELOPE_FROM` (a bare address where bounces go; the From address unless set).
+
+Every notice is a row of the outbox: who got what, when, and the server's reply or what went wrong; the organizer sees the state per student on the campaign's page. Nothing is logged about recipients or texts. A changed setting takes effect with `systemctl --user restart school-allocation`.
 
 `BOOTSTRAP_ADMINS` names the people who become school administrators at their first sign-in, by school address or Entra object id. Every further role is granted in the app and recorded in its audit log. Removing a name from the list revokes nothing; that is done in the app too.
 
