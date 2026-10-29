@@ -69,7 +69,8 @@ export async function publishRun(db: Database, context: WindowContext, campaign:
     const run = await store.lockRun(client, campaign.id, runId.toLowerCase())
     if (!run) throw new ApplicationError('not_found')
     if (run.status !== 'succeeded') throw new ApplicationError('run_not_publishable')
-    if (!same(cancelledItemIds, run.cancelledItemIds)) throw new ApplicationError('cancelled_mismatch')
+    // Ids as PostgreSQL spells them, whatever case the browser sent.
+    if (!same(cancelledItemIds.map((id) => id.toLowerCase()), run.cancelledItemIds)) throw new ApplicationError('cancelled_mismatch')
     if (snapshotHash(await snapshotOf(client, current, 0, 0)) !== run.snapshotSha256) throw new ApplicationError('run_stale')
     await store.markPublished(client, run.id, actor.id)
     await updateState(client, campaign.id, 'results')

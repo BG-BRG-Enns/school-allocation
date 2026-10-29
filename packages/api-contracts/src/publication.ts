@@ -7,8 +7,8 @@ import { AllocationRunSchema, StudentExplanationSchema } from './allocation.ts'
 import { CampaignSchema, ItemSchema } from './campaigns.ts'
 import { StrictObject, Uuid } from './common.ts'
 
-/** The organizer names the items the run cancelled, as the review showed them; a different list is refused. */
-export const PublishBody = StrictObject({ cancelledItemIds: Type.Array(Uuid, { maxItems: 200 }) })
+/** The organizer names the items the run cancelled, as the review showed them; a different list is refused. The bound is the body's, far above any catalogue. */
+export const PublishBody = StrictObject({ cancelledItemIds: Type.Array(Uuid, { maxItems: 1500 }) })
 
 export const PublishedResponse = StrictObject({ campaign: CampaignSchema, run: AllocationRunSchema })
 export type PublishedResponse = Static<typeof PublishedResponse>

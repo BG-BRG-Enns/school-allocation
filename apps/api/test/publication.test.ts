@@ -54,7 +54,7 @@ test('a run is published with its cancellations confirmed: results, notices once
   await owner.query('update catalog_item set places = places + 1 where id = $1', [s.items.tanz])
   assert.equal((await publish({ cancelledItemIds: [s.items.darts] })).body.error, 'run_stale')
   await owner.query('update catalog_item set places = places - 1 where id = $1', [s.items.tanz])
-  const published = await publish({ cancelledItemIds: [s.items.darts] })
+  const published = await publish({ cancelledItemIds: [s.items.darts.toUpperCase()] })
   assert.equal(published.status, 200, JSON.stringify(published.body))
   assert.equal(published.body.campaign.state, 'results')
   assert.ok(published.body.run.publishedAt)
