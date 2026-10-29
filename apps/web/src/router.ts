@@ -23,6 +23,7 @@ import Wahl from './pages/Wahl.vue'
 import Wahlen from './pages/Wahlen.vue'
 import Wuensche from './pages/Wuensche.vue'
 import Zeiten from './pages/Zeiten.vue'
+import Zuteilung from './pages/Zuteilung.vue'
 
 export const router = createRouter({
   history: createWebHistory(`${BASE_PATH}/`),
@@ -38,6 +39,7 @@ export const router = createRouter({
     { path: '/wahlen/:id/klasse/:className', component: Klasse, props: true },
     { path: '/wahlen/:id/wuensche', component: Wuensche, props: true },
     { path: '/wahlen/:id/wuensche/:personId', component: Wuensche, props: true },
+    { path: '/wahlen/:id/zuteilung', component: Zuteilung, props: true },
     { path: '/verwaltung', component: Verwaltung },
     { path: '/verwaltung/stammdaten', component: Stammdaten },
     { path: '/verwaltung/stammdaten/import/:id', component: Import, props: true },

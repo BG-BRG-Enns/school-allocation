@@ -19,6 +19,7 @@ import { createTestDatabase } from '../../apps/api/test/helpers/db.ts'
 import { SERVER_ENV } from '../../apps/api/test/helpers/env.ts'
 import { startFakeEntra } from '../../apps/api/test/helpers/fake-entra.ts'
 import { startFakeGraph } from '../../apps/api/test/helpers/fake-graph.ts'
+import { startFakeSolver } from '../../apps/api/test/helpers/fake-solver.ts'
 import { ANNA } from '../../apps/api/test/helpers/personas.ts'
 import { BASE_PATH } from '../support/base.ts'
 
@@ -77,6 +78,9 @@ try {
     graph.names.set(id, name)
   }
   cleanups.push(() => graph.close())
+  // The stand-in for the solver: a greedy answer in the contract's shape, enough for the journey through a run.
+  const solver = await startFakeSolver()
+  cleanups.push(() => solver.close())
   const db = createDatabase(testDb.runtimeUrl, (err) => console.error('database client failed', err))
   cleanups.push(() => db.close())
   const config = loadConfig({
@@ -85,6 +89,7 @@ try {
     HOST: '127.0.0.1',
     PORT: String(PORT),
     WEB_DIST_DIR: path.join(ROOT, 'apps', 'web', 'dist'),
+    SOLVER_URL: solver.baseUrl,
     // Anna administers the school in the journeys.
     BOOTSTRAP_ADMINS: ANNA.email ?? '',
   })
