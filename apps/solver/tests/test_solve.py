@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import random
 
 from app.contract import Level, SolveRequest, check_model
 from app.solve import roll_up, solve
@@ -99,13 +98,32 @@ def test_fixed_pairs_hold_and_consume_capacity() -> None:
     assert result["assign"] == [(0, 1), (1, 0)]
 
 
+class Lcg:
+    """A small linear congruential generator: the instance below is the same on every machine, with no library behind it."""
+
+    def __init__(self, seed: int) -> None:
+        self.state = seed
+
+    def next(self, bound: int) -> int:
+        self.state = (self.state * 1103515245 + 12345) % 2**31
+        return self.state % bound
+
+    def sample(self, population: int, k: int) -> list[int]:
+        picked: list[int] = []
+        while len(picked) < k:
+            candidate = self.next(population)
+            if candidate not in picked:
+                picked.append(candidate)
+        return picked
+
+
 def test_the_same_request_gives_the_same_answer(two_students: dict) -> None:
-    rng = random.Random(42)
+    rng = Lcg(42)
     students = []
     for s in range(60):
-        ranked = rng.sample(range(12), 3)
-        options = [option(o, (rank + 1) * 1000, tie=rng.randrange(1000)) for rank, o in enumerate(ranked)]
-        options += [option(o, 4000, tie=rng.randrange(1000)) for o in range(12) if o not in ranked and o % 3 != 0]
+        ranked = rng.sample(12, 3)
+        options = [option(o, (rank + 1) * 1000, tie=rng.next(1000)) for rank, o in enumerate(ranked)]
+        options += [option(o, 4000, tie=rng.next(1000)) for o in range(12) if o not in ranked and o % 3 != 0]
         students.append(student(s, sorted(options, key=lambda op: op["o"])))
     items = [item(o, 8, minimum=3 if o % 4 == 0 else 0) for o in range(12)]
     payload = request(students, items, seed=99)

@@ -454,9 +454,10 @@ jobs:
           enable-cache: true
           cache-dependency-glob: apps/solver/uv.lock
 
-      - run: uv sync --frozen
+      # --no-build: wheels only, so no package's setup script runs on the runner.
+      - run: uv sync --frozen --no-build
 
-      - run: uv run --frozen pytest -q
+      - run: uv run --frozen --no-build pytest -q
 
   # The solver image: it builds from the lock's pins with their hashes, runs
   # as its own user on a read-only root without capabilities, and answers.
