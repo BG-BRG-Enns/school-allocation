@@ -12,7 +12,7 @@ test('every code the API can send has a German label', () => {
   assert.deepEqual(Object.keys(WINDOW_LABELS).sort(), ['first', 'late'])
   assert.deepEqual(Object.keys(MAIL_KIND_LABELS).sort(), ['choice_invitation', 'choice_reminder', 'class_missing', 'grace_invitation', 'grace_reminder', 'missed_deadline'])
   assert.deepEqual(Object.keys(MAIL_STATE_LABELS).sort(), ['failed', 'queued', 'sending', 'sent'])
-  assert.deepEqual(Object.keys(TEMPLATE_PROBLEM_LABELS).sort(), ['body_syntax', 'subject_syntax', 'unknown_placeholder'])
+  assert.deepEqual(Object.keys(TEMPLATE_PROBLEM_LABELS).sort(), ['body_syntax', 'subject_empty', 'subject_syntax', 'unknown_placeholder'])
   assert.deepEqual(Object.keys(CAMPAIGN_STATE_LABELS).sort(), [...CAMPAIGN_STATES].sort())
   assert.deepEqual(Object.keys(ITEM_STATE_LABELS).sort(), [...ITEM_STATES].sort())
   assert.deepEqual(Object.keys(KIND_LABELS).sort(), [...PERSON_KINDS].sort())

@@ -393,7 +393,8 @@ export function parseBootstrapAdmins(raw: string | undefined): string[] {
 function parseMail(env: Env): MailConfig | null {
   const host = env.SMTP_HOST?.trim()
   if (!host) {
-    for (const name of ['SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD_FILE', 'MAIL_FROM']) {
+    // SMTP_PASSWORD_FILE may stay: the unit mounts the file on every host, empty where no mail is sent.
+    for (const name of ['SMTP_PORT', 'SMTP_USER', 'MAIL_FROM']) {
       if (env[name]?.trim()) throw new ConfigError(`${name} is set but SMTP_HOST is not; set SMTP_HOST to send mail, or unset the rest`)
     }
     return null

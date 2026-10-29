@@ -191,18 +191,56 @@ test('an organizer enters a ranking on behalf and exempts a student from a class
   assert.ok(protocol.body.mails.every((m) => m.body === undefined), 'the texts stay in the outbox')
 })
 
-test('the clock opens a published campaign at its time and closes one without a grace week straight away', DB, async (t) => {
+test('a catalogue change after the opening: a ranked item withdrawn is pruned from the view, a class no longer fixed is exempted, a class newly fixed is placed', DB, async (t) => {
+  const s = await school(t)
+  const id = s.campaign.id
+  await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'open' })
+  const view = await get<View>(s, s.sara, `/api/campaigns/${id}/my-choice`)
+  const [monday, swim] = view.body.groups.map((g) => g.key) as [string, string]
+  await send(s, s.sara, 'PUT', `/api/campaigns/${id}/my-choice`, { ranking: { [monday]: [s.items.tanz, s.items.klettern], [swim]: [s.items.schwimmen] } })
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${s.items.schwimmen}/withdraw`, { reason: 'Bad geschlossen' })).status, 200)
+  const pruned = await get<View>(s, s.sara, `/api/campaigns/${id}/my-choice`)
+  assert.deepEqual(pruned.body.ranking, { [monday]: [s.items.tanz, s.items.klettern] }, 'the withdrawn item and its group are gone from the view')
+  assert.equal(pruned.body.complete, true, 'and the list is complete without them')
+  assert.equal((await send(s, s.sara, 'PUT', `/api/campaigns/${id}/my-choice`, { ranking: pruned.body.ranking })).status, 200, 'a save with the pruned view goes through')
+
+  // The organizer takes 5A out of the trip: Sara and Tim are exempted and choose for Tuesday.
+  const wien = (await get<{ items: Item[] }>(s, s.anna, `/api/campaigns/${id}/items`)).body.items.find((i) => i.id === s.items.wien) as Item
+  const edited = await send(s, s.anna, 'PATCH', `/api/items/${s.items.wien}`, {
+    title: wien.title, places: wien.places, fixedClasses: [], cancellableBelowMin: true, teachers: wien.teachers.map((te) => te.personId),
+    sessions: wien.sessions.map((se) => ({ startsAt: se.startsAt, endsAt: se.endsAt, credits: se.credits })),
+  })
+  assert.equal(edited.status, 200, JSON.stringify(edited.body))
+  const freed = await get<View>(s, s.sara, `/api/campaigns/${id}/my-choice`)
+  assert.deepEqual(freed.body.fixed, [])
+  assert.deepEqual(freed.body.groups.map((g) => g.items.map((i) => i.title)), [['Klettern', 'Tanz'], ['Wien'], ['Darts']], 'Tuesday is open, the trip now rankable in a group of its own span')
+  const states = await get<{ students: { displayName: string, state: string }[] }>(s, s.anna, `/api/admin/campaigns/${id}/missing`)
+  assert.deepEqual(states.body.students.map((st) => st.state), ['incomplete', 'none'])
+  // And back: 5A fixed again, placed again.
+  const again = await send(s, s.anna, 'PATCH', `/api/items/${s.items.wien}`, {
+    title: wien.title, places: wien.places, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: wien.teachers.map((te) => te.personId),
+    sessions: wien.sessions.map((se) => ({ startsAt: se.startsAt, endsAt: se.endsAt, credits: se.credits })),
+  })
+  assert.equal(again.status, 200, JSON.stringify(again.body))
+  const placed = await get<View>(s, s.sara, `/api/campaigns/${id}/my-choice`)
+  assert.deepEqual(placed.body.fixed.map((i) => i.title), ['Wien'])
+})
+
+test('the clock opens a published campaign at its time and closes one without a grace week straight away; downtime over several deadlines is caught up in one tick', DB, async (t) => {
   const s = await school(t)
   const id = s.campaign.id
   const owner = createDatabase(s.ownerUrl, () => {})
   t.after(() => owner.close())
-  await owner.query('update campaign set late_until = null where id = $1', [id])
+  // Everything overdue at once: open, grace and close in one tick, so no late list is taken as first.
+  assert.deepEqual(await tick(s.db, CONTEXT, new Date('2027-04-01T08:00:00+02:00')), { transitions: 3, reminders: 0 })
+  assert.equal((await get<{ campaign: Campaign }>(s, s.anna, `/api/campaigns/${id}`)).body.campaign.state, 'closed')
+  await owner.query('update campaign set state = \'published\', roster_batch_id = null, late_until = null where id = $1', [id])
   assert.deepEqual(await tick(s.db, CONTEXT, new Date('2027-02-28T12:00:00+01:00')), { transitions: 0, reminders: 0 })
   assert.deepEqual(await tick(s.db, CONTEXT, new Date('2027-03-01T08:00:00+01:00')), { transitions: 1, reminders: 0 })
   assert.equal((await get<{ campaign: Campaign }>(s, s.anna, `/api/campaigns/${id}`)).body.campaign.state, 'open')
   assert.deepEqual(await tick(s.db, CONTEXT, new Date('2027-03-09T08:00:00+01:00')), { transitions: 1, reminders: 0 })
   assert.equal((await get<{ campaign: Campaign }>(s, s.anna, `/api/campaigns/${id}`)).body.campaign.state, 'closed')
-  // A campaign without reminders sends none.
+  // No reminder was ever due: the catch-up jumped over the window, the second run had none configured in time.
   const kinds = await owner.query<{ kind: string }>('select distinct kind from outbox_mail where campaign_id = $1 order by kind', [id])
-  assert.deepEqual(kinds.rows.map((r) => r.kind), ['choice_invitation', 'class_missing', 'missed_deadline'])
+  assert.deepEqual(kinds.rows.map((r) => r.kind), ['choice_invitation', 'class_missing', 'grace_invitation', 'missed_deadline'])
 })

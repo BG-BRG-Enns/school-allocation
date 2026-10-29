@@ -67,8 +67,9 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   // removed; a trigger keeps it so whoever writes.
   class_teacher: { table: ['SELECT', 'INSERT'], updateColumns: ['revoked_at', 'revoked_by'] },
   // A pre-assignment is made when the window opens and exempted by an
-  // organizer; never removed.
-  pre_assignment: { table: ['SELECT', 'INSERT'], updateColumns: ['exempted_at', 'exempted_by', 'exempt_reason'] },
+  // organizer; a placement by class goes when the class is no longer fixed
+  // (the trigger keeps the rest).
+  pre_assignment: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['exempted_at', 'exempted_by', 'exempt_reason'] },
   // A ranking is replaced as a whole on every save; its revisions are
   // appended and never touched.
   choice: { table: ['SELECT', 'INSERT'], updateColumns: ['ranking', 'saved_in', 'version', 'updated_at', 'entered_by'] },

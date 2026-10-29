@@ -124,7 +124,13 @@ export async function choiceView(db: Queryable, campaign: Campaign, student: Cam
   const { rows: [saved] } = await db.query<{ ranking: Ranking, saved_in: 'first' | 'late', version: number }>(
     'select ranking, saved_in, version from choice where campaign_id = $1 and person_id = $2', [campaign.id, student.personId],
   )
-  const ranking = saved?.ranking ?? {}
+  // Only what is offered now counts: a group or item the catalogue lost since the save is pruned from the
+  // view (the revisions keep it), so a save never fails on a key the student cannot see.
+  const ranking: Ranking = {}
+  for (const group of groups) {
+    const ids = (saved?.ranking[group.key] ?? []).filter((id) => group.itemIds.includes(id))
+    if (ids.length > 0) ranking[group.key] = ids
+  }
   return {
     fixed,
     groups,
@@ -246,7 +252,9 @@ export async function choiceStates(db: Queryable, campaign: Campaign, className?
     // Each student's groups depend on their class and fixed items; computed per student, which a school's roster allows.
     const view = await choiceView(db, campaign, student)
     const choice = saved.get(student.personId)
-    result.push({ ...student, state: choice === undefined ? 'none' : (view.complete ? 'complete' : 'incomplete'), window: choice?.saved_in ?? null, updatedAt: choice?.updated_at.toISOString() ?? null })
+    // Nothing to rank (every day taken by class activities) is complete without a row.
+    const state: ChoiceState = view.groups.length === 0 || (choice !== undefined && view.complete) ? 'complete' : (choice === undefined ? 'none' : 'incomplete')
+    result.push({ ...student, state, window: choice?.saved_in ?? null, updatedAt: choice?.updated_at.toISOString() ?? null })
   }
   return result
 }

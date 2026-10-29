@@ -144,6 +144,7 @@ export const TEMPLATE_PROBLEM_LABELS: Readonly<Record<string, string>> = {
   subject_syntax: 'Betreff: Fehler in einem Platzhalter',
   body_syntax: 'Text: Fehler in einem Platzhalter',
   unknown_placeholder: 'Unbekannter Platzhalter',
+  subject_empty: 'Der Betreff darf nicht leer werden',
 }
 
 /** Why a period grid was refused (school-core PERIOD_PROBLEM_CODES). */

@@ -22,7 +22,9 @@ alter table campaign add column reminder_days smallint not null default 1 check 
 
 -- A student placed into a class activity when the window opened (D-24),
 -- or exempted from it by an organizer with a reason (then they choose for
--- that time). Rows are added and exempted, never removed.
+-- that time). A placement by class is removed again when the class is no
+-- longer fixed for the activity; an exemption, an organizer's decision,
+-- is never removed or changed.
 create table pre_assignment (
   campaign_id uuid not null references campaign (id),
   item_id uuid not null references catalog_item (id),
@@ -39,8 +41,11 @@ create index pre_assignment_person on pre_assignment (campaign_id, person_id);
 
 create function pre_assignment_guard() returns trigger language plpgsql as $$
 begin
+  if tg_op = 'DELETE' and old.source = 'class' and old.exempted_at is null then
+    return old;
+  end if;
   if tg_op in ('DELETE', 'TRUNCATE') then
-    perform refuse('a pre-assignment is exempted, not removed');
+    perform refuse('an exempted or manual pre-assignment is never removed');
   end if;
   if new.source <> old.source or new.created_at <> old.created_at then
     perform refuse('a pre-assignment keeps its source');

@@ -28,10 +28,10 @@ test('die Organisation öffnet die Wahl; eine Schülerin gibt ihre Wünsche ab u
   await expect(page.getByRole('heading', { name: 'Meine Wünsche' })).toBeVisible()
   await expect(page.getByText('0 von 1 Wünschen')).toBeVisible()
   await page.getByLabel('Wunsch Klettern').selectOption('1')
+  // A student's change is saved at once, without a button.
+  await expect(page.getByRole('status')).toHaveText('Gespeichert.')
   await expect(page.getByText('1 von 1 Wünschen')).toBeVisible()
   await shot(page, '25-wuensche')
-  await page.getByRole('button', { name: 'Wünsche speichern' }).click()
-  await expect(page.getByRole('status')).toHaveText('Gespeichert.')
   await expect(page.getByText('vollständig', { exact: true })).toBeVisible()
   await expect(page.getByText('gespeichert im Anmeldefenster, Fassung 1')).toBeVisible()
   await signOut(page)

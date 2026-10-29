@@ -53,7 +53,7 @@ export interface MailTemplate {
 }
 
 export interface TemplateProblem {
-  code: 'subject_syntax' | 'body_syntax' | 'unknown_placeholder'
+  code: 'subject_syntax' | 'body_syntax' | 'unknown_placeholder' | 'subject_empty'
   message: string
 }
 
@@ -96,6 +96,15 @@ export function checkTemplate(kind: MailKind, subject: string, body: string): Te
   for (const name of [...names].sort((a, b) => a.localeCompare(b, 'en'))) {
     if (!allowed.includes(name)) problems.push({ code: 'unknown_placeholder', message: name })
   }
+  // A subject that renders empty, with every placeholder filled or with none, would block the notice.
+  if (problems.length === 0) {
+    for (const data of [SAMPLE_DATA, {}]) {
+      if (compile(subject).render(data, { unknown: 'drop', escape: false, maxLength: 998 }).trim() === '') {
+        problems.push({ code: 'subject_empty', message: 'the subject renders empty' })
+        break
+      }
+    }
+  }
   return problems
 }
 
@@ -136,7 +145,8 @@ export function renderTemplate(template: Pick<MailTemplate, 'subject' | 'body'>,
   const options = { unknown: 'drop' as const, escape: false }
   try {
     return {
-      subject: compile(template.subject).render(data, { ...options, maxLength: 998 }).replaceAll(/[\r\n]+/g, ' ').trim(),
+      // Never empty: the outbox refuses an empty subject, and a notice must not block a transition.
+      subject: compile(template.subject).render(data, { ...options, maxLength: 998 }).replaceAll(/[\r\n]+/g, ' ').trim() || 'SchulWahl',
       body: compile(template.body).render(data, { ...options, maxLength: 100_000 }),
     }
   } catch (err) {

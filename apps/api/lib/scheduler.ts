@@ -29,7 +29,11 @@ export async function tick(db: Database, context: WindowContext, now = new Date(
   const { rows } = await db.query<{ id: string }>('select id from campaign where state in (\'published\', \'open\', \'grace\') order by created_at')
   for (const row of rows) {
     try {
-      outcome.transitions += await advance(db, context, row.id, now)
+      // After downtime over several deadlines, every overdue transition in turn, so a campaign never lingers open.
+      for (let step = 0; step < 4; step += 1) {
+        if (await advance(db, context, row.id, now) === 0) break
+        outcome.transitions += 1
+      }
       outcome.reminders += await remind(db, context, row.id, now)
     } catch (err) {
       log?.error({ err, campaignId: row.id }, 'the scheduler failed on a campaign')

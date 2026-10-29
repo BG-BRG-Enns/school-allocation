@@ -156,12 +156,41 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
     await client.query('delete from item_teacher where item_id = $1', [id])
     await client.query('delete from item_session where item_id = $1', [id])
     await writeParts(client, id, input)
+    if (campaign !== undefined && current.state === 'approved' && (campaign.state === 'open' || campaign.state === 'grace')) {
+      await reconcilePreAssignments(client, current.campaignId, id)
+    }
     if (!asTeacher) {
       await appendAudit(client, { scopeId: current.campaignId, actor: actorOf(caller), action: 'item.changed', metadata: { itemId: id, state: current.state } })
     }
     return true
   })
   return found ? readItem(db, id) : undefined
+}
+
+/**
+ * After an organizer changed an approved item's fixed classes while the
+ * window is open: the students of a class now fixed are placed into it,
+ * and the placements by class of students whose class is no longer fixed
+ * go, so they choose for that time. An organizer's exemption stays.
+ */
+async function reconcilePreAssignments(client: Queryable, campaignId: string, itemId: string): Promise<void> {
+  const batch = `coalesce((select roster_batch_id from campaign where id = $1), (select id from import_batch where state = 'committed' order by decided_at desc limit 1))`
+  await client.query(
+    `insert into pre_assignment (campaign_id, item_id, person_id, source)
+     select i.campaign_id, i.id, e.person_id, 'class'
+       from catalog_item i
+       join roster_entry e on e.batch_id = ${batch} and e.kind = 'student' and e.person_id is not null and e.class_name = any(i.fixed_classes)
+      where i.id = $2
+     on conflict do nothing`,
+    [campaignId, itemId],
+  )
+  await client.query(
+    `delete from pre_assignment p
+      where p.campaign_id = $1 and p.item_id = $2 and p.exempted_at is null and p.source = 'class'
+        and not exists (select 1 from roster_entry e join catalog_item i on i.id = p.item_id
+                         where e.batch_id = ${batch} and e.person_id = p.person_id and e.class_name = any(i.fixed_classes))`,
+    [campaignId, itemId],
+  )
 }
 
 /**

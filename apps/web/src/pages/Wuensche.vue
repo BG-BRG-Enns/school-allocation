@@ -45,14 +45,19 @@ watch(() => [props.id, props.personId], load)
 const campaign = computed(() => view.value?.campaign)
 const editable = computed(() => view.value?.acceptsChoices ?? false)
 
-/** The groups by the local date of their start, in order. */
+/** The days, in order: those with groups offered and those taken by fixed items, which show as well. */
 const days = computed(() => {
   const byDay = new Map<string, GroupView[]>()
   for (const group of view.value?.groups ?? []) {
     const day = localDateOf(group.startsAt)
     byDay.set(day, [...(byDay.get(day) ?? []), group])
   }
-  return [...byDay.entries()].map(([day, groups]) => ({ day, groups, fixed: (view.value?.fixed ?? []).filter((item) => item.sessions.some((s) => localDateOf(s.startsAt) === day)) }))
+  for (const item of view.value?.fixed ?? []) {
+    for (const s of item.sessions) if (!byDay.has(localDateOf(s.startsAt))) byDay.set(localDateOf(s.startsAt), [])
+  }
+  return [...byDay.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, 'en'))
+    .map(([day, groups]) => ({ day, groups, fixed: (view.value?.fixed ?? []).filter((item) => item.sessions.some((s) => localDateOf(s.startsAt) === day)) }))
 })
 
 /** The wish number of an item in its group, 1-based; 0 for none. */
@@ -60,15 +65,17 @@ function rankOf(group: GroupView, item: Item): number {
   return (ranking.value[group.key] ?? []).indexOf(item.id) + 1
 }
 
-/** Gives `item` the wish number `rank` in its group: whoever had it moves down, a 0 takes the item out. */
+/** Gives `item` the wish number `rank` in its group: whoever had it moves down, a 0 takes the item out. A student's change is saved at once. */
 function setRank(group: GroupView, item: Item, rank: number): void {
   const without = (ranking.value[group.key] ?? []).filter((id) => id !== item.id)
   if (rank <= 0) {
     ranking.value[group.key] = without
-    return
+  } else {
+    without.splice(Math.min(rank - 1, without.length), 0, item.id)
+    ranking.value[group.key] = without.slice(0, view.value?.cap ?? 3)
   }
-  without.splice(Math.min(rank - 1, without.length), 0, item.id)
-  ranking.value[group.key] = without.slice(0, view.value?.cap ?? 3)
+  // Every change to a ranking is saved at once (AGENTS.md); an organizer's entry waits for its reason.
+  if (!onBehalf.value && editable.value) void save()
 }
 
 function wishesOf(group: GroupView): number {
@@ -286,12 +293,13 @@ async function exempt(): Promise<void> {
         class="actions"
       >
         <button
+          v-if="onBehalf"
           type="submit"
           :disabled="saving.busy.value"
         >
           Wünsche speichern
         </button>
-        <span class="muted">{{ complete ? 'Alle Zeitgruppen haben ihre Wünsche.' : 'Es fehlen noch Wünsche.' }}</span>
+        <span class="muted">{{ complete ? 'Alle Zeitgruppen haben ihre Wünsche.' : 'Es fehlen noch Wünsche.' }}{{ onBehalf ? '' : ' Jede Änderung wird sofort gespeichert.' }}</span>
       </p>
     </form>
 
