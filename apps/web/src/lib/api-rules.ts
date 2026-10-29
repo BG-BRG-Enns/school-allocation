@@ -99,7 +99,16 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   mail_off: 'Der Mailversand ist auf diesem Server nicht eingerichtet.',
   no_address: 'Ihr Konto hat keine E-Mail-Adresse, an die eine Testmail gehen könnte.',
   template_invalid: 'Die Vorlage entspricht nicht den Regeln. Bitte die Hinweise prüfen.',
+  // The allocation
+  solver_off: 'Auf diesem Server ist kein Solver eingerichtet; eine Zuteilung kann nicht berechnet werden.',
+  run_in_progress: 'Ein Lauf wird gerade berechnet. Bitte warten, bis er fertig ist.',
+  daily_minimum_missing: 'Für diese Schulstufen fehlt die Mindestminutenzahl je Tag; sie ist in den Einstellungen der Wahl einzutragen, bevor die Wahl endet:',
+  fixed_items_overlap: 'Zwei Klassenaktivitäten nehmen dieselbe Klasse zur gleichen Zeit mit. Bitte den Katalog berichtigen.',
+  no_students: 'Die Personenliste der Wahl enthält keine Schüler/innen.',
 }
+
+/** Refusals whose answer names what is wrong (the grades, say): the sentence carries it. */
+const DETAILED = new Set(['daily_minimum_missing'])
 
 /**
  * Whether a failed request may succeed when sent again unchanged: no answer
@@ -113,5 +122,7 @@ export function isTransient(error: unknown): boolean {
 /** The sentence for a refusal: its code's, or the general one. */
 export function errorMessage(error: unknown): string {
   const code = error instanceof ApiError ? error.code : 'request_failed'
-  return ERROR_MESSAGES[code] ?? ERROR_MESSAGES.request_failed ?? ''
+  const sentence = ERROR_MESSAGES[code] ?? ERROR_MESSAGES.request_failed ?? ''
+  const detail = error instanceof ApiError && DETAILED.has(code) && typeof error.body.message === 'string' ? error.body.message : ''
+  return detail === '' ? sentence : `${sentence} ${detail}`
 }

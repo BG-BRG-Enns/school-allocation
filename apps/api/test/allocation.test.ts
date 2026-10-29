@@ -142,7 +142,7 @@ test('a run is refused where it cannot start: an open window, no daily minimum, 
   const noMinimum = await start()
   assert.equal(noMinimum.status, 422)
   assert.equal(noMinimum.body.error, 'daily_minimum_missing')
-  assert.match(noMinimum.body.message ?? '', /9/)
+  assert.equal(noMinimum.body.message, '9')
   assert.equal((await get<{ campaign: Campaign }>(s, s.anna, `/api/campaigns/${id}`)).body.campaign.state, 'closed', 'nothing moved')
   // The settings are frozen after the close; the minimum the organizer forgot is set from below for the rest of the test.
   await owner.query('update campaign set daily_minimum = \'{"9": 200}\' where id = $1', [id])
@@ -225,4 +225,16 @@ test('without SOLVER_URL no run starts; a run left running by a restart is marke
   assert.equal(next.stale, false)
   await s.owner.query('update catalog_item set places = places + 1 where id = $1', [s.items.darts])
   assert.equal((await get<RunReviewResponse>(s, s.anna, `/api/admin/campaigns/${id}/runs/${next.run.id}`)).body.stale, true, 'the snapshot is not the campaign as it stands')
+
+  // Klettern, fixed for 5A after the close: the next run places the class into it before freezing its input (D-24).
+  await s.owner.query('update catalog_item set fixed_classes = \'{5A}\', places = 0 where id = $1', [s.items.klettern])
+  const placed = await finished(s, id, (await startRun(s)).body.run.id)
+  assert.equal(placed.run.status, 'succeeded', JSON.stringify(placed.run))
+  assert.equal(placed.items.find((i) => i.itemId === s.items.klettern)?.fixed, 2, 'Sara and Tim are placed into Klettern by class')
+  assert.equal((await s.owner.query('select count(*)::text as n from pre_assignment where campaign_id = $1 and item_id = $2 and exempted_at is null', [id, s.items.klettern])).rows[0]?.n, '2')
+  // Withdrawn afterwards, the item still labels what the run gave.
+  await s.owner.query('update catalog_item set state = \'withdrawn\', withdrawn_at = now(), withdrawn_by = (select id from app_user limit 1), withdraw_reason = \'Test\' where id = $1', [s.items.klettern])
+  const labelled = await get<RunReviewResponse>(s, s.anna, `/api/admin/campaigns/${id}/runs/${placed.run.id}`)
+  assert.equal(labelled.body.items.find((i) => i.itemId === s.items.klettern)?.title, 'Klettern')
+  assert.equal(labelled.body.stale, true, 'and the run is stale, as it must be')
 })

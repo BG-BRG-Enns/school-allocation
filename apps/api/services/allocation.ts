@@ -23,7 +23,9 @@ import type { AllocationRun, RunFinish, RunReviewResponse, RunStart, StoredRun }
 import type { Campaign } from '../lib/models/campaigns.ts'
 import { SolverError, type SolverClient } from '../lib/solver-client.ts'
 import { datesOfSpan, instantOf } from '../lib/time.ts'
+import { listCampaignItems } from '../lib/dao/items.ts'
 import { catalogueItems } from './items.ts'
+import { reconcilePreAssignments } from './pre-assignments.ts'
 
 export interface AllocationDeps {
   /** null when SOLVER_URL is unset: no run can start. */
@@ -92,10 +94,13 @@ export async function startRun(db: Database, deps: AllocationDeps, campaign: Cam
     if (await store.hasRunningRun(client, campaign.id)) throw new ApplicationError('run_in_progress')
     const result = transition(current.state, 'allocating')
     if (!result.ok) throw new ApplicationError('campaign_state')
+    // The placements by class as the catalogue stands now, against the frozen roster: an item's fixed classes
+    // changed or an item withdrawn since the close must not leave a placement behind (D-24).
+    await reconcilePreAssignments(client, campaign.id)
     const snapshot = await snapshotOf(client, current, seed, limit)
     const check = checkAllocationInput(snapshot)
     for (const problem of check.problems) {
-      if (problem.code === 'daily_minimum_missing') throw new ApplicationError('daily_minimum_missing', `grades ${(problem.grades ?? []).join(', ')}`)
+      if (problem.code === 'daily_minimum_missing') throw new ApplicationError('daily_minimum_missing', (problem.grades ?? []).join(', '))
       if (problem.code === 'fixed_items_overlap') throw new ApplicationError('fixed_items_overlap', `${problem.personId ?? ''}: ${(problem.itemIds ?? []).join(', ')}`)
       if (problem.code === 'no_students') throw new ApplicationError('no_students')
     }
@@ -211,7 +216,8 @@ export async function listRuns(db: Queryable, deps: AllocationDeps, campaign: Ca
 export async function runReview(db: Queryable, campaign: Campaign, runId: string): Promise<RunReviewResponse> {
   const run = await store.readRun(db, campaign.id, runId.toLowerCase())
   if (!run) throw new ApplicationError('not_found')
-  const [rows, students, items, current] = await Promise.all([store.listAssignments(db, run.id), campaignStudents(db, campaign), catalogueItems(db, campaign.id), snapshotOf(db, campaign, 0, 0)])
+  // Every item the campaign ever had labels the rows: one withdrawn since the run still names what a student was given.
+  const [rows, students, items, current] = await Promise.all([store.listAssignments(db, run.id), campaignStudents(db, campaign), listCampaignItems(db, campaign.id), snapshotOf(db, campaign, 0, 0)])
   const { snapshot, passResults: _passes, ...view } = run
   const summary = run.status === 'succeeded' ? summarizeAllocation(snapshot, rows, run.cancelledItemIds) : null
   const named = new Map(students.map((s) => [s.personId, s]))
