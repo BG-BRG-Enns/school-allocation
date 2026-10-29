@@ -23,12 +23,14 @@ openssl rand -hex 24 > apps/api/.secrets/db-owner-password
 openssl rand -hex 24 > apps/api/.secrets/db-runtime-password
 openssl rand -hex 32 > apps/api/.secrets/session-key
 printf 'not-a-real-secret' > apps/api/.secrets/entra-client-secret
-scripts/postgres.sh school-allocation-db 5432 apps/api/.secrets/db-owner-password   # CONTAINER_ENGINE=podman for Podman
+npm run db:dev                 # PostgreSQL in a container on 127.0.0.1:5432; CONTAINER_ENGINE=podman for Podman
 npm run migrate
 
 npm run dev:api:fake-entra     # API on http://127.0.0.1:3000, signing in with a fake Entra ID (below)
 npm run dev:web                # Vite dev server on http://localhost:5173, /api proxied to the API
 ```
+
+`npm run db:dev` runs `scripts/postgres.sh`, which starts the PostgreSQL image the deployment is built from. Run it again after a reboot: an existing container is started, not recreated. The data lives in the volume `school-allocation-db-data`, so the container survives being removed; for an empty database remove the container and the volume (`docker rm -f school-allocation-db && docker volume rm school-allocation-db-data`) and migrate again.
 
 The API refuses to start with a missing or unsafe setting and names it. `apps/api/.env.example` lists every setting; secrets are never set inline but read from files named by `*_FILE` variables, kept in the git-ignored `apps/api/.secrets/`. Open the app through the Vite dev server: the API accepts state-changing requests only from the origin of `PUBLIC_URL`.
 
@@ -56,10 +58,11 @@ A dependency change edits `requirements.in` and recompiles: `uv pip compile --ge
 
 ## Checks
 
-Run these before pushing. CI runs the same ones on every pull request. The database tests need `TEST_DATABASE_URL`, a superuser connection to a server started with `scripts/postgres.sh`; each test creates and drops its own database there. Without it they are skipped locally, and in CI they fail.
+Run these before pushing. CI runs the same ones on every pull request. The database tests need `TEST_DATABASE_URL`, a superuser connection to a second server, started with `npm run db:test` on port 5433; each test creates and drops its own database there. Not the development server: the tests set the runtime role's password, which is the server's, and would lock the development API out of its database. The tests refuse the server `apps/api/.env` names. Without `TEST_DATABASE_URL` they are skipped locally, and in CI they fail.
 
 ```bash
-export TEST_DATABASE_URL="postgres://postgres:$(cat apps/api/.secrets/db-owner-password)@127.0.0.1:5432/postgres"
+npm run db:test
+export TEST_DATABASE_URL="postgres://postgres:$(cat apps/api/.secrets/db-owner-password)@127.0.0.1:5433/postgres"
 ```
 
 ```bash
