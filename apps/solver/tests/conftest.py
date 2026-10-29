@@ -23,12 +23,13 @@ def request(students: list[dict[str, Any]], items: list[dict[str, Any]], *, conf
     }
 
 
-def option(o: int, cost: int, minutes: int = 100, tie: int = 0, d: int = 0) -> dict[str, Any]:
-    return {"o": o, "cost": cost, "tie": tie, "credit": [{"d": d, "min": minutes}]}
+def option(o: int, cost: int, minutes: int = 100, tie: int = 0, d: int = 0, weight: int | None = None) -> dict[str, Any]:
+    # The weight is rank · minutes; the instances here give the cost over a 100-minute requirement, so rank = cost / 1000.
+    return {"o": o, "cost": cost, "weight": weight if weight is not None else cost * minutes // 1000, "tie": tie, "credit": [{"d": d, "min": minutes}]}
 
 
 def student(s: int, options: list[dict[str, Any]], required: int = 100, days: int = 1) -> dict[str, Any]:
-    return {"s": s, "required": [{"d": d, "min": required} for d in range(days)], "options": options}
+    return {"s": s, "required": [{"d": d, "min": required} for d in range(days)], "norm": required * days, "options": options}
 
 
 def item(o: int, places: int, minimum: int = 0, cancellable: bool = True) -> dict[str, Any]:

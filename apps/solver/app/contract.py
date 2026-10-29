@@ -29,9 +29,15 @@ class DayMinutes(Strict):
     min: int = Field(ge=0)
 
 
+COST_SCALE = 1000
+
+
 class Option(Strict):
     o: int = Field(ge=0)
+    # rank · minutes · COST_SCALE / norm, rounded: what the total cost sums.
     cost: int = Field(ge=0)
+    # rank · minutes, exact: what a threshold is compared against, times COST_SCALE, so rounding never tips it.
+    weight: int = Field(ge=0)
     tie: int = Field(ge=0)
     credit: list[DayMinutes]
 
@@ -39,6 +45,8 @@ class Option(Strict):
 class Student(Strict):
     s: int = Field(ge=0)
     required: list[DayMinutes]
+    # The minutes the student still needs over the week, the costs' denominator.
+    norm: int = Field(ge=0)
     options: list[Option]
 
 

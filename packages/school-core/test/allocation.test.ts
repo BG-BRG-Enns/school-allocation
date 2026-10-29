@@ -197,6 +197,22 @@ test('every tampering is caught: capacity, overlap, an item outside the options,
   assert.ok(codes(result, rows.filter((row) => !(row.personId === 'ben' && row.itemId === 'mondayclass'))).includes('pre_assignment_missing:ben:mondayclass'))
   assert.ok(codes(result, [...rows, { personId: 'lena', itemId: 'trip', source: 'fixed', pass: null, rank: null }]).includes('pre_assignment_changed:lena:trip'))
   assert.ok(codes(result, rows.map((row) => (row.personId === 'max' && row.itemId === 'tabletennis' ? { ...row, source: 'wish', rank: 1 } : row))).includes('assignment_mismatch:max:tabletennis'))
+  assert.deepEqual(codes(result, [...rows, rows[0] as (typeof rows)[number]]), ['pre_assignment_changed:ben:mondayclass'], 'a row twice is a row too many')
+})
+
+test('a threshold is compared exactly: three second wishes over a 900-minute week are an average rank of 2, not over it', () => {
+  // Lena ranks everything second: minigolf and chess on Monday, museum on Tuesday, hike on Wednesday behind pottery.
+  const input: AllocationInput = { ...INPUT, students: INPUT.students.map((s) => (s.personId === 'lena' ? { ...s, ranking: { [MON_AM]: ['dance', 'minigolf'], [MON_PM]: ['tabletennis', 'chess'], [TUE]: ['museum'], [WED]: ['pottery', 'hike'] } } : s)) }
+  const compiled = compilePass(input, 1, 'r')
+  const lena = compiled.students.find((p) => p.student.personId === 'lena')
+  assert.deepEqual(lena?.options.filter((o) => o.kind === 'wish').map((o) => [o.itemId, o.rank, o.weight, o.cost]), [['chess', 2, 240, 267], ['dance', 1, 180, 200], ['hike', 2, 600, 667], ['minigolf', 2, 360, 400], ['museum', 1, 300, 333], ['pottery', 1, 300, 333], ['tabletennis', 1, 120, 133]])
+  const request = compiled.request.students.find((st) => compiled.personIds[st.s] === 'lena')
+  assert.equal(request?.norm, 900)
+  // minigolf (2 · 180) + chess (2 · 120) + museum (1 · 300) + hike (2 · 300): 1500 of 900 is an average of 1.67; with the exact weights it is under 2000 whatever the rounded costs say.
+  const pairs: [string, string][] = [['lena', 'minigolf'], ['lena', 'chess'], ['lena', 'museum'], ['lena', 'hike']]
+  const levels = Object.fromEntries(recomputeLevels(compiled, [...PASS_1.assign.filter(([p]) => p !== 'lena'), ...pairs]).map((l) => [l.name, l.value]))
+  assert.equal(levels['over:2000'], 1, 'max, with his fallback, is over; lena is not')
+  assert.equal(levels['over:3000'], 0)
 })
 
 test('the rows of a result carry the pre-assignments, the pass and the wish number; the explanation and the summary read them back', () => {

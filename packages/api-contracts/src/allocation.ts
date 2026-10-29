@@ -8,25 +8,27 @@ import { ALLOCATION_CONTRACT, ALLOCATION_INPUT_PROBLEM_CODES, ALLOCATION_PROBLEM
 import { Type, type Static } from 'typebox'
 import { Literals, StrictObject } from './common.ts'
 
+// The bounds here are the solver's (apps/solver/app/contract.py), so a request the API builds is one the solver takes.
 const Count = Type.Integer({ minimum: 0 })
 const Pair = Type.Tuple([Count, Count])
 
 export const DayMinutesSchema = StrictObject({ d: Count, min: Count })
-export const SolveOptionSchema = StrictObject({ o: Count, cost: Count, tie: Count, credit: Type.Array(DayMinutesSchema) })
-export const SolveStudentSchema = StrictObject({ s: Count, required: Type.Array(DayMinutesSchema), options: Type.Array(SolveOptionSchema) })
+export const SolveOptionSchema = StrictObject({ o: Count, cost: Count, weight: Count, tie: Count, credit: Type.Array(DayMinutesSchema) })
+export const SolveStudentSchema = StrictObject({ s: Count, required: Type.Array(DayMinutesSchema), norm: Count, options: Type.Array(SolveOptionSchema) })
 export const SolveItemSchema = StrictObject({ o: Count, max: Count, min: Count, cancellable: Type.Boolean() })
-export const AllocationLimitsSchema = StrictObject({ deterministicTimePerLevel: Type.Number({ exclusiveMinimum: 0 }) })
+/** The solver's limit per level, deterministic seconds; the solver refuses more than 600. */
+export const AllocationLimitsSchema = StrictObject({ deterministicTimePerLevel: Type.Number({ exclusiveMinimum: 0, maximum: 600 }) })
 
 export const SolveRequestSchema = StrictObject({
   contract: Type.Literal(ALLOCATION_CONTRACT),
-  runId: Type.String(),
-  seed: Count,
+  runId: Type.String({ minLength: 1, maxLength: 100 }),
+  seed: Type.Integer({ minimum: 0, maximum: 2 ** 53 }),
   limits: AllocationLimitsSchema,
   students: Type.Array(SolveStudentSchema),
   items: Type.Array(SolveItemSchema),
   conflicts: Type.Array(Pair),
   fixed: Type.Array(Pair),
-  levels: Type.Array(Type.String()),
+  levels: Type.Array(Type.String(), { minItems: 1 }),
 })
 export type SolveRequest = Static<typeof SolveRequestSchema>
 

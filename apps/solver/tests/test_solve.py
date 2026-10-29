@@ -182,6 +182,17 @@ def test_the_greedy_start_covers_what_it_can_and_respects_places_fixed_pairs_and
     assert greedy_assign(SolveRequest.model_validate(payload)) == {(1, 0), (0, 1), (0, 2), (1, 2)}
 
 
+def test_a_threshold_is_compared_exactly_not_on_rounded_costs() -> None:
+    # Three second wishes of 300 minutes over a 900-minute week: cost 667 each, 2001 in all, but the average rank is exactly 2, not over it.
+    payload = request(
+        [{"s": 0, "required": [{"d": d, "min": 300} for d in range(3)], "norm": 900, "options": [{"o": d, "cost": 667, "weight": 600, "tie": 0, "credit": [{"d": d, "min": 300}]} for d in range(3)]}],
+        [item(o, 5) for o in range(3)],
+    )
+    result = run(payload)
+    assert values(result)["over:2000"] == 0
+    assert values(result)["total_cost"] == 2001
+
+
 def test_an_item_without_a_minimum_runs_with_its_takers_or_none() -> None:
     # Nobody has item 1 as an option; cancellable, but with no minimum to fall below it stays available.
     payload = request([student(0, [option(0, 1000)])], [item(0, 5), item(1, 5, minimum=0, cancellable=True)])

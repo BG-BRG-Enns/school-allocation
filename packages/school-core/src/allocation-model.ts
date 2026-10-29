@@ -65,7 +65,10 @@ export interface DayMinutes {
 
 export interface SolveOption {
   o: number
+  /** `rank · minutes · COST_SCALE / norm`, rounded: what L4 sums. */
   cost: number
+  /** `rank · minutes`, exact: what L3 compares against `t · norm`, so rounding never puts a student over a threshold they are on. */
+  weight: number
   tie: number
   credit: DayMinutes[]
 }
@@ -73,6 +76,8 @@ export interface SolveOption {
 export interface SolveStudent {
   s: number
   required: DayMinutes[]
+  /** The minutes the student still needs over the week, the costs' denominator. */
+  norm: number
   options: SolveOption[]
 }
 

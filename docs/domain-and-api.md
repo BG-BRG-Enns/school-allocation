@@ -193,9 +193,11 @@ as a bound for the next:
 3. **L3:** for thresholds *t* = cap, cap − 1, …, 2, minimize the number of students whose
    minutes-weighted average rank exceeds *t*, one sub-level per threshold, the worst first. A
    student's cost is `Σ_o x[s,o] · rank(s,o) · minutes(o) / required_minutes(s)`, scaled to integers
-   (× 1000, rounded), where `required_minutes(s)` is the requirement left after fixed items and
-   `rank` counts within the item's time group; a fallback option ranks one past the cap. Students
-   with nothing left to choose have no cost and are not counted in L3.
+   (× 1000, rounded per option), where `required_minutes(s)` is the requirement left after fixed items
+   and `rank` counts within the item's time group; a fallback option ranks one past the cap. The
+   threshold is compared exactly, `Σ rank · minutes · 1000 > t · 1000 · required_minutes(s)`, so the
+   rounding of the costs never puts a student over a threshold they are on. Students with nothing
+   left to choose have no cost and are not counted in L3.
 4. **L4:** minimize the total cost over all students.
 5. **L5:** tie-break: minimize `Σ x[s,o] · ε(seed, s, o)`, with small deterministic pseudo-random
    weights (an FNV-1a hash of the seed, the student and the item, in `[0, 1000)`), sent as their own
@@ -251,8 +253,8 @@ should quantify this.
   "runId": "…",
   "seed": 123456789,
   "limits": { "deterministicTimePerLevel": 30 },
-  "students": [{ "s": 17, "required": [{ "d": 0, "min": 300 }],
-                 "options": [{ "o": 4, "cost": 1200, "tie": 613, "credit": [{ "d": 0, "min": 120 }] }] }],
+  "students": [{ "s": 17, "required": [{ "d": 0, "min": 300 }], "norm": 300,
+                 "options": [{ "o": 4, "cost": 1200, "weight": 360, "tie": 613, "credit": [{ "d": 0, "min": 120 }] }] }],
   "items": [{ "o": 4, "max": 20, "min": 8, "cancellable": true }],
   "conflicts": [[4, 9]],
   "fixed": [[23, 4]],
@@ -270,7 +272,9 @@ Response:
   "detail": "only when the run stopped: which level, or what made the model unsound" }
 ```
 
-- **IDs are small integers per run.** The mapping to persons and items stays in the api.
+- **IDs are small integers per run.** The mapping to persons and items stays in the api. An option's
+  `cost` is the rounded normalized rank the total (L4) sums; its `weight` is the exact `rank · minutes`
+  a threshold (L3) is compared against, over the student's `norm`.
 - **No names, e-mails or classes.** The solver has no database credentials and no egress.
 - **The tie-break weights are computed in the TypeScript core from the seed** and sent as `tie` per
   option, minimized as the last level. This keeps the Python side free of domain randomness and L4

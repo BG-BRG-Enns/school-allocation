@@ -65,7 +65,8 @@ export function recomputeLevels(compiled: CompiledPass, pairs: readonly [string,
   let deficitMinutes = 0
   let totalCost = 0
   let tiebreak = 0
-  const costs: number[] = []
+  /** Per student: the exact minutes-weighted rank sum and the minutes it is measured against. */
+  const weights: [number, number][] = []
   for (const p of compiled.students) {
     const mine = assigned.get(p.student.personId) ?? new Set()
     const options = p.options.filter((o) => mine.has(o.itemId))
@@ -77,7 +78,7 @@ export function recomputeLevels(compiled: CompiledPass, pairs: readonly [string,
     if (deficit > 0) withDeficit += 1
     deficitMinutes += deficit
     const cost = options.reduce((sum, o) => sum + o.cost, 0)
-    costs.push(cost)
+    weights.push([options.reduce((sum, o) => sum + o.weight, 0), p.requiredTotal])
     totalCost += cost
     tiebreak += options.reduce((sum, o) => sum + o.tie, 0)
   }
@@ -88,8 +89,9 @@ export function recomputeLevels(compiled: CompiledPass, pairs: readonly [string,
     else if (name === 'total_cost') value = totalCost
     else if (name === 'tiebreak') value = tiebreak
     else {
+      // `over:3000` is an average rank over 3: Σ rank · minutes > 3 · norm, in whole numbers.
       const threshold = Number(name.slice('over:'.length))
-      value = costs.filter((cost) => cost > threshold).length
+      value = weights.filter(([weight, norm]) => weight * COST_SCALE > threshold * norm).length
     }
     return { name, value, proven: true }
   })
@@ -234,14 +236,25 @@ export function validateAllocation(input: AllocationInput, result: AllocationRes
   }
   if (assignments !== undefined && problems.length === 0) {
     const expected = assembleAssignments(input, result)
+    // Row for row, counted: a row twice is as wrong as a row too many.
     const key = (a: Assignment) => `${a.personId}\u0000${a.itemId}\u0000${a.source}\u0000${a.pass ?? ''}\u0000${a.rank ?? ''}`
-    const stored = new Set(assignments.map(key))
-    const wanted = new Set(expected.map(key))
-    for (const row of expected) {
-      if (!stored.has(key(row))) problems.push({ code: row.source === 'fixed' ? 'pre_assignment_missing' : 'assignment_mismatch', personId: row.personId, itemId: row.itemId })
+    const count = (rows: readonly Assignment[]) => {
+      const counts = new Map<string, number>()
+      for (const row of rows) counts.set(key(row), (counts.get(key(row)) ?? 0) + 1)
+      return counts
     }
+    const stored = count(assignments)
+    const wanted = count(expected)
+    for (const row of expected) {
+      if ((stored.get(key(row)) ?? 0) < 1) problems.push({ code: row.source === 'fixed' ? 'pre_assignment_missing' : 'assignment_mismatch', personId: row.personId, itemId: row.itemId })
+    }
+    const reported = new Set<string>()
     for (const row of assignments) {
-      if (!wanted.has(key(row))) problems.push({ code: row.source === 'fixed' ? 'pre_assignment_changed' : 'assignment_mismatch', personId: row.personId, itemId: row.itemId })
+      const k = key(row)
+      if ((stored.get(k) ?? 0) > (wanted.get(k) ?? 0) && !reported.has(k)) {
+        reported.add(k)
+        problems.push({ code: row.source === 'fixed' ? 'pre_assignment_changed' : 'assignment_mismatch', personId: row.personId, itemId: row.itemId })
+      }
     }
   }
   return problems

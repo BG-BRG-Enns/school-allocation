@@ -31,7 +31,7 @@ from dataclasses import dataclass
 
 from ortools.sat.python import cp_model
 
-from .contract import Level, SolveRequest, SolveResponse, Status, Versions, level_threshold
+from .contract import COST_SCALE, Level, SolveRequest, SolveResponse, Status, Versions, level_threshold
 
 # CP-SAT's seed is a signed 32-bit integer; the API's may be larger.
 SEED_MASK = 0x7FFFFFFF
@@ -90,7 +90,8 @@ class Model:
         self.u: dict[tuple[int, int], cp_model.IntVar] = {}
         self.z: dict[int, cp_model.IntVar] = {}
         self.cost: dict[int, cp_model.LinearExpr] = {}
-        self.cost_bound: dict[int, int] = {}
+        self.weight: dict[int, cp_model.LinearExpr] = {}
+        self.weight_bound: dict[int, int] = {}
         self.over: dict[int, list[cp_model.IntVar]] = {}
         conflicts = {(min(a, b), max(a, b)) for a, b in request.conflicts}
         for o in sorted(self.items):
@@ -117,7 +118,8 @@ class Model:
                     m.add(covered + u >= day.min)
                     m.add(u <= day.min * z)
             self.cost[s] = sum(op.cost * self.x[(s, op.o)] for op in options)
-            self.cost_bound[s] = sum(op.cost for op in options)
+            self.weight[s] = sum(op.weight * self.x[(s, op.o)] for op in options)
+            self.weight_bound[s] = sum(op.weight for op in options)
             mine = [op.o for op in options]
             mine_set = set(mine)
             edges = {(a, b) for a, b in conflicts if a in mine_set and b in mine_set}
@@ -148,8 +150,10 @@ class Model:
             flags: list[cp_model.IntVar] = []
             for s in sorted(self.cost):
                 b = m.new_bool_var(f"b{threshold}_{s}")
-                # Over the threshold only if b is set; the bound is the most the student's options can cost.
-                m.add(self.cost[s] <= threshold + self.cost_bound[s] * b)
+                # Over the threshold only if b is set: Σ rank · minutes · COST_SCALE > threshold · norm, in whole numbers.
+                # The bound is the most the student's options can weigh.
+                norm = self.students[s].norm
+                m.add(COST_SCALE * self.weight[s] <= threshold * norm + COST_SCALE * self.weight_bound[s] * b)
                 flags.append(b)
             self.over[threshold] = flags
         return sum(self.over[threshold])
@@ -167,10 +171,14 @@ class Model:
         threshold = level_threshold(name)
         if threshold is None:
             raise ValueError(f"unknown level {name}")
-        return sum(1 for s in self.students if self.student_cost(s, assign) > threshold)
+        return sum(1 for s in self.students if self.over_threshold(s, threshold, assign))
 
     def student_cost(self, s: int, assign: set[tuple[int, int]]) -> int:
         return sum(op.cost for op in self.students[s].options if (s, op.o) in assign)
+
+    def over_threshold(self, s: int, threshold: int, assign: set[tuple[int, int]]) -> bool:
+        weight = sum(op.weight for op in self.students[s].options if (s, op.o) in assign)
+        return COST_SCALE * weight > threshold * self.students[s].norm
 
     def deficits(self, s: int, assign: set[tuple[int, int]]) -> list[int]:
         student = self.students[s]
@@ -244,7 +252,7 @@ def hint_from(model: Model, assign: set[tuple[int, int]]) -> None:
             model.model.add_hint(model.u[(s, day.d)], gap)
     for threshold, flags in model.over.items():
         for s, b in zip(sorted(model.cost), flags, strict=True):
-            model.model.add_hint(b, 1 if model.student_cost(s, assign) > threshold else 0)
+            model.model.add_hint(b, 1 if model.over_threshold(s, threshold, assign) else 0)
 
 
 def solve(request: SolveRequest, new_solver: Callable[[], cp_model.CpSolver] = cp_model.CpSolver) -> Outcome:

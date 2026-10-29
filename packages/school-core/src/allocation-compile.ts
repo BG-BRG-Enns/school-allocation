@@ -36,6 +36,8 @@ export interface CompiledOption {
   /** The item's credited minutes over the project days. */
   minutes: number
   cost: number
+  /** `rank · minutes`, exact. */
+  weight: number
   tie: number
   /** Date → the minutes the item credits that day. */
   credit: Map<string, number>
@@ -135,6 +137,7 @@ function option(input: AllocationInput, student: AllocationStudent, item: Alloca
     rank,
     minutes,
     cost: requiredTotal > 0 ? Math.round(rank * minutes * COST_SCALE / requiredTotal) : 0,
+    weight: rank * minutes,
     tie: tieWeight(input.seed, student.personId, item.id),
     credit,
   }
@@ -183,11 +186,11 @@ export function compilePass(input: AllocationInput, pass: Pass, runId: string, p
   const personIds = students.map((p) => p.student.personId)
   const fixed: [number, number][] = []
   const requestStudents: SolveStudent[] = students.map((p, s) => {
-    const options = p.options.map((o) => ({ o: itemIndex.get(o.itemId) as number, cost: o.cost, tie: o.tie, credit: dayMinutes(o.credit, dayIndex) })).sort((a, b) => a.o - b.o)
+    const options = p.options.map((o) => ({ o: itemIndex.get(o.itemId) as number, cost: o.cost, weight: o.weight, tie: o.tie, credit: dayMinutes(o.credit, dayIndex) })).sort((a, b) => a.o - b.o)
     if (pass === 2 && p.student.savedIn === 'first') {
       for (const o of options) fixed.push([s, o.o])
     }
-    return { s, required: dayMinutes(p.required, dayIndex), options }
+    return { s, required: dayMinutes(p.required, dayIndex), norm: p.requiredTotal, options }
   })
   const conflicts: [number, number][] = []
   for (let a = 0; a < items.length; a++) {
