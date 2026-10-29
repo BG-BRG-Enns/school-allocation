@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto'
 import type { FastifyBaseLogger } from 'fastify'
 import type { MailConfig } from '../../config.ts'
 import type { Database } from '../db.ts'
+import { runJob } from '../jobs.ts'
 import { domainOf, parseMailbox } from './mailbox.ts'
 import { claimNextMail, recordFailed, recordRetry, recordSent, recoverInterruptedMails, type OutboxMail } from './outbox.ts'
 import type { MailTransport } from './transport.ts'
@@ -66,15 +67,20 @@ export class Sender {
     })
   }
 
-  /** Sends until the queue holds nothing due; returns how many were accepted. */
+  /** Sends until the queue holds nothing due, as a job while a session is open (the update gate waits for a job); returns how many were accepted. */
   async runOnce(): Promise<number> {
-    let sent = 0
-    for (;;) {
-      if (this.stopping) return sent
-      const mail = await claimNextMail(this.db)
-      if (!mail) return sent
-      if (await this.deliver(mail)) sent += 1
-    }
+    if (this.stopping) return 0
+    const first = await claimNextMail(this.db)
+    if (!first) return 0
+    return runJob(this.db, 'outbox_flush', null, async () => {
+      let sent = await this.deliver(first) ? 1 : 0
+      for (;;) {
+        if (this.stopping) return sent
+        const mail = await claimNextMail(this.db)
+        if (!mail) return sent
+        if (await this.deliver(mail)) sent += 1
+      }
+    })
   }
 
   /** Stops taking new work and waits for the session in flight. */

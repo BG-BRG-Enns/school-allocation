@@ -30,8 +30,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { callerOf, type Caller, type Guards } from '../lib/auth.ts'
 import { campaignCounts, campaignDemand, canSee, createCampaign, isOrganizer, isTeacher, listCampaigns, readCampaign, rosterClasses, rosterTeachers, transitionCampaign, updateCampaign, type Campaign } from '../lib/campaigns.ts'
-import { choiceStates, type StudentChoiceState } from '../lib/choices.ts'
-import { classStudents } from '../lib/class-teachers.ts'
+import { campaignStudents, choiceStates, type StudentChoiceState } from '../lib/choices.ts'
 import type { Database } from '../lib/db.ts'
 import { approveItem, catalogueItems, createItem, deleteDraft, ItemInvalid, listItems, proposeItem, readItem, returnItem, unproposeItem, updateItem, withdrawItem, type Item, type ItemInput } from '../lib/items.ts'
 import { RosterConflict } from '../lib/roster.ts'
@@ -106,7 +105,8 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards, baseUrl
     const caller = callerOf(request)
     const { className } = request.params
     if (!isOrganizer(caller) && !caller.classTeacherOf.includes(className)) return reply.code(403).send({ error: 'forbidden' })
-    const students = await classStudents(db, className)
+    // The campaign's roster: the one frozen at its close, else the one in force, as the lists and notices go by it.
+    const students = await campaignStudents(db, campaign, className)
     if (students.length === 0) return reply.code(404).send({ error: 'not_found' })
     const items = (await listItems(db, campaign, caller, true))
       .filter((item) => item.fixedClasses.includes(className) && (item.state === 'approved' || item.state === 'proposed'))

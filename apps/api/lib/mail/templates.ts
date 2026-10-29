@@ -8,7 +8,7 @@ import { appendAudit, lockScope, SCHOOL_SCOPE } from '../audit.ts'
 import type { Database, Queryable } from '../db.ts'
 import type { Actor } from '../roster.ts'
 import { parse, TemplateSyntaxError, type Node } from './template-parse.ts'
-import { compile, TemplateOutputError } from './template-render.ts'
+import { compile } from './template-render.ts'
 
 export const MAIL_KINDS = ['choice_invitation', 'choice_reminder', 'grace_invitation', 'grace_reminder', 'missed_deadline', 'class_missing'] as const
 export type MailKind = typeof MAIL_KINDS[number]
@@ -140,17 +140,15 @@ export async function saveTemplate(db: Database, kind: MailKind, subject: string
   return readTemplate(db, kind)
 }
 
-/** The subject line and the plain-text body for `data`; a missing placeholder renders empty. */
+/**
+ * The subject line and the plain-text body for `data`; a missing
+ * placeholder renders empty. Never throws: the outbox's bounds are applied
+ * by cutting (a subject has 998 characters, a body 100 000), and an empty
+ * subject becomes the product's name, so a template can never block the
+ * transition that renders it.
+ */
 export function renderTemplate(template: Pick<MailTemplate, 'subject' | 'body'>, data: Readonly<Record<string, string>>): { subject: string, body: string } {
   const options = { unknown: 'drop' as const, escape: false }
-  try {
-    return {
-      // Never empty: the outbox refuses an empty subject, and a notice must not block a transition.
-      subject: compile(template.subject).render(data, { ...options, maxLength: 998 }).replaceAll(/[\r\n]+/g, ' ').trim() || 'SchulWahl',
-      body: compile(template.body).render(data, { ...options, maxLength: 100_000 }),
-    }
-  } catch (err) {
-    if (err instanceof TemplateOutputError) throw new TemplateInvalid([{ code: 'body_syntax', message: err.message }])
-    throw err
-  }
+  const subject = compile(template.subject).render(data, options).replaceAll(/[\r\n]+/g, ' ').trim().slice(0, 998)
+  return { subject: subject || 'SchulWahl', body: compile(template.body).render(data, options).slice(0, 100_000) }
 }

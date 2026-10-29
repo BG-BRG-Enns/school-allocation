@@ -68,6 +68,7 @@ function rankOf(group: GroupView, item: Item): number {
 /** Gives `item` the wish number `rank` in its group: whoever had it moves down, a 0 takes the item out. A student's change is saved at once. */
 function setRank(group: GroupView, item: Item, rank: number): void {
   const without = (ranking.value[group.key] ?? []).filter((id) => id !== item.id)
+  edits += 1
   if (rank <= 0) {
     ranking.value[group.key] = without
   } else {
@@ -85,13 +86,26 @@ function wishesOf(group: GroupView): number {
 /** The local completeness as the student edits; the server's verdict comes with the save. */
 const complete = computed(() => (view.value?.groups ?? []).every((group) => wishesOf(group) >= group.required))
 
-async function save(): Promise<void> {
+/** Edits since the page loaded, and the one the last save carried: an answer to an older save never replaces a newer edit. */
+let edits = 0
+let saves: Promise<void> = Promise.resolve()
+
+/** Saves, one after another in the order asked, each with the ranking as it is when its turn comes. */
+function save(): Promise<void> {
+  saves = saves.then(saveNow, saveNow)
+  return saves
+}
+
+async function saveNow(): Promise<void> {
   problems.value = []
   await saving.run(async () => {
     try {
+      const atEdit = edits
       const cleaned = Object.fromEntries(Object.entries(ranking.value).filter(([, ids]) => ids.length > 0))
-      view.value = onBehalf.value ? await saveChoiceOf(props.id, props.personId as string, cleaned, reason.value.trim()) : await saveMyChoice(props.id, cleaned)
-      ranking.value = Object.fromEntries(Object.entries(view.value.ranking).map(([key, ids]) => [key, [...ids]]))
+      const saved = onBehalf.value ? await saveChoiceOf(props.id, props.personId as string, cleaned, reason.value.trim()) : await saveMyChoice(props.id, cleaned)
+      view.value = saved
+      // The server's view replaces the local one only when nothing was edited meanwhile; a later save carries the rest.
+      if (atEdit === edits) ranking.value = Object.fromEntries(Object.entries(saved.ranking).map(([key, ids]) => [key, [...ids]]))
     } catch (err) {
       if (err instanceof ApiError && err.code === 'ranking_invalid') {
         const body = err.body as unknown as RankingInvalidBody
@@ -107,6 +121,7 @@ async function exempt(): Promise<void> {
   if (!item || !props.personId) return
   const ok = await saving.run(async () => {
     view.value = await exemptStudent(props.id, props.personId as string, item.id, exemptReason.value.trim())
+    edits += 1
     ranking.value = Object.fromEntries(Object.entries(view.value.ranking).map(([key, ids]) => [key, [...ids]]))
   }, 'Befreit.')
   if (ok) {

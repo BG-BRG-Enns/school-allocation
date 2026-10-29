@@ -11,6 +11,7 @@ import type { Caller } from './auth.ts'
 import type { Campaign } from './campaigns.ts'
 import type { Database, Queryable } from './db.ts'
 import { catalogueItems, type Item } from './items.ts'
+import { reconcilePreAssignments } from './pre-assignments.ts'
 import { RosterConflict } from './roster.ts'
 import { instantOf } from './time.ts'
 
@@ -53,22 +54,9 @@ export async function campaignStudent(db: Queryable, campaign: Pick<Campaign, 'r
   return row === undefined ? undefined : { personId, displayName: row.display_name, className: row.class_name, grade: row.grade, address: row.address }
 }
 
-/**
- * Places every student of a class an approved item is fixed for into it
- * (D-24), from the roster in force, once; called when the window opens,
- * inside the transition's transaction. Returns how many rows were added.
- */
-export async function materializePreAssignments(client: Queryable, campaign: Pick<Campaign, 'id' | 'rosterBatchId'>): Promise<number> {
-  const { rowCount } = await client.query(
-    `insert into pre_assignment (campaign_id, item_id, person_id, source)
-     select i.campaign_id, i.id, e.person_id, 'class'
-       from catalog_item i
-       join roster_entry e on e.batch_id = ${rosterBatchClause(campaign)} and e.kind = 'student' and e.person_id is not null and e.class_name = any(i.fixed_classes)
-      where i.campaign_id = $1 and i.state = 'approved'
-     on conflict do nothing`,
-    [campaign.id],
-  )
-  return rowCount ?? 0
+/** Places every student of a class an approved item is fixed for into it (D-24), from the roster in force; called when the window opens. */
+export async function materializePreAssignments(client: Queryable, campaign: Pick<Campaign, 'id'>): Promise<number> {
+  return (await reconcilePreAssignments(client, campaign.id)).placed
 }
 
 /** The items a student is placed into, exemptions left out. */
@@ -166,11 +154,16 @@ export interface SaveBy {
  * cap per group. A list saved after the close is late (D-06). Every save
  * writes a revision; an organizer's save on behalf is audited as well.
  */
-export async function saveRanking(db: Database, campaign: Campaign, student: CampaignStudent, ranking: Ranking, by: SaveBy): Promise<ChoiceView> {
+export async function saveRanking(db: Database, campaign: Campaign, student: CampaignStudent, ranking: Ranking, by: SaveBy, now = new Date()): Promise<ChoiceView> {
   await db.tx(async (client) => {
     await lockScope(client, campaign.id)
-    const { rows: [current] } = await client.query<{ state: Campaign['state'] }>('select state from campaign where id = $1 for update', [campaign.id])
+    const { rows: [current] } = await client.query<{ state: Campaign['state'], closes_at: Date | null, late_until: Date | null }>(
+      'select state, closes_at, late_until from campaign where id = $1 for update', [campaign.id],
+    )
     if (!current || !acceptsChoices(current.state)) throw new RosterConflict('campaign_state')
+    // The clock under the lock, not the last tick: after the window's end nothing is taken, whatever the state still says.
+    const end = current.late_until ?? current.closes_at
+    if (end !== null && now.getTime() > end.getTime()) throw new RosterConflict('campaign_state')
     const view = await choiceView(client, { ...campaign, state: current.state }, student)
     const problems = checkRanking(ranking, view.groups, campaign.wishesPerGroup)
     if (problems.length > 0) throw new ChoiceInvalid(problems)
@@ -180,8 +173,8 @@ export async function saveRanking(db: Database, campaign: Campaign, student: Cam
       const ids = ranking[group.key]
       if (ids !== undefined && ids.length > 0) canonical[group.key] = [...ids]
     }
-    // The state is the clock's verdict: whatever is saved in the grace week is late, whoever asked the time.
-    const window = current.state === 'grace' ? 'late' : 'first'
+    // Late in the grace week, or after the close before the clock moved the state: the save is late either way.
+    const window = current.state === 'grace' || (current.closes_at !== null && now.getTime() > current.closes_at.getTime()) ? 'late' : 'first'
     const { rows: [row] } = await client.query<{ version: number }>(
       `insert into choice (campaign_id, person_id, ranking, saved_in, version, entered_by) values ($1, $2, $3, $4, 1, $5)
        on conflict (campaign_id, person_id) do update set ranking = excluded.ranking, saved_in = excluded.saved_in, version = choice.version + 1, updated_at = now(), entered_by = excluded.entered_by

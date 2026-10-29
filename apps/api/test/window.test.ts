@@ -129,6 +129,14 @@ test('opening the window places the fixed classes and invites the students; a st
   const xlsx = await s.app.inject({ method: 'GET', url: `/api/admin/campaigns/${id}/export/missing.xlsx`, headers: { cookie: s.anna.header() } })
   assert.equal(xlsx.statusCode, 200)
   assert.equal(xlsx.headers['content-type'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+  // The deadline passed, the clock not yet run: a save after the close is late, one after the grace week is refused, whatever the state still says.
+  await owner.query('update campaign set opens_at = now() - interval \'2 hours\', closes_at = now() - interval \'1 hour\', late_until = now() + interval \'1 hour\' where id = $1', [id])
+  const afterClose = await send<View>(s, s.sara, 'PUT', `/api/campaigns/${id}/my-choice`, { ranking: { [monday]: [s.items.klettern, s.items.tanz], [swim]: [s.items.schwimmen] } })
+  assert.equal(afterClose.status, 200, JSON.stringify(afterClose.body))
+  assert.equal(afterClose.body.window, 'late')
+  await owner.query('update campaign set late_until = now() - interval \'1 minute\' where id = $1', [id])
+  assert.equal((await send(s, s.sara, 'PUT', `/api/campaigns/${id}/my-choice`, { ranking: {} })).status, 409)
 })
 
 test('an organizer enters a ranking on behalf and exempts a student from a class activity, both audited; the clock closes the window with its notices', DB, async (t) => {
@@ -224,6 +232,21 @@ test('a catalogue change after the opening: a ranked item withdrawn is pruned fr
   assert.equal(again.status, 200, JSON.stringify(again.body))
   const placed = await get<View>(s, s.sara, `/api/campaigns/${id}/my-choice`)
   assert.deepEqual(placed.body.fixed.map((i) => i.title), ['Wien'])
+
+  // A roster committed while the window is open: Tim moves to 5B and is no longer placed, Uli joins 5A and is.
+  const csv = [
+    'email;given_name;family_name;class;grade;kind;class_teacher_email',
+    `${SARA.email};Sara;Schülerin;5A;9;student;${CARLA.email}`, `${TIM.email};Tim;Schüler;5B;9;student;${CARLA.email}`, `uli@example.org;Uli;Neu;5A;9;student;${CARLA.email}`,
+    `${ANNA.email};Anna;Lehrerin;;;teacher;`, `${BERND.email};Bernd;Lehrer;;;teacher;`, `${CARLA.email};Carla;Kollegin;;;teacher;`,
+  ].join('\n')
+  const batch = await send<BatchDetail>(s, s.anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)).status, 200)
+  const owner = createDatabase(s.ownerUrl, () => {})
+  t.after(() => owner.close())
+  const placements = await owner.query<{ name: string }>('select e.display_name as name from pre_assignment p join roster_entry e on e.person_id = p.person_id and e.batch_id = $2 where p.campaign_id = $1 order by 1', [id, batch.body.id])
+  assert.deepEqual(placements.rows.map((r) => r.name), ['Sara Schülerin', 'Uli Neu'])
+  const status = await get<{ students: { displayName: string }[] }>(s, s.anna, `/api/campaigns/${id}/classes/5A/status`)
+  assert.deepEqual(status.body.students.map((st) => st.displayName), ['Sara Schülerin', 'Uli Neu'], 'the class page reads the roster the campaign goes by')
 })
 
 test('the clock opens a published campaign at its time and closes one without a grace week straight away; downtime over several deadlines is caught up in one tick', DB, async (t) => {
