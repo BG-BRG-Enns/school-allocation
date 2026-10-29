@@ -32,7 +32,7 @@ import { callerOf, type Caller, type Guards } from '../lib/auth.ts'
 import { campaignCounts, campaignDemand, canSee, createCampaign, isOrganizer, isTeacher, listCampaigns, readCampaign, rosterClasses, rosterTeachers, transitionCampaign, updateCampaign, type Campaign } from '../lib/campaigns.ts'
 import { classStudents } from '../lib/class-teachers.ts'
 import type { Database } from '../lib/db.ts'
-import { approveItem, catalogueItems, createItem, deleteDraft, ItemInvalid, listItems, proposeItem, readItem, returnItem, unproposeItem, updateItem, withdrawItem, type ItemInput } from '../lib/items.ts'
+import { approveItem, catalogueItems, createItem, deleteDraft, ItemInvalid, listItems, proposeItem, readItem, returnItem, unproposeItem, updateItem, withdrawItem, type Item, type ItemInput } from '../lib/items.ts'
 import { RosterConflict } from '../lib/roster.ts'
 import { actorOf } from './admin-roster.ts'
 import { ErrorResponse, StrictObject, Uuid } from '../lib/schemas/common.ts'
@@ -114,8 +114,7 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
     if (!campaign) return
     const caller = callerOf(request)
     const items = await listItems(db, campaign, caller, isOrganizer(caller))
-    // Whether students see who teaches is the school's call (D-13), on every listing they get.
-    return { items: campaign.showTeachers || mayPropose(caller) ? items : items.map((item) => ({ ...item, teachers: [] })) }
+    return { items: campaign.showTeachers || mayPropose(caller) ? items : items.map(withoutTeachers) }
   })
 
   app.get<{ Params: Static<typeof IdParams> }>('/api/campaigns/:id/catalogue', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
@@ -127,9 +126,7 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
       if (!isOrganizer(caller) && !isTeacher(caller)) return reply.code(404).send({ error: 'not_found' })
     }
     const items = await catalogueItems(db, campaign.id)
-    // Whether students see who teaches an activity is the school's call (D-13); teachers and organizers always do.
-    const named = campaign.showTeachers || mayPropose(caller)
-    return { campaign, items: named ? items : items.map((item) => ({ ...item, teachers: [] })) }
+    return { campaign, items: campaign.showTeachers || mayPropose(caller) ? items : items.map(withoutTeachers) }
   })
 
   app.get<{ Params: Static<typeof IdParams> }>('/api/campaigns/:id/classes', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
@@ -253,6 +250,15 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
 /** Who may propose: teachers of the roster in force, and organizers on anyone's behalf. */
 function mayPropose(caller: Caller): boolean {
   return isTeacher(caller) || isOrganizer(caller)
+}
+
+/**
+ * An item as students see it when the school keeps the teachers out of the
+ * catalogue (D-13): no teachers, and no proposer's name either, since the
+ * proposer usually teaches it. Teachers and organizers always see both.
+ */
+function withoutTeachers(item: Item): Item {
+  return { ...item, teachers: [], proposedBy: { id: item.proposedBy.id, displayName: '' } }
 }
 
 /**

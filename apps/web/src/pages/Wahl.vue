@@ -102,7 +102,9 @@ function startEditing(): void {
   swapFrom.value = localInput(c.swapFrom)
   swapUntil.value = localInput(c.swapUntil)
   wishesPerGroup.value = c.wishesPerGroup
-  dailyMinimum.value = Object.fromEntries(demandGrades.value.map((grade) => [String(grade), c.dailyMinimum[String(grade)] === undefined ? '' : String(c.dailyMinimum[String(grade)])]))
+  // Every grade with a minimum stays, whether or not the roster still has it, plus the roster's grades.
+  const minimumGrades = [...new Set([...Object.keys(c.dailyMinimum).map(Number), ...demandGrades.value])].sort((a, b) => a - b)
+  dailyMinimum.value = Object.fromEntries(minimumGrades.map((grade) => [String(grade), c.dailyMinimum[String(grade)] === undefined ? '' : String(c.dailyMinimum[String(grade)])]))
   showTeachers.value = c.showTeachers
   editing.value = true
 }
@@ -376,7 +378,7 @@ function onSubmitPending(): void {
           </div>
           <div class="row">
             <p
-              v-for="grade in demandGrades"
+              v-for="grade in Object.keys(dailyMinimum)"
               :key="grade"
               class="field"
             >

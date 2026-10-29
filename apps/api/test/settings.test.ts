@@ -189,8 +189,8 @@ test('the window\'s settings are kept in order and changeable until it opens; th
   await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'published' })
   assert.equal((await get(s, s.sara, `/api/campaigns/${id}/demand`)).status, 403)
   const forSara = await get<{ items: Item[] }>(s, s.sara, `/api/campaigns/${id}/catalogue`)
-  assert.deepEqual(forSara.body.items.map((i) => i.teachers), [[]], 'the school chose not to name the teachers')
-  assert.deepEqual((await get<{ items: Item[] }>(s, s.sara, `/api/campaigns/${id}/items`)).body.items.map((i) => i.teachers), [[]], 'nor on the campaign page')
+  assert.deepEqual(forSara.body.items.map((i) => [i.teachers, i.proposedBy.displayName]), [[[], '']], 'the school chose not to name the teachers, the proposer included')
+  assert.deepEqual((await get<{ items: Item[] }>(s, s.sara, `/api/campaigns/${id}/items`)).body.items.map((i) => [i.teachers, i.proposedBy.displayName]), [[[], '']], 'nor on the campaign page')
   assert.deepEqual((await get<{ items: Item[] }>(s, s.bernd, `/api/campaigns/${id}/catalogue`)).body.items[0]?.teachers.map((te) => te.displayName), [BERND.name])
   // Published: the window may still be set, the set-up may not.
   assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, showTeachers: true })).status, 200)
