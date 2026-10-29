@@ -51,6 +51,9 @@ function onSignOut(): void {
         v-if="session"
         aria-label="Konto"
       >
+        <RouterLink to="/wahlen">
+          Wahlen
+        </RouterLink>
         <RouterLink
           v-if="isSchoolAdmin"
           to="/verwaltung"

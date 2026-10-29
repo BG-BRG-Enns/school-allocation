@@ -31,6 +31,20 @@ export const AUDIT_ACTIONS = [
   // administrator) and closed.
   'identity.bound',
   'identity.unbound',
+  // A campaign: created (school scope), its settings changed and its state
+  // moved (campaign scope).
+  'campaign.created',
+  'campaign.changed',
+  'campaign.transitioned',
+  // An activity, in its campaign's scope: an organizer's review, and what
+  // an organizer does by that right alone (creating on behalf, changing an
+  // item past drafting). A teacher's own drafting is not privileged and not
+  // recorded here.
+  'item.created',
+  'item.approved',
+  'item.returned',
+  'item.withdrawn',
+  'item.changed',
 ] as const
 
 export type AuditAction = typeof AUDIT_ACTIONS[number]
@@ -61,7 +75,8 @@ export async function appendAudit(client: Queryable, input: AuditInput): Promise
 
   await lockScope(client, scopeId)
   const { rows: [previous] } = await client.query<{ seq: string, hash: string }>(
-    'select seq::text, hash from audit_event where scope_id = $1 order by seq desc limit 1',
+    // Ordered by the column, not by the text alias: "9" would sort after "10".
+    'select seq::text, hash from audit_event where scope_id = $1 order by audit_event.seq desc limit 1',
     [scopeId],
   )
   const at = new Date().toISOString()
@@ -98,7 +113,7 @@ export async function readAudit(db: Queryable, scopeId: string): Promise<AuditEv
     hash: string
   }>(
     `select seq::text, at, actor_tid, actor_oid, actor_name, action, metadata, prev_hash, hash
-       from audit_event where scope_id = $1 order by seq`,
+       from audit_event where scope_id = $1 order by audit_event.seq`,
     [scopeId],
   )
   return rows.map((row) => ({

@@ -5,6 +5,7 @@ import { expect, test } from '../support/test.ts'
 import { ANNA, SARA } from '../support/personas.ts'
 import { at, encodedPath, urlOf } from '../support/base.ts'
 import { apiGet } from '../support/api.ts'
+import { shot } from '../support/screenshot.ts'
 import { openAs, signInAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
@@ -13,11 +14,13 @@ test('wer nicht angemeldet ist, landet auf der Anmeldeseite und kommt angemeldet
   await page.goto(at('/'))
   await expect(page).toHaveURL(new RegExp(`/anmelden\\?returnTo=${encodedPath('/')}$`))
   await expect(page).toHaveTitle('Anmeldung – SchulWahl')
+  await shot(page, '01-anmeldung')
   await signInAs(page, ANNA)
   await expect(page).toHaveURL(urlOf('/'))
   await expect(page.getByRole('heading', { name: 'Startseite' })).toBeVisible()
   await expect(page).toHaveTitle('Startseite – SchulWahl')
   await expect(page.getByText(`Angemeldet als ${ANNA.name}`)).toBeVisible()
+  await shot(page, '02-startseite')
   await signOut(page)
   await expect(page.getByRole('navigation', { name: 'Konto' })).toHaveCount(0)
 })
@@ -29,6 +32,7 @@ test('ein Link in die App führt nach der Anmeldung dorthin; das Konto zeigt, wo
   await expect(page).toHaveURL(urlOf('/konto'))
   await expect(page.getByRole('heading', { name: 'Mein Konto' })).toBeVisible()
   await expect(page.getByText('Keine besonderen Rollen.')).toBeVisible()
+  await shot(page, '03-mein-konto')
   const me = await apiGet<{ displayName: string, roles: string[] }>(page, '/api/auth/me')
   expect(me.status).toBe(200)
   expect(me.body).toMatchObject({ displayName: SARA.name, roles: [] })

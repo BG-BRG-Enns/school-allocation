@@ -313,3 +313,92 @@ ul.plain {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* Campaigns and the catalogue. */
+.ghost-link {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.button.small {
+  padding: 4px 8px;
+  margin-right: 4px;
+}
+
+.badge-approved {
+  background: #e8f5ec;
+  border-color: #8fcba3;
+}
+
+.badge-proposed {
+  background: #fff4d6;
+  border-color: #e8c468;
+}
+
+.badge-withdrawn {
+  background: #fdecea;
+  border-color: #f0a39b;
+}
+
+.catalogue-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  break-inside: avoid;
+}
+
+.catalogue-item h2 {
+  margin: 0 0 4px;
+}
+
+.catalogue-item .description {
+  white-space: pre-line;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.chips button {
+  padding: 2px 8px;
+}
+
+.session {
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+}
+
+.session .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: flex-end;
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+@media print {
+  .shell-header,
+  .no-print {
+    display: none;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .shell-main {
+    max-width: none;
+    padding: 0;
+  }
+}

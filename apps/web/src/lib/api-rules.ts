@@ -69,6 +69,15 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   already_revoked: 'Diese Rolle wurde schon entzogen.',
   cannot_revoke_self: 'Sie können sich die Administration nicht selbst entziehen. Eine andere Administratorin oder ein anderer Administrator kann das.',
   last_admin: 'Das würde die Schule ohne Administration zurücklassen. Erteilen Sie zuerst jemand anderem die Administration.',
+  // Campaigns and the catalogue
+  campaign_state: 'Das ist im aktuellen Zustand der Wahl nicht möglich.',
+  item_state: 'Das ist im aktuellen Zustand der Aktivität nicht möglich.',
+  invalid_item_transition: 'Dieser Schritt ist für die Aktivität nicht möglich.',
+  transition_not_available: 'Dieser Schritt steht in dieser Version noch nicht zur Verfügung.',
+  project_day_twice: 'Ein Projekttag ist zweimal eingetragen.',
+  invalid_date: 'Ein Datum gibt es im Kalender nicht.',
+  sessions_outside_days: 'An den gestrichenen Tagen finden schon Termine statt. Bitte zuerst die betroffenen Aktivitäten ändern.',
+  item_invalid: 'Die Aktivität entspricht nicht den Regeln. Bitte die Hinweise prüfen.',
 }
 
 /**

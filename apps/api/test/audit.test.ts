@@ -39,6 +39,19 @@ test('events chain within their scope, verify, and a change to one breaks verifi
   assert.deepEqual(verifyAuditChain(school.slice(1)), { valid: false, length: 2, index: 0, problem: 'broken-link' })
 })
 
+test('a chain past nine events keeps its order: the tenth follows the ninth, not the first with a two-digit sequence', DB, async (t) => {
+  const testDb = await createTestDatabase(t)
+  const db = createDatabase(testDb.runtimeUrl, () => {})
+  t.after(() => db.close())
+  // Another scope first, so this scope's sequence numbers start past 1 and
+  // cross from one digit to two inside the chain.
+  for (let i = 0; i < 3; i++) await db.tx((client) => appendAudit(client, { scopeId: SCHOOL_SCOPE, actor: ACTOR, action: 'user.blocked', metadata: { i } }))
+  for (let i = 0; i < 12; i++) await db.tx((client) => appendAudit(client, { scopeId: CAMPAIGN, actor: ACTOR, action: 'item.approved', metadata: { i } }))
+  const events = await readAudit(db, CAMPAIGN)
+  assert.deepEqual(events.map((e) => e.metadata.i), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+  assert.deepEqual(verifyAuditChain(events), { valid: true, length: 12, head: events[11]?.hash ?? null })
+})
+
 test('concurrent writers to one scope get distinct predecessors: the chain stays linear', DB, async (t) => {
   const testDb = await createTestDatabase(t)
   const db = createDatabase(testDb.runtimeUrl, () => {})

@@ -34,6 +34,8 @@ SchulWahl is an **open-source product for Austrian schools**, not an integration
 6. **No school administration system is integrated** (scope correction above).
 7. **Fixed class activities** (D-24): not every activity is chosen. A teacher may organize one for
    whole classes; those students are assigned automatically and choose only for the remaining time.
+   Revised the same day: such an activity may offer extra places (spare seats on the bus) that other
+   eligible students rank like any choosable activity.
 8. **Fees need no acceptance step** (D-07); the handoff's consent mechanism is dropped.
 9. **WPF exceptions are handled outside the software** (D-19).
 
@@ -58,7 +60,8 @@ SchulWahl is an **open-source product for Austrian schools**, not an integration
 | D-19 | **Exceptions to the WPF plan are handled outside the software** (repeaters, late joiners, later changes, cancelled subjects) | The product handles the standard campaign only |
 | D-21 | **Project week: all students. WPF: 9th grade, i.e. the classes whose name starts with `5`** | Eligibility rules `all` and `class prefix` |
 | D-22 | **Least privilege by default:** the roster refresh runs with the administrator's own delegated Graph token; the app holds no standing directory permission. Application permission (`GroupMember.Read.All`) is an opt-in for schools that want automatic refresh at window opening | Verify on a test tenant which member properties the delegated call returns (`mail` in particular) |
-| D-24 | **Fixed class activities.** A teacher organizes an activity for one or more classes; e.g. teachers A and B take classes C and D to Vienna, Tuesday 08:00 to Wednesday 13:00. Those students are assigned automatically, nobody else can choose it, and the students choose only for the remaining time (Monday) | Item `mode: fixed` with target classes; pre-assignments materialized when the window opens; overlapping choosable items pruned per student; fixed credit counts toward the daily minimum; the model compiler resolves fixed items before the solver |
+| D-24 (revised) | **Fixed class activities.** A teacher organizes an activity for one or more classes; e.g. teachers A and B take classes C and D to Vienna, Tuesday 08:00 to Wednesday 13:00. Those students are assigned automatically and choose only for the remaining time (Monday). When the teacher has room to spare (seats on the bus), those **extra places** are open to other students who meet the activity's eligibility; they rank it like any other | One item type: `fixed_classes[]` (may be empty), `places` (the capacity of a choosable activity, the extra places of a class activity; pre-assigned students count against nothing), eligibility for those places. Pre-assignments materialized when the window opens; overlapping choosable items pruned per student; fixed credit counts toward the daily minimum; the compiler resolves pre-assignments before the solver and sends the item with `max = places` when `places > 0` |
+| D-08 | **c — a per-item flag**, default: the activity may be cancelled below its minimum and its students fall back to their next ranks. An activity fixed for classes is never cancelled | `cancellable_below_min` on the item; the solver's `y[o]` is free only for cancellable items |
 
 ## Still open
 
@@ -66,11 +69,6 @@ SchulWahl is an **open-source product for Austrian schools**, not an integration
 
 a. second round (e-mail asks for more choices, re-run with everyone else fixed); b. organizer places
 them manually into free capacity; c. both, b after a deadline. Owner: organizer.
-
-### D-08 · P2 · Minimum group size
-
-a. the solver may cancel an item below its minimum and students fall back to their next ranks;
-b. every published item runs; c. a per-item flag. Recommendation **c**, default **a**. Owner: organizer.
 
 ### D-13 · P2 · Visibility
 

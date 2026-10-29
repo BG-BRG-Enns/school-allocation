@@ -39,6 +39,22 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   roster_entry: { table: ['SELECT', 'INSERT'], updateColumns: ['person_id'] },
   // A binding is made and closed, never changed otherwise or removed.
   identity_binding: { table: ['SELECT', 'INSERT'], updateColumns: ['unbound_at', 'unbound_by', 'unbind_reason'] },
+  // A campaign is set up, changed while it is being set up, and moved through
+  // its states; never removed.
+  campaign: { table: ['SELECT', 'INSERT'], updateColumns: ['name', 'school_year', 'project_days', 'config', 'state', 'roster_batch_id', 'updated_at'] },
+  // An activity is edited while it is a draft or by an organizer, reviewed,
+  // numbered and withdrawn; a draft may be removed (the trigger keeps the rest).
+  catalog_item: {
+    table: ['SELECT', 'INSERT', 'DELETE'],
+    updateColumns: [
+      'number', 'title', 'description', 'location', 'fee_cents', 'fee_note', 'places', 'min_participants', 'cancellable_below_min',
+      'fixed_classes', 'eligible_grades', 'eligible_classes', 'state', 'updated_at', 'review_note', 'approved_at', 'approved_by',
+      'withdrawn_at', 'withdrawn_by', 'withdraw_reason',
+    ],
+  },
+  // Teachers and sessions of an item are replaced as a whole when it is edited.
+  item_teacher: { table: ['SELECT', 'INSERT', 'DELETE'] },
+  item_session: { table: ['SELECT', 'INSERT', 'DELETE'] },
 }
 
 /** Functions the runtime role may execute, by their signature as PostgreSQL prints a regprocedure: argument types without spaces between them. */

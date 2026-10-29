@@ -8,12 +8,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { BASE_PATH } from './lib/base.ts'
 import Account from './pages/Account.vue'
+import Aktivitaet from './pages/Aktivitaet.vue'
 import Import from './pages/Import.vue'
+import Katalog from './pages/Katalog.vue'
 import Personen from './pages/Personen.vue'
 import SignIn from './pages/SignIn.vue'
 import Stammdaten from './pages/Stammdaten.vue'
 import Start from './pages/Start.vue'
 import Verwaltung from './pages/Verwaltung.vue'
+import Wahl from './pages/Wahl.vue'
+import Wahlen from './pages/Wahlen.vue'
 
 export const router = createRouter({
   history: createWebHistory(`${BASE_PATH}/`),
@@ -21,6 +25,11 @@ export const router = createRouter({
     { path: '/', component: Start },
     { path: '/anmelden', component: SignIn },
     { path: '/konto', component: Account },
+    { path: '/wahlen', component: Wahlen },
+    { path: '/wahlen/:id', component: Wahl, props: true },
+    { path: '/wahlen/:id/katalog', component: Katalog, props: true },
+    { path: '/wahlen/:id/aktivitaet/neu', component: Aktivitaet, props: true },
+    { path: '/wahlen/:id/aktivitaet/:itemId', component: Aktivitaet, props: true },
     { path: '/verwaltung', component: Verwaltung },
     { path: '/verwaltung/stammdaten', component: Stammdaten },
     { path: '/verwaltung/stammdaten/import/:id', component: Import, props: true },

@@ -42,8 +42,9 @@ lifecycle, and is tested with synthetic data only.
 
 **S2 · Catalogue.**
 
-- Teachers propose activities with sessions, credited minutes per date, fee, and either eligibility
-  (choosable) or target classes (fixed); capacity and minimum for choosable ones.
+- Teachers propose activities with sessions, credited minutes per date, fee, the classes they are
+  fixed for (if any), the places other students may rank and who is eligible for them, minimum and
+  cancellability.
 - Organizer review and approval.
 - Printable catalogue; xlsx export.
 

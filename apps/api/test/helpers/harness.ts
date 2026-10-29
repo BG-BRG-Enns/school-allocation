@@ -63,7 +63,7 @@ export async function get<T = unknown>(h: Harness, jar: CookieJar | undefined, u
   return { status: response.statusCode, body: response.statusCode === 204 ? undefined as T : response.json<T>() }
 }
 
-export async function send<T = unknown>(h: Harness, jar: CookieJar | undefined, method: 'POST' | 'PUT', url: string, payload?: object): Promise<{ status: number, body: T }> {
+export async function send<T = unknown>(h: Harness, jar: CookieJar | undefined, method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', url: string, payload?: object): Promise<{ status: number, body: T }> {
   const response = await h.app.inject(asBrowser(jar, { method, url, ...(payload === undefined ? {} : { payload }) }))
   return { status: response.statusCode, body: response.statusCode === 204 ? undefined as T : response.json<T>() }
 }

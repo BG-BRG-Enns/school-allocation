@@ -14,7 +14,7 @@ Status: proposal for review · 2026-10-27
 | `ClassTeacher` | `school_year`, `class`, `person_id`, `assigned_by` | Assigned in the app or from a CSV column |
 | `SchoolYear` | `id` (e.g. `2026/27`), `starts_on`, `ends_on` | Explicit rollover |
 | `Campaign` | `id`, `kind` (`project_week` / `wpf`), `mechanism` (`ranked`), `school_year`, `eligibility` (rule), `opens_at`, `closes_at`, `config` (ranks *N*, reminders, min-size policy), `status`, `roster_batch_id?` (frozen at close) | Lifecycle in §2 |
-| `CatalogItem` | `id`, `campaign_id`, `title`, `description`, `teachers[]`, `mode` (`choosable` / `fixed`), `eligible` (grades/classes; choosable only), `fixed_classes[]` (fixed only), `fee_cents?`, `min`, `max`, `cancellable_below_min`, `status` (draft/proposed/approved) | Project-week activity or WPF subject. A fixed item is assigned to whole classes and cannot be ranked by anyone |
+| `CatalogItem` | `id`, `campaign_id`, `number` (from publication), `title`, `description`, `location`, `teachers[]`, `fixed_classes[]`, `eligible_grades[]`, `eligible_classes[]`, `places`, `min_participants`, `cancellable_below_min`, `fee_cents`, `fee_note`, `state` (draft/proposed/approved/withdrawn), `review_note` | Project-week activity or WPF subject. The students of `fixed_classes` are pre-assigned; `places` are what others may rank: the capacity of a choosable activity, the extra places of a class activity (D-24 revised). An item is numbered when the catalogue is published |
 | `Session` | `item_id`, `starts_at`, `ends_at` (timestamptz), `credited` per local date (`[{date, minutes}]`), `location` | Immutable once the window opens, except by audited organizer change |
 | `PreAssignment` | `campaign_id`, `item_id`, `person_id`, `source` (`class` / `manual`), `exempted_at?`, `exempted_by?`, `reason?` | Materialized from `fixed_classes` against the frozen roster when the window opens; an organizer may exempt a student, audited, who then chooses for that time |
 | `WpfSubjectRule` | `item_id`, `rule_version_id`, years offered, periods per year, prerequisites, exclusions, continuation | WPF only |
@@ -52,12 +52,13 @@ transition that was missed during a restart is applied on start.
 
 ## 3. Choice rules (project week)
 
-1. **Fixed items first.** When the window opens, every student of a class named in a fixed item's
-   `fixed_classes` receives a `PreAssignment`. Fixed items appear in the student's plan as given;
-   they cannot be ranked by anyone, and choosable items that overlap a student's fixed items are not
-   offered to that student. Example: classes C and D are in Vienna from Tuesday 08:00 to Wednesday
-   13:00, so their students see only Monday's items. A student whose fixed items already cover every
-   day has nothing to choose and counts as complete.
+1. **Fixed items first.** When the window opens, every student of a class named in an item's
+   `fixed_classes` receives a `PreAssignment`. Such items appear in the student's plan as given;
+   the pre-assigned students do not rank them, and choosable items that overlap a student's fixed
+   items are not offered to that student. Example: classes C and D are in Vienna from Tuesday 08:00
+   to Wednesday 13:00, so their students see only Monday's items. A student whose fixed items already
+   cover every day has nothing to choose and counts as complete. An item with `places > 0` is, for
+   every other eligible student, a choosable item with that capacity (D-24 revised).
 2. Only **choosable** items eligible for the student's grade/class in the frozen catalogue can be
    ranked. Fixed items, ineligible items and items overlapping the student's fixed items are rejected
    server-side, so manipulated requests fail.
@@ -111,10 +112,11 @@ interface with the SMTP implementation built in, so a school can substitute its 
 - daily minimum per grade;
 - the seed.
 
-**Fixed items are resolved by the compiler, not the solver.** For each student, the credit of their
-fixed items is subtracted from each day's requirement (floored at zero), and choosable items that
-overlap a fixed item are dropped from that student's options. Only choosable items reach the solver.
-A student with no remaining requirement gets no variables.
+**Pre-assignments are resolved by the compiler, not the solver.** For each student, the credit of
+their fixed items is subtracted from each day's requirement (floored at zero), and items that overlap
+a fixed item are dropped from that student's options. An item reaches the solver with `max = places`,
+which for a class activity are its extra places; the pre-assigned students are not variables of it. A
+student with no remaining requirement gets no variables.
 
 **Variables:**
 
@@ -210,8 +212,9 @@ Response:
 - **No names, e-mails or classes.** The solver has no database credentials and no egress.
 - **The tie-break weights are computed in the TypeScript core from the seed** and sent as part of
   `cost`. This keeps the Python side free of domain randomness.
-- **Fixed items never appear in the request.** Their effect is already in `required` and in the
-  pruned `options`, so the contract stays the same whether or not a campaign has fixed items.
+- **Pre-assignments never appear in the request.** Their effect is already in `required` and in the
+  pruned `options`; a class activity with extra places appears like any other item, with those places
+  as `max`, so the contract stays the same whether or not a campaign has fixed classes.
 
 ## 7. WPF
 
@@ -239,12 +242,15 @@ Response:
 | --------------- | ---- | ------- |
 | `GET /api/auth/login`, `GET /api/auth/callback`, `POST /api/auth/logout` | — | Entra sign-in |
 | `GET /api/auth/me` | any | Account, roles, and the bound person with kind, class and grade (null until bound) |
-| `GET /api/campaigns` | any | Campaigns visible to me |
-| `GET /api/campaigns/:id/catalogue` | any | Published catalogue (eligible items flagged for students) |
+| `GET /api/campaigns` · `GET /api/campaigns/:id` · `GET …/:id/items` | any | Campaigns visible to me (organizers all, teachers also those taking proposals, everyone else from publication on); the items as far as the role allows |
+| `GET /api/campaigns/:id/catalogue` | any | Published catalogue: approved items, numbered, in print order (eligibility flags for students come with the choice window) |
+| `GET /api/campaigns/:id/classes` · `GET …/:id/teachers?q=` | teacher, organizer | The roster's classes and teachers, for the proposal form |
 | `GET /api/campaigns/:id/my-choice` · `PUT …/my-choice` | student | Fixed items, offered items, ranked list, completeness (whole-list replace) |
 | `GET /api/campaigns/:id/my-result` | student | Published assignment + explanation |
-| `POST /api/items` · `PATCH /api/items/:id` | teacher (own), organizer | Propose/edit activity and sessions; `mode` choosable (with eligibility) or fixed (with target classes) |
-| `POST /api/admin/campaigns` · `PATCH …/:id` · `POST …/:id/transition` | organizer | Campaign set-up and lifecycle |
+| `POST /api/campaigns/:id/items` · `PATCH /api/items/:id` · `DELETE /api/items/:id` · `POST …/propose` · `POST …/unpropose` | teacher (own), organizer | Draft, edit, remove, propose and take back an activity with its teachers, sessions, places, fixed classes and eligibility; a 422 names the rules broken |
+| `POST /api/admin/items/:id/approve` · `POST …/return` · `POST …/withdraw` | organizer | Review, audited: approve, return to draft with a note, withdraw with a reason |
+| `POST /api/admin/campaigns` · `PATCH …/:id` · `POST …/:id/transition` | organizer | Campaign set-up (name, school year, project days) and lifecycle; this release moves to `catalogue` and `published`, which numbers the approved items |
+| `GET /api/admin/campaigns/:id/export/catalogue.xlsx` | organizer, auditor | The catalogue as a workbook: activities and sessions |
 | `GET /api/admin/roster` · `PUT /api/admin/roster/groups` | admin | The roster in force, recent batches; label Entra groups (students/teachers, class, grade) |
 | `GET /api/admin/roster/graph/start` · `GET …/graph/callback` | admin | Refresh from the labelled groups with the administrator's own Graph token (authorization-code flow, second redirect URI) |
 | `POST /api/admin/roster/csv` · `GET /api/admin/roster/csv/template` | admin | CSV upload (JSON body with the file's text), the template |
@@ -261,7 +267,7 @@ Response:
 | `GET /api/campaigns/:id/items/:itemId/participants` | teacher (own, after results), organizer, auditor | Participant list |
 | `PUT /api/sessions/:id/attendance` | KV (own class), organizer; admin for WPF | Attendance |
 | `GET /api/admin/campaigns/:id/export/{choices,assignments,participants,missing,attendance}.xlsx` | organizer, auditor | Exports |
-| `GET /print/campaigns/:id/catalogue` | any | Printable catalogue (print CSS → PDF via browser) |
+| `/wahlen/:id/katalog` (page) | any | Printable catalogue: the web app's page with print styles → PDF via the browser |
 | `GET /api/admin/audit` | admin, auditor | The school scope's audit log (campaign scopes and export later) |
 | `GET /api/health` | — | Includes `busy` for the update gate |
 

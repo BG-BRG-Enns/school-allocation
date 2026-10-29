@@ -16,6 +16,7 @@ import { registerSessions } from './plugins/session.ts'
 import { adminRosterRoutes } from './routes/admin-roster.ts'
 import { adminUsersRoutes } from './routes/admin-users.ts'
 import { authRoutes } from './routes/auth.ts'
+import { campaignRoutes } from './routes/campaigns.ts'
 
 export interface AppOptions {
   db: Database
@@ -113,6 +114,7 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   await app.register(authRoutes, { config, db, entraAuthority: options.entraAuthority, ...under })
   await app.register(adminRosterRoutes, { config, db, guards, entraAuthority: options.entraAuthority, graphBaseUrl: options.graphBaseUrl, ...under })
   await app.register(adminUsersRoutes, { db, guards, ...under })
+  await app.register(campaignRoutes, { db, guards, ...under })
 
   // The health check also says whether a job is executing: the
   // deployment's nightly update asks it and stays away while one does

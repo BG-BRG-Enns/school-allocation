@@ -3,12 +3,13 @@ name: CI
 # Two triggers, deliberately asymmetric:
 #
 #   pull_request — the full merge gate: lint, infra lint, tests, journeys,
-#                  the images.
-#   push to main — the image jobs alone, to populate the Docker layer cache
-#                  on the default branch's scope. GitHub scopes Actions
-#                  caches per ref, and a PR can only restore from its own
-#                  ref or the default branch, so without this every PR
-#                  builds cold.
+#                  the images, and the SonarQube analysis of the PR.
+#   push to main — the `test` job for the SonarQube analysis of the default
+#                  branch, which needs the coverage, and the image jobs to
+#                  populate the Docker layer cache on the default branch's
+#                  scope. GitHub scopes Actions caches per ref, and a PR can
+#                  only restore from its own ref or the default branch, so
+#                  without this every PR builds cold.
 'on':
   pull_request:
     branches: [main]
@@ -104,7 +105,6 @@ jobs:
 
   test:
     name: Test
-    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -126,10 +126,18 @@ jobs:
           printf '%s' ci-owner-password > "$RUNNER_TEMP/pg-owner-password"
           scripts/postgres.sh school-allocation-test-db 5432 "$RUNNER_TEMP/pg-owner-password"
 
-      - run: npm test
+      # The same tests npm test runs, from the root in one go, with the
+      # coverage of every workspace in one lcov file for the SonarQube job.
+      - run: npm run test:coverage
         env:
           # With CI set, database tests fail instead of skipping if this is missing.
           TEST_DATABASE_URL: postgres://postgres:ci-owner-password@127.0.0.1:5432/postgres
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          retention-days: 1
 
   # The browser journeys (e2e/specs) against the real server with a fresh
   # database, the sign-in stand-in and Chromium: what the unit, API and
@@ -181,6 +189,60 @@ jobs:
             test-results
           retention-days: 7
 
+  # The SonarQube Cloud analysis with the tests' coverage: of every pull
+  # request from this repository and of main after every merge, so new code
+  # on a pull request is measured against the analysed default branch. The
+  # properties are in sonar-project.properties.
+  sonarqube:
+    name: SonarQube
+    needs: [test]
+    # SONAR_TOKEN is not reachable from pull requests that cannot see
+    # repository secrets: forks get none, and Dependabot reads the separate
+    # Dependabot secrets store, which is empty here. The token would resolve
+    # to "" and the scan fail on authentication, a red check on every
+    # Dependabot pull request. Skipping beats failing.
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The whole history: new code and blame are assigned from it.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The scanner reads coverage, it does not produce it: the test job's
+      # lcov file. Without it every changed line counts as uncovered and the
+      # new-code coverage condition fails on any pull request.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage
+          path: coverage
+
+      # Each analysis carries the release it belongs to, so SonarQube Cloud
+      # can tell releases apart instead of filing everything under "not provided".
+      - name: Version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: -Dsonar.projectVersion=${{ steps.version.outputs.version }}
+
   # Build the deployment image on every PR. Publishing only happens on v*
   # tags, so without this a broken Dockerfile or a moved base image would not
   # surface until release time. Also runs on push to main, where it is the
@@ -188,10 +250,10 @@ jobs:
   image:
     name: Image
     needs: [lint, test]
-    # On push to main the lint and test jobs are skipped, and a job whose
-    # `needs` were skipped does not run by default. Checking the results
-    # explicitly keeps the PR behaviour (no build after a failed lint or
-    # test) while letting the cache-warming run proceed on main.
+    # On push to main the lint job is skipped, and a job whose `needs` were
+    # skipped does not run by default. Checking the results explicitly keeps
+    # the PR behaviour (no build after a failed lint or test) while letting
+    # the cache-warming run proceed on main.
     if: ${{ !cancelled() && needs.lint.result != 'failure' && needs.test.result != 'failure' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
