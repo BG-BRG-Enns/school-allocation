@@ -70,6 +70,25 @@ SchulWahl is an **open-source product for Austrian schools**, not an integration
 | D-23 (2026-10-29) | **Searchable group picker.** Entering group IDs by hand is the CSV path with extra steps; the picker searches the tenant's groups by name with the administrator's own token | `Group.Read.All` joins the delegated scopes of the roster refresh (D-22); the admin consents once; the labelled groups are stored as before |
 | D-25 (2026-10-29) | **Sessions in the school's period grid.** A school defines its periods once (1. EH 7:35–8:25, 2. EH 8:30–9:20, …, with the long break). A teacher enters a session as "from period *x*, *y* periods long" (default: from the 2nd period) or, for trips, as a clock time and a duration | Stored as instants, as today; the grid is a settings table with a default, not a per-campaign slot list; the catalogue and the ranking view show period labels where a session matches the grid and clock times where it does not; D-05's time groups derive from these spans |
 
+## Sharpened by the allocation slice (S4, 2026-10-29)
+
+Points the model left to the implementation, settled with the engine (`docs/domain-and-api.md` §5–§6):
+
+- **A run needs a daily minimum for every grade of the roster** (D-05, D-20); without one it is
+  refused before the solver, since the requirement and the cost normalize by it. "No minimum" would
+  silently switch the coverage levels off.
+- **A cancelled item is a fact of the run, not a catalogue change** (D-08): the item stays approved,
+  the published run's list says it does not take place, and the organizer confirms exactly that list
+  at publication.
+- **The second pass never revives an item the first pass cancelled** (D-20), so a course does not run
+  with late submitters alone.
+- **Fallback options go on every day a student still has to cover** (D-06), fee-free items only, at
+  rank cap + 1; the levels make them the last resort.
+- **The lot (L5) travels as its own field**, so the total cost (L4) stays exact; L3's thresholds derive
+  from the cap (t = cap … 2).
+- **A finished run moves the campaign to `review`, succeeded or failed**; a run interrupted by a
+  restart is marked so and re-run by hand.
+
 ## Still open
 
 Nothing from the decision list of 2026-10-27 is open any more. Open from the school's concept
