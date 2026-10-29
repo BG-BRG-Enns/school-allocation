@@ -27,7 +27,7 @@ async function refresh(h: Harness, jar: CookieJar, as: Person = ANNA, schoolYear
   assert.equal(start.statusCode, 302, start.body)
   jar.update(start)
   const location = new URL(start.headers.location as string)
-  assert.match(location.searchParams.get('scope') ?? '', /openid profile https:\/\/graph\.microsoft\.com\/GroupMember\.Read\.All/)
+  assert.match(location.searchParams.get('scope') ?? '', /openid profile https:\/\/graph\.microsoft\.com\/GroupMember\.Read\.All https:\/\/graph\.microsoft\.com\/User\.ReadBasic\.All/)
   const callback = h.entra.authorize(location.toString(), { claims: claimsOf(as) })
   const response = await h.app.inject({ method: 'GET', url: callback, headers: { cookie: jar.header() } })
   assert.equal(response.statusCode, 303, response.body)
@@ -47,12 +47,17 @@ test('labelled groups are read with the administrator\'s token, committed as pre
   assert.equal((await send(h, anna, 'PUT', '/api/admin/roster/groups', { groups: [{ groupId: TEACHERS_GROUP, label: 'x', kind: 'student' }] })).status, 422)
   assert.equal((await send(h, anna, 'PUT', '/api/admin/roster/groups', { groups: [GROUPS[1], GROUPS[1]] })).status, 422)
 
+  // The class holds Sara directly and Tim through a nested group, as a school's 3A is made of 3AR and 3AG.
+  const nested = '77777777-7777-4777-8777-777777777777'
+  h.graph.groups.set(nested, [memberOf(TIM)])
+  h.graph.groups.set(CLASS_5A_GROUP, [memberOf(SARA), { id: nested, displayName: '5A Gruppe', type: '#microsoft.graph.group' }])
   h.graph.pageSize = 2
   const location = await refresh(h, anna)
   const batchId = /\/verwaltung\/stammdaten\/import\/([0-9a-f-]+)$/.exec(location)?.[1]
   assert.ok(batchId, location)
-  // Two pages for the three teachers, one for the class.
+  // Two pages for the three teachers, two for the class (Sara, the nested group, Tim); nested groups flattened by Graph.
   assert.equal(h.graph.requests.filter((r) => r.includes(TEACHERS_GROUP)).length, 2)
+  assert.equal(h.graph.requests.filter((r) => r.includes(`${CLASS_5A_GROUP}/transitiveMembers`)).length, 2)
   assert.ok(h.graph.requests.every((r) => r.includes('$select=id,displayName,mail,userPrincipalName')))
 
   const batch = await get<BatchDetail>(h, anna, `/api/admin/roster/batches/${batchId}`)
@@ -176,6 +181,62 @@ test('a member without an address is a warning, a member in two groups rejects t
   h.graph.failWith = undefined
   const batches = await get<{ batches: Batch[] }>(h, anna, '/api/admin/roster')
   assert.deepEqual(batches.body.batches.map((b) => b.state), ['rejected', 'rejected', 'pending'])
+})
+
+test('the group picker searches the tenant\'s groups with a token the administrator authorized for it, which lives in the server\'s memory only', DB, async (t) => {
+  const h = await harness(t, ADMIN)
+  const anna = await signIn(h, ANNA)
+  const search = (jar: CookieJar, q: string) => get<{ groups: { id: string, displayName: string }[], error?: string }>(h, jar, `/api/admin/roster/graph/groups?q=${encodeURIComponent(q)}`)
+  const before = await search(anna, 'Kl')
+  assert.equal(before.status, 409)
+  assert.equal(before.body.error, 'graph_not_authorized')
+
+  // No school year and no groups needed for the picker's authorization.
+  const start = await h.app.inject({ method: 'GET', url: '/api/admin/roster/graph/start?purpose=picker', headers: { cookie: anna.header() } })
+  assert.equal(start.statusCode, 302, start.body)
+  anna.update(start)
+  const location = new URL(start.headers.location as string)
+  assert.match(location.searchParams.get('scope') ?? '', /https:\/\/graph\.microsoft\.com\/Group\.Read\.All/)
+  const callback = await h.app.inject({ method: 'GET', url: h.entra.authorize(location.toString(), { claims: claimsOf(ANNA) }), headers: { cookie: anna.header() } })
+  assert.equal(callback.statusCode, 303)
+  assert.equal(callback.headers.location, '/verwaltung/stammdaten?gruppen=suchen')
+  anna.update(callback)
+  assert.deepEqual(h.graph.requests, [], 'authorizing reads nothing yet')
+
+  const found = await search(anna, 'Kl')
+  assert.equal(found.status, 200, JSON.stringify(found.body))
+  assert.deepEqual(found.body.groups, [{ id: CLASS_5A_GROUP, displayName: 'Klasse 5A', description: null }])
+  assert.deepEqual((await search(anna, 'x')).body.groups, [])
+  assert.deepEqual((await search(anna, 'L')).body.groups.map((g) => g.displayName), ['Lehrkräfte'])
+  // A quote in the search cannot end Graph's filter early.
+  assert.equal((await search(anna, 'O\'Brien')).status, 200)
+  const searches: string[] = h.graph.requests
+  assert.ok(searches.every((r: string) => r.startsWith('GET /v1.0/groups?')))
+  assert.ok(searches.every((r: string) => !r.includes('$orderby')), 'no $orderby: with a $filter, Graph takes it only as an advanced query')
+  // As the URL leaves the server: the comma from encodeURIComponent, the quotes from the URL's own query encoding.
+  assert.ok(searches.some((r: string) => r.includes('$filter=startswith(displayName%2C%27O%27%27Brien%27)')), searches.join('\n'))
+  const before9 = h.graph.requests.length
+  // Every group named after a class at once: one search per leading digit, names that are a class and nothing else.
+  for (const [id, name] of [['44444444-4444-4444-8444-444444444444', '7B'], ['55555555-5555-4555-8555-555555555555', '8C'], ['66666666-6666-4666-8666-666666666666', '2026 Maturaball']] as const) {
+    h.graph.groups.set(id, [])
+    h.graph.names.set(id, name)
+  }
+  const classes = await get<{ groups: { displayName: string }[] }>(h, anna, '/api/admin/roster/graph/groups?classes=true')
+  assert.equal(classes.status, 200, JSON.stringify(classes.body))
+  assert.deepEqual(classes.body.groups.map((g) => g.displayName), ['7B', '8C'], 'not "Klasse 5A", not the ball')
+  assert.equal(h.graph.requests.length, before9 + 9)
+  assert.equal((await get(h, anna, '/api/admin/roster/graph/groups')).status, 400, 'a prefix or classes=true')
+
+  // The handle is this session's; another browser of Anna's has no token, nor has a teacher.
+  const other = await signIn(h, ANNA)
+  assert.equal((await search(other, 'Kl')).status, 409)
+  const bernd = await signIn(h, BERND)
+  assert.equal((await search(bernd, 'Kl')).status, 403)
+  // Graph refusing the token: forgotten, authorize again.
+  h.graph.failWith = 401
+  assert.equal((await search(anna, 'Kl')).status, 409)
+  h.graph.failWith = undefined
+  assert.equal((await search(anna, 'Kl')).status, 409, 'the token was dropped with the refusal')
 })
 
 test('the Graph token must be the signed-in administrator\'s own, from a refresh this browser started', DB, async (t) => {

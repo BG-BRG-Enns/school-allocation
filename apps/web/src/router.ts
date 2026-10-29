@@ -11,6 +11,8 @@ import Account from './pages/Account.vue'
 import Aktivitaet from './pages/Aktivitaet.vue'
 import Import from './pages/Import.vue'
 import Katalog from './pages/Katalog.vue'
+import Klasse from './pages/Klasse.vue'
+import Klassen from './pages/Klassen.vue'
 import Personen from './pages/Personen.vue'
 import SignIn from './pages/SignIn.vue'
 import Stammdaten from './pages/Stammdaten.vue'
@@ -18,6 +20,7 @@ import Start from './pages/Start.vue'
 import Verwaltung from './pages/Verwaltung.vue'
 import Wahl from './pages/Wahl.vue'
 import Wahlen from './pages/Wahlen.vue'
+import Zeiten from './pages/Zeiten.vue'
 
 export const router = createRouter({
   history: createWebHistory(`${BASE_PATH}/`),
@@ -30,9 +33,12 @@ export const router = createRouter({
     { path: '/wahlen/:id/katalog', component: Katalog, props: true },
     { path: '/wahlen/:id/aktivitaet/neu', component: Aktivitaet, props: true },
     { path: '/wahlen/:id/aktivitaet/:itemId', component: Aktivitaet, props: true },
+    { path: '/wahlen/:id/klasse/:className', component: Klasse, props: true },
     { path: '/verwaltung', component: Verwaltung },
     { path: '/verwaltung/stammdaten', component: Stammdaten },
     { path: '/verwaltung/stammdaten/import/:id', component: Import, props: true },
     { path: '/verwaltung/personen', component: Personen },
+    { path: '/verwaltung/klassen', component: Klassen },
+    { path: '/verwaltung/zeiten', component: Zeiten },
   ],
 })

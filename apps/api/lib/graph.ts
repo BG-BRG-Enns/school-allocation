@@ -4,7 +4,7 @@
 // and forgotten with it. Only the fields of the minimal roster record are
 // taken from a member (docs/data-sources.md §2), whatever Graph returns.
 
-import type { RosterEntry } from '@school-allocation/school-core'
+import { isClassGroupName, type RosterEntry } from '@school-allocation/school-core'
 import { GUID } from '../config.ts'
 import { boundedName } from './app-user.ts'
 import type { RosterWarning } from './roster.ts'
@@ -44,7 +44,10 @@ export class GraphError extends Error {
  */
 export async function listGroupMembers(baseUrl: string, accessToken: string, groupId: string, fetchFn: typeof fetch = fetch): Promise<GraphMember[]> {
   const origin = new URL(baseUrl).origin
-  let next: string | undefined = `${origin}/v1.0/groups/${encodeURIComponent(groupId)}/members?$select=id,displayName,mail,userPrincipalName&$top=999`
+  // transitiveMembers, not members: a class group may hold its students in
+  // nested groups (3A made of 3AR and 3AG); Graph flattens them, and only
+  // the users among the result become entries (membersToEntries).
+  let next: string | undefined = `${origin}/v1.0/groups/${encodeURIComponent(groupId)}/transitiveMembers?$select=id,displayName,mail,userPrincipalName&$top=999`
   const members: GraphMember[] = []
   for (let page = 0; next !== undefined; page += 1) {
     if (page >= MAX_PAGES) throw new GraphError('graph_failed', 'too many pages')
@@ -71,6 +74,61 @@ export async function listGroupMembers(baseUrl: string, accessToken: string, gro
     next = typeof body['@odata.nextLink'] === 'string' ? body['@odata.nextLink'] : undefined
   }
   return members
+}
+
+/** A group as the picker lists it. */
+export interface GraphGroup {
+  id: string
+  displayName: string
+  description: string | null
+}
+
+const MAX_GROUPS = 50
+
+/**
+ * The tenant's groups whose name starts with `q` (D-23; Group.Read.All,
+ * delegated): fifty at most, sorted by name here. The filter is Graph's
+ * own; the quote inside it is doubled, as OData escapes it, so a name
+ * cannot end the filter early. No $orderby: with a $filter, Graph takes
+ * it only as an advanced query (ConsistencyLevel: eventual and $count),
+ * which the delegated listing does not need otherwise.
+ */
+export async function searchGroups(baseUrl: string, accessToken: string, q: string, fetchFn: typeof fetch = fetch): Promise<GraphGroup[]> {
+  const origin = new URL(baseUrl).origin
+  const filter = `startswith(displayName,'${q.replaceAll('\'', '\'\'')}')`
+  const url = `${origin}/v1.0/groups?$filter=${encodeURIComponent(filter)}&$select=id,displayName,description&$top=${MAX_GROUPS}`
+  let response: Response
+  try {
+    response = await fetchFn(url, { headers: { authorization: `Bearer ${accessToken}`, accept: 'application/json' }, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
+  } catch {
+    throw new GraphError('graph_failed', 'request failed')
+  }
+  if (response.status === 401) throw new GraphError('graph_unauthorized')
+  if (response.status === 403) throw new GraphError('graph_forbidden')
+  if (!response.ok) throw new GraphError('graph_failed', `status ${response.status}`)
+  const body = await response.json().catch(() => undefined) as { value?: unknown } | undefined
+  if (!body || !Array.isArray(body.value)) throw new GraphError('graph_failed', 'not a listing')
+  const groups: GraphGroup[] = []
+  for (const item of body.value) {
+    if (typeof item !== 'object' || item === null) continue
+    const record = item as Record<string, unknown>
+    if (typeof record.id !== 'string' || !GUID.test(record.id.toLowerCase())) continue
+    groups.push({ id: record.id.toLowerCase(), displayName: boundedName(text(record.displayName)) ?? record.id.toLowerCase(), description: text(record.description)?.slice(0, 200) ?? null })
+  }
+  return groups.sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'))
+}
+
+/**
+ * Every group of the tenant whose name is a class, "5A" (D-23): one search
+ * per leading digit, since Graph filters by prefix only, kept to the names
+ * that are nothing but a class. Ten searches for the whole school at once
+ * instead of one per class by hand.
+ */
+export async function searchClassGroups(baseUrl: string, accessToken: string, fetchFn: typeof fetch = fetch): Promise<GraphGroup[]> {
+  const found = await Promise.all(['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => searchGroups(baseUrl, accessToken, digit, fetchFn)))
+  const byId = new Map<string, GraphGroup>()
+  for (const group of found.flat()) if (isClassGroupName(group.displayName)) byId.set(group.id, group)
+  return [...byId.values()].sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'))
 }
 
 function toMember(item: unknown): GraphMember | undefined {

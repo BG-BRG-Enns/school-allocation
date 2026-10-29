@@ -31,5 +31,17 @@ usePageTitle(() => 'Verwaltung')
       </RouterLink>
       <p>Wer sich angemeldet hat, wem das Konto zugeordnet ist, wer eine Wahl organisiert, wer gesperrt ist.</p>
     </li>
+    <li>
+      <RouterLink to="/verwaltung/klassen">
+        Klassenvorstände
+      </RouterLink>
+      <p>Wer welche Klasse führt und ihren Stand in einer Wahl sieht.</p>
+    </li>
+    <li>
+      <RouterLink to="/verwaltung/zeiten">
+        Stundenraster
+      </RouterLink>
+      <p>Die Unterrichtseinheiten der Schule, in denen Lehrkräfte ihre Termine angeben.</p>
+    </li>
   </ul>
 </template>

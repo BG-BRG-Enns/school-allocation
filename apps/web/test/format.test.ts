@@ -1,6 +1,17 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { formatFee, instantInSchoolZone, localDateOf, localTimeOf, touchedDates } from '../src/lib/format.ts'
+import { DEFAULT_PERIODS } from '@school-allocation/school-core'
+import { formatFee, formatSpanOnGrid, instantInSchoolZone, localDateOf, localTimeOf, periodLabel, touchedDates } from '../src/lib/format.ts'
+
+test('a session on the grid is labelled by its periods; off the grid, or over two days, the clock times stand', () => {
+  const at = (date: string, time: string) => instantInSchoolZone(date, time)
+  assert.equal(periodLabel(DEFAULT_PERIODS, at('2027-06-21', '08:30'), at('2027-06-21', '10:15')), '2.–3. EH')
+  assert.equal(periodLabel(DEFAULT_PERIODS, at('2027-06-21', '11:25'), at('2027-06-21', '12:15')), '5. EH')
+  assert.equal(periodLabel(DEFAULT_PERIODS, at('2027-06-21', '07:30'), at('2027-06-21', '13:10')), null)
+  assert.equal(periodLabel(DEFAULT_PERIODS, at('2027-06-22', '08:30'), at('2027-06-23', '10:15')), null)
+  assert.equal(formatSpanOnGrid(DEFAULT_PERIODS, at('2027-06-21', '08:30'), at('2027-06-21', '10:15')), 'Mo., 21.06.2027, 2.–3. EH (08:30 – 10:15)')
+  assert.match(formatSpanOnGrid(DEFAULT_PERIODS, at('2027-06-21', '07:30'), at('2027-06-21', '13:10')), /^Mo\., 21\.06\., 07:30 – 13:10$/)
+})
 
 test('a wall-clock time of the school is the same instant in every browser, in summer and in winter', () => {
   assert.equal(instantInSchoolZone('2027-06-22', '08:00'), '2027-06-22T06:00:00.000Z')

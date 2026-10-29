@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { checkEntry, checkRoster, diffRoster, rosterKey, summarizeDiff, type RosterEntry } from '../src/roster.ts'
+import { checkEntry, checkRoster, classNameOf, diffRoster, gradeOfClass, isClassGroupName, rosterKey, summarizeDiff, type RosterEntry } from '../src/roster.ts'
 
 const sara: RosterEntry = { kind: 'student', mail: 'Sara.Schuelerin@schule.example.org', displayName: 'Sara Schülerin', className: '5A', grade: 9 }
 const tim: RosterEntry = { kind: 'student', oid: 'E0000000-0000-4000-8000-00000000000E', mail: 'tim@schule.example.org', displayName: 'Tim Schüler', className: '5A', grade: 9 }
@@ -79,4 +79,20 @@ test('when the source changes and the key with it, an address both entries carry
   assert.deepEqual(summarizeDiff(diffRoster([sara], [{ ...sara, oid: 'd0000000-0000-4000-8000-00000000000d' }, { ...sara, oid: 'e0000000-0000-4000-8000-00000000000e' }])), { added: 1, removed: 0, changed: 0, unchanged: 1 })
   // Another object id at the same address is another person, whatever the name says.
   assert.deepEqual(summarizeDiff(diffRoster([tim], [{ ...tim, oid: 'f0000000-0000-4000-8000-00000000000f' }])), { added: 1, removed: 1, changed: 0, unchanged: 0 })
+})
+
+test('a group named after a class gives the class and a default Schulstufe to edit', () => {
+  assert.equal(classNameOf('5A'), '5A')
+  assert.equal(classNameOf('Klasse 5A'), '5A')
+  assert.equal(classNameOf('7AB Schüler/innen'), '7AB')
+  assert.equal(classNameOf('Lehrkräfte'), undefined)
+  assert.equal(classNameOf('5A und 5B'), undefined, 'two classes: none chosen')
+  assert.equal(classNameOf('2026'), undefined, 'a year is not a class')
+  assert.ok(isClassGroupName('1B') && isClassGroupName('8AB'))
+  assert.ok(!isClassGroupName('Klasse 5A') && !isClassGroupName('Lehrkräfte'))
+  assert.equal(gradeOfClass('5A'), 9, 'AHS: the 5. Klasse is the 9. Schulstufe')
+  assert.equal(gradeOfClass('1 B'), 5)
+  assert.equal(gradeOfClass('8C'), 12)
+  assert.equal(gradeOfClass('9A'), undefined, 'beyond the 8. Klasse the convention does not hold')
+  assert.equal(gradeOfClass('A5'), undefined)
 })

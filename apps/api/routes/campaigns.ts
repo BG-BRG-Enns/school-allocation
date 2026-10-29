@@ -6,13 +6,15 @@
 //   GET    /api/campaigns/:id/catalogue           the published catalogue: approved items in print order
 //   GET    /api/campaigns/:id/classes             the roster's classes, for the pickers (teachers, organizers)
 //   GET    /api/campaigns/:id/teachers?q=         the roster's teachers, for naming an activity's teachers
+//   GET    /api/campaigns/:id/demand              places needed against places offered per day and grade (teachers, organizers)
+//   GET    /api/campaigns/:id/classes/:className/status   a class as its class teacher sees it: the students and their class activities
 //   POST   /api/campaigns/:id/items               a teacher's or organizer's draft
 //   PATCH  /api/items/:id                         its content; own drafts, or an organizer (audited)
 //   DELETE /api/items/:id                         an own draft
 //   POST   /api/items/:id/propose                 draft → proposed
 //   POST   /api/items/:id/unpropose               proposed → draft, by its own teachers
 //   POST   /api/admin/campaigns                   an organizer sets a campaign up
-//   PATCH  /api/admin/campaigns/:id               name, year, days while setting up or taking proposals
+//   PATCH  /api/admin/campaigns/:id               name, year, days while setting up or taking proposals; the window's settings until it opens
 //   POST   /api/admin/campaigns/:id/transition    { to }: catalogue, published
 //   POST   /api/admin/items/:id/approve           audited
 //   POST   /api/admin/items/:id/return            { note }, audited
@@ -27,13 +29,14 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { Type, type Static } from 'typebox'
 import { callerOf, type Caller, type Guards } from '../lib/auth.ts'
-import { campaignCounts, canSee, createCampaign, isOrganizer, isTeacher, listCampaigns, readCampaign, rosterClasses, rosterTeachers, transitionCampaign, updateCampaign, type Campaign } from '../lib/campaigns.ts'
+import { campaignCounts, campaignDemand, canSee, createCampaign, isOrganizer, isTeacher, listCampaigns, readCampaign, rosterClasses, rosterTeachers, transitionCampaign, updateCampaign, type Campaign } from '../lib/campaigns.ts'
+import { classStudents } from '../lib/class-teachers.ts'
 import type { Database } from '../lib/db.ts'
-import { approveItem, catalogueItems, createItem, deleteDraft, ItemInvalid, listItems, proposeItem, readItem, returnItem, unproposeItem, updateItem, withdrawItem, type ItemInput } from '../lib/items.ts'
+import { approveItem, catalogueItems, createItem, deleteDraft, ItemInvalid, listItems, proposeItem, readItem, returnItem, unproposeItem, updateItem, withdrawItem, type Item, type ItemInput } from '../lib/items.ts'
 import { RosterConflict } from '../lib/roster.ts'
 import { actorOf } from './admin-roster.ts'
 import { ErrorResponse, StrictObject, Uuid } from '../lib/schemas/common.ts'
-import { CampaignBody, CampaignChangesBody, ItemBody, ItemInvalidResponse, NoteBody, ReasonBody, TransitionBody } from '../lib/schemas/catalogue.ts'
+import { CampaignBody, CampaignChangesBody, ClassParams, ItemBody, ItemInvalidResponse, NoteBody, ReasonBody, TransitionBody } from '../lib/schemas/catalogue.ts'
 import { catalogueWorkbook } from '../lib/xlsx.ts'
 
 export interface CampaignRoutesOptions {
@@ -69,15 +72,49 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
     return {
       campaign,
       counts: isOrganizer(caller) ? await campaignCounts(db, campaign.id) : null,
-      may: { propose: (isTeacher(caller) || isOrganizer(caller)) && campaign.state === 'catalogue', organize: isOrganizer(caller) },
+      may: {
+        propose: mayPropose(caller) && campaign.state === 'catalogue',
+        organize: isOrganizer(caller),
+        seeDemand: maySeeDemand(caller, campaign),
+        /** The classes the caller may open the class page of: their own as class teacher. Organizers open any from the class list. */
+        classTeacherOf: caller.classTeacherOf,
+      },
     }
+  })
+
+  app.get<{ Params: Static<typeof IdParams> }>('/api/campaigns/:id/demand', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
+    const campaign = await visible(request, reply, request.params.id)
+    if (!campaign) return
+    if (!maySeeDemand(callerOf(request), campaign)) return reply.code(403).send({ error: 'forbidden' })
+    return { demand: await campaignDemand(db, campaign) }
+  })
+
+  // A class as its class teacher sees it in this campaign: its students, and
+  // the class activities that take the class on which days. What the window
+  // adds (who has chosen) comes with it.
+  app.get<{ Params: Static<typeof IdParams> & Static<typeof ClassParams> }>('/api/campaigns/:id/classes/:className/status', {
+    ...signedIn,
+    schema: { params: StrictObject({ ...IdParams.properties, ...ClassParams.properties }), response: { '4xx': ErrorResponse } },
+  }, async (request, reply) => {
+    const campaign = await visible(request, reply, request.params.id)
+    if (!campaign) return
+    const caller = callerOf(request)
+    const { className } = request.params
+    if (!isOrganizer(caller) && !caller.classTeacherOf.includes(className)) return reply.code(403).send({ error: 'forbidden' })
+    const students = await classStudents(db, className)
+    if (students.length === 0) return reply.code(404).send({ error: 'not_found' })
+    const items = (await listItems(db, campaign, caller, true))
+      .filter((item) => item.fixedClasses.includes(className) && (item.state === 'approved' || item.state === 'proposed'))
+      .map((item) => ({ id: item.id, title: item.title, state: item.state, sessions: item.sessions.map((s) => ({ startsAt: s.startsAt, endsAt: s.endsAt })) }))
+    return { className, students, classActivities: items }
   })
 
   app.get<{ Params: Static<typeof IdParams> }>('/api/campaigns/:id/items', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
     const campaign = await visible(request, reply, request.params.id)
     if (!campaign) return
     const caller = callerOf(request)
-    return { items: await listItems(db, campaign, caller, isOrganizer(caller)) }
+    const items = await listItems(db, campaign, caller, isOrganizer(caller))
+    return { items: campaign.showTeachers || mayPropose(caller) ? items : items.map(withoutTeachers) }
   })
 
   app.get<{ Params: Static<typeof IdParams> }>('/api/campaigns/:id/catalogue', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
@@ -88,7 +125,8 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
     if (campaign.state === 'draft' || campaign.state === 'catalogue') {
       if (!isOrganizer(caller) && !isTeacher(caller)) return reply.code(404).send({ error: 'not_found' })
     }
-    return { campaign, items: await catalogueItems(db, campaign.id) }
+    const items = await catalogueItems(db, campaign.id)
+    return { campaign, items: campaign.showTeachers || mayPropose(caller) ? items : items.map(withoutTeachers) }
   })
 
   app.get<{ Params: Static<typeof IdParams> }>('/api/campaigns/:id/classes', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
@@ -214,6 +252,20 @@ function mayPropose(caller: Caller): boolean {
   return isTeacher(caller) || isOrganizer(caller)
 }
 
+/** Who sees the demand (D-13): organizers always, teachers while proposals are taken. */
+function maySeeDemand(caller: Caller, campaign: Pick<Campaign, 'state'>): boolean {
+  return isOrganizer(caller) || (isTeacher(caller) && campaign.state === 'catalogue')
+}
+
+/**
+ * An item as students see it when the school keeps the teachers out of the
+ * catalogue (D-13): no teachers, and no proposer's name either, since the
+ * proposer usually teaches it. Teachers and organizers always see both.
+ */
+function withoutTeachers(item: Item): Item {
+  return { ...item, teachers: [], proposedBy: { id: item.proposedBy.id, displayName: '' } }
+}
+
 /**
  * The body as the library takes it, defaults filled in. On creation the
  * proposing teacher is among the teachers when they are one and left
@@ -261,7 +313,10 @@ function projectDays(values: readonly string[]): string[] | 'invalid_date' | 'pr
   return days.length === values.length ? days : 'project_day_twice'
 }
 
-/** 403 for the wrong person, 404 for what is not there, 409 for a state that refuses, 422 for an activity that breaks the rules. */
+/** Rules of the input itself, not of the state: answered with 422. */
+const INPUT_RULES = ['invalid_instant', 'window_order', 'grace_order', 'swap_order']
+
+/** 403 for the wrong person, 404 for what is not there, 409 for a state that refuses, 422 for an activity or a window that breaks the rules. */
 async function refusals<T>(reply: FastifyReply, fn: () => Promise<T>) {
   try {
     return await fn()
@@ -270,7 +325,7 @@ async function refusals<T>(reply: FastifyReply, fn: () => Promise<T>) {
     if (err instanceof RosterConflict) {
       if (err.code === 'forbidden') return reply.code(403).send({ error: 'forbidden' })
       if (err.code === 'not_found') return reply.code(404).send({ error: 'not_found' })
-      return reply.code(409).send({ error: err.code })
+      return reply.code(INPUT_RULES.includes(err.code) ? 422 : 409).send({ error: err.code })
     }
     throw err
   }

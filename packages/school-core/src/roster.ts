@@ -17,6 +17,37 @@ export const CLASS_NAME = /^[\p{L}\p{N}][\p{L}\p{N} ._/-]{0,15}$/u
 /** Schulstufe: 1 (first year of primary school) to 13. */
 export const GRADES = { min: 1, max: 13 } as const
 
+/** A class as a school names its groups: a digit and one or two letters or digits, "5A", "1B", "7AB". */
+const CLASS_TOKEN = /^\p{N}[\p{L}\p{N}]{1,2}$/u
+
+/**
+ * The class a group's name denotes, when it does: the name itself ("5A")
+ * or one word of it ("Klasse 5A", "5A Schüler/innen"); undefined when no
+ * word or more than one is a class.
+ */
+export function classNameOf(groupName: string): string | undefined {
+  const classes = groupName.split(/[\s,;:()[\]]+/u).filter((word) => CLASS_TOKEN.test(word))
+  return classes.length === 1 ? classes[0] : undefined
+}
+
+/** Whether a group's name is nothing but a class, "5A": the groups the bulk search takes. */
+export function isClassGroupName(groupName: string): boolean {
+  return CLASS_TOKEN.test(groupName)
+}
+
+/**
+ * The Schulstufe a class name suggests, as a default to edit: the leading
+ * number plus four, the convention of the Mittelschule and the AHS, whose
+ * 1. Klasse is the 5. Schulstufe. Undefined outside the grades, as for a
+ * BHS's 1. Jahrgang (9. Schulstufe), which has to be entered.
+ */
+export function gradeOfClass(className: string): number | undefined {
+  const leading = /^(\d{1,2})/.exec(className.trim())
+  if (!leading) return undefined
+  const grade = Number(leading[1]) + 4
+  return grade >= GRADES.min && grade <= GRADES.max && Number(leading[1]) <= 8 ? grade : undefined
+}
+
 /** One row of a roster, as imported; keyed by `oid` (Graph) or, without one, by the address (CSV). */
 export interface RosterEntry {
   kind: PersonKind

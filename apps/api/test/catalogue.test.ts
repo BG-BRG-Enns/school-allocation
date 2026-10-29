@@ -81,7 +81,7 @@ test('a campaign is visible by role and state; its settings change only while it
   // Taking proposals: teachers see it, students do not.
   const bernd = await get<{ campaign: Campaign, counts: unknown, may: { propose: boolean, organize: boolean } }>(s, s.bernd, `/api/campaigns/${id}`)
   assert.equal(bernd.status, 200)
-  assert.deepEqual(bernd.body.may, { propose: true, organize: false })
+  assert.deepEqual(bernd.body.may, { propose: true, organize: false, seeDemand: true, classTeacherOf: [] })
   assert.equal(bernd.body.counts, null)
   assert.equal((await get(s, s.sara, `/api/campaigns/${id}`)).status, 404)
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'published' })).status, 200)

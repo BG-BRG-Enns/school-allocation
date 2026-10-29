@@ -5,7 +5,9 @@
 
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { csvTemplatePath, graphStartPath, loadRoster, saveGroups, uploadCsv, type RosterGroup, type RosterOverview } from '../lib/admin-api.ts'
+import { classNameOf, gradeOfClass } from '@school-allocation/school-core'
+import { csvTemplatePath, graphPickerStartPath, graphStartPath, loadRoster, saveGroups, searchClassGroups, searchGraphGroups, uploadCsv, type GraphGroup, type RosterGroup, type RosterOverview } from '../lib/admin-api.ts'
+import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
 import { BATCH_STATE_LABELS, KIND_LABELS, REFRESH_ERROR_LABELS, SOURCE_LABELS } from '../lib/labels.ts'
@@ -45,6 +47,73 @@ onMounted(load)
 
 function addGroup(): void {
   groups.value.push({ key: nextKey++, groupId: '', label: '', kind: 'student', className: '', grade: undefined })
+}
+
+// The picker (D-23): a search over the tenant's groups by name, with a
+// token the administrator authorizes at Microsoft; the callback brings the
+// browser back here with the search open.
+const pickerOpen = ref(route.query.gruppen === 'suchen')
+const pickerQuery = ref('')
+const pickerResults = ref<GraphGroup[]>([])
+const pickerFeedback = useFeedback()
+/** The authorization has lapsed or was never given: offered again. */
+const pickerNeedsAuthorization = ref(false)
+/** The search sent last; an answer to an earlier one is dropped, so typing fast never shows stale results. */
+let latestGroupSearch = 0
+
+async function findGroups(): Promise<void> {
+  const q = pickerQuery.value.trim()
+  if (q === '') {
+    pickerResults.value = []
+    return
+  }
+  const search = ++latestGroupSearch
+  await pickerFeedback.run(async () => {
+    try {
+      const found = (await searchGraphGroups(q)).groups
+      if (search !== latestGroupSearch) return
+      pickerResults.value = found.filter((group) => !groups.value.some((row) => row.groupId.toLowerCase() === group.id))
+      allClasses.value = false
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'graph_not_authorized') pickerNeedsAuthorization.value = true
+      throw err
+    }
+  })
+}
+
+/** Every group named after a class, "5A", at once; the whole school in one search. */
+async function findClassGroups(): Promise<void> {
+  const search = ++latestGroupSearch
+  pickerQuery.value = ''
+  await pickerFeedback.run(async () => {
+    try {
+      const found = (await searchClassGroups()).groups
+      if (search !== latestGroupSearch) return
+      pickerResults.value = found.filter((group) => !groups.value.some((row) => row.groupId.toLowerCase() === group.id))
+      allClasses.value = true
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'graph_not_authorized') pickerNeedsAuthorization.value = true
+      throw err
+    }
+  })
+}
+/** Whether the results are the class groups, which can be taken over together. */
+const allClasses = ref(false)
+
+/** Adds a found group as a class: class and Schulstufe filled in from its name ("5A" → 5A, 9. Schulstufe), to be corrected if the school counts differently. */
+function takeGroup(group: GraphGroup): void {
+  const className = classNameOf(group.displayName) ?? ''
+  groups.value.push({ key: nextKey++, groupId: group.id, label: group.displayName, kind: 'student', className, grade: className === '' ? undefined : gradeOfClass(className) })
+  pickerResults.value = pickerResults.value.filter((g) => g.id !== group.id)
+}
+
+function takeAllGroups(): void {
+  for (const group of [...pickerResults.value]) takeGroup(group)
+}
+
+/** A class typed by hand suggests its Schulstufe while none is entered, keystroke by keystroke: the value from the event, as v-model's own listener runs after this one. */
+function suggestGrade(group: { grade?: number | string | null }, className: string): void {
+  if (group.grade === undefined || group.grade === null || String(group.grade) === '') group.grade = gradeOfClass(className)
 }
 
 function removeGroup(key: number): void {
@@ -131,7 +200,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
 
   <section v-if="overview">
     <h2>Entra-Gruppen</h2>
-    <p>Die Gruppen der Schule, aus denen die Personenliste gelesen wird: je Klasse eine Schülergruppe mit Klasse und Schulstufe, dazu die Gruppe der Lehrkräfte. Die Gruppen-ID steht in Entra bei der Gruppe (Objekt-ID).</p>
+    <p>Die Gruppen der Schule, aus denen die Personenliste gelesen wird: je Klasse eine Schülergruppe mit Klasse und Schulstufe, dazu die Gruppe der Lehrkräfte. Suchen Sie die Gruppen bei Microsoft nach ihrem Namen, oder tragen Sie die Gruppen-ID ein, die in Entra bei der Gruppe steht (Objekt-ID).</p>
     <form @submit.prevent="onSaveGroups">
       <table
         v-if="groups.length > 0"
@@ -202,6 +271,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
                 :required="group.kind === 'student'"
                 maxlength="16"
                 size="6"
+                @input="suggestGrade(group, ($event.target as HTMLInputElement).value)"
               >
             </td>
             <td>
@@ -231,6 +301,84 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
       <p v-else>
         Noch keine Gruppen eingetragen.
       </p>
+      <div
+        v-if="pickerOpen"
+        class="panel"
+      >
+        <h3>Gruppen suchen</h3>
+        <p
+          v-if="pickerNeedsAuthorization"
+          class="notice"
+        >
+          Für die Suche ist eine Anmeldung bei Microsoft nötig: <a :href="withBase(graphPickerStartPath)">Bei Microsoft anmelden und Gruppen suchen</a>.
+        </p>
+        <p class="field">
+          <label for="group-search">Name der Gruppe beginnt mit</label>
+          <input
+            id="group-search"
+            v-model="pickerQuery"
+            type="search"
+            maxlength="100"
+            @input="findGroups"
+          >
+        </p>
+        <p class="actions">
+          <button
+            type="button"
+            class="ghost"
+            :disabled="pickerFeedback.busy.value"
+            @click="findClassGroups"
+          >
+            Alle Klassengruppen suchen
+          </button>
+          <span class="muted">Gruppen, deren Name eine Klasse ist (5A, 1B, …). Klasse und Schulstufe werden aus dem Namen vorbelegt: 5A → 9. Schulstufe.</span>
+        </p>
+        <p
+          v-if="allClasses && pickerResults.length > 1"
+          class="actions"
+        >
+          <button
+            type="button"
+            @click="takeAllGroups"
+          >
+            Alle {{ pickerResults.length }} Gruppen übernehmen
+          </button>
+        </p>
+        <ul
+          v-if="pickerResults.length > 0"
+          class="plain choices"
+        >
+          <li
+            v-for="group in pickerResults"
+            :key="group.id"
+          >
+            <button
+              type="button"
+              class="ghost"
+              @click="takeGroup(group)"
+            >
+              {{ group.displayName }} übernehmen
+            </button>
+            <span
+              v-if="group.description"
+              class="muted"
+            > · {{ group.description }}</span>
+          </li>
+        </ul>
+        <p
+          v-else-if="(pickerQuery.trim() !== '' || allClasses) && !pickerFeedback.busy.value && !pickerFeedback.error.value"
+          class="muted"
+        >
+          {{ allClasses ? 'Keine Gruppe, deren Name eine Klasse ist, die nicht schon eingetragen wäre.' : 'Keine Gruppe mit diesem Anfang.' }}
+        </p>
+        <p
+          v-if="pickerFeedback.error.value && !pickerNeedsAuthorization"
+          role="alert"
+          class="alert"
+        >
+          {{ pickerFeedback.error.value }}
+        </p>
+      </div>
       <p class="actions">
         <button
           type="button"
@@ -239,6 +387,11 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
         >
           Gruppe hinzufügen
         </button>
+        <a
+          v-if="!pickerOpen"
+          class="button ghost-link"
+          :href="withBase(graphPickerStartPath)"
+        >Gruppen bei Microsoft suchen</a>
         <button
           type="submit"
           :disabled="groupsFeedback.busy.value"

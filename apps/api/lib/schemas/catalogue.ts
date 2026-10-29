@@ -19,11 +19,36 @@ export const CampaignBody = StrictObject({
   projectDays: Type.Array(LocalDate, { minItems: 1, maxItems: 10 }),
 })
 
+const InstantOrNull = Type.Union([Instant, Type.Null()])
+
 export const CampaignChangesBody = StrictObject({
   name: SingleLineText(200),
   schoolYear: Type.String({ pattern: '^[0-9]{4}/[0-9]{2}$' }),
   projectDays: Type.Array(LocalDate, { minItems: 1, maxItems: 10 }),
+  // The window and what it asks (D-05, D-06, D-13); left out, a setting stays.
+  opensAt: Type.Optional(InstantOrNull),
+  closesAt: Type.Optional(InstantOrNull),
+  lateUntil: Type.Optional(InstantOrNull),
+  swapFrom: Type.Optional(InstantOrNull),
+  swapUntil: Type.Optional(InstantOrNull),
+  wishesPerGroup: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
+  /** Grade → minutes a day must credit at least; a grade left out has no minimum. */
+  dailyMinimum: Type.Optional(Type.Record(Type.String({ pattern: '^([1-9]|1[0-3])$' }), Type.Integer({ minimum: 0, maximum: 24 * 60 }), { maxProperties: 13, additionalProperties: false })),
+  showTeachers: Type.Optional(Type.Boolean()),
 })
+
+export const PeriodBody = StrictObject({
+  period: Type.Integer({ minimum: 1, maximum: 20 }),
+  starts: Type.String({ pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }),
+  ends: Type.String({ pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }),
+})
+export const PeriodsBody = StrictObject({ periods: Type.Array(PeriodBody, { maxItems: 20 }) })
+
+/** Why a grid was refused: school-core's codes. */
+export const PeriodsInvalidResponse = StrictObject({ error: Type.Literal('period_grid_invalid'), problems: Type.Array(Type.String()) })
+
+export const ClassTeachersBody = StrictObject({ teachers: Type.Array(Uuid, { maxItems: 4 }) })
+export const ClassParams = StrictObject({ className: Type.String({ pattern: CLASS_NAME.source, maxLength: 16 }) })
 
 export const TransitionBody = StrictObject({
   to: Type.Union([Type.Literal('catalogue'), Type.Literal('published')]),

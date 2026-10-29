@@ -78,6 +78,17 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   invalid_date: 'Ein Datum gibt es im Kalender nicht.',
   sessions_outside_days: 'An den gestrichenen Tagen finden schon Termine statt. Bitte zuerst die betroffenen Aktivitäten ändern.',
   item_invalid: 'Die Aktivität entspricht nicht den Regeln. Bitte die Hinweise prüfen.',
+  window_order: 'Die Wahl muss enden, nachdem sie begonnen hat.',
+  grace_order: 'Die Nachfrist endet frühestens mit der Wahl.',
+  swap_order: 'Das Ummeldefenster muss enden, nachdem es begonnen hat.',
+  // Settings and classes
+  period_grid_invalid: 'Das Stundenraster entspricht nicht den Regeln. Bitte die Hinweise prüfen.',
+  no_roster: 'Es gilt noch keine Personenliste.',
+  class_unknown: 'Diese Klasse gibt es in der Personenliste nicht.',
+  teacher_unknown: 'Eine Lehrkraft ist nicht in der Personenliste.',
+  graph_not_authorized: 'Für die Gruppensuche ist eine Anmeldung bei Microsoft nötig.',
+  graph_forbidden: 'Microsoft Graph verweigert das Lesen der Gruppen. Fehlt die Berechtigung oder die Zustimmung der IT?',
+  graph_failed: 'Microsoft Graph hat nicht geantwortet. Bitte später noch einmal versuchen.',
 }
 
 /**

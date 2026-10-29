@@ -19,11 +19,11 @@ In the school's tenant, under **App registrations**:
 An administrator can read the school's roster from the class groups and the teachers' group in Entra. The app holds no directory permission of its own: the refresh runs with the administrator's own token, which Entra issues after they consent, for that one refresh, and which the app forgets afterwards. For that, the app registration needs:
 
 1. A second redirect URI, `PUBLIC_URL` followed by `/api/admin/roster/graph/callback`.
-2. Under **API permissions**, the **delegated** Microsoft Graph permission `GroupMember.Read.All`, with admin consent granted for the tenant (**Grant admin consent**), so that the administrator is not asked to consent to a permission only a tenant administrator may grant.
+2. Under **API permissions**, the **delegated** Microsoft Graph permissions `GroupMember.Read.All` (reads the members of the labelled groups, nested groups included), `User.ReadBasic.All` (their names and e-mail addresses; without it Graph lists ids only) and `Group.Read.All` (finds groups by name when the administrator picks them), with admin consent granted for the tenant (**Grant admin consent**), so that the administrator is not asked to consent to a permission only a tenant administrator may grant.
 
-If the member listing of your tenant returns no e-mail addresses with that permission alone (the batch then warns about members without an address), add the delegated permission `User.ReadBasic.All` and set `GRAPH_DELEGATED_SCOPES=GroupMember.Read.All,User.ReadBasic.All` in `.env`.
+A school that enters group ids by hand and wants no group search leaves `Group.Read.All` out of the registration and sets `GRAPH_DELEGATED_SCOPES=GroupMember.Read.All,User.ReadBasic.All` in `.env`.
 
-In the app, under **Verwaltung → Stammdaten**, the administrator enters the groups' object ids and labels them (a class with its grade, or the teachers), then starts the refresh. The members become a pending batch with a diff against the roster in force, which the administrator commits or discards.
+In the app, under **Verwaltung → Stammdaten**, the administrator picks the groups from a search by name (authorizing a token for it at Microsoft, which the server keeps in memory for the token's lifetime, never on disk) or enters their object ids, labels them (a class with its grade, or the teachers), then starts the refresh. The members become a pending batch with a diff against the roster in force, which the administrator commits or discards.
 
 ## Host
 

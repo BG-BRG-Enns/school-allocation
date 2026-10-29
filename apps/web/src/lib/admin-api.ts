@@ -88,6 +88,42 @@ export const searchPersons = (q: string) => apiGet<{ persons: RosterPerson[] }>(
 export const graphStartPath = (schoolYear: string) => `/api/admin/roster/graph/start?schoolYear=${encodeURIComponent(schoolYear)}`
 export const csvTemplatePath = '/api/admin/roster/csv/template'
 
+/** A group of the tenant as the picker lists it (Group.Read.All, D-23). */
+export interface GraphGroup {
+  id: string
+  displayName: string
+  description: string | null
+}
+export const searchGraphGroups = (q: string) => apiGet<{ groups: GraphGroup[] }>(`/api/admin/roster/graph/groups?q=${encodeURIComponent(q)}`)
+/** Every group of the tenant whose name is a class, "5A": the whole school in one search. */
+export const searchClassGroups = () => apiGet<{ groups: GraphGroup[] }>('/api/admin/roster/graph/groups?classes=true')
+/** Where the picker's authorization starts: a navigation through Microsoft's pages, back to the roster page with the search open. */
+export const graphPickerStartPath = '/api/admin/roster/graph/start?purpose=picker'
+
+export interface Period {
+  period: number
+  starts: string
+  ends: string
+}
+export const loadPeriods = () => apiGet<{ periods: Period[] }>('/api/settings/periods')
+export const savePeriods = (periods: Period[]) => apiPut<{ periods: Period[] }>('/api/admin/settings/periods', { periods })
+
+export interface ClassTeacher {
+  personId: string
+  displayName: string
+  /** `app` when assigned here, `roster` when the CSV roster names them by address. */
+  source: 'app' | 'roster'
+}
+export interface ClassWithTeachers {
+  className: string
+  grade: number
+  students: number
+  teachers: ClassTeacher[]
+}
+export const loadClasses = () => apiGet<{ classes: ClassWithTeachers[] }>('/api/admin/classes')
+export const searchClassTeachers = (q: string) => apiGet<{ teachers: { personId: string, displayName: string }[] }>(`/api/admin/classes/teachers?q=${encodeURIComponent(q)}`)
+export const saveClassTeachers = (className: string, teachers: string[]) => apiPut<{ classes: ClassWithTeachers[] }>(`/api/admin/classes/${encodeURIComponent(className)}/teachers`, { teachers })
+
 export const loadAccounts = (q: string, unboundOnly: boolean) => apiGet<{ users: Account[] }>(`/api/admin/users?q=${encodeURIComponent(q)}${unboundOnly ? '&unbound=true' : ''}`)
 export const blockAccount = (id: string, reason: string) => apiPost<undefined>(`/api/admin/users/${encodeURIComponent(id)}/block`, { reason })
 export const unblockAccount = (id: string, reason: string) => apiPost<undefined>(`/api/admin/users/${encodeURIComponent(id)}/unblock`, { reason })

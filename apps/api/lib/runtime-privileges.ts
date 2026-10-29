@@ -41,7 +41,13 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   identity_binding: { table: ['SELECT', 'INSERT'], updateColumns: ['unbound_at', 'unbound_by', 'unbind_reason'] },
   // A campaign is set up, changed while it is being set up, and moved through
   // its states; never removed.
-  campaign: { table: ['SELECT', 'INSERT'], updateColumns: ['name', 'school_year', 'project_days', 'config', 'state', 'roster_batch_id', 'updated_at'] },
+  campaign: {
+    table: ['SELECT', 'INSERT'],
+    updateColumns: [
+      'name', 'school_year', 'project_days', 'config', 'state', 'roster_batch_id', 'updated_at',
+      'opens_at', 'closes_at', 'late_until', 'swap_from', 'swap_until', 'wishes_per_group', 'daily_minimum', 'show_teachers',
+    ],
+  },
   // An activity is edited while it is a draft or by an organizer, reviewed,
   // numbered and withdrawn; a draft may be removed (the trigger keeps the rest).
   catalog_item: {
@@ -55,6 +61,11 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   // Teachers and sessions of an item are replaced as a whole when it is edited.
   item_teacher: { table: ['SELECT', 'INSERT', 'DELETE'] },
   item_session: { table: ['SELECT', 'INSERT', 'DELETE'] },
+  // The period grid is replaced as a whole by an administrator, audited.
+  period_grid: { table: ['SELECT', 'INSERT', 'DELETE'] },
+  // A class teacher is assigned and revoked, never changed otherwise or
+  // removed; a trigger keeps it so whoever writes.
+  class_teacher: { table: ['SELECT', 'INSERT'], updateColumns: ['revoked_at', 'revoked_by'] },
 }
 
 /** Functions the runtime role may execute, by their signature as PostgreSQL prints a regprocedure: argument types without spaces between them. */

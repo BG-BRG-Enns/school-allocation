@@ -9,7 +9,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import type { AddressInfo } from 'node:net'
 import { ANNA, BERND, CARLA, SARA, TIM, type Person } from './personas.ts'
 
-/** A member as Graph lists it; `type` is the @odata.type, a user unless said otherwise, left out when null. */
+/** A member as Graph lists it; `type` is the @odata.type, a user unless said otherwise, left out when null. A member of type `#microsoft.graph.group` whose id names another group here is a nested group, flattened by transitiveMembers. */
 export interface FakeMember {
   id: string
   displayName?: string
@@ -22,6 +22,8 @@ export interface FakeGraph {
   baseUrl: string
   /** The groups and their members; a test changes them in place. */
   groups: Map<string, FakeMember[]>
+  /** What the groups are called in the tenant, for the picker's search; a group without a name here is "Gruppe <id…>". */
+  names: Map<string, string>
   /** Members per page; Graph's own limit is 999. */
   pageSize: number
   /** When set, every listing fails with this status. */
@@ -51,18 +53,29 @@ export function defaultGroups(): Map<string, FakeMember[]> {
 export async function startFakeGraph(accepted: readonly string[], groups = defaultGroups()): Promise<FakeGraph> {
   const requests: string[] = []
   let baseUrl = ''
-  const graph: FakeGraph = { baseUrl, groups, pageSize: 999, requests, close: async () => {} }
+  const names = new Map([[CLASS_5A_GROUP, 'Klasse 5A'], [TEACHERS_GROUP, 'Lehrkräfte']])
+  const graph: FakeGraph = { baseUrl, groups, names, pageSize: 999, requests, close: async () => {} }
 
   const server = createServer((request, response) => {
     requests.push(`${request.method} ${request.url}`)
     const url = new URL(request.url ?? '/', baseUrl)
-    const match = /^\/v1\.0\/groups\/([^/]+)\/members$/.exec(url.pathname)
+    const match = /^\/v1\.0\/groups\/([^/]+)\/(members|transitiveMembers)$/.exec(url.pathname)
     const token = request.headers.authorization?.replace(/^Bearer /, '')
     if (token === undefined || !accepted.includes(token)) return json(response, 401, { error: { code: 'InvalidAuthenticationToken' } })
     if (graph.failWith !== undefined) return json(response, graph.failWith, { error: { code: 'Failed' } })
+    if (request.method === 'GET' && url.pathname === '/v1.0/groups') {
+      // The picker's search: startswith(displayName,'…') over the groups' names, which here are their labels.
+      const prefix = /^startswith\(displayName,'(.*)'\)$/.exec(url.searchParams.get('$filter') ?? '')?.[1]?.replaceAll('\'\'', '\'') ?? ''
+      const value = [...graph.groups.keys()]
+        .map((id) => ({ id, displayName: graph.names.get(id) ?? `Gruppe ${id.slice(0, 8)}`, description: null }))
+        .filter((group) => group.displayName.toLowerCase().startsWith(prefix.toLowerCase()))
+        .sort((a, b) => a.displayName.localeCompare(b.displayName))
+      return json(response, 200, { value })
+    }
     if (request.method !== 'GET' || !match) return json(response, 404, { error: { code: 'ResourceNotFound' } })
-    const members = graph.groups.get(decodeURIComponent(match[1] ?? ''))
-    if (!members) return json(response, 404, { error: { code: 'Request_ResourceNotFound' } })
+    const direct = graph.groups.get(decodeURIComponent(match[1] ?? ''))
+    if (!direct) return json(response, 404, { error: { code: 'Request_ResourceNotFound' } })
+    const members = match[2] === 'transitiveMembers' ? transitive(graph.groups, direct) : direct
     const skip = Number(url.searchParams.get('$skiptoken') ?? '0')
     const page = members.slice(skip, skip + graph.pageSize).map((member) => ({
       ...(member.type === null ? {} : { '@odata.type': member.type ?? '#microsoft.graph.user' }),
@@ -84,6 +97,19 @@ export async function startFakeGraph(accepted: readonly string[], groups = defau
   graph.baseUrl = baseUrl
   graph.close = () => new Promise((resolve) => server.close(() => resolve()))
   return graph
+}
+
+/** As Graph's transitiveMembers: the nested groups themselves and, after them, their members, each once. */
+function transitive(groups: ReadonlyMap<string, FakeMember[]>, direct: readonly FakeMember[], seen = new Set<string>()): FakeMember[] {
+  const out: FakeMember[] = []
+  for (const member of direct) {
+    if (seen.has(member.id)) continue
+    seen.add(member.id)
+    out.push(member)
+    const nested = member.type === '#microsoft.graph.group' ? groups.get(member.id) : undefined
+    if (nested) out.push(...transitive(groups, nested, seen))
+  }
+  return out
 }
 
 function json(response: ServerResponse, status: number, body: unknown): void {

@@ -99,13 +99,22 @@ export const CATALOGUE_PROBLEM_LABELS: Readonly<Record<string, string>> = {
   teacher_twice: 'Eine Lehrkraft ist zweimal eingetragen',
 }
 
+/** Why a period grid was refused (school-core PERIOD_PROBLEM_CODES). */
+export const PERIOD_PROBLEM_LABELS: Readonly<Record<string, string>> = {
+  no_periods: 'Mindestens eine Einheit ist nötig',
+  period_numbering: 'Die Einheiten sind ohne Lücke von 1 an zu nummerieren',
+  period_time_invalid: 'Eine Uhrzeit ist keine (HH:MM)',
+  period_ends_before_start: 'Eine Einheit endet nicht nach ihrem Beginn',
+  periods_overlap: 'Eine Einheit beginnt, bevor die vorige endet',
+}
+
 /** What went wrong with a roster refresh from Entra groups, as the callback reports it in the page's query. */
 export const REFRESH_ERROR_LABELS: Readonly<Record<string, string>> = {
   state_mismatch: 'Die Rückkehr von Microsoft passte nicht zu diesem Browser. Bitte noch einmal starten.',
   no_pending_refresh: 'Es war keine Aktualisierung gestartet, oder sie ist abgelaufen. Bitte noch einmal starten.',
   graph_authorization_failed: 'Die Berechtigung für Microsoft Graph wurde nicht erteilt oder passt nicht zu Ihrem Konto.',
   graph_unauthorized: 'Microsoft Graph hat das Token nicht angenommen.',
-  graph_forbidden: 'Microsoft Graph verweigert das Lesen der Gruppen. Fehlt die Berechtigung (GroupMember.Read.All) oder die Zustimmung der IT?',
+  graph_forbidden: 'Microsoft Graph verweigert das Lesen der Gruppen. Fehlen die Berechtigungen (GroupMember.Read.All, User.ReadBasic.All) oder die Zustimmung der IT?',
   graph_not_found: 'Eine der Gruppen gibt es in Entra nicht (mehr). Bitte die Gruppen-IDs prüfen.',
   graph_failed: 'Microsoft Graph hat nicht geantwortet. Bitte später noch einmal versuchen.',
   import_failed: 'Der Import ist fehlgeschlagen.',

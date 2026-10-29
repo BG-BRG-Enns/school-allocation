@@ -5,22 +5,26 @@
 // around it when printing.
 
 import { onMounted, ref, watch } from 'vue'
+import type { Period } from '@school-allocation/school-core'
+import { loadPeriods } from '../lib/admin-api.ts'
 import { loadCatalogue, type Campaign, type Item } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { formatDay, formatFee, formatSpan } from '../lib/format.ts'
+import { formatDay, formatFee, formatSpanOnGrid } from '../lib/format.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string }>()
 const campaign = ref<Campaign | null>(null)
 const items = ref<Item[]>([])
+const grid = ref<Period[]>([])
 const loading = useFeedback()
 usePageTitle(() => campaign.value ? `Katalog ${campaign.value.name}` : 'Katalog')
 
 async function load(): Promise<void> {
   await loading.run(async () => {
-    const result = await loadCatalogue(props.id)
+    const [result, periods] = await Promise.all([loadCatalogue(props.id), loadPeriods()])
     campaign.value = result.campaign
     items.value = result.items
+    grid.value = periods.periods
   })
 }
 onMounted(load)
@@ -77,9 +81,12 @@ function who(item: Item): string {
       class="catalogue-item"
     >
       <h2>{{ item.number === null ? item.title : `${item.number} · ${item.title}` }}</h2>
-      <p class="muted">
+      <p
+        v-if="item.teachers.length > 0 || item.location"
+        class="muted"
+      >
         {{ item.teachers.map((t) => t.displayName).join(', ') }}<template v-if="item.location">
-          · {{ item.location }}
+          {{ item.teachers.length > 0 ? '· ' : '' }}{{ item.location }}
         </template>
       </p>
       <p
@@ -93,7 +100,7 @@ function who(item: Item): string {
           v-for="s in item.sessions"
           :key="s.id"
         >
-          {{ formatSpan(s.startsAt, s.endsAt) }}<template v-if="s.location">
+          {{ formatSpanOnGrid(grid, s.startsAt, s.endsAt) }}<template v-if="s.location">
             · {{ s.location }}
           </template>
           <span class="muted"> · angerechnet {{ s.credits.map((c) => `${c.minutes} min`).join(' + ') }}</span>
