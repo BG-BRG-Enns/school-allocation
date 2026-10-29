@@ -3,16 +3,18 @@
 //   GET  /api/settings/periods                  the period grid, for everyone who places or reads a session
 //   PUT  /api/admin/settings/periods            replace it (administrators), audited
 //   GET  /api/admin/classes                     the roster's classes with their class teachers (administrators, organizers)
+//   GET  /api/admin/classes/teachers?q=         the roster's teachers, for assigning one (administrators, organizers)
 //   PUT  /api/admin/classes/:className/teachers set the class teachers assigned in the app, audited
 
 import type { FastifyInstance } from 'fastify'
-import type { Static } from 'typebox'
+import { Type, type Static } from 'typebox'
 import type { Guards } from '../lib/auth.ts'
+import { rosterTeachers } from '../lib/campaigns.ts'
 import { listClasses, replaceClassTeachers } from '../lib/class-teachers.ts'
 import type { Database } from '../lib/db.ts'
 import { RosterConflict } from '../lib/roster.ts'
 import { ClassParams, ClassTeachersBody, PeriodsBody, PeriodsInvalidResponse } from '../lib/schemas/catalogue.ts'
-import { ErrorResponse } from '../lib/schemas/common.ts'
+import { ErrorResponse, StrictObject } from '../lib/schemas/common.ts'
 import { PeriodsInvalid, readPeriods, replacePeriods } from '../lib/settings.ts'
 import { actorOf } from './admin-roster.ts'
 
@@ -20,6 +22,8 @@ export interface SettingsRoutesOptions {
   db: Database
   guards: Guards
 }
+
+const TeachersQuery = StrictObject({ q: Type.Optional(Type.String({ maxLength: 100 })) })
 
 export async function settingsRoutes(app: FastifyInstance, { db, guards }: SettingsRoutesOptions): Promise<void> {
   const signedIn = { preHandler: guards.requireSession }
@@ -44,6 +48,10 @@ export async function settingsRoutes(app: FastifyInstance, { db, guards }: Setti
 
   app.get('/api/admin/classes', { ...organizer, schema: { response: { '4xx': ErrorResponse } } }, async () => {
     return { classes: await listClasses(db) }
+  })
+
+  app.get<{ Querystring: Static<typeof TeachersQuery> }>('/api/admin/classes/teachers', { ...organizer, schema: { querystring: TeachersQuery, response: { '4xx': ErrorResponse } } }, async (request) => {
+    return { teachers: await rosterTeachers(db, request.query.q?.trim() ?? '') }
   })
 
   app.put<{ Params: Static<typeof ClassParams>, Body: Static<typeof ClassTeachersBody> }>('/api/admin/classes/:className/teachers', {

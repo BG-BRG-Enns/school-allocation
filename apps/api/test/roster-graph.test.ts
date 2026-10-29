@@ -207,6 +207,7 @@ test('the group picker searches the tenant\'s groups with a token the administra
   assert.equal((await search(anna, 'O\'Brien')).status, 200)
   const searches: string[] = h.graph.requests
   assert.ok(searches.every((r: string) => r.startsWith('GET /v1.0/groups?')))
+  assert.ok(searches.every((r: string) => !r.includes('$orderby')), 'no $orderby: with a $filter, Graph takes it only as an advanced query')
   // As the URL leaves the server: the comma from encodeURIComponent, the quotes from the URL's own query encoding.
   assert.ok(searches.some((r: string) => r.includes('$filter=startswith(displayName%2C%27O%27%27Brien%27)')), searches.join('\n'))
 

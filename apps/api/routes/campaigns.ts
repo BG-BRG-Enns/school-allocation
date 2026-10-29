@@ -113,7 +113,9 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards }: Campa
     const campaign = await visible(request, reply, request.params.id)
     if (!campaign) return
     const caller = callerOf(request)
-    return { items: await listItems(db, campaign, caller, isOrganizer(caller)) }
+    const items = await listItems(db, campaign, caller, isOrganizer(caller))
+    // Whether students see who teaches is the school's call (D-13), on every listing they get.
+    return { items: campaign.showTeachers || mayPropose(caller) ? items : items.map((item) => ({ ...item, teachers: [] })) }
   })
 
   app.get<{ Params: Static<typeof IdParams> }>('/api/campaigns/:id/catalogue', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {

@@ -4,7 +4,7 @@
 // the ones assigned here by an administrator or an organizer, audited.
 
 import { computed, onMounted, ref } from 'vue'
-import { loadClasses, saveClassTeachers, searchPersons, type ClassWithTeachers, type RosterPerson } from '../lib/admin-api.ts'
+import { loadClasses, saveClassTeachers, searchClassTeachers, type ClassWithTeachers } from '../lib/admin-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
@@ -18,7 +18,7 @@ const mayEdit = computed(() => (session.value?.roles ?? []).some((role) => role 
 /** The class whose assigned teachers are being changed, with the list as it will be saved. */
 const editing = ref<{ className: string, teachers: { personId: string, displayName: string }[] } | null>(null)
 const query = ref('')
-const results = ref<RosterPerson[]>([])
+const results = ref<{ personId: string, displayName: string }[]>([])
 
 onMounted(() => loading.run(async () => {
   classes.value = (await loadClasses()).classes
@@ -43,10 +43,10 @@ async function find(): Promise<void> {
     return
   }
   const chosen = new Set(editing.value.teachers.map((t) => t.personId))
-  results.value = (await searchPersons(q)).persons.filter((p) => p.kind === 'teacher' && !chosen.has(p.personId))
+  results.value = (await searchClassTeachers(q)).teachers.filter((t) => !chosen.has(t.personId))
 }
 
-function add(person: RosterPerson): void {
+function add(person: { personId: string, displayName: string }): void {
   editing.value?.teachers.push({ personId: person.personId, displayName: person.displayName })
   query.value = ''
   results.value = []

@@ -119,6 +119,7 @@ export interface ClassWithTeachers {
   teachers: ClassTeacher[]
 }
 export const loadClasses = () => apiGet<{ classes: ClassWithTeachers[] }>('/api/admin/classes')
+export const searchClassTeachers = (q: string) => apiGet<{ teachers: { personId: string, displayName: string }[] }>(`/api/admin/classes/teachers?q=${encodeURIComponent(q)}`)
 export const saveClassTeachers = (className: string, teachers: string[]) => apiPut<{ classes: ClassWithTeachers[] }>(`/api/admin/classes/${encodeURIComponent(className)}/teachers`, { teachers })
 
 export const loadAccounts = (q: string, unboundOnly: boolean) => apiGet<{ users: Account[] }>(`/api/admin/users?q=${encodeURIComponent(q)}${unboundOnly ? '&unbound=true' : ''}`)

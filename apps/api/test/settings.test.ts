@@ -80,6 +80,7 @@ test('class teachers come from the roster\'s address column and from the app; a 
   assert.equal(classes.status, 200)
   assert.deepEqual(classes.body.classes, [{ className: '5A', grade: 9, students: 2, teachers: [{ personId: s.carlaPerson, displayName: CARLA.name, source: 'roster' }] }])
   assert.equal((await get(s, s.bernd, '/api/admin/classes')).status, 403)
+  assert.equal((await get(s, s.bernd, '/api/admin/classes/teachers?q=Carla')).status, 403)
 
   assert.equal((await send<{ error: string }>(s, s.anna, 'PUT', '/api/admin/classes/6A/teachers', { teachers: [s.berndPerson] })).status, 404)
   const stranger = await send<{ error: string }>(s, s.anna, 'PUT', '/api/admin/classes/5A/teachers', { teachers: ['00000000-0000-4000-8000-000000000001'] })
@@ -124,6 +125,17 @@ test('class teachers come from the roster\'s address column and from the app; a 
   t.after(() => owner.close())
   const events = (await readAudit(owner, SCHOOL_SCOPE)).filter((e) => e.action === 'class.teachers-changed')
   assert.deepEqual(events.map((e) => e.metadata), [{ schoolYear: '2026/27', className: '5A', teachers: 1 }, { schoolYear: '2026/27', className: '5A', teachers: 0 }])
+
+  // An organizer who is no administrator assigns class teachers too, and finds them without the administrators' person search.
+  const accounts = await get<{ users: { id: string, displayName: string }[] }>(s, s.anna, '/api/admin/users?q=Bernd')
+  const berndUser = accounts.body.users.find((u) => u.displayName === BERND.name)?.id ?? ''
+  assert.equal((await send(s, s.anna, 'POST', '/api/admin/roles', { userId: berndUser, role: 'campaign_organizer', reason: 'organizes' })).status, 201)
+  const organizer = await signIn(s, BERND)
+  const found = await get<{ teachers: { displayName: string }[] }>(s, organizer, '/api/admin/classes/teachers?q=Carla')
+  assert.equal(found.status, 200, JSON.stringify(found.body))
+  assert.deepEqual(found.body.teachers.map((te) => te.displayName), [CARLA.name])
+  assert.equal((await get(s, organizer, '/api/admin/classes')).status, 200)
+  assert.equal((await send(s, organizer, 'PUT', '/api/admin/classes/5A/teachers', { teachers: [s.carlaPerson] })).status, 200)
 })
 
 test('the window\'s settings are kept in order and changeable until it opens; the demand counts proposals per day and grade; students see teachers only when the school says so', DB, async (t) => {
@@ -178,6 +190,7 @@ test('the window\'s settings are kept in order and changeable until it opens; th
   assert.equal((await get(s, s.sara, `/api/campaigns/${id}/demand`)).status, 403)
   const forSara = await get<{ items: Item[] }>(s, s.sara, `/api/campaigns/${id}/catalogue`)
   assert.deepEqual(forSara.body.items.map((i) => i.teachers), [[]], 'the school chose not to name the teachers')
+  assert.deepEqual((await get<{ items: Item[] }>(s, s.sara, `/api/campaigns/${id}/items`)).body.items.map((i) => i.teachers), [[]], 'nor on the campaign page')
   assert.deepEqual((await get<{ items: Item[] }>(s, s.bernd, `/api/campaigns/${id}/catalogue`)).body.items[0]?.teachers.map((te) => te.displayName), [BERND.name])
   // Published: the window may still be set, the set-up may not.
   assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, showTeachers: true })).status, 200)

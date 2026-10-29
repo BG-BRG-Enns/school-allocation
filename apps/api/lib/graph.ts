@@ -84,14 +84,16 @@ const MAX_GROUPS = 50
 
 /**
  * The tenant's groups whose name starts with `q` (D-23; Group.Read.All,
- * delegated): fifty at most, by name. The filter is Graph's own; the quote
- * inside it is doubled, as OData escapes it, so a name cannot end the
- * filter early.
+ * delegated): fifty at most, sorted by name here. The filter is Graph's
+ * own; the quote inside it is doubled, as OData escapes it, so a name
+ * cannot end the filter early. No $orderby: with a $filter, Graph takes
+ * it only as an advanced query (ConsistencyLevel: eventual and $count),
+ * which the delegated listing does not need otherwise.
  */
 export async function searchGroups(baseUrl: string, accessToken: string, q: string, fetchFn: typeof fetch = fetch): Promise<GraphGroup[]> {
   const origin = new URL(baseUrl).origin
   const filter = `startswith(displayName,'${q.replaceAll('\'', '\'\'')}')`
-  const url = `${origin}/v1.0/groups?$filter=${encodeURIComponent(filter)}&$select=id,displayName,description&$top=${MAX_GROUPS}&$orderby=displayName`
+  const url = `${origin}/v1.0/groups?$filter=${encodeURIComponent(filter)}&$select=id,displayName,description&$top=${MAX_GROUPS}`
   let response: Response
   try {
     response = await fetchFn(url, { headers: { authorization: `Bearer ${accessToken}`, accept: 'application/json' }, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
@@ -110,7 +112,7 @@ export async function searchGroups(baseUrl: string, accessToken: string, q: stri
     if (typeof record.id !== 'string' || !GUID.test(record.id.toLowerCase())) continue
     groups.push({ id: record.id.toLowerCase(), displayName: boundedName(text(record.displayName)) ?? record.id.toLowerCase(), description: text(record.description)?.slice(0, 200) ?? null })
   }
-  return groups
+  return groups.sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'))
 }
 
 function toMember(item: unknown): GraphMember | undefined {
