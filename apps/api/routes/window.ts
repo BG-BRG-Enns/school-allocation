@@ -17,7 +17,9 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { Static } from 'typebox'
 import { callerOf, type Caller, type Guards } from '../lib/auth.ts'
 import { canSee, isOrganizer, readCampaign, type Campaign } from '../lib/campaigns.ts'
-import { campaignStudent, ChoiceInvalid, choiceStates, choiceView, exemptPreAssignment, saveRanking, type CampaignStudent } from '../lib/choices.ts'
+import { withoutTeachers } from '../lib/items.ts'
+import { mayPropose } from './campaigns.ts'
+import { campaignStudent, ChoiceInvalid, choiceStates, choiceView, exemptPreAssignment, saveRanking, type CampaignStudent, type ChoiceView } from '../lib/choices.ts'
 import type { Database } from '../lib/db.ts'
 import { listCampaignMails, mailStatesByPerson } from '../lib/mail/outbox.ts'
 import { RosterConflict } from '../lib/roster.ts'
@@ -66,12 +68,19 @@ export async function windowRoutes(app: FastifyInstance, { db, guards }: WindowR
 
   const rankingSchema = { params: IdParams, body: RankingBody, response: { '422': RankingInvalidResponse, '4xx': ErrorResponse } }
 
+  /** The view as the caller may see it: without the teachers and the proposer's name when the campaign keeps them from students (D-13), as the catalogue does. */
+  function redacted(campaign: Campaign, caller: Caller, view: ChoiceView): ChoiceView {
+    if (campaign.showTeachers || mayPropose(caller)) return view
+    return { ...view, fixed: view.fixed.map(withoutTeachers), groups: view.groups.map((group) => ({ ...group, items: group.items.map(withoutTeachers) })) }
+  }
+
   app.get<{ Params: Static<typeof IdParams> }>('/api/campaigns/:id/my-choice', { ...signedIn, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
     const campaign = await visible(request, reply, request.params.id)
     if (!campaign) return
-    const student = await asStudent(reply, campaign, callerOf(request))
+    const caller = callerOf(request)
+    const student = await asStudent(reply, campaign, caller)
     if (!student) return
-    return { campaign, ...await choiceView(db, campaign, student) }
+    return { campaign, ...redacted(campaign, caller, await choiceView(db, campaign, student)) }
   })
 
   app.put<{ Params: Static<typeof IdParams>, Body: Static<typeof RankingBody> }>('/api/campaigns/:id/my-choice', { ...signedIn, schema: rankingSchema }, async (request, reply) => {
@@ -80,7 +89,7 @@ export async function windowRoutes(app: FastifyInstance, { db, guards }: WindowR
     const caller = callerOf(request)
     const student = await asStudent(reply, campaign, caller)
     if (!student) return
-    return refusals(reply, async () => ({ campaign, ...await saveRanking(db, campaign, student, request.body.ranking, { caller }) }))
+    return refusals(reply, async () => ({ campaign, ...redacted(campaign, caller, await saveRanking(db, campaign, student.personId, request.body.ranking, { caller })) }))
   })
 
   app.get<{ Params: Static<typeof PersonParams> }>('/api/admin/campaigns/:id/choices/:personId', { ...organizer, schema: { params: PersonParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
@@ -98,7 +107,7 @@ export async function windowRoutes(app: FastifyInstance, { db, guards }: WindowR
     if (!campaign) return
     const student = await namedStudent(reply, campaign, request.params.personId)
     if (!student) return
-    return refusals(reply, async () => ({ campaign, ...await saveRanking(db, campaign, student, request.body.ranking, { caller: callerOf(request), reason: request.body.reason }) }))
+    return refusals(reply, async () => ({ campaign, ...await saveRanking(db, campaign, student.personId, request.body.ranking, { caller: callerOf(request), reason: request.body.reason }) }))
   })
 
   app.post<{ Params: Static<typeof ExemptParams>, Body: Static<typeof ExemptBody> }>('/api/admin/campaigns/:id/preassignments/:personId/:itemId/exempt', {
@@ -152,6 +161,8 @@ async function refusals<T>(reply: FastifyReply, fn: () => Promise<T>) {
     if (err instanceof ChoiceInvalid) return reply.code(422).send({ error: 'ranking_invalid', problems: err.problems })
     if (err instanceof RosterConflict) {
       if (err.code === 'not_found') return reply.code(404).send({ error: 'not_found' })
+      // The roster changed under the request: the student is no longer one of the campaign's.
+      if (err.code === 'not_a_student') return reply.code(403).send({ error: 'not_a_student' })
       return reply.code(409).send({ error: err.code })
     }
     throw err

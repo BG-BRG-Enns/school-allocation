@@ -6,6 +6,7 @@
 // classes while it is open, and when a roster is committed meanwhile. An
 // organizer's exemption is a decision and stays whatever happens around it.
 
+import { lockScope } from './audit.ts'
 import type { Queryable } from './db.ts'
 
 /** The campaign's roster batch: the one frozen at the close, else the one in force. */
@@ -35,8 +36,21 @@ export async function reconcilePreAssignments(client: Queryable, campaignId: str
   return { placed: placed ?? 0, removed: removed ?? 0 }
 }
 
-/** The campaigns whose window is open, whose placements a roster change must follow. */
-export async function campaignsWithOpenWindow(client: Queryable): Promise<string[]> {
+/**
+ * After a roster commit: every campaign whose window is open on the roster
+ * in force follows it. Each under its own lock, its state read again there,
+ * so a close in flight (which freezes the previous roster) and this never
+ * cross: the one that takes the lock first decides what the other sees.
+ */
+export async function reconcileOpenCampaigns(client: Queryable): Promise<number> {
   const { rows } = await client.query<{ id: string }>('select id from campaign where state in (\'open\', \'grace\') and roster_batch_id is null order by created_at')
-  return rows.map((row) => row.id)
+  let reconciled = 0
+  for (const { id } of rows) {
+    await lockScope(client, id)
+    const { rowCount } = await client.query('select 1 from campaign where id = $1 and state in (\'open\', \'grace\') and roster_batch_id is null for update', [id])
+    if (!rowCount) continue
+    await reconcilePreAssignments(client, id)
+    reconciled += 1
+  }
+  return reconciled
 }

@@ -153,17 +153,24 @@ export interface SaveBy {
  * window takes choices, only items the student is offered, at most the
  * cap per group. A list saved after the close is late (D-06). Every save
  * writes a revision; an organizer's save on behalf is audited as well.
+ * The student, the campaign's window and the clock are all read under the
+ * lock: a roster committed or a deadline passed while the request waited
+ * counts, not the request's earlier picture of them.
  */
-export async function saveRanking(db: Database, campaign: Campaign, student: CampaignStudent, ranking: Ranking, by: SaveBy, now = new Date()): Promise<ChoiceView> {
+export async function saveRanking(db: Database, campaign: Campaign, personId: string, ranking: Ranking, by: SaveBy): Promise<ChoiceView> {
+  let student: CampaignStudent | undefined
   await db.tx(async (client) => {
     await lockScope(client, campaign.id)
-    const { rows: [current] } = await client.query<{ state: Campaign['state'], closes_at: Date | null, late_until: Date | null }>(
-      'select state, closes_at, late_until from campaign where id = $1 for update', [campaign.id],
+    const now = new Date()
+    const { rows: [current] } = await client.query<{ state: Campaign['state'], closes_at: Date | null, late_until: Date | null, roster_batch_id: string | null }>(
+      'select state, closes_at, late_until, roster_batch_id from campaign where id = $1 for update', [campaign.id],
     )
     if (!current || !acceptsChoices(current.state)) throw new RosterConflict('campaign_state')
     // The clock under the lock, not the last tick: after the window's end nothing is taken, whatever the state still says.
     const end = current.late_until ?? current.closes_at
     if (end !== null && now.getTime() > end.getTime()) throw new RosterConflict('campaign_state')
+    student = await campaignStudent(client, { rosterBatchId: current.roster_batch_id }, personId)
+    if (!student) throw new RosterConflict('not_a_student')
     const view = await choiceView(client, { ...campaign, state: current.state }, student)
     const problems = checkRanking(ranking, view.groups, campaign.wishesPerGroup)
     if (problems.length > 0) throw new ChoiceInvalid(problems)
@@ -194,7 +201,7 @@ export async function saveRanking(db: Database, campaign: Campaign, student: Cam
       })
     }
   })
-  return choiceView(db, campaign, student)
+  return choiceView(db, campaign, student as CampaignStudent)
 }
 
 /** An organizer exempts a student from a class activity, with a reason, audited; false when there is no such pre-assignment. */

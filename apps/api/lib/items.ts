@@ -65,6 +65,11 @@ export class ItemInvalid extends Error {
 }
 
 /** Whether the caller is one of the item's people: its proposer or one of its teachers. */
+/** The item as a student sees it when the campaign keeps the teachers out (D-13): no teachers, no proposer's name. */
+export function withoutTeachers(item: Item): Item {
+  return { ...item, teachers: [], proposedBy: { id: item.proposedBy.id, displayName: '' } }
+}
+
 export function isOwn(caller: Pick<Caller, 'id' | 'person'>, item: Pick<Item, 'proposedBy' | 'teachers'>): boolean {
   return item.proposedBy.id === caller.id || (caller.person !== null && item.teachers.some((teacher) => teacher.personId === caller.person?.id))
 }

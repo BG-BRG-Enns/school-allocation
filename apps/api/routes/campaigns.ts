@@ -32,7 +32,7 @@ import { callerOf, type Caller, type Guards } from '../lib/auth.ts'
 import { campaignCounts, campaignDemand, canSee, createCampaign, isOrganizer, isTeacher, listCampaigns, readCampaign, rosterClasses, rosterTeachers, transitionCampaign, updateCampaign, type Campaign } from '../lib/campaigns.ts'
 import { campaignStudents, choiceStates, type StudentChoiceState } from '../lib/choices.ts'
 import type { Database } from '../lib/db.ts'
-import { approveItem, catalogueItems, createItem, deleteDraft, ItemInvalid, listItems, proposeItem, readItem, returnItem, unproposeItem, updateItem, withdrawItem, type Item, type ItemInput } from '../lib/items.ts'
+import { approveItem, catalogueItems, createItem, deleteDraft, ItemInvalid, listItems, proposeItem, readItem, returnItem, unproposeItem, updateItem, withdrawItem, withoutTeachers, type ItemInput } from '../lib/items.ts'
 import { RosterConflict } from '../lib/roster.ts'
 import { actorOf } from './admin-roster.ts'
 import { ErrorResponse, StrictObject, Uuid } from '../lib/schemas/common.ts'
@@ -260,8 +260,8 @@ export async function campaignRoutes(app: FastifyInstance, { db, guards, baseUrl
   }
 }
 
-/** Who may propose: teachers of the roster in force, and organizers on anyone's behalf. */
-function mayPropose(caller: Caller): boolean {
+/** Who may propose: teachers of the roster in force, and organizers on anyone's behalf. They always see the teachers of an item. */
+export function mayPropose(caller: Caller): boolean {
   return isTeacher(caller) || isOrganizer(caller)
 }
 
@@ -275,10 +275,6 @@ function maySeeDemand(caller: Caller, campaign: Pick<Campaign, 'state'>): boolea
  * catalogue (D-13): no teachers, and no proposer's name either, since the
  * proposer usually teaches it. Teachers and organizers always see both.
  */
-function withoutTeachers(item: Item): Item {
-  return { ...item, teachers: [], proposedBy: { id: item.proposedBy.id, displayName: '' } }
-}
-
 /**
  * The body as the library takes it, defaults filled in. On creation the
  * proposing teacher is among the teachers when they are one and left
