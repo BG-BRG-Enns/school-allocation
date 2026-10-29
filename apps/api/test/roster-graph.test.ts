@@ -210,6 +210,17 @@ test('the group picker searches the tenant\'s groups with a token the administra
   assert.ok(searches.every((r: string) => !r.includes('$orderby')), 'no $orderby: with a $filter, Graph takes it only as an advanced query')
   // As the URL leaves the server: the comma from encodeURIComponent, the quotes from the URL's own query encoding.
   assert.ok(searches.some((r: string) => r.includes('$filter=startswith(displayName%2C%27O%27%27Brien%27)')), searches.join('\n'))
+  const before9 = h.graph.requests.length
+  // Every group named after a class at once: one search per leading digit, names that are a class and nothing else.
+  for (const [id, name] of [['44444444-4444-4444-8444-444444444444', '7B'], ['55555555-5555-4555-8555-555555555555', '8C'], ['66666666-6666-4666-8666-666666666666', '2026 Maturaball']] as const) {
+    h.graph.groups.set(id, [])
+    h.graph.names.set(id, name)
+  }
+  const classes = await get<{ groups: { displayName: string }[] }>(h, anna, '/api/admin/roster/graph/groups?classes=true')
+  assert.equal(classes.status, 200, JSON.stringify(classes.body))
+  assert.deepEqual(classes.body.groups.map((g) => g.displayName), ['7B', '8C'], 'not "Klasse 5A", not the ball')
+  assert.equal(h.graph.requests.length, before9 + 9)
+  assert.equal((await get(h, anna, '/api/admin/roster/graph/groups')).status, 400, 'a prefix or classes=true')
 
   // The handle is this session's; another browser of Anna's has no token, nor has a teacher.
   const other = await signIn(h, ANNA)

@@ -4,7 +4,7 @@
 // and forgotten with it. Only the fields of the minimal roster record are
 // taken from a member (docs/data-sources.md §2), whatever Graph returns.
 
-import type { RosterEntry } from '@school-allocation/school-core'
+import { isClassGroupName, type RosterEntry } from '@school-allocation/school-core'
 import { GUID } from '../config.ts'
 import { boundedName } from './app-user.ts'
 import type { RosterWarning } from './roster.ts'
@@ -113,6 +113,19 @@ export async function searchGroups(baseUrl: string, accessToken: string, q: stri
     groups.push({ id: record.id.toLowerCase(), displayName: boundedName(text(record.displayName)) ?? record.id.toLowerCase(), description: text(record.description)?.slice(0, 200) ?? null })
   }
   return groups.sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'))
+}
+
+/**
+ * Every group of the tenant whose name is a class, "5A" (D-23): one search
+ * per leading digit, since Graph filters by prefix only, kept to the names
+ * that are nothing but a class. Ten searches for the whole school at once
+ * instead of one per class by hand.
+ */
+export async function searchClassGroups(baseUrl: string, accessToken: string, fetchFn: typeof fetch = fetch): Promise<GraphGroup[]> {
+  const found = await Promise.all(['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => searchGroups(baseUrl, accessToken, digit, fetchFn)))
+  const byId = new Map<string, GraphGroup>()
+  for (const group of found.flat()) if (isClassGroupName(group.displayName)) byId.set(group.id, group)
+  return [...byId.values()].sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'))
 }
 
 function toMember(item: unknown): GraphMember | undefined {

@@ -5,7 +5,8 @@
 
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { csvTemplatePath, graphPickerStartPath, graphStartPath, loadRoster, saveGroups, searchGraphGroups, uploadCsv, type GraphGroup, type RosterGroup, type RosterOverview } from '../lib/admin-api.ts'
+import { classNameOf, gradeOfClass } from '@school-allocation/school-core'
+import { csvTemplatePath, graphPickerStartPath, graphStartPath, loadRoster, saveGroups, searchClassGroups, searchGraphGroups, uploadCsv, type GraphGroup, type RosterGroup, type RosterOverview } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
@@ -72,6 +73,7 @@ async function findGroups(): Promise<void> {
       const found = (await searchGraphGroups(q)).groups
       if (search !== latestGroupSearch) return
       pickerResults.value = found.filter((group) => !groups.value.some((row) => row.groupId.toLowerCase() === group.id))
+      allClasses.value = false
     } catch (err) {
       if (err instanceof ApiError && err.code === 'graph_not_authorized') pickerNeedsAuthorization.value = true
       throw err
@@ -79,9 +81,39 @@ async function findGroups(): Promise<void> {
   })
 }
 
+/** Every group named after a class, "5A", at once; the whole school in one search. */
+async function findClassGroups(): Promise<void> {
+  const search = ++latestGroupSearch
+  pickerQuery.value = ''
+  await pickerFeedback.run(async () => {
+    try {
+      const found = (await searchClassGroups()).groups
+      if (search !== latestGroupSearch) return
+      pickerResults.value = found.filter((group) => !groups.value.some((row) => row.groupId.toLowerCase() === group.id))
+      allClasses.value = true
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'graph_not_authorized') pickerNeedsAuthorization.value = true
+      throw err
+    }
+  })
+}
+/** Whether the results are the class groups, which can be taken over together. */
+const allClasses = ref(false)
+
+/** Adds a found group as a class: class and Schulstufe filled in from its name ("5A" → 5A, 9. Schulstufe), to be corrected if the school counts differently. */
 function takeGroup(group: GraphGroup): void {
-  groups.value.push({ key: nextKey++, groupId: group.id, label: group.displayName, kind: 'student', className: '', grade: undefined })
+  const className = classNameOf(group.displayName) ?? ''
+  groups.value.push({ key: nextKey++, groupId: group.id, label: group.displayName, kind: 'student', className, grade: className === '' ? undefined : gradeOfClass(className) })
   pickerResults.value = pickerResults.value.filter((g) => g.id !== group.id)
+}
+
+function takeAllGroups(): void {
+  for (const group of [...pickerResults.value]) takeGroup(group)
+}
+
+/** A class typed by hand suggests its Schulstufe while none is entered, keystroke by keystroke: the value from the event, as v-model's own listener runs after this one. */
+function suggestGrade(group: { grade?: number | string | null }, className: string): void {
+  if (group.grade === undefined || group.grade === null || String(group.grade) === '') group.grade = gradeOfClass(className)
 }
 
 function removeGroup(key: number): void {
@@ -239,6 +271,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
                 :required="group.kind === 'student'"
                 maxlength="16"
                 size="6"
+                @input="suggestGrade(group, ($event.target as HTMLInputElement).value)"
               >
             </td>
             <td>
@@ -289,6 +322,28 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
             @input="findGroups"
           >
         </p>
+        <p class="actions">
+          <button
+            type="button"
+            class="ghost"
+            :disabled="pickerFeedback.busy.value"
+            @click="findClassGroups"
+          >
+            Alle Klassengruppen suchen
+          </button>
+          <span class="muted">Gruppen, deren Name eine Klasse ist (5A, 1B, …). Klasse und Schulstufe werden aus dem Namen vorbelegt: 5A → 9. Schulstufe.</span>
+        </p>
+        <p
+          v-if="allClasses && pickerResults.length > 1"
+          class="actions"
+        >
+          <button
+            type="button"
+            @click="takeAllGroups"
+          >
+            Alle {{ pickerResults.length }} Gruppen übernehmen
+          </button>
+        </p>
         <ul
           v-if="pickerResults.length > 0"
           class="plain choices"
@@ -311,10 +366,10 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
           </li>
         </ul>
         <p
-          v-else-if="pickerQuery.trim() !== '' && !pickerFeedback.busy.value && !pickerFeedback.error.value"
+          v-else-if="(pickerQuery.trim() !== '' || allClasses) && !pickerFeedback.busy.value && !pickerFeedback.error.value"
           class="muted"
         >
-          Keine Gruppe mit diesem Anfang.
+          {{ allClasses ? 'Keine Gruppe, deren Name eine Klasse ist, die nicht schon eingetragen wäre.' : 'Keine Gruppe mit diesem Anfang.' }}
         </p>
         <p
           v-if="pickerFeedback.error.value && !pickerNeedsAuthorization"

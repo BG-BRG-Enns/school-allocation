@@ -291,7 +291,7 @@ Response:
 | `GET /api/admin/campaigns/:id/export/catalogue.xlsx` | organizer, auditor | The catalogue as a workbook: activities and sessions |
 | `GET /api/admin/roster` · `PUT /api/admin/roster/groups` | admin | The roster in force, recent batches; label Entra groups (students/teachers, class, grade) |
 | `GET /api/admin/roster/graph/start` · `GET …/graph/callback` | admin | Refresh from the labelled groups with the administrator's own Graph token (authorization-code flow, second redirect URI) |
-| `GET /api/admin/roster/graph/groups?q=` | admin | The tenant's groups by name, for the picker (D-23; `Group.Read.All` delegated, same token flow) |
+| `GET /api/admin/roster/graph/groups?q=` | admin | The tenant's groups by name, for the picker (D-23; `Group.Read.All` delegated, same token flow); `?classes=true` every group whose name is a class ("5A"), the whole school in one search |
 | `GET /api/admin/settings/periods` · `PUT …/periods` | admin | The school's period grid (D-25) |
 | `POST /api/admin/purge` | admin | Delete the records of a school year past their retention (D-15); reason required, audited, nothing automatic |
 | `POST /api/admin/roster/csv` · `GET /api/admin/roster/csv/template` | admin | CSV upload (JSON body with the file's text), the template |

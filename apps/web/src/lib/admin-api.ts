@@ -95,6 +95,8 @@ export interface GraphGroup {
   description: string | null
 }
 export const searchGraphGroups = (q: string) => apiGet<{ groups: GraphGroup[] }>(`/api/admin/roster/graph/groups?q=${encodeURIComponent(q)}`)
+/** Every group of the tenant whose name is a class, "5A": the whole school in one search. */
+export const searchClassGroups = () => apiGet<{ groups: GraphGroup[] }>('/api/admin/roster/graph/groups?classes=true')
 /** Where the picker's authorization starts: a navigation through Microsoft's pages, back to the roster page with the search open. */
 export const graphPickerStartPath = '/api/admin/roster/graph/start?purpose=picker'
 

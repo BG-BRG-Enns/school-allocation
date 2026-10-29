@@ -71,6 +71,11 @@ try {
   const graph = await startFakeGraph(entra.issued)
   graph.groups.set('33333333-3333-4333-8333-333333333333', [])
   graph.names.set('33333333-3333-4333-8333-333333333333', 'Klasse 6A')
+  // Two groups named after their class alone, as a school's tenant has them, for the search of all classes.
+  for (const [id, name] of [['44444444-4444-4444-8444-444444444444', '7B'], ['55555555-5555-4555-8555-555555555555', '8C']] as const) {
+    graph.groups.set(id, [])
+    graph.names.set(id, name)
+  }
   cleanups.push(() => graph.close())
   const db = createDatabase(testDb.runtimeUrl, (err) => console.error('database client failed', err))
   cleanups.push(() => db.close())

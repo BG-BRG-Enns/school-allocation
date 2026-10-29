@@ -63,7 +63,18 @@ test('die Administration findet eine Entra-Gruppe über die Suche bei Microsoft'
   await page.getByLabel('Name der Gruppe beginnt mit').fill('Klasse 6')
   await page.getByRole('button', { name: 'Klasse 6A übernehmen' }).click()
   await expect(page.getByLabel('Gruppen-ID Klasse 6A')).toHaveValue('33333333-3333-4333-8333-333333333333')
+  await expect(page.getByLabel('Klasse Klasse 6A')).toHaveValue('6A')
+  await expect(page.getByLabel('Schulstufe Klasse 6A')).toHaveValue('10')
+  // All the groups named after a class at once, class and Schulstufe filled in.
+  await page.getByRole('button', { name: 'Alle Klassengruppen suchen' }).click()
+  await expect(page.getByRole('button', { name: '7B übernehmen' })).toBeVisible()
   await shot(page, '22-gruppen-suchen')
+  await page.getByRole('button', { name: 'Alle 2 Gruppen übernehmen' }).click()
+  await expect(page.getByLabel('Klasse 7B')).toHaveValue('7B')
+  await expect(page.getByLabel('Schulstufe 7B')).toHaveValue('11')
+  await expect(page.getByLabel('Gruppen-ID 8C')).toHaveValue('55555555-5555-4555-8555-555555555555')
+  await expect(page.getByLabel('Schulstufe 8C')).toHaveValue('12')
+  await expect(page.getByRole('button', { name: 'Alle Klassengruppen suchen' })).toBeVisible()
   await signOut(page)
 })
 

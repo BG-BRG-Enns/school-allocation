@@ -6,7 +6,8 @@
 //                                               or (purpose=picker) a token the group picker searches with
 //   GET  /api/admin/roster/graph/callback       Entra sends the browser back here; the batch is written and shown, or the
 //                                               picker's token is kept in memory for its lifetime
-//   GET  /api/admin/roster/graph/groups?q=      the tenant's groups by name, with that token (D-23)
+//   GET  /api/admin/roster/graph/groups?q=      the tenant's groups by name, with that token (D-23);
+//                                               ?classes=true every group named after a class
 //   POST /api/admin/roster/csv                  a CSV roster, as a pending batch with its diff
 //   GET  /api/admin/roster/csv/template         the file to start from
 //   GET  /api/admin/roster/batches/:id          a batch with its diff, problems and warnings
@@ -25,7 +26,7 @@ import type { Config } from '../config.ts'
 import { callerOf, withinSeconds, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { registerGraphAuthorization, SIGN_IN_SECONDS, SignInError } from '../lib/entra.ts'
-import { GRAPH_BASE_URL, GraphError, listGroupMembers, membersToEntries, searchGroups, type GraphMember } from '../lib/graph.ts'
+import { GRAPH_BASE_URL, GraphError, listGroupMembers, membersToEntries, searchClassGroups, searchGroups, type GraphMember } from '../lib/graph.ts'
 import { runJob } from '../lib/jobs.ts'
 import { commitBatch, createBatch, currentBatch, discardBatch, listBatches, readBatch, RosterConflict, searchPersons, type Actor } from '../lib/roster.ts'
 import { readGroups, replaceGroups } from '../lib/roster-groups.ts'
@@ -64,7 +65,8 @@ const GraphStartQuery = StrictObject({
   schoolYear: Type.Optional(SchoolYear),
   purpose: Type.Optional(Type.Union([Type.Literal('refresh'), Type.Literal('picker')])),
 })
-const GroupsQuery = StrictObject({ q: Type.String({ minLength: 1, maxLength: 100 }) })
+/** Either a prefix to search for, or `classes=true` for every group named after a class. */
+const GroupsQuery = StrictObject({ q: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })), classes: Type.Optional(Type.Literal('true')) })
 
 /**
  * How long the picker keeps an administrator's Graph token: Entra issues
@@ -199,8 +201,10 @@ export async function adminRosterRoutes(app: FastifyInstance, { config, db, guar
   app.get<{ Querystring: Static<typeof GroupsQuery> }>('/api/admin/roster/graph/groups', { ...admin, schema: { querystring: GroupsQuery, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
     const token = pickerToken(request)
     if (!token) return reply.code(409).send({ error: 'graph_not_authorized' })
+    const q = request.query.q?.trim() ?? ''
+    if (request.query.classes !== 'true' && q === '') return reply.code(400).send({ error: 'validation_failed' })
     try {
-      return { groups: await searchGroups(graphBaseUrl, token.accessToken, request.query.q.trim()) }
+      return { groups: request.query.classes === 'true' ? await searchClassGroups(graphBaseUrl, token.accessToken) : await searchGroups(graphBaseUrl, token.accessToken, q) }
     } catch (err) {
       if (!(err instanceof GraphError)) throw err
       request.log.warn({ err }, `group search failed: ${err.code}`)
