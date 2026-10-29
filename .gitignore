@@ -32,3 +32,4 @@ docs/anleitung/bilder/full-size/
 # The solver's local environment and Python caches.
 apps/solver/.venv/
 __pycache__/
+.pytest_cache/

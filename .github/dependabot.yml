@@ -82,7 +82,8 @@ updates:
       # major line only.
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-  # The solver: its base image and its pinned Python packages.
+  # The solver: its base image and the uv image that exports the lock
+  # at build time, and its pinned Python packages (pyproject.toml + uv.lock).
   - package-ecosystem: docker
     directory: /apps/solver
     schedule:
@@ -96,7 +97,7 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: /apps/solver
     schedule:
       interval: daily
@@ -105,9 +106,9 @@ updates:
     open-pull-requests-limit: 3
     labels:
       - dependencies
-      - pip
+      - uv
     groups:
-      pip:
+      uv:
         patterns:
           - "*"
         update-types:

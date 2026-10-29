@@ -50,11 +50,12 @@ With the dummy Entra values in `.env.example`, `npm run dev:api` runs everything
 
 ```bash
 cd apps/solver
-uv venv && uv pip sync requirements.txt
-.venv/bin/python -m uvicorn app.main:app --port 8000
+uv sync --frozen                               # .venv from uv.lock: the image's pins plus pytest and the test client
+uv run --frozen uvicorn app.main:app --port 8000
+uv run --frozen pytest -q                      # the model against instances with known optima, the contract's refusals, reproducibility
 ```
 
-A dependency change edits `requirements.in` and recompiles: `uv pip compile --generate-hashes requirements.in -o requirements.txt`.
+A dependency change edits the exact pin in `pyproject.toml` and runs `uv lock`; both files are committed, and Dependabot bumps them together. The image exports the lock to a requirements file at build time and installs it with `pip --require-hashes`, so nothing outside the lock can reach it. CI runs the solver's tests from the same lock (`uv sync --frozen`).
 
 ## Checks
 
@@ -84,7 +85,7 @@ Formatting is enforced by ESLint; there is no separate formatter. `npx eslint . 
 ## Dependencies
 
 - Add a dependency only when it clearly earns its place.
-- Pin exact versions (`npm install --save-exact`, which `.npmrc` already sets). `npm run lint:deps` rejects ranges. The solver's packages are pinned with hashes.
+- Pin exact versions (`npm install --save-exact`, which `.npmrc` already sets). `npm run lint:deps` rejects ranges. The solver's packages are pinned exactly in `pyproject.toml` and locked with hashes in `uv.lock`.
 - Dependencies must use a license compatible with MIT.
 - Dependabot proposes updates; do not bump versions in unrelated pull requests.
 

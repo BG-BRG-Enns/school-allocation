@@ -1,6 +1,0 @@
-# What the solver needs. `uv pip compile --generate-hashes requirements.in -o requirements.txt`
-# pins every package with its hashes; the image installs from requirements.txt
-# alone. Dependabot bumps the pins.
-fastapi
-uvicorn
-ortools
