@@ -50,6 +50,12 @@ export interface Config {
   graphScopes: string[]
   /** How notices leave the school (D-18); null when SMTP_HOST is unset, and the outbox then only queues. */
   mail: MailConfig | null
+  /**
+   * Where the allocation solver answers (apps/solver, docs/domain-and-api.md
+   * §6), an http(s) origin on the internal network, without a trailing
+   * slash; null when SOLVER_URL is unset, and a run cannot be started.
+   */
+  solverUrl: string | null
   build: BuildInfo
 }
 
@@ -146,6 +152,7 @@ export function loadConfig(env: Env): Config {
     bootstrapAdmins: check(() => parseBootstrapAdmins(env.BOOTSTRAP_ADMINS), []),
     graphScopes: check(() => parseGraphScopes(env.GRAPH_DELEGATED_SCOPES), []),
     mail: check(() => parseMail(env), null),
+    solverUrl: check(() => parseSolverUrl(env.SOLVER_URL), null),
     build: {
       version: check(() => buildValue(env, 'APP_VERSION', 'dev', /^[0-9A-Za-z][0-9A-Za-z.+_-]{0,63}$/, 'a release tag such as v1.2.0'), ''),
       gitSha: check(() => buildValue(env, 'GIT_SHA', 'unknown', /^[0-9a-f]{7,64}$/, 'a commit hash in lower-case hex'), ''),
@@ -424,6 +431,21 @@ function parseMail(env: Env): MailConfig | null {
     replyTo,
     envelopeFrom,
   }
+}
+
+/** The solver's address: an http or https URL with nothing but an origin and, under a shared host, a path; null when unset. */
+function parseSolverUrl(raw: string | undefined): string | null {
+  const value = raw?.trim()
+  if (!value) return null
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    throw new ConfigError('SOLVER_URL must be a URL such as http://school-allocation-solver:8000')
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new ConfigError('SOLVER_URL must use http or https')
+  if (url.username || url.password || url.search || url.hash) throw new ConfigError('SOLVER_URL must carry no credentials, query or fragment')
+  return url.href.replace(/\/+$/, '')
 }
 
 /** `true` or `false`, or the default when unset. */

@@ -3,6 +3,7 @@
 // so the sheet sorts and sums; nothing about students is in it.
 
 import writeXlsxFile from 'write-excel-file/node'
+import type { RunReviewResponse } from './models/allocation.ts'
 import type { StudentChoiceState } from './models/choices.ts'
 import type { Item } from './models/items.ts'
 import { SCHOOL_TIME_ZONE } from './time.ts'
@@ -78,3 +79,82 @@ export async function catalogueWorkbook(items: readonly Item[]): Promise<Buffer>
   ])
   return workbook.toBuffer()
 }
+
+const SOURCE_LABELS: Record<string, string> = { fixed: 'Klassenaktivität', wish: 'Wunsch', fallback: 'Ersatzplatz', swap: 'Tausch', manual: 'Händisch' }
+
+/**
+ * A run as a workbook for the organizer's review and the school's lists:
+ * every student with their items per day and the fee, the participants per
+ * item, the items with their counts, and the missing minutes. The same
+ * builder serves a published run.
+ */
+export async function runWorkbook(review: RunReviewResponse): Promise<Buffer> {
+  const items = new Map(review.items.map((item) => [item.itemId, item]))
+  const label = (itemId: string) => {
+    const item = items.get(itemId)
+    return item === undefined ? itemId : item.number === null ? item.title : `${item.number}. ${item.title}`
+  }
+  const dayHeaders = review.projectDays.flatMap((date) => [`${dayShort.format(new Date(`${date}T12:00:00Z`))}`, 'Minuten'])
+  const students = [
+    ['Klasse', 'Schulstufe', 'Name', 'Fenster', ...dayHeaders, 'Fehlende Minuten', 'Beitrag (€)'].map(header),
+    ...review.students.map((s) => {
+      const perDay = review.projectDays.flatMap((date) => {
+        const onDay = s.items.filter((e) => (e.minutesByDate[date] ?? 0) > 0)
+        const text = onDay.map((e) => `${label(e.itemId)}${e.source === 'wish' ? ` (${e.rank}. Wunsch)` : e.source === 'fallback' ? ' (Ersatzplatz)' : e.source === 'fixed' ? ' (Klasse)' : ''}`).join('; ')
+        return [{ type: String, value: text }, { type: Number, value: onDay.reduce((sum, e) => sum + (e.minutesByDate[date] ?? 0), 0) }]
+      })
+      const fee = s.items.reduce((sum, e) => sum + (items.get(e.itemId)?.feeCents ?? 0), 0)
+      return [
+        { type: String, value: s.className },
+        { type: Number, value: s.grade },
+        { type: String, value: s.displayName },
+        { type: String, value: s.window === null ? 'keine Wünsche' : s.window === 'first' ? 'Anmeldefenster' : 'Nachfrist' },
+        ...perDay,
+        { type: Number, value: s.days.reduce((sum, d) => sum + d.deficit, 0) },
+        { type: Number, value: fee / 100, format: '#,##0.00' },
+      ]
+    }),
+  ]
+  const participants = [
+    ['Nr.', 'Aktivität', 'Klasse', 'Name', 'Art', 'Wunsch'].map(header),
+    ...review.items.flatMap((item) => review.students.flatMap((s) => s.items.filter((e) => e.itemId === item.itemId).map((e) => [
+      { type: Number, value: item.number ?? undefined },
+      { type: String, value: item.title },
+      { type: String, value: s.className },
+      { type: String, value: s.displayName },
+      { type: String, value: SOURCE_LABELS[e.source] ?? e.source },
+      { type: Number, value: e.rank ?? undefined },
+    ]))),
+  ]
+  const activities = [
+    ['Nr.', 'Aktivität', 'Plätze', 'Zugeteilt', 'Fix (Klassen)', 'Minimum', 'Abgesagt', 'Beitrag (€)'].map(header),
+    ...review.items.map((item) => [
+      { type: Number, value: item.number ?? undefined },
+      { type: String, value: item.title },
+      { type: Number, value: item.places },
+      { type: Number, value: item.assigned },
+      { type: Number, value: item.fixed },
+      { type: Number, value: item.minimum },
+      { type: String, value: item.cancelled ? 'ja' : '' },
+      { type: Number, value: item.feeCents / 100, format: '#,##0.00' },
+    ]),
+  ]
+  const deficits = [
+    ['Klasse', 'Name', 'Tag', 'Fehlende Minuten'].map(header),
+    ...review.students.flatMap((s) => s.days.filter((d) => d.deficit > 0).map((d) => [
+      { type: String, value: s.className },
+      { type: String, value: s.displayName },
+      { type: String, value: dayShort.format(new Date(`${d.date}T12:00:00Z`)) },
+      { type: Number, value: d.deficit },
+    ])),
+  ]
+  const workbook = writeXlsxFile([
+    { sheet: 'Schülerinnen und Schüler', columns: [{ width: 8 }, { width: 10 }, { width: 30 }, { width: 16 }, ...review.projectDays.flatMap(() => [{ width: 40 }, { width: 9 }]), { width: 16 }, { width: 12 }], data: students },
+    { sheet: 'Teilnehmer', columns: [{ width: 6 }, { width: 36 }, { width: 8 }, { width: 30 }, { width: 16 }, { width: 8 }], data: participants },
+    { sheet: 'Aktivitäten', columns: [{ width: 6 }, { width: 36 }, { width: 8 }, { width: 10 }, { width: 12 }, { width: 9 }, { width: 9 }, { width: 12 }], data: activities },
+    { sheet: 'Fehlende Minuten', columns: [{ width: 8 }, { width: 30 }, { width: 16 }, { width: 16 }], data: deficits },
+  ])
+  return workbook.toBuffer()
+}
+
+const dayShort = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit' })

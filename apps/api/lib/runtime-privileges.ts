@@ -79,6 +79,11 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   mail_template: { table: ['SELECT'], updateColumns: ['subject', 'body', 'updated_at', 'updated_by'] },
   // A mail is queued and moved through its states by the sender; never removed.
   outbox_mail: { table: ['SELECT', 'INSERT'], updateColumns: ['state', 'attempts', 'detail', 'message_id', 'next_attempt_at', 'updated_at', 'sent_at'] },
+  allocation_run: {
+    table: ['SELECT', 'INSERT'],
+    updateColumns: ['status', 'finished_at', 'solver_version', 'ortools_version', 'passes', 'cancelled_items', 'failure', 'detail', 'problems', 'published_at', 'published_by'],
+  },
+  assignment: { table: ['SELECT', 'INSERT'] },
 }
 
 /** Functions the runtime role may execute, by their signature as PostgreSQL prints a regprocedure: argument types without spaces between them. */

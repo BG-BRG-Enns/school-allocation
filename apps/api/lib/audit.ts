@@ -57,6 +57,12 @@ export const AUDIT_ACTIONS = [
   // Mail (school scope): a template changed, a test mail sent.
   'mail.template-changed',
   'mail.test-sent',
+  // The allocation (campaign scope): a run started by an organizer and
+  // finished by the job on their behalf, with its status; a run left
+  // running by a restart, marked interrupted at the next start.
+  'run.started',
+  'run.finished',
+  'run.interrupted',
 ] as const
 
 export type AuditAction = typeof AUDIT_ACTIONS[number]

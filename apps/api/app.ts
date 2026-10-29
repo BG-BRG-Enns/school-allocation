@@ -10,6 +10,7 @@ import { createGuards } from './lib/auth.ts'
 import type { Database } from './lib/db.ts'
 import { registerEndpoint } from './lib/endpoint.ts'
 import { applicationFailure } from './lib/http-errors.ts'
+import { createSolverClient } from './lib/solver-client.ts'
 import { isBusy } from './lib/jobs.ts'
 import { Sender } from './lib/mail/sender.ts'
 import { createMailTransport } from './lib/mail/transport.ts'
@@ -20,6 +21,7 @@ import { applyHardening } from './plugins/hardening.ts'
 import { registerSessions } from './plugins/session.ts'
 import { adminRosterRoutes } from './routes/admin-roster.ts'
 import { adminUsersRoutes } from './routes/admin-users.ts'
+import { allocationRoutes } from './routes/allocation.ts'
 import { authRoutes } from './routes/auth.ts'
 import { campaignsRoutes } from './routes/campaigns.ts'
 import { catalogueRoutes } from './routes/catalogue.ts'
@@ -158,6 +160,9 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   await app.register(choiceAdminRoutes, { db, guards, ...under })
   await app.register(choiceReportsRoutes, { db, guards, ...under })
   await app.register(mailRoutes, { config, db, guards, wakeSender, ...under })
+  // The solver, where SOLVER_URL names one; without it no run can start, and the page says so.
+  const solver = config.solverUrl === null ? null : createSolverClient(config.solverUrl)
+  await app.register(allocationRoutes, { db, guards, solver, ...under })
   // Stopping the background work is the process's first step at shutdown,
   // before it closes the database pool (server.ts): Fastify runs onClose
   // hooks last-registered first, so the hook below alone would run after
