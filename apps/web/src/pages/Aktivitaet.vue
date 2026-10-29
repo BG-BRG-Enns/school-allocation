@@ -108,8 +108,7 @@ watch(() => [props.id, props.itemId], load)
 function fromStored(s: Item['sessions'][number]): SessionForm {
   const form: SessionForm = {
     mode: 'clock',
-    fromPeriod: DEFAULT_FROM,
-    count: DEFAULT_COUNT,
+    ...defaultPeriods(),
     date: localDateOf(s.startsAt),
     start: localTimeOf(s.startsAt),
     endDate: localDateOf(s.endsAt),
@@ -127,9 +126,15 @@ function fromStored(s: Item['sessions'][number]): SessionForm {
   return form
 }
 
+/** The default start and length, fitted to a grid shorter than the default assumes. */
+function defaultPeriods(): { fromPeriod: number, count: number } {
+  const fromPeriod = Math.max(1, Math.min(DEFAULT_FROM, lastPeriod.value))
+  return { fromPeriod, count: Math.max(1, Math.min(DEFAULT_COUNT, lastPeriod.value - fromPeriod + 1)) }
+}
+
 function addSession(): void {
   const day = campaign.value?.projectDays[0] ?? ''
-  const s: SessionForm = { mode: grid.value.length > 0 ? 'periods' : 'clock', fromPeriod: DEFAULT_FROM, count: DEFAULT_COUNT, date: day, start: '08:00', endDate: day, end: '13:00', location: '', credits: {} }
+  const s: SessionForm = { mode: grid.value.length > 0 ? 'periods' : 'clock', ...defaultPeriods(), date: day, start: '08:00', endDate: day, end: '13:00', location: '', credits: {} }
   syncPeriods(s)
   sessions.value.push(s)
 }

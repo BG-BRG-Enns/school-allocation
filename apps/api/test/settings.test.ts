@@ -151,6 +151,8 @@ test('the window\'s settings are kept in order and changeable until it opens; th
   assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, closesAt: '2027-03-08T00:00:00+01:00', lateUntil: '2027-03-07T00:00:00+01:00' })).body.error, 'grace_order')
   assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, swapFrom: '2027-03-16T00:00:00+01:00', swapUntil: '2027-03-15T00:00:00+01:00' })).body.error, 'swap_order')
   assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, dailyMinimum: { 14: 100 } })).status, 400, 'grades 1 to 13')
+  const thirteenth = await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, opensAt: '2027-13-01T08:00:00Z' })
+  assert.deepEqual([thirteenth.status, thirteenth.body.error], [422, 'invalid_instant'], 'a month the calendar does not have passes the shape and is refused here, not by the database')
   const window = { opensAt: '2027-03-01T00:00:00+01:00', closesAt: '2027-03-08T00:00:00+01:00', lateUntil: '2027-03-12T00:00:00+01:00', swapFrom: '2027-03-15T00:00:00+01:00', swapUntil: '2027-03-19T00:00:00+01:00', wishesPerGroup: 5, dailyMinimum: { 9: 240 }, showTeachers: false }
   const set = await send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, ...window })
   assert.equal(set.status, 200, JSON.stringify(set.body))

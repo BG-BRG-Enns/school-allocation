@@ -77,8 +77,12 @@ const WINDOW_FIELDS = ['opensAt', 'closesAt', 'lateUntil', 'swapFrom', 'swapUnti
  * window closes after it opens, the grace week ends no earlier than the
  * close, the swap window ends no earlier than it starts.
  */
-export function checkWindow(window: CampaignWindow): 'window_order' | 'grace_order' | 'swap_order' | undefined {
+export function checkWindow(window: CampaignWindow): 'invalid_instant' | 'window_order' | 'grace_order' | 'swap_order' | undefined {
   const ms = (iso: string | null) => (iso === null ? null : Date.parse(iso))
+  // The schema checks the shape; a 13th month passes it and the database would refuse it as a 500.
+  for (const iso of [window.opensAt, window.closesAt, window.lateUntil, window.swapFrom, window.swapUntil]) {
+    if (iso !== null && Number.isNaN(Date.parse(iso))) return 'invalid_instant'
+  }
   const opens = ms(window.opensAt)
   const closes = ms(window.closesAt)
   const late = ms(window.lateUntil)

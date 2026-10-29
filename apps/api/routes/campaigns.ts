@@ -309,7 +309,7 @@ function projectDays(values: readonly string[]): string[] | 'invalid_date' | 'pr
 }
 
 /** Rules of the input itself, not of the state: answered with 422. */
-const INPUT_RULES = ['window_order', 'grace_order', 'swap_order']
+const INPUT_RULES = ['invalid_instant', 'window_order', 'grace_order', 'swap_order']
 
 /** 403 for the wrong person, 404 for what is not there, 409 for a state that refuses, 422 for an activity or a window that breaks the rules. */
 async function refusals<T>(reply: FastifyReply, fn: () => Promise<T>) {
