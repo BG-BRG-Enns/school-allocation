@@ -15,20 +15,18 @@
 // the sealed session; state and nonce are set in this browser by the login
 // that started this sign-in, and used once.
 
-import { randomBytes } from 'node:crypto'
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import rateLimit from '@fastify/rate-limit'
-import { Type, type Static } from 'typebox'
+import { CallbackQuery, LoginQuery, MeResponse } from '@school-allocation/api-contracts/auth'
+import { ErrorResponse } from '@school-allocation/api-contracts/common'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { randomBytes } from 'node:crypto'
+import { type Static } from 'typebox'
 import type { Config } from '../config.ts'
-import { upsertAppUser } from '../lib/app-user.ts'
-import { lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { currentUser, loadCaller, withinSeconds } from '../lib/auth.ts'
-import { bindAtSignIn } from '../lib/bindings.ts'
 import type { Database } from '../lib/db.ts'
 import { registerEntra, SIGN_IN_SECONDS, SignInError } from '../lib/entra.ts'
 import { safeReturnTo } from '../lib/return-to.ts'
-import { bootstrapAdmin, ROLES } from '../lib/roles.ts'
-import { ErrorResponse, PersonSummary, StrictObject } from '../lib/schemas/common.ts'
+import { recordSignIn } from '../services/sign-in.ts'
 
 export interface AuthRoutesOptions {
   config: Config
@@ -36,30 +34,6 @@ export interface AuthRoutesOptions {
   /** Where Entra is reached; only tests set it. */
   entraAuthority?: string
 }
-
-// Not strict: when single sign-on cannot complete silently, Entra sends the
-// browser back here with sso_reload=true, and possibly parameters of its own.
-// Only these are read.
-const LoginQuery = Type.Object({
-  returnTo: Type.Optional(Type.String({ maxLength: 2048 })),
-  sso_reload: Type.Optional(Type.String({ maxLength: 64 })),
-})
-
-// Not strict: Entra adds parameters of its own (session_state, iss, ...).
-// Only these are read.
-const CallbackQuery = Type.Object({
-  code: Type.Optional(Type.String({ maxLength: 8192 })),
-  state: Type.Optional(Type.String({ maxLength: 512 })),
-  error: Type.Optional(Type.String({ maxLength: 512 })),
-})
-
-const MeResponse = StrictObject({
-  id: Type.String(),
-  displayName: Type.String(),
-  roles: Type.Array(Type.Union(ROLES.map((role) => Type.Literal(role)))),
-  /** The roster person this account is bound to; null until the roster knows the account. */
-  person: Type.Union([PersonSummary, Type.Null()]),
-})
 
 // Starting and completing a sign-in is limited per client address: generous
 // enough for a class behind one NAT address, tight enough that nobody can
@@ -120,15 +94,7 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
     // The school scope's lock comes first, before the person's row is
     // touched: the administrative changes take it first too and then write
     // app_user (a block), so the two never wait for each other.
-    const user = await db.tx(async (client) => {
-      await lockScope(client, SCHOOL_SCOPE)
-      const signedIn = await upsertAppUser(client, identity)
-      if (!signedIn.blocked) {
-        await bootstrapAdmin(client, { ...identity, id: signedIn.id }, config.bootstrapAdmins)
-        await bindAtSignIn(client, identity, signedIn.id, identity.displayName)
-      }
-      return signedIn
-    })
+    const user = await recordSignIn(db, identity, config.bootstrapAdmins)
     if (user.blocked) {
       request.log.warn('sign-in refused: blocked')
       return reply.code(403).send({ error: 'blocked' })

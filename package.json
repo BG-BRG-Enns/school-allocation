@@ -8,6 +8,7 @@
   "author": "Christoph Stadlbauer <christoph.stadlbauer@brgenns.ac.at>",
   "workspaces": [
     "packages/school-core",
+    "packages/api-contracts",
     "apps/api",
     "apps/web"
   ],

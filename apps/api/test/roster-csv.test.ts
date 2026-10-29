@@ -3,12 +3,12 @@
 // their first sign-in by their address and nobody else is; the next upload
 // keeps the persons; a batch that is not a roster is rejected with why.
 
-import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
+import { test } from 'node:test'
 import { verifyAuditChain } from '../lib/audit-chain.ts'
+import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { createDatabase } from '../lib/db.ts'
-import type { Batch, BatchDetail } from '../lib/roster.ts'
+import type { Batch, BatchDetail } from '../lib/models/roster.ts'
 import { withClient } from './helpers/db.ts'
 import { DB, get, harness, me, send, signIn } from './helpers/harness.ts'
 import { ANNA, BERND, CARLA, SARA, TIM } from './helpers/personas.ts'

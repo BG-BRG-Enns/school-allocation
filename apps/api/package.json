@@ -26,7 +26,8 @@
     "nodemailer": "10.1.7",
     "pg": "8.23.1",
     "typebox": "1.4.3",
-    "write-excel-file": "4.1.1"
+    "write-excel-file": "4.1.1",
+    "@school-allocation/api-contracts": "0.1.0"
   },
   "devDependencies": {
     "@types/pg": "8.23.1"

@@ -57,6 +57,35 @@ flowchart LR
   compiled model (`domain-and-api.md` §6).
 - **`apps/web`**: Vue 3 + Vite, including print routes for the catalogues.
 
+### API implementation boundaries
+
+The API is composed explicitly in `apps/api/app.ts`. `routes/` owns HTTP validation,
+session guards, redirects, status codes and headers. `services/` owns application operations:
+resource visibility, input preparation, lifecycle decisions and transaction orchestration.
+`lib/dao/` owns SQL and row mapping; each call uses the database or transaction client supplied
+by the service. `lib/models/` holds internal data shapes; public types are derived from
+`packages/api-contracts` rather than repeated in the browser.
+
+`packages/api-contracts` contains TypeBox request and response schemas, organized by feature.
+It depends only on TypeBox and `school-core`, so browser consumers can import its types without
+loading server code. Every JSON success response declares a schema. Redirects, empty responses
+and CSV/XLSX exports keep their existing transport behavior. Audit metadata remains an extensible
+JSON object so serialization preserves the content used to verify its hash.
+
+Shared caller and actor types live in `lib/actor.ts`. Expected operation refusals use
+`lib/errors.ts`; `lib/http-errors.ts` maps them to the existing API error shapes, while unexpected
+errors retain the sanitized server error handler. Feature-specific status semantics, such as
+class-teacher input errors, are handled at the HTTP boundary.
+
+The service owns each transaction, including its lock acquisition, reads after locking,
+audit events and outbox writes. DAOs never commit independently. Campaign transitions are the
+same operations for HTTP callers and the scheduler. Notifications are queued inside the
+transition transaction and the sender is awakened only after a successful commit.
+
+Import boundaries are enforced by ESLint. Real-database tests exercise the production app
+builder and compare success payloads before and after response serialization. Regression tests
+cover rollback of a transition's state, placements and mail, and competing window openings.
+
 ## 3. Data flows
 
 | Flow | Path | Notes |

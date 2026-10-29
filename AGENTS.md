@@ -5,6 +5,11 @@ Self-hosted allocation of project-week activities and elective subjects for Aust
 ## Layout
 
 ```text
+packages/api-contracts/   shared TypeBox request/response schemas and derived API/browser types
+apps/api/routes/          HTTP adapters: schemas, session guards, status codes and headers
+apps/api/services/        application operations: permissions, transactions, locks, audit and outbox orchestration
+apps/api/lib/dao/         SQL and row mapping, using the caller's query/transaction client
+apps/api/lib/models/      internal models; public shapes come from api-contracts
 packages/school-core/     pure domain: lifecycle, eligibility, time arithmetic, completeness, the allocation model and its validation (no I/O, no clock, no randomness)
 apps/api/                 Fastify on Node 26, raw TypeScript; serves apps/web/dist
 apps/api/migrations/      the v1 baseline and forward-only migrations on top of it, applied by apps/api/scripts/migrate.ts
@@ -46,6 +51,14 @@ These take precedence over convenience:
 - **A class activity pre-assigns whole classes, and its pre-assigned students never rank it**; its credit counts toward the daily minimum, and overlapping items are not offered to them. Its `places` are what other eligible students may rank (the spare seats on the bus), zero when there are none (D-24 revised). Fees are shown, not consented to; whoever is assigned pays.
 - **Migrations are compatible with the previous release** (expand first, contract later): deployments update themselves nightly, also while a choice window is open, and the automatic rollback runs old code on the new schema. Every change to a ranking is saved at once. `busy` in the health check means a job is executing, never that a window is open.
 - Authorization and security headers live in the application, never in the proxy. Every route, cookie path, redirect and link derives from `PUBLIC_URL`, which may carry a path: nothing names `/` as the app's root. In the web app the base comes from `apps/web/src/lib/base.ts`.
+
+## API boundaries
+
+- `api-contracts` imports only TypeBox, `school-core` and its own modules. Both the API and browser use its types; request schemas and JSON success responses are declared there. Downloads, redirects and empty responses retain their own HTTP semantics.
+- Routes call services and never import sibling routes or DAOs. `app.ts` registers them explicitly under `PUBLIC_URL`'s base path. Shared actor conversion is in `lib/actor.ts`; application errors are in `lib/errors.ts`, with HTTP translation in `lib/http-errors.ts`.
+- Services receive plain callers and dependencies, and own transactions. They call DAOs with the same client for the entire operation, including audit and outbox writes. School locks precede campaign locks; reads and checks under a lock stay under it. Wake the mail sender only after the queuing operation commits.
+- DAOs contain SQL and row mapping. They never start transactions or depend on services, routes or Fastify. Existing infrastructure such as audit, outbox and session loading keeps its focused adapters.
+- The import directions are linted. API tests compare JSON success payloads before and after serialization so a response schema cannot silently lose fields. `test/contracts.test.ts` preserves the route/input inventory; update its fixture deliberately when changing the API.
 
 ## Conventions
 

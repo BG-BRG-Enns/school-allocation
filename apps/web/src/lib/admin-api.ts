@@ -1,82 +1,10 @@
 // The administration's API, typed as the server answers it
 // (apps/api/routes/admin-roster.ts, admin-users.ts).
 
-import type { RosterDiff, RosterDiffSummary, RosterEntry, RosterProblem } from '@school-allocation/school-core'
+import type { Account, BatchDetail, ClassWithTeachers, Grant, GraphGroup, MailTemplate, Period, RosterGroup, RosterOverview, RosterPerson } from '@school-allocation/api-contracts'
 import { apiGet, apiPost, apiPut } from './api.ts'
 
-export type BatchState = 'pending' | 'committed' | 'discarded' | 'rejected'
-
-export interface Batch {
-  id: string
-  source: 'graph:groups' | 'csv'
-  state: BatchState
-  schoolYear: string
-  fetchedAt: string
-  rowCount: number
-  triggeredBy: string
-  previousBatchId: string | null
-  summary: RosterDiffSummary
-  problems: RosterProblem[]
-  warnings: { code: string, key: string }[]
-  decidedAt: string | null
-}
-
-export interface StoredEntry extends RosterEntry {
-  id: string
-  personId: string | null
-}
-
-export interface BatchDetail extends Batch {
-  diff: RosterDiff<StoredEntry>
-}
-
-export interface RosterGroup {
-  groupId: string
-  label: string
-  kind: 'student' | 'teacher'
-  className?: string
-  grade?: number
-}
-
-export interface RosterOverview {
-  current: Batch | null
-  groups: RosterGroup[]
-  batches: Batch[]
-  suggestedSchoolYear: string
-  graphScopes: string[]
-}
-
-export interface RosterPerson {
-  personId: string
-  displayName: string
-  kind: 'student' | 'teacher'
-  className: string | null
-  grade: number | null
-  mail: string | null
-  account: string | null
-}
-
-export interface Account {
-  id: string
-  displayName: string
-  email: string | null
-  firstSignInAt: string
-  lastSignInAt: string
-  blocked: boolean
-  roles: string[]
-  person: { id: string, displayName: string | null, kind: string | null, className: string | null, grade: number | null } | null
-}
-
-export interface Grant {
-  id: string
-  userId: string
-  displayName: string
-  role: string
-  grantedAt: string
-  grantedBy: string
-  reason: string
-}
-
+export type { Account, Batch, BatchDetail, BatchState, ClassTeacher, ClassWithTeachers, Grant, GraphGroup, MailTemplate, Period, RosterGroup, RosterOverview, RosterPerson, StoredEntry, TemplateInvalidBody } from '@school-allocation/api-contracts'
 export const loadRoster = () => apiGet<RosterOverview>('/api/admin/roster')
 export const saveGroups = (groups: RosterGroup[]) => apiPut<{ groups: RosterGroup[] }>('/api/admin/roster/groups', { groups })
 export const uploadCsv = (csv: string, schoolYear: string) => apiPost<BatchDetail>('/api/admin/roster/csv', { csv, schoolYear })
@@ -87,55 +15,16 @@ export const searchPersons = (q: string) => apiGet<{ persons: RosterPerson[] }>(
 /** Where a refresh from Entra groups starts: a navigation, as the authorization goes through Microsoft's pages. */
 export const graphStartPath = (schoolYear: string) => `/api/admin/roster/graph/start?schoolYear=${encodeURIComponent(schoolYear)}`
 export const csvTemplatePath = '/api/admin/roster/csv/template'
-
-/** A group of the tenant as the picker lists it (Group.Read.All, D-23). */
-export interface GraphGroup {
-  id: string
-  displayName: string
-  description: string | null
-}
 export const searchGraphGroups = (q: string) => apiGet<{ groups: GraphGroup[] }>(`/api/admin/roster/graph/groups?q=${encodeURIComponent(q)}`)
 /** Every group of the tenant whose name is a class, "5A": the whole school in one search. */
 export const searchClassGroups = () => apiGet<{ groups: GraphGroup[] }>('/api/admin/roster/graph/groups?classes=true')
 /** Where the picker's authorization starts: a navigation through Microsoft's pages, back to the roster page with the search open. */
 export const graphPickerStartPath = '/api/admin/roster/graph/start?purpose=picker'
-
-export interface Period {
-  period: number
-  starts: string
-  ends: string
-}
 export const loadPeriods = () => apiGet<{ periods: Period[] }>('/api/settings/periods')
 export const savePeriods = (periods: Period[]) => apiPut<{ periods: Period[] }>('/api/admin/settings/periods', { periods })
-
-export interface ClassTeacher {
-  personId: string
-  displayName: string
-  /** `app` when assigned here, `roster` when the CSV roster names them by address. */
-  source: 'app' | 'roster'
-}
-export interface ClassWithTeachers {
-  className: string
-  grade: number
-  students: number
-  teachers: ClassTeacher[]
-}
 export const loadClasses = () => apiGet<{ classes: ClassWithTeachers[] }>('/api/admin/classes')
 export const searchClassTeachers = (q: string) => apiGet<{ teachers: { personId: string, displayName: string }[] }>(`/api/admin/classes/teachers?q=${encodeURIComponent(q)}`)
 export const saveClassTeachers = (className: string, teachers: string[]) => apiPut<{ classes: ClassWithTeachers[] }>(`/api/admin/classes/${encodeURIComponent(className)}/teachers`, { teachers })
-
-export interface MailTemplate {
-  kind: string
-  subject: string
-  body: string
-  placeholders: string[]
-  updatedAt: string
-  updatedBy: string | null
-}
-export interface TemplateInvalidBody {
-  error: 'template_invalid'
-  problems: { code: string, message: string }[]
-}
 export const loadMailTemplates = () => apiGet<{ templates: MailTemplate[], mailEnabled: boolean }>('/api/admin/mail-templates')
 export const saveMailTemplate = (kind: string, subject: string, body: string) => apiPut<{ template: MailTemplate }>(`/api/admin/mail-templates/${encodeURIComponent(kind)}`, { subject, body })
 export const sendTestMail = (kind: string) => apiPost<{ queued: boolean }>(`/api/admin/mail-templates/${encodeURIComponent(kind)}/test`)

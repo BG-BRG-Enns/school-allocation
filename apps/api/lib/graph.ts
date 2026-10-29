@@ -7,8 +7,8 @@
 import { isClassGroupName, type RosterEntry } from '@school-allocation/school-core'
 import { GUID } from '../config.ts'
 import { boundedName } from './app-user.ts'
-import type { RosterWarning } from './roster.ts'
-import type { RosterGroup } from './roster-groups.ts'
+import type { RosterGroup } from './models/roster-groups.ts'
+import type { RosterWarning } from './models/roster.ts'
 
 export const GRAPH_BASE_URL = 'https://graph.microsoft.com'
 

@@ -5,15 +5,17 @@
 // and exempts, both audited; the clock enters the grace week and closes,
 // with the notices and the frozen roster; a late list is marked so.
 
-import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { test } from 'node:test'
 import { readAudit } from '../lib/audit.ts'
-import { transitionCampaign, type Campaign } from '../lib/campaigns.ts'
-import type { ChoiceView } from '../lib/choices.ts'
 import { createDatabase } from '../lib/db.ts'
-import type { Item } from '../lib/items.ts'
-import { RosterConflict, type BatchDetail } from '../lib/roster.ts'
+import { ApplicationError } from '../lib/errors.ts'
+import type { Campaign } from '../lib/models/campaigns.ts'
+import type { ChoiceView } from '../lib/models/choices.ts'
+import type { Item } from '../lib/models/items.ts'
+import type { BatchDetail } from '../lib/models/roster.ts'
 import { CLOCK_ACTOR, tick } from '../lib/scheduler.ts'
+import { transitionCampaign } from '../services/campaigns.ts'
 import type { CookieJar } from './helpers/fake-entra.ts'
 import { DB, get, harness, send, signIn, type Harness } from './helpers/harness.ts'
 import { ANNA, BERND, CARLA, SARA, TIM } from './helpers/personas.ts'
@@ -162,7 +164,7 @@ test('an organizer enters a ranking on behalf and exempts a student from a class
   assert.ok(timsOwn.body.groups.flatMap((g) => g.items).every((i) => i.teachers.length === 0 && i.proposedBy.displayName === ''), 'no teacher, no proposer for the student')
   assert.ok((await get<View>(s, s.tim, `/api/campaigns/${id}/my-choice`)).body.groups.flatMap((g) => g.items).every((i) => i.teachers.length === 0))
   await owner.query('update campaign set show_teachers = true where id = $1', [id])
-  assert.equal((await get(s, s.anna, `/api/admin/campaigns/${id}/choices/${s.saraPerson.replace(/^./, '0')}`)).status, 404)
+  assert.equal((await get(s, s.anna, `/api/admin/campaigns/${id}/choices/00000000-0000-0000-0000-000000000000`)).status, 404)
   assert.equal((await send(s, s.bernd, 'PUT', `/api/admin/campaigns/${id}/choices/${s.timPerson}`, { ranking: {}, reason: 'x' })).status, 403)
 
   // Exempted from the trip, Sara chooses for Tuesday as well.
@@ -286,7 +288,39 @@ test('the clock opens a published campaign at its time and closes one without a 
 
   // A window postponed after the clock chose to open it: the deadline is checked again under the lock, the campaign stays published.
   await owner.query('update campaign set state = \'published\', roster_batch_id = null, opens_at = \'2027-04-01T08:00:00+02:00\', closes_at = \'2027-04-08T20:00:00+02:00\' where id = $1', [id])
-  await assert.rejects(transitionCampaign(s.db, id, 'open', CLOCK_ACTOR, CONTEXT, { byClock: true, now: new Date('2027-03-01T08:00:00+01:00') }), (err: unknown) => err instanceof RosterConflict && err.code === 'not_due')
+  await assert.rejects(transitionCampaign(s.db, id, 'open', CLOCK_ACTOR, CONTEXT, { byClock: true, now: new Date('2027-03-01T08:00:00+01:00') }), (err: unknown) => err instanceof ApplicationError && err.code === 'not_due')
   assert.deepEqual(await tick(s.db, CONTEXT, new Date('2027-03-01T08:00:00+01:00')), { transitions: 0, reminders: 0 })
   assert.equal((await get<{ campaign: Campaign }>(s, s.anna, `/api/campaigns/${id}`)).body.campaign.state, 'published')
+})
+
+test('a failed transition audit rolls back the state, pre-assignments and invitation outbox together', DB, async (t) => {
+  const s = await school(t)
+  const id = s.campaign.id
+  const before = await readAudit(s.db, id)
+  // The malformed audit identity fails at the final insert, after window effects have run.
+  await assert.rejects(transitionCampaign(s.db, id, 'open', { ...CLOCK_ACTOR, tid: 'invalid-uuid' }, CONTEXT))
+  assert.equal((await get<{ campaign: Campaign }>(s, s.anna, `/api/campaigns/${id}`)).body.campaign.state, 'published')
+  const placements = await s.db.query<{ n: string }>('select count(*)::text as n from pre_assignment where campaign_id = $1', [id])
+  const mails = await s.db.query<{ n: string }>('select count(*)::text as n from outbox_mail where campaign_id = $1', [id])
+  assert.equal(placements.rows[0]?.n, '0')
+  assert.equal(mails.rows[0]?.n, '0')
+  assert.deepEqual(await readAudit(s.db, id), before)
+})
+
+test('concurrent window openings commit one transition and one set of invitations', DB, async (t) => {
+  const s = await school(t)
+  const id = s.campaign.id
+  const before = await readAudit(s.db, id)
+  const attempts = await Promise.allSettled([
+    transitionCampaign(s.db, id, 'open', CLOCK_ACTOR, CONTEXT),
+    transitionCampaign(s.db, id, 'open', CLOCK_ACTOR, CONTEXT),
+  ])
+  assert.equal(attempts.filter((result) => result.status === 'fulfilled').length, 1)
+  const refused = attempts.find((result) => result.status === 'rejected')
+  assert.ok(refused?.status === 'rejected' && refused.reason instanceof ApplicationError && refused.reason.code === 'invalid_transition')
+  const placements = await s.db.query<{ n: string }>('select count(*)::text as n from pre_assignment where campaign_id = $1', [id])
+  const mails = await s.db.query<{ n: string }>('select count(*)::text as n from outbox_mail where campaign_id = $1', [id])
+  assert.equal(placements.rows[0]?.n, '2')
+  assert.equal(mails.rows[0]?.n, '2')
+  assert.equal((await readAudit(s.db, id)).length, before.length + 1)
 })

@@ -4,14 +4,14 @@
 // may see; the campaign's window settings with their order; the demand
 // per day and grade; whether students see who teaches.
 
-import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { test } from 'node:test'
 import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
-import type { Campaign } from '../lib/campaigns.ts'
-import type { ClassWithTeachers } from '../lib/class-teachers.ts'
 import { createDatabase } from '../lib/db.ts'
-import type { Item } from '../lib/items.ts'
-import type { BatchDetail } from '../lib/roster.ts'
+import type { Campaign } from '../lib/models/campaigns.ts'
+import type { ClassWithTeachers } from '../lib/models/class-teachers.ts'
+import type { Item } from '../lib/models/items.ts'
+import type { BatchDetail } from '../lib/models/roster.ts'
 import type { CookieJar } from './helpers/fake-entra.ts'
 import { DB, get, harness, send, signIn, type Harness } from './helpers/harness.ts'
 import { ANNA, BERND, CARLA, SARA, TIM } from './helpers/personas.ts'

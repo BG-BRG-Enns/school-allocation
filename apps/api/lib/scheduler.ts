@@ -7,11 +7,14 @@
 // move an organizer would make, by the clock as actor.
 
 import type { FastifyBaseLogger } from 'fastify'
-import { dueTransition, readCampaign, transitionCampaign, type Campaign } from './campaigns.ts'
-import { choiceStates } from './choices.ts'
+import { dueTransition, readCampaign, transitionCampaign } from '../services/campaigns.ts'
+import { choiceStates } from '../services/choices.ts'
+import { notifyStudents } from '../services/window.ts'
+import { type Actor } from './actor.ts'
 import type { Database } from './db.ts'
-import { RosterConflict, type Actor } from './roster.ts'
-import { notifyStudents, type WindowContext } from './window.ts'
+import { ApplicationError } from './errors.ts'
+import type { Campaign } from './models/campaigns.ts'
+import type { WindowContext } from './models/window.ts'
 
 /** The clock as an audit actor: the nil identity, named for what it is. */
 export const CLOCK_ACTOR: Actor = { id: '', tid: '00000000-0000-0000-0000-000000000000', oid: '00000000-0000-0000-0000-000000000000', name: 'Zeitsteuerung' }
@@ -54,7 +57,7 @@ async function advance(db: Database, context: WindowContext, id: string, now: Da
     // refused, not repeated, and a window postponed meanwhile stays shut.
     await transitionCampaign(db, id, to, CLOCK_ACTOR, context, { byClock: true, now })
   } catch (err) {
-    if (err instanceof RosterConflict && (err.code === 'not_due' || err.code === 'invalid_transition')) return 0
+    if (err instanceof ApplicationError && (err.code === 'not_due' || err.code === 'invalid_transition')) return 0
     throw err
   }
   return 1
@@ -72,7 +75,7 @@ async function remind(db: Database, context: WindowContext, id: string, now: Dat
   return db.tx(async (client) => {
     const { rows: [row] } = await client.query<{ id: string }>('select id from campaign where id = $1 for update', [id])
     if (!row) return 0
-    const { readCampaign } = await import('./campaigns.ts')
+    const { readCampaign } = await import('../services/campaigns.ts')
     const campaign = await readCampaign(client, id)
     if (!campaign || campaign.state !== c.state) return 0
     const incomplete = (await choiceStates(client, campaign)).filter((s) => s.state !== 'complete')

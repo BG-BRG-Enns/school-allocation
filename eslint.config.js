@@ -175,4 +175,51 @@ export default [
       ],
     },
   },
+  // HTTP adapters may call application operations, never sibling route modules.
+  {
+    files: ['apps/api/routes/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [
+        { group: ['./*', '**/routes/**', '**/dao/**'], message: 'Routes depend on services and shared HTTP helpers, not sibling routes or DAOs.' },
+      ] }],
+      'no-restricted-syntax': ['error', {
+        selector: 'CallExpression[callee.type=\'MemberExpression\'][callee.property.name=/^(query|tx)$/]',
+        message: 'Application services own database operations and transactions.',
+      }],
+    },
+  },
+  {
+    files: ['apps/api/services/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [
+        { group: ['fastify', '@fastify/*', '**/routes/**', '**/lib/auth.ts', '**/http-errors.ts'], message: 'Services receive plain callers and dependencies; HTTP belongs in routes.' },
+      ] }],
+      'no-restricted-syntax': ['error', {
+        selector: 'CallExpression[callee.type=\'MemberExpression\'][callee.property.name=\'query\']',
+        message: 'Put SQL in a feature DAO and pass the current transaction client.',
+      }],
+    },
+  },
+  {
+    files: ['apps/api/lib/dao/**/*.ts', 'apps/api/lib/models/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [
+        { group: ['fastify', '@fastify/*', '**/routes/**', '**/services/**', '**/auth.ts'], message: 'Data access and models must not depend on HTTP or application services.' },
+      ] }],
+      'no-restricted-syntax': ['error', {
+        selector: 'CallExpression[callee.type=\'MemberExpression\'][callee.property.name=\'tx\']',
+        message: 'The calling service owns the transaction.',
+      }],
+    },
+  },
+  {
+    files: ['packages/api-contracts/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [{
+        regex: String.raw`^(?!\./|typebox$|@school-allocation/school-core$)`,
+        message: 'Contracts are shared with the browser: only TypeBox, school-core and sibling contracts are allowed.',
+      }] }],
+    },
+  },
+
 ]
