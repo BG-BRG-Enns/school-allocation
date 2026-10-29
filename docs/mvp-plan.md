@@ -1,6 +1,7 @@
 # SchulWahl — MVP plan (Phase B.8)
 
-Status: proposal for review · 2026-10-27
+Status: proposal for review · 2026-10-27 · revised 2026-10-29 for the decisions of that day
+(`open-decisions.md`); S0 to S2 are shipped
 
 The order is project week first and WPF second. Each slice ends deployable, behind the campaign
 lifecycle, and is tested with synthetic data only.
@@ -48,28 +49,51 @@ lifecycle, and is tested with synthetic data only.
 - Organizer review and approval.
 - Printable catalogue; xlsx export.
 
-**S3 · Choice window + notifications.**
+**S3 · Choice window + notifications**, in two steps, each its own pull request.
+
+**S3a · Teacher and organizer side.**
+
+- The period grid (D-25): settings with the Austrian default; the proposal form takes a session as
+  "from period *x*, *y* periods" (default from the 2nd) or as clock times; the catalogue shows period
+  labels where a session sits on the grid.
+- The campaign's window settings (D-05, D-06, D-13): open, close, grace week, swap window, wishes per
+  time group, daily minimum per grade, whether the catalogue names the teachers; changeable until the
+  window opens.
+- Demand per project day and grade for teachers and the organizer while proposals come in (D-13).
+- Class-teacher assignment (moved up from S5), from the app and from the CSV roster's address column,
+  with the class teacher's page of their class.
+- The group picker for the roster (D-23).
+
+**S3b · Student window and mail.**
 
 - Pre-assignments materialized from fixed items at opening; organizer exemptions (audited).
-- Ranking UI with fixed items shown, overlapping items hidden, and the live completeness check.
-- Server-side window; on-behalf entry.
-- Outbox + SMTP transport (test-send from the admin UI), reminder, missed-deadline notice, send
-  state.
+- Ranking UI per project day and time group with the campaign's cap (D-05), fixed items shown,
+  overlapping items hidden, and the live completeness check.
+- Server-side window with the grace week (`late_until`, lists marked `late`); on-behalf entry.
+- Outbox + SMTP transport (test-send from the admin UI), reminders, class-teacher lists at both
+  closes, missed-deadline notice, send state; the templates editable by the organizer with
+  placeholders.
 - Non-submitter list and export.
 
 **S4 · Allocation.**
 
-- Model compiler in school-core; solver service with CP-SAT and lexicographic levels.
+- Model compiler in school-core: time groups, fee-free fallback options (D-06), two passes with the
+  first window fixed (D-20); solver service with CP-SAT and lexicographic levels.
 - Independent validator.
-- Run review screen: levels, rank distribution, deficits, cancelled items, run comparison.
-- Publish; student result with explanation; participant lists; exports.
+- Run review screen: levels, rank distribution, deficits, fallback placements, unplaced students,
+  cancelled items (the organizer confirms them before publication), run comparison.
+- Publish; student result with explanation; class teachers' lists of unplaced students; participant
+  lists; exports.
 - A reproducibility test in CI.
 
 **S5 · After publication.**
 
-- Manual changes and the second round (D-06), validated and audited.
-- Class-teacher assignment; KV attendance per session for own class.
-- Attendance export.
+- The swap window (D-06): free places per item, the student's move under the campaign lock, the
+  minimum protected, confirmation mail.
+- Manual placement of unplaced students by the class teacher, manual changes by the organizer,
+  validated and audited; no second round.
+- The retention purge (D-15).
+- KV attendance per session for own class; attendance export.
 
 **S6 · Release and deploy readiness.**
 
@@ -110,12 +134,14 @@ A credible calendar estimate needs the target project-week date. **Open.**
 ## Testing strategy
 
 - **school-core:**
-  - exhaustive and property tests for overlap, credit per date (including over midnight) and
-    completeness;
+  - exhaustive and property tests for overlap, credit per date (including over midnight), the
+    period grid (periods to instants and back, trips off the grid) and time groups (overlapping
+    blocks of a Sporttag);
   - completeness with fixed items (the Vienna example: Tuesday–Wednesday fixed for the class, Monday
-    chosen; a student fully covered by fixed items; an exempted student);
-  - a validator test that rejects tampered results (capacity +1, an overlap, an unranked item, a
-    dropped or altered pre-assignment);
+    chosen; a student fully covered by fixed items; an exempted student) and with the per-group cap;
+  - a validator test that rejects tampered results (capacity +1, an overlap, an unranked item that is
+    no fallback, a paid fallback, a first-pass assignment changed by the second, a dropped or altered
+    pre-assignment);
   - WPF rule fixtures keyed to a rules table in `docs/`, as school-election ties fixtures to the design
     doc.
 - **Solver:**
@@ -133,11 +159,12 @@ A credible calendar estimate needs the target project-week date. **Open.**
   - roster diff and batch rejection.
 - **e2e (Playwright, fake Entra):**
   - teacher proposes → organizer publishes;
-  - student of a class with a fixed trip sees it as given and ranks Monday only; completeness
-    updates live;
-  - window closes → missed-deadline mail queued;
-  - run → review → publish;
-  - student sees result;
+  - student of a class with a fixed trip sees it as given and ranks Monday only, three per time
+    group; completeness updates live;
+  - window closes → the class teacher's list; grace week ends → missed-deadline mail queued;
+  - run → review (a cancelled item confirmed) → publish;
+  - student sees result; in the swap window moves into a free place, is refused a full one;
+  - class teacher places an unplaced student;
   - KV records attendance.
 - **Upgrade safety:** the previous release's test suite runs against the new schema in CI (the
   auto-update rollback guarantee).
