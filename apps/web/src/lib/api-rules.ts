@@ -102,7 +102,7 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   // The allocation
   solver_off: 'Auf diesem Server ist kein Solver eingerichtet; eine Zuteilung kann nicht berechnet werden.',
   run_in_progress: 'Ein Lauf wird gerade berechnet. Bitte warten, bis er fertig ist.',
-  daily_minimum_missing: 'Für diese Schulstufen fehlt die Mindestminutenzahl je Tag; sie ist in den Einstellungen der Wahl einzutragen, bevor die Wahl endet:',
+  daily_minimum_missing: 'Für diese Schulstufen fehlt die Mindestminutenzahl je Tag; sie lässt sich in den Einstellungen der Wahl auch jetzt noch eintragen:',
   fixed_items_overlap: 'Zwei Klassenaktivitäten nehmen dieselbe Klasse zur gleichen Zeit mit. Bitte den Katalog berichtigen.',
   no_students: 'Die Personenliste der Wahl enthält keine Schüler/innen.',
 }

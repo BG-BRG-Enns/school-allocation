@@ -24,6 +24,9 @@ export const AVAILABLE_TRANSITIONS: readonly CampaignState[] = ['catalogue', 'pu
 /** The states in which the window's settings may still change: everything before the window opens. */
 const WINDOW_SETTABLE: readonly CampaignState[] = ['draft', 'catalogue', 'published']
 
+/** The daily minimum is the allocation's input, not the window's: it may change until a run is published, so a grade forgotten or imported late does not block the campaign. A run already made notices through its stale mark. */
+const MINIMUM_SETTABLE: readonly CampaignState[] = [...WINDOW_SETTABLE, 'closed', 'review']
+
 const WINDOW_FIELDS = ['opensAt', 'closesAt', 'lateUntil', 'swapFrom', 'swapUntil', 'wishesPerGroup', 'dailyMinimum', 'showTeachers', 'reminderDays'] as const
 
 /**
@@ -88,8 +91,10 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
       const value = changes[field]
       if (value !== undefined) Object.assign(window, { [field]: value })
     }
-    const windowChanged = WINDOW_FIELDS.some((field) => JSON.stringify(window[field]) !== JSON.stringify(current[field]))
-    if (windowChanged && !WINDOW_SETTABLE.includes(current.state)) throw new ApplicationError('campaign_state')
+    const changed = WINDOW_FIELDS.filter((field) => JSON.stringify(window[field]) !== JSON.stringify(current[field]))
+    const windowChanged = changed.length > 0
+    const minimumOnly = changed.every((field) => field === 'dailyMinimum')
+    if (windowChanged && !(minimumOnly ? MINIMUM_SETTABLE : WINDOW_SETTABLE).includes(current.state)) throw new ApplicationError('campaign_state')
     const order = checkWindow(window)
     if (order !== undefined) throw new ApplicationError(order)
     const days = new Set(changes.projectDays)

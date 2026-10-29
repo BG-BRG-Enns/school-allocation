@@ -144,8 +144,10 @@ test('a run is refused where it cannot start: an open window, no daily minimum, 
   assert.equal(noMinimum.body.error, 'daily_minimum_missing')
   assert.equal(noMinimum.body.message, '9')
   assert.equal((await get<{ campaign: Campaign }>(s, s.anna, `/api/campaigns/${id}`)).body.campaign.state, 'closed', 'nothing moved')
-  // The settings are frozen after the close; the minimum the organizer forgot is set from below for the rest of the test.
-  await owner.query('update campaign set daily_minimum = \'{"9": 200}\' where id = $1', [id])
+  // The minimum the organizer forgot is set after the close, which the window's other settings are not.
+  const settings = { name: s.campaign.name, schoolYear: s.campaign.schoolYear, projectDays: s.campaign.projectDays }
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...settings, wishesPerGroup: 2 })).status, 409, 'the window is frozen')
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...settings, dailyMinimum: { 9: 200 } })).status, 200, 'the allocation\'s input is not')
 
   // The solver answers one place too many: the validator refuses, the run fails, nothing is stored, the campaign is in review.
   solver.answer = (_request, computed) => ({ ...computed, assign: [...computed.assign, ...computed.assign.slice(0, 1)] })

@@ -116,7 +116,12 @@ export async function startRun(db: Database, deps: AllocationDeps, campaign: Cam
   })
   const run = await store.readRunById(db, runId)
   if (!run) throw new Error('the run just written is gone')
-  const done = executeRun(db, deps, run).catch((err: unknown) => deps.log?.error({ err, runId }, 'the allocation run failed outside its result'))
+  const done = executeRun(db, deps, run).catch(async (err: unknown) => {
+    // The job itself, or the storing of its result, failed (the database gone for a moment, say): the run must not
+    // stay running and the campaign allocating until a restart. A second attempt to end it; what is left is logged.
+    deps.log?.error({ err, runId }, 'the allocation run failed outside its result')
+    await endRunAfterFailure(db, run, (err as Error).name).catch((again: unknown) => deps.log?.error({ err: again, runId }, 'the failed run could not be ended either'))
+  })
   const { snapshot: _snapshot, passResults: _passes, ...view } = run
   return { run: view, done }
 }
@@ -142,6 +147,22 @@ async function executeRun(db: Database, deps: AllocationDeps, run: StoredRun): P
         await appendAudit(client, { scopeId: run.campaignId, actor, action: 'campaign.transitioned', metadata: { campaignId: run.campaignId, from: 'allocating', to: 'review', runId: run.id } })
       }
     })
+  })
+}
+
+/** Ends a run whose job broke: failed with the error's name, the campaign to review, audited as the starter's job. */
+async function endRunAfterFailure(db: Database, run: StoredRun, errorName: string): Promise<void> {
+  await db.tx(async (client) => {
+    await lockScope(client, run.campaignId)
+    if (!await store.claimRunning(client, run.id)) return
+    await store.finishRun(client, run.id, { status: 'failed', passes: [], cancelled: [], versions: null, failure: 'internal_error', detail: `the job failed: ${errorName}`, problems: [] })
+    const current = await lockedCampaign(client, run.campaignId)
+    if (current?.state === 'allocating') await updateState(client, run.campaignId, 'review')
+    const actor = (await store.actorOfUser(client, run.startedBy.id)) ?? RECOVERY_ACTOR
+    await appendAudit(client, { scopeId: run.campaignId, actor, action: 'run.finished', metadata: { runId: run.id, seq: run.seq, status: 'failed', failure: 'internal_error', cancelled: 0, assignments: 0, byJob: true } })
+    if (current?.state === 'allocating') {
+      await appendAudit(client, { scopeId: run.campaignId, actor, action: 'campaign.transitioned', metadata: { campaignId: run.campaignId, from: 'allocating', to: 'review', runId: run.id } })
+    }
   })
 }
 
