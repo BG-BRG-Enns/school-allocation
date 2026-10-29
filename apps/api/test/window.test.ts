@@ -15,6 +15,7 @@ import type { ChoiceView } from '../lib/models/choices.ts'
 import type { Item } from '../lib/models/items.ts'
 import type { BatchDetail } from '../lib/models/roster.ts'
 import { transitionCampaign } from '../services/campaigns.ts'
+import { campaignMailHistory } from '../services/mail.ts'
 import { CLOCK_ACTOR, tick } from '../services/scheduling.ts'
 import type { CookieJar } from './helpers/fake-entra.ts'
 import { DB, get, harness, send, signIn, type Harness } from './helpers/harness.ts'
@@ -103,6 +104,12 @@ test('opening the window places the fixed classes and invites the students; a st
   assert.equal(view.body.acceptsChoices, true)
   assert.deepEqual(view.body.fixed.map((i) => i.title), ['Wien'])
   assert.deepEqual(view.body.groups.map((g) => [g.items.map((i) => i.title), g.required]), [[['Klettern', 'Tanz'], 2], [['Schwimmen'], 1]], 'Tuesday is taken by the trip')
+  for (const group of view.body.groups) {
+    assert.deepEqual(Object.keys(group).sort(), ['endMs', 'endsAt', 'itemIds', 'items', 'key', 'required', 'startMs', 'startsAt'], 'the legacy wire projection stays explicit')
+    assert.equal(group.startMs, Date.parse(group.startsAt))
+    assert.equal(group.endMs, Date.parse(group.endsAt))
+    assert.deepEqual([...group.itemIds].sort(), group.items.map((item) => item.id).sort())
+  }
   assert.equal(view.body.complete, false)
   const [monday, swim] = view.body.groups.map((g) => g.key) as [string, string]
 
@@ -207,6 +214,9 @@ test('an organizer enters a ranking on behalf and exempts a student from a class
   const protocol = await get<{ mails: { kind: string, state: string, body?: string, subject?: string }[] }>(s, s.anna, `/api/admin/campaigns/${id}/mail`)
   assert.equal(protocol.body.mails.length, 9)
   assert.ok(protocol.body.mails.every((m) => m.body === undefined && m.subject === undefined), 'the texts stay in the outbox, subjects included')
+  const history = await campaignMailHistory(s.db, id)
+  assert.deepEqual(history, protocol.body, 'the service enforces privacy before HTTP serialization')
+  assert.ok(history.mails.every((mail) => !('body' in mail) && !('subject' in mail)))
   // After the close the placements are the allocation's input: no exemption any more.
   assert.equal((await send<{ error: string }>(s, s.anna, 'POST', `/api/admin/campaigns/${id}/preassignments/${s.timPerson}/${s.items.wien}/exempt`, { reason: 'zu spät' })).body.error, 'campaign_state')
 })
