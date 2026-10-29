@@ -11,7 +11,7 @@ import { loadMyResult, type MyResultResponse } from '../lib/allocation-api.ts'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { formatDay, formatFee, formatSpanOnGrid, formatWhenShort } from '../lib/format.ts'
+import { datesBetween, formatDay, formatFee, formatSpanOnGrid, formatWhenShort, localDateOf } from '../lib/format.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string }>()
@@ -41,14 +41,18 @@ async function load(): Promise<void> {
 onMounted(load)
 watch(() => props.id, load)
 
+/** The local dates a session touches, an end at midnight belonging to the day before. */
+const touches = (session: { startsAt: string, endsAt: string }, date: string) => datesBetween(localDateOf(session.startsAt), localDateOf(new Date(Date.parse(session.endsAt) - 1).toISOString())).includes(date)
+
 const byDay = computed(() => {
   if (!result.value) return []
   const r = result.value
   return r.campaign.projectDays.map((date) => {
     const day = r.explanation.days.find((d) => d.date === date)
+    // An activity belongs to every day a session of it touches, credited minutes or not: a trip leaving on Monday evening is Monday's too.
     const entries = r.explanation.items
-      .filter((e) => (e.minutesByDate[date] ?? 0) > 0)
       .map((e) => ({ ...e, item: r.items.find((i) => i.id === e.itemId), minutes: e.minutesByDate[date] ?? 0 }))
+      .filter((e) => e.minutes > 0 || (e.item?.sessions.some((s) => touches(s, date)) ?? false))
       .sort((a, b) => (a.item?.sessions[0]?.startsAt ?? '').localeCompare(b.item?.sessions[0]?.startsAt ?? ''))
     return { date, day, entries }
   })

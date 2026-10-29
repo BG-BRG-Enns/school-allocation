@@ -106,12 +106,13 @@ test('a run is published with its cancellations confirmed: results, notices once
   await commit(roster([`${ANNA.email};Anna;Lehrerin;;;teacher;`, `${BERND.email};Bernd;Lehrer;;;teacher;`, `${CARLA.email};Carla;Kollegin;;;teacher;`]))
   assert.equal((await get(s, s.bernd, `/api/campaigns/${id}/items/${s.items.wien}/participants`)).status, 200)
   assert.equal((await get(s, s.anna, `/api/admin/campaigns/00000000-0000-4000-8000-000000000000/export/assignments.xlsx`)).status, 404, 'an unknown campaign, not an unpublished one')
-  // Tanz withdrawn after publication: Sara's result still names it, with its fee.
+  // Tanz withdrawn after publication, its fee changed: Sara's result still names it, and owes the fee the run froze, not the new one.
   await owner.query('update catalog_item set fee_cents = 500 where id = $1', [s.items.tanz])
   await owner.query('update catalog_item set state = \'withdrawn\', withdrawn_at = now(), withdrawn_by = (select id from app_user limit 1), withdraw_reason = \'Test\' where id = $1', [s.items.tanz])
   const after = await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)
   assert.deepEqual(after.body.items.map((i) => i.title).sort(), ['Tanz', 'Wien'])
-  assert.equal(after.body.feeCents, 500)
+  assert.equal(after.body.feeCents, 0, 'the fee as it was when the run was made, as the workbook sums it')
+  assert.equal(after.body.items.find((i) => i.title === 'Tanz')?.feeCents, 0)
   assert.equal((await get<ParticipantsResponse>(s, s.anna, `/api/campaigns/${id}/items/${s.items.tanz}/participants`)).status, 200)
 
   // The class page carries the places now.

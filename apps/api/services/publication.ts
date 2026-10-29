@@ -156,8 +156,10 @@ export async function myResult(db: Database, campaign: Campaign, caller: Caller)
   const rows = (await store.listAssignments(db, run.id)).filter((r) => r.personId === personId)
   const explanation = explainStudent(run.snapshot, rows, personId)
   if (!explanation) throw new ApplicationError('not_found')
-  // Every item the campaign had: one withdrawn since publication still names a place given, and its fee stays owed.
-  const items = (await listCampaignItems(db, campaign.id)).filter((item) => rows.some((r) => r.itemId === item.id))
+  // Every item the campaign had: one withdrawn since publication still names a place given. The fee is the run's,
+  // as the student saw it when ranking and as the workbook sums it; a fee changed since is not theirs.
+  const frozenFee = new Map(run.snapshot.items.map((item) => [item.id, item.feeCents]))
+  const items = (await listCampaignItems(db, campaign.id)).filter((item) => rows.some((r) => r.itemId === item.id)).map((item) => ({ ...item, feeCents: frozenFee.get(item.id) ?? item.feeCents }))
   return {
     campaign,
     run: { seq: run.seq, seed: run.seed, publishedAt: run.publishedAt ?? '' },
