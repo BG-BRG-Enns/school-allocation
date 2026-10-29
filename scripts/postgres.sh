@@ -42,6 +42,17 @@ wait_ready() {
 # A container of that name already exists: start it if it is stopped (after
 # a reboot, say) and leave it alone otherwise. Its port and data are its own.
 if running="$("$engine" container inspect --format '{{.State.Running}}' "$name" 2>/dev/null)"; then
+  # A container an earlier version of this script made binds its password
+  # copy from /tmp, which a reboot empties; it cannot be started then, and
+  # its data sits in an anonymous volume. It is recreated, not patched.
+  if "$engine" container inspect --format '{{range .Mounts}}{{.Source}}{{"\n"}}{{end}}' "$name" | grep -q '^/tmp/'; then
+    cat >&2 <<EOT
+$name was created by an earlier version of this script, with its password copy under /tmp.
+Recreate it: dump what you want to keep ($engine exec $name pg_dump -U postgres school_allocation > backup.sql),
+then $engine rm -f $name and run this script again (the data lives in the volume ${name}-data from now on).
+EOT
+    exit 1
+  fi
   if [[ "$running" != "true" ]]; then
     "$engine" start "$name" >/dev/null
   fi

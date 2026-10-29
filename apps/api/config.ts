@@ -410,7 +410,9 @@ function parseMail(env: Env): MailConfig | null {
   const replyTo = env.MAIL_REPLY_TO?.trim() || null
   if (replyTo !== null && parseMailbox(replyTo) === null) throw new ConfigError('MAIL_REPLY_TO must be a mailbox')
   const envelopeFrom = env.MAIL_ENVELOPE_FROM?.trim() || null
-  if (envelopeFrom !== null && parseMailbox(envelopeFrom)?.name !== null) throw new ConfigError('MAIL_ENVELOPE_FROM must be a bare address')
+  const envelope = envelopeFrom === null ? null : parseMailbox(envelopeFrom)
+  // A bare address: parsed, and without a display name.
+  if (envelopeFrom !== null && (envelope === null || envelope.name !== null)) throw new ConfigError('MAIL_ENVELOPE_FROM must be a bare address')
   return {
     host,
     port,

@@ -57,7 +57,7 @@ test('a template is checked against the subset and its kind\'s placeholders; a s
 
   assert.deepEqual(renderTemplate(saved.body.template, { vorname: 'Sara', wahl: 'Projektwoche', frist: 'Mo., 08.03.', link: 'https://x' }), { subject: 'Erinnerung: Projektwoche', body: 'Hallo Sara,\nbis Mo., 08.03.: https://x' })
   assert.deepEqual(renderTemplate({ subject: 'a <b>', body: '{{name}}' }, { name: 'A & B' }), { subject: 'a <b>', body: 'A & B' }, 'plain text: nothing is escaped')
-  assert.equal(renderTemplate({ subject: 'x', body: '{{name}}'.repeat(2000) }, { name: 'y'.repeat(100) }).body.length, 100_000, 'a body that renders past the outbox\'s bound is cut, never refused: a template must not block a transition')
+  assert.equal(renderTemplate({ subject: 'x', body: '{{name}}'.repeat(2000) }, { name: 'y'.repeat(100) }).body.length, 100_000, 'a body that renders past the outbox\'s bound is cut while rendering, never refused: a template must not block a transition')
   assert.deepEqual(checkTemplate('missed_deadline', '{{vorname', 'x'), [{ code: 'subject_syntax', message: 'Unclosed mustache at line 1, column 1' }])
 
   const off = await send<{ error: string }>(h, anna, 'POST', '/api/admin/mail-templates/choice_reminder/test')

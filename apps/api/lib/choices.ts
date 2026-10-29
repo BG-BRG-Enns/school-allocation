@@ -204,10 +204,18 @@ export async function saveRanking(db: Database, campaign: Campaign, personId: st
   return choiceView(db, campaign, student as CampaignStudent)
 }
 
-/** An organizer exempts a student from a class activity, with a reason, audited; false when there is no such pre-assignment. */
+/**
+ * An organizer exempts a student from a class activity, with a reason,
+ * audited; false when there is no such pre-assignment. Only while the
+ * window takes choices, read under the lock: after the close the
+ * placements are the allocation's frozen input (a placement by hand is
+ * S4's).
+ */
 export async function exemptPreAssignment(db: Database, campaign: Campaign, personId: string, itemId: string, reason: string, caller: Caller): Promise<boolean> {
   return db.tx(async (client) => {
     await lockScope(client, campaign.id)
+    const { rows: [current] } = await client.query<{ state: Campaign['state'] }>('select state from campaign where id = $1 for update', [campaign.id])
+    if (!current || !acceptsChoices(current.state)) throw new RosterConflict('campaign_state')
     const { rows: [row] } = await client.query<{ exempted_at: Date | null }>(
       'select exempted_at from pre_assignment where campaign_id = $1 and person_id = $2 and item_id = $3 for update', [campaign.id, personId, itemId],
     )

@@ -245,8 +245,10 @@ export async function returnItem(db: Database, id: string, note: string, caller:
 
 /** An organizer withdraws an item, with a reason, audited; it stays in the record. */
 export async function withdrawItem(db: Database, id: string, reason: string, caller: Caller): Promise<Item | undefined> {
-  return moveItem(db, id, 'withdrawn', caller, true, async (client, current) => {
+  return moveItem(db, id, 'withdrawn', caller, true, async (client, current, campaignState) => {
     await client.query('update catalog_item set state = $2, withdrawn_at = now(), withdrawn_by = $3, withdraw_reason = $4, updated_at = now() where id = $1', [id, 'withdrawn', caller.id, reason])
+    // A class activity withdrawn while the window is open frees its classes: the placements by class go (D-24), as after an edit.
+    if (current.state === 'approved' && (campaignState === 'open' || campaignState === 'grace')) await reconcilePreAssignments(client, current.campaignId, id)
     await appendAudit(client, { scopeId: current.campaignId, actor: actorOf(caller), action: 'item.withdrawn', metadata: { itemId: id, from: current.state, reason } })
   })
 }

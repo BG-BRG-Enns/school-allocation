@@ -11,8 +11,10 @@ export type UnknownPolicy = 'keep' | 'drop'
 
 export interface RenderOptions {
   unknown: UnknownPolicy
-  /** Upper bound for the rendered output in characters; exceeding it throws TemplateOutputError. */
+  /** Upper bound for the rendered output in characters; exceeding it throws TemplateOutputError, or cuts the output there with `overflow: 'cut'`. */
   maxLength?: number
+  /** What happens at `maxLength`: `throw` (default) or `cut`, which stops rendering and keeps the output within the bound. */
+  overflow?: 'throw' | 'cut'
   /** False renders `{{name}}` like `{{{name}}}`, for plain-text targets such as a subject line. Default true. */
   escape?: boolean
 }
@@ -28,11 +30,19 @@ export class TemplateOutputError extends Error {
   }
 }
 
-interface Sink { parts: string[], length: number, limit: number }
+interface Sink { parts: string[], length: number, limit: number, cut: boolean, full: boolean }
 
+/** Appends within the bound: over it, a cutting sink keeps what fits and takes nothing more, a throwing one throws. */
 function emit(sink: Sink, text: string): void {
+  if (sink.full) return
+  if (sink.length + text.length > sink.limit) {
+    if (!sink.cut) throw new TemplateOutputError(sink.limit)
+    sink.parts.push(text.slice(0, sink.limit - sink.length))
+    sink.length = sink.limit
+    sink.full = true
+    return
+  }
   sink.length += text.length
-  if (sink.length > sink.limit) throw new TemplateOutputError(sink.limit)
   sink.parts.push(text)
 }
 
@@ -120,7 +130,7 @@ export function compile(source: string): CompiledTemplate {
   const nodes = parse(source)
   return {
     render(data, options) {
-      const sink: Sink = { parts: [], length: 0, limit: options.maxLength ?? Number.POSITIVE_INFINITY }
+      const sink: Sink = { parts: [], length: 0, limit: options.maxLength ?? Number.POSITIVE_INFINITY, cut: options.overflow === 'cut', full: false }
       renderNodes(nodes, data ?? {}, options, sink)
       return sink.parts.join('')
     },

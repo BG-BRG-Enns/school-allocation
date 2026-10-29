@@ -202,9 +202,11 @@ test('an organizer enters a ranking on behalf and exempts a student from a class
   assert.equal((await send(s, s.sara, 'PUT', `/api/campaigns/${id}/my-choice`, { ranking: {} })).status, 409)
   const transitions = (await readAudit(owner, id)).filter((e) => e.action === 'campaign.transitioned').map((e) => [e.metadata.to, e.actor.name, e.metadata.byClock])
   assert.deepEqual(transitions.slice(-3), [['open', ANNA.name, false], ['grace', 'Zeitsteuerung', true], ['closed', 'Zeitsteuerung', true]])
-  const protocol = await get<{ mails: { kind: string, state: string, body?: string }[] }>(s, s.anna, `/api/admin/campaigns/${id}/mail`)
+  const protocol = await get<{ mails: { kind: string, state: string, body?: string, subject?: string }[] }>(s, s.anna, `/api/admin/campaigns/${id}/mail`)
   assert.equal(protocol.body.mails.length, 9)
-  assert.ok(protocol.body.mails.every((m) => m.body === undefined), 'the texts stay in the outbox')
+  assert.ok(protocol.body.mails.every((m) => m.body === undefined && m.subject === undefined), 'the texts stay in the outbox, subjects included')
+  // After the close the placements are the allocation's input: no exemption any more.
+  assert.equal((await send<{ error: string }>(s, s.anna, 'POST', `/api/admin/campaigns/${id}/preassignments/${s.timPerson}/${s.items.wien}/exempt`, { reason: 'zu spät' })).body.error, 'campaign_state')
 })
 
 test('a catalogue change after the opening: a ranked item withdrawn is pruned from the view, a class no longer fixed is exempted, a class newly fixed is placed', DB, async (t) => {
@@ -255,6 +257,13 @@ test('a catalogue change after the opening: a ranked item withdrawn is pruned fr
   assert.deepEqual(placements.rows.map((r) => r.name), ['Sara Schülerin', 'Uli Neu'])
   const status = await get<{ students: { displayName: string }[] }>(s, s.anna, `/api/campaigns/${id}/classes/5A/status`)
   assert.deepEqual(status.body.students.map((st) => st.displayName), ['Sara Schülerin', 'Uli Neu'], 'the class page reads the roster the campaign goes by')
+
+  // The trip withdrawn while the window is open: its placements go, Tuesday opens up.
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${s.items.wien}/withdraw`, { reason: 'Bus ausgefallen' })).status, 200)
+  assert.equal((await owner.query<{ n: string }>('select count(*)::text as n from pre_assignment where item_id = $1', [s.items.wien])).rows[0]?.n, '0')
+  const freedAll = await get<View>(s, s.sara, `/api/campaigns/${id}/my-choice`)
+  assert.deepEqual(freedAll.body.fixed, [])
+  assert.deepEqual(freedAll.body.groups.map((g) => g.items.map((i) => i.title)), [['Klettern', 'Tanz'], ['Darts']])
 })
 
 test('the clock opens a published campaign at its time and closes one without a grace week straight away; downtime over several deadlines is caught up in one tick', DB, async (t) => {

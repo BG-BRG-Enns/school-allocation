@@ -99,7 +99,7 @@ export function checkTemplate(kind: MailKind, subject: string, body: string): Te
   // A subject that renders empty, with every placeholder filled or with none, would block the notice.
   if (problems.length === 0) {
     for (const data of [SAMPLE_DATA, {}]) {
-      if (compile(subject).render(data, { unknown: 'drop', escape: false, maxLength: 998 }).trim() === '') {
+      if (compile(subject).render(data, { unknown: 'drop', escape: false, maxLength: 998, overflow: 'cut' }).trim() === '') {
         problems.push({ code: 'subject_empty', message: 'the subject renders empty' })
         break
       }
@@ -148,7 +148,8 @@ export async function saveTemplate(db: Database, kind: MailKind, subject: string
  * transition that renders it.
  */
 export function renderTemplate(template: Pick<MailTemplate, 'subject' | 'body'>, data: Readonly<Record<string, string>>): { subject: string, body: string } {
-  const options = { unknown: 'drop' as const, escape: false }
-  const subject = compile(template.subject).render(data, options).replaceAll(/[\r\n]+/g, ' ').trim().slice(0, 998)
-  return { subject: subject || 'SchulWahl', body: compile(template.body).render(data, options).slice(0, 100_000) }
+  // The bound is kept while rendering, so a template that repeats a long value is cut at the outbox's limit, not expanded first.
+  const options = { unknown: 'drop' as const, escape: false, overflow: 'cut' as const }
+  const subject = compile(template.subject).render(data, { ...options, maxLength: 998 }).replaceAll(/[\r\n]+/g, ' ').trim()
+  return { subject: subject || 'SchulWahl', body: compile(template.body).render(data, { ...options, maxLength: 100_000 }) }
 }

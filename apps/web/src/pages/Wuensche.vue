@@ -318,7 +318,7 @@ async function exempt(): Promise<void> {
       </p>
     </form>
 
-    <section v-if="onBehalf && view.fixed.length > 0">
+    <section v-if="onBehalf && editable && view.fixed.length > 0">
       <h2>Befreiungen</h2>
       <ul class="plain">
         <li

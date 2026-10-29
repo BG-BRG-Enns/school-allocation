@@ -145,8 +145,8 @@ export async function windowRoutes(app: FastifyInstance, { db, guards }: WindowR
   app.get<{ Params: Static<typeof IdParams> }>('/api/admin/campaigns/:id/mail', { ...auditor, schema: { params: IdParams, response: { '4xx': ErrorResponse } } }, async (request, reply) => {
     const campaign = await readCampaign(db, request.params.id)
     if (!campaign) return reply.code(404).send({ error: 'not_found' })
-    // The protocol: what was sent to whom and whether it left; the texts stay in the outbox.
-    const mails = (await listCampaignMails(db, campaign.id)).map(({ body: _body, ...rest }) => rest)
+    // The protocol: what was sent to whom and whether it left; the texts, subject included, stay in the outbox.
+    const mails = (await listCampaignMails(db, campaign.id)).map(({ body: _body, subject: _subject, ...rest }) => rest)
     return { mails }
   })
 

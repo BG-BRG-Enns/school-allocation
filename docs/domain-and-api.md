@@ -297,7 +297,7 @@ Response:
 | `GET /api/admin/roster/graph/groups?q=` | admin | The tenant's groups by name, for the picker (D-23; `Group.Read.All` delegated, same token flow); `?classes=true` every group whose name is a class ("5A"), the whole school in one search |
 | `GET /api/admin/settings/periods` · `PUT …/periods` | admin | The school's period grid (D-25) |
 | `GET /api/admin/mail-templates` · `PUT …/:kind` · `POST …/:kind/test` · `GET /api/admin/mail/status` | organizer | The notices' texts, checked against the kind's placeholders at save (audited); a test mail with sample values to the caller's own address through the real outbox; whether mail is set up and what waits |
-| `GET /api/admin/campaigns/:id/missing` · `GET …/export/missing.xlsx` · `GET …/mail` | organizer, auditor | Every student with the state of their list and the notices sent to them; the campaign's outbox as a protocol (texts left out) |
+| `GET /api/admin/campaigns/:id/missing` · `GET …/export/missing.xlsx` · `GET …/mail` | organizer, auditor | Every student with the state of their list and the notices sent to them; the campaign's outbox as a protocol (subjects and texts left out) |
 | `POST /api/admin/purge` | admin | Delete the records of a school year past their retention (D-15); reason required, audited, nothing automatic |
 | `POST /api/admin/roster/csv` · `GET /api/admin/roster/csv/template` | admin | CSV upload (JSON body with the file's text), the template |
 | `GET /api/admin/roster/batches/:id` · `POST …/commit` · `POST …/discard` | admin | A batch with its diff, problems and warnings; the decision |
