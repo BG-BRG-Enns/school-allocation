@@ -24,8 +24,11 @@ export const AVAILABLE_TRANSITIONS: readonly CampaignState[] = ['catalogue', 'pu
 /** The states in which the window's settings may still change: everything before the window opens. */
 const WINDOW_SETTABLE: readonly CampaignState[] = ['draft', 'catalogue', 'published']
 
+/** The swap window's dates may still be set after the close, until the window has begun: the organizer sets them when publishing. */
+const SWAP_FIELDS: ReadonlySet<string> = new Set(['swapFrom', 'swapUntil'])
+
 /** The daily minimum is the allocation's input, not the window's: it may change until a run is published, so a grade forgotten or imported late does not block the campaign. A run already made notices through its stale mark. */
-const MINIMUM_SETTABLE: readonly CampaignState[] = [...WINDOW_SETTABLE, 'closed', 'review']
+const LATE_FIELDS: ReadonlySet<string> = new Set(['dailyMinimum', ...SWAP_FIELDS])
 
 const WINDOW_FIELDS = ['opensAt', 'closesAt', 'lateUntil', 'swapFrom', 'swapUntil', 'wishesPerGroup', 'dailyMinimum', 'showTeachers', 'reminderDays'] as const
 
@@ -93,8 +96,11 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     }
     const changed = WINDOW_FIELDS.filter((field) => JSON.stringify(window[field]) !== JSON.stringify(current[field]))
     const windowChanged = changed.length > 0
-    const minimumOnly = changed.every((field) => field === 'dailyMinimum')
-    if (windowChanged && !(minimumOnly ? MINIMUM_SETTABLE : WINDOW_SETTABLE).includes(current.state)) throw new ApplicationError('campaign_state')
+    if (windowChanged && !WINDOW_SETTABLE.includes(current.state)) {
+      const late = changed.every((field) => LATE_FIELDS.has(field)) && (current.state === 'closed' || current.state === 'review')
+      const swapOnly = changed.every((field) => SWAP_FIELDS.has(field)) && current.state === 'results' && (current.swapFrom === null || Date.parse(current.swapFrom) > Date.now())
+      if (!late && !swapOnly) throw new ApplicationError('campaign_state')
+    }
     const order = checkWindow(window)
     if (order !== undefined) throw new ApplicationError(order)
     const days = new Set(changes.projectDays)

@@ -172,6 +172,20 @@ export {
 } from './allocation-validate.ts'
 
 export {
+  MOVE_PROBLEM_CODES,
+  applyMove,
+  checkMove,
+  freePlaces,
+  leavesForSwap,
+  moveOffers,
+  type Move,
+  type MoveOffer,
+  type MoveOptions,
+  type MoveProblem,
+  type MoveProblemCode,
+} from './allocation-change.ts'
+
+export {
   explainStudent,
   summarizeAllocation,
   type AllocationSummary,

@@ -65,6 +65,13 @@ export const AUDIT_ACTIONS = [
   'run.interrupted',
   // The organizer publishes a run: the campaign's result, with the cancelled items confirmed.
   'run.published',
+  // After publication (campaign scope): a student's own move in the swap
+  // window, a class teacher's placement of a student short of minutes, an
+  // organizer's change by hand (with whether they overrode a full item or a
+  // minimum). The change row carries the reason; the event, the ids.
+  'assignment.swapped',
+  'assignment.placed',
+  'assignment.changed',
 ] as const
 
 export type AuditAction = typeof AUDIT_ACTIONS[number]

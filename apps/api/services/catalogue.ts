@@ -48,7 +48,7 @@ export async function classStatus(db: Database, campaign: Campaign, caller: Call
     // Once the window has opened, who has chosen; before, nobody has a list to speak of.
   const windowOpened = !['draft', 'catalogue', 'published'].includes(campaign.state)
   const states = windowOpened ? new Map((await choiceStates(db, campaign, className)).map((s) => [s.personId, s])) : new Map<string, StudentChoiceState>()
-  // From publication on, where each student is and what they miss; the class teacher places the unplaced (S5).
+  // From publication on, where each student is, what they miss and what would fill the gap.
   const published = campaign.state === 'results' || campaign.state === 'archived'
   const placements = published ? await classPlacements(db, campaign, className) : new Map<string, ClassPlacement>()
   return {
@@ -57,7 +57,7 @@ export async function classStatus(db: Database, campaign: Campaign, caller: Call
       ...s,
       choice: windowOpened ? (states.get(s.personId)?.state ?? 'none') : null,
       window: states.get(s.personId)?.window ?? null,
-      placement: published ? (placements.get(s.personId) ?? { items: [], deficit: 0 }) : null,
+      placement: published ? (placements.get(s.personId) ?? { items: [], deficit: 0, offers: [] }) : null,
     })),
     classActivities: items,
   }

@@ -109,6 +109,17 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   run_stale: 'Seit diesem Lauf hat sich die Wahl geändert; für die Veröffentlichung ist ein neuer Lauf nötig.',
   cancelled_mismatch: 'Die bestätigten Absagen sind nicht die des Laufs. Bitte die Seite neu laden und noch einmal prüfen.',
   not_published: 'Das Ergebnis ist noch nicht veröffentlicht.',
+  swap_closed: 'Das Ummeldefenster ist nicht offen.',
+  not_offered: 'Diese Aktivität steht nicht zur Wahl: abgesagt, zurückgezogen, nicht für diese Schulstufe oder Klasse, oder zur Zeit einer Klassenaktivität.',
+  already_placed: 'Diese Aktivität ist schon zugeteilt.',
+  item_full: 'Diese Aktivität ist voll. Jemand war schneller.',
+  not_placed: 'Diese Aktivität ist nicht zugeteilt.',
+  leaves_fixed: 'Eine Klassenaktivität kann nicht verlassen werden.',
+  below_minimum: 'Die bisherige Aktivität käme unter ihre Mindestteilnehmerzahl.',
+  overlap: 'Die Aktivität überschneidet sich mit einer, die bleibt.',
+  coverage_lost: 'Danach würden an einem Tag Minuten fehlen, die jetzt nicht fehlen.',
+  fully_placed: 'Diese Schülerin oder dieser Schüler hat an jedem Tag das Programm; eine Zuteilung in eine Lücke ist nicht nötig.',
+  no_change: 'Bitte eine Aktivität angeben, in die oder aus der die Person kommt.',
 }
 
 /** Refusals whose answer names what is wrong (the grades, say): the sentence carries it. */

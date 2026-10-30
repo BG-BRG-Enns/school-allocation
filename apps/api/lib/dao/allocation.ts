@@ -1,8 +1,8 @@
 import type { AllocationInput, AllocationWarning, Assignment } from '@school-allocation/school-core'
 import type { AuditActor } from '../audit-chain.ts'
 import type { Queryable } from '../db.ts'
-import type { AllocationRun, RunFinish, StoredRun } from '../models/allocation.ts'
-import type { AssignmentRow, RunRow, RunRowWithSnapshot } from './allocation-rows.ts'
+import type { AllocationRun, RunFinish, StoredChange, StoredRun } from '../models/allocation.ts'
+import type { AssignmentRow, ChangeRow, RunRow, RunRowWithSnapshot } from './allocation-rows.ts'
 
 const COLUMNS = `r.id, r.campaign_id, r.seq, r.status, r.started_at, r.finished_at, r.started_by, u.display_name as started_by_name, r.seed::text as seed,
   r.limits, r.core_version, r.contract, r.solver_version, r.ortools_version, r.snapshot_sha256, r.warnings, r.passes, r.cancelled_items, r.failure, r.detail, r.problems, r.published_at`
@@ -107,15 +107,62 @@ export async function insertAssignments(client: Queryable, runId: string, rows: 
   )
 }
 
-/** The rows of a run as school-core reads them. */
+/** The current rows of a run as school-core reads them: those no change has superseded. */
 export async function listAssignments(db: Queryable, runId: string): Promise<Assignment[]> {
-  const { rows } = await db.query<AssignmentRow>('select person_id, item_id, source, pass, rank from assignment where run_id = $1 order by person_id, item_id', [runId])
+  const { rows } = await db.query<AssignmentRow>('select person_id, item_id, source, pass, rank from assignment where run_id = $1 and superseded_by is null order by person_id, item_id', [runId])
+  return rows.map((row) => ({ personId: row.person_id, itemId: row.item_id, source: row.source === 'solver' ? 'wish' : row.source, pass: row.pass, rank: row.rank }))
+}
+
+export interface NewChange {
+  runId: string
+  kind: ChangeRow['kind']
+  personId: string
+  fromItemId: string | null
+  toItemId: string | null
+  reason: string | null
+  forced: boolean
+  changedBy: string
+}
+
+/** Writes a change as the run's next; the caller holds the campaign's lock, so the sequence has no gaps or doubles. */
+export async function insertChange(client: Queryable, change: NewChange): Promise<{ id: string, seq: number }> {
+  const { rows: [row] } = await client.query<{ id: string, seq: number }>(
+    `insert into assignment_change (run_id, seq, kind, person_id, from_item_id, to_item_id, reason, forced, changed_by)
+     values ($1, (select coalesce(max(seq), 0) + 1 from assignment_change where run_id = $1), $2, $3, $4, $5, $6, $7, $8)
+     returning id, seq`,
+    [change.runId, change.kind, change.personId, change.fromItemId, change.toItemId, change.reason, change.forced, change.changedBy],
+  )
+  if (!row) throw new Error('assignment_change insert returned no row')
+  return row
+}
+
+/** Supersedes the student's current rows in `itemIds` by the change; returns how many it found, which the caller compares with what it checked. */
+export async function supersedeAssignments(client: Queryable, runId: string, personId: string, itemIds: readonly string[], changeId: string): Promise<number> {
+  if (itemIds.length === 0) return 0
+  const { rowCount } = await client.query(
+    'update assignment set superseded_by = $4 where run_id = $1 and person_id = $2 and item_id = any($3::uuid[]) and superseded_by is null',
+    [runId, personId, itemIds, changeId],
+  )
+  return rowCount ?? 0
+}
+
+/** The row a change adds: the student in the item by their own move or by hand. */
+export async function insertChangedAssignment(client: Queryable, runId: string, personId: string, itemId: string, source: 'swap' | 'manual', changeId: string): Promise<void> {
+  await client.query('insert into assignment (run_id, person_id, item_id, source, change_id) values ($1, $2, $3, $4, $5)', [runId, personId, itemId, source, changeId])
+}
+
+/** The changes of a run, oldest first, each with the items its rows left. */
+export async function listChanges(db: Queryable, runId: string): Promise<StoredChange[]> {
+  const { rows } = await db.query<ChangeRow>(
+    `select c.id, c.seq, c.kind, c.person_id, c.to_item_id, c.reason, c.forced, c.changed_by, u.display_name as changed_by_name, c.changed_at,
+            coalesce((select array_agg(a.item_id order by a.item_id) from assignment a where a.superseded_by = c.id), '{}') as left_item_ids
+       from assignment_change c join app_user u on u.id = c.changed_by
+      where c.run_id = $1 order by c.seq`,
+    [runId],
+  )
   return rows.map((row) => ({
-    personId: row.person_id,
-    itemId: row.item_id,
-    source: row.source === 'solver' ? 'wish' : row.source === 'fixed' || row.source === 'fallback' ? row.source : 'wish',
-    pass: row.pass,
-    rank: row.rank,
+    id: row.id, seq: row.seq, kind: row.kind, personId: row.person_id, toItemId: row.to_item_id, leftItemIds: row.left_item_ids, reason: row.reason, forced: row.forced,
+    changedBy: { id: row.changed_by, displayName: row.changed_by_name }, changedAt: row.changed_at.toISOString(),
   }))
 }
 

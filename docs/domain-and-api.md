@@ -25,7 +25,8 @@ Status: proposal for review · 2026-10-27 · revised 2026-10-29 for the decision
 | `Choice` | `campaign_id`, `person_id`, `ranked` (per time group: item ids in order, at most the campaign's cap), `window` (`first` / `late`, from the time of the last save), `version`, `updated_at`, `entered_by` (self / organizer) | Whole-list replace; history kept in `ChoiceRevision` |
 | `WpfPlan` | `campaign_id`, `person_id`, `items_by_year`, `alternatives?`, `rule_version_id`, `validation` | Multi-year plan, chosen at once |
 | `AllocationRun` | `id`, `campaign_id`, `seq` (Lauf 1, 2, …), `status` (`running` / `succeeded` / `failed` / `interrupted`), `seed`, `limits`, `core_version`, `contract`, `solver_version`, `ortools_version`, `snapshot` (the compiled input, ids only) and `snapshot_sha256` (without seed and limit, so a changed campaign shows as stale), `warnings`, `passes[]` (per pass the solver's status, level values with `proven`, pairs, cancelled), `cancelled_items`, `failure` and `detail` (why it failed), `problems` (the validator's), `started_by`, `published_at?` | Many per campaign, at most one published; a finished run changes only by being published |
-| `Assignment` | `run_id`, `person_id`, `item_id`, `source` (`fixed` / `solver` / `fallback` / `swap` / `manual`) | Fixed rows are copied from the pre-assignments; `fallback` is a placement into a fee-free item outside the student's wishes (D-06); `swap` a student's own move in the swap window; manual rows reference a reason |
+| `Assignment` | `id`, `run_id`, `person_id`, `item_id`, `source` (`fixed` / `solver` / `fallback` / `swap` / `manual`), `change_id?`, `superseded_by?` | Fixed rows are copied from the pre-assignments; `fallback` is a placement into a fee-free item outside the student's wishes (D-06); `swap` a student's own move in the swap window, `manual` a placement by hand, each added by a change. A row is never changed or removed: a change supersedes it (`superseded_by`, set once); the run's current rows are those not superseded, and a student is in an item once among them |
+| `AssignmentChange` | `run_id`, `seq`, `kind` (`swap` / `place` / `move` / `remove`), `person_id`, `from_item_id?`, `to_item_id?`, `reason?`, `forced`, `changed_by`, `changed_at` | A change of the published run: the student's own swap (no reason), a class teacher's placement into a gap, the organizer's move or removal (a reason each). `forced` says the organizer overrode a full item or a minimum. The rows it superseded point at it; append-only. The reason is the organizer's and the auditor's; the student is told what changed and by whom (class teacher or organization), never why |
 | `Attendance` | `session_id`, `person_id`, `status`, `recorded_by` | Separate from assignments |
 | `OutboxMail` | `id`, `kind`, `campaign_id?`, `person_id?`, `to_address`, `subject`, `body`, `dedupe_key` (unique), `state` (`queued` / `sending` / `sent` / `failed`), `attempts`, `next_attempt_at`, `detail`, `message_id`, `sent_at` | Written in the triggering transaction; the unique `dedupe_key` (e.g. `choice_reminder:<campaign>:<person>:reminder:<close>`) prevents double notices; rows stay as the record of what was sent |
 | `MailTemplate` | `kind` (one of `choice_invitation`, `choice_reminder`, `grace_invitation`, `grace_reminder`, `missed_deadline`, `class_missing`, `result_published`, `class_unplaced`, `item_cancelled`), `subject`, `body`, `updated_by` | Seeded with the product's German defaults, edited by the organizer; placeholders in `{{…}}` checked against the kind's list at save |
@@ -91,12 +92,20 @@ transition that was missed during a restart is applied on start.
    (idempotent) and writes a revision.
 6. An organizer may enter or alter a list on a student's behalf, or exempt a student from a fixed
    item (the student then chooses for that time), each with a required reason; both are audited.
-7. **Swap window** (D-06). Between `swap_from` and `swap_until` every student may move, per time
-   group, into an item with free places for their grade that does not overlap their other
-   assignments; the move is immediate and first come first served, under the campaign lock. Leaving
-   an item is refused when it would drop below its minimum; class activities are never left. Each
-   move writes a `swap` assignment, a revision and a confirmation mail. After the window, changes are
-   the organizer's (manual, audited) and, for unplaced students of their class, the class teacher's.
+7. **Swap window** (D-06). Between `swap_from` and `swap_until` every student may move into an item
+   they may enter (approved, not cancelled by the run, eligible for their grade and class, not a class
+   activity of theirs and overlapping none; a class activity's spare places count, D-24) that has a
+   free place, leaving every item of theirs that overlaps it; the move is immediate and first come
+   first served, under the campaign lock (`item_full` when someone was faster). Refused when an item
+   left would drop under its minimum (`below_minimum`), when a class activity would have to be left
+   (`leaves_fixed`), when the target overlaps an item the student keeps (`overlap`), and when any
+   project day would end up with more minutes missing than before (`coverage_lost`). Each move
+   supersedes the rows left, adds a `swap` row, records the change and sends a confirmation. The
+   same rules apply to the changes by hand: a class teacher places a student of their class who is
+   short of minutes into an item that fits the gap, with a reason, from publication to the archive;
+   the organizer moves or removes with a reason, and may override a full item or a minimum (recorded
+   as `forced`), never the other rules. The swap window's dates may be set until the window has
+   begun, so the organizer can set them when publishing.
 
 **Credited minutes** are given by the teacher per session and local date (`Europe/Vienna`). They are
 not derived from `end − start`, because breaks and travel do not count. A session over midnight, such
@@ -113,7 +122,7 @@ do not overlap.
 | `closes_at` and `late_until` reached | Each class teacher: the class's students without a complete list | **Yes** (D-06) |
 | `late_until` reached | Students whose list is not complete ("did not choose on time") | **Yes** (D-16) |
 | Results published | All participants, with their items and the swap window's dates; class teachers with their class's unplaced students; teachers whose item was cancelled below its minimum | **Yes** |
-| Swap or manual change | The student concerned | Yes |
+| Swap (`swap_confirmed`) or a change by hand (`assignment_changed`: by whom, what changed; the reason stays with the organizer) | The student concerned | Yes |
 | Activity changed after the window opened | Students who ranked it or are pre-assigned to it | Yes |
 
 Each notice is an outbox row written in the same transaction as its trigger, with a unique
@@ -333,10 +342,10 @@ it deliberately with `npm run contracts:update:routes` and review the diff.
 | `GET /api/campaigns/:id/catalogue` | any | Published catalogue: approved items, numbered, in print order (eligibility flags for students come with the choice window) |
 | `GET /api/campaigns/:id/classes` · `GET …/:id/teachers?q=` | teacher, organizer | The roster's classes and teachers, for the proposal form |
 | `GET /api/campaigns/:id/my-choice` · `PUT …/my-choice` | student | Fixed items, the offered items by project day and time group, the ranked wishes per group, completeness (whole-list replace); until `late_until` |
-| `GET /api/campaigns/:id/my-result` | student | The published places with the explanation (the items per day with the wish number, the minutes against the requirement, what is missing, the window the list came in, the seed), the fee, the swap window's dates; 409 `not_published` before publication; the free places per item come with the swap window (S5) |
-| `POST /api/campaigns/:id/swap` | student | Move into an item with free places during the swap window (D-06); 409 with its code when full, overlapping, below the old item's minimum or outside the window |
+| `GET /api/campaigns/:id/my-result` | student | The published places with the explanation (the items per day with the wish number, the minutes against the requirement, what is missing, the window the list came in, the seed), the fee, the swap window's dates and, while it is open, every item the student could move into with its free places, what the move would leave and why it would be refused (D-13); the student's own changes since publication; 409 `not_published` before publication |
+| `POST /api/campaigns/:id/swap` | student | Move into an item with free places during the swap window (§3 rule 7); answers with the result as it is afterwards; 409 `swap_closed`, `item_full`, `already_placed`, 422 with the rule's code otherwise |
 | `GET /api/campaigns/:id/demand` | teacher, organizer | Places needed per project day and grade: students of the grade minus those in fixed items, against the places offered (D-13) |
-| `GET /api/campaigns/:id/classes/:class/status` · `POST …/classes/:class/place` | class teacher (own class), organizer | The class's students with the state of their list, and after publication each one's places and the minutes they miss; place an unplaced student into an item with free places (reason required, audited; S5) |
+| `GET /api/campaigns/:id/classes/:class/status` · `POST …/classes/:class/place` | class teacher (own class), organizer | The class's students with the state of their list, and after publication each one's places, the minutes they miss and, for one short of minutes, the items with free places that fit the gap; place such a student into one of them (reason required, audited, the student notified); 409 `fully_placed` for a student with every day covered |
 | `POST /api/campaigns/:id/items` · `PATCH /api/items/:id` · `DELETE /api/items/:id` · `POST …/propose` · `POST …/unpropose` | teacher (own), organizer | Draft, edit, remove, propose and take back an activity with its teachers, sessions, places, fixed classes and eligibility; a 422 names the rules broken |
 | `POST /api/admin/items/:id/approve` · `POST …/return` · `POST …/withdraw` | organizer | Review, audited: approve, return to draft with a note, withdraw with a reason |
 | `POST /api/admin/campaigns` · `PATCH …/:id` · `POST …/:id/transition` | organizer | Campaign set-up (name, school year, project days) and lifecycle; this release moves to `catalogue` and `published`, which numbers the approved items |
@@ -361,7 +370,7 @@ it deliberately with `npm run contracts:update:routes` and review the diff.
 | `POST /api/admin/campaigns/:id/runs` · `GET …/runs` · `GET …/runs/:runId` · `GET …/runs/:runId/export.xlsx` | organizer (start), auditor (read) | Start a run on a closed campaign (seed and limit optional; 202, the job finishes it), the runs with their status and levels, the review of one (levels per pass, every student's places and missing minutes, the items' counts, the cancelled items, whether the campaign changed since), and the review as a workbook |
 | `POST …/runs/:runId/publish` | organizer | Publish a succeeded run of a campaign in review that is not stale, the cancelled items named as the review showed them (a different list is refused); the campaign to `results`, the notices queued once per run: every student their programme, every class teacher their students short of minutes, every teacher of a cancelled item the cancellation |
 | `GET /api/admin/campaigns/:id/export/assignments.xlsx` | organizer, auditor | The published run as a workbook: the students with their places per day and the fee, the participants per item, the items, the missing minutes |
-| `POST /api/admin/campaigns/:id/assignments` | organizer | Manual change (validated, reason required) |
+| `POST /api/admin/campaigns/:id/assignments` · `GET …/assignments` | organizer (change), auditor (read) | A change by hand: into an item (`itemId`), out of one (`removeItemId`) or both, reason required, `force` overriding a full item or a minimum (recorded); the same rules as a swap otherwise, audited, the student notified. The log of every change since publication with names and reasons |
 | `GET /api/campaigns/:id/items/:itemId/participants` | teacher (own, after results), organizer, auditor | The participants of an item in the published run, with class and how they got there; whether the item was cancelled |
 | `PUT /api/sessions/:id/attendance` | KV (own class), organizer; admin for WPF | Attendance |
 | `GET /api/admin/campaigns/:id/export/{choices,assignments,participants,missing,attendance}.xlsx` | organizer, auditor | Exports |

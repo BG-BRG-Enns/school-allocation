@@ -33,10 +33,11 @@ export const ClassStatusSchema = StrictObject({
     displayName: Type.String(),
     choice: Type.Union([ChoiceStateSchema, Type.Null()]),
     window: Type.Union([Type.Literal('first'), Type.Literal('late'), Type.Null()]),
-    /** After publication: the student's items and the minutes they miss; null before. */
+    /** After publication: the student's items and the minutes they miss, and for one short of minutes the items a class teacher could place them into; null before. */
     placement: Type.Optional(Type.Union([StrictObject({
       items: Type.Array(StrictObject({ itemId: Type.String(), title: Type.String(), source: Type.String() })),
       deficit: Type.Integer(),
+      offers: Type.Array(StrictObject({ itemId: Type.String(), title: Type.String(), number: Type.Union([Type.Integer(), Type.Null()]), free: Type.Integer(), problems: Type.Array(Type.String()) })),
     }), Type.Null()])),
   })),
   classActivities: Type.Array(StrictObject({

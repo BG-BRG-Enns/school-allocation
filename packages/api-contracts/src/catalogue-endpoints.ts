@@ -4,10 +4,14 @@ import { ErrorResponse, IdParams, StrictObject } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
 import { CatalogueResponse, DemandResponse, ItemsResponse, RosterClassesResponse, TeachersResponse } from './campaigns.ts'
 import { ClassStatusSchema } from './choices.ts'
+import { PlaceBody } from './publication.ts'
 
 export const getCampaignsByIdDemand = defineEndpoint({ ...metadata.getCampaignsByIdDemand, schema: { params: IdParams, response: { '200': DemandResponse, '4xx': ErrorResponse } } })
 
 export const getCampaignsByIdClassesByClassNameStatus = defineEndpoint({ ...metadata.getCampaignsByIdClassesByClassNameStatus, schema: { params: StrictObject({ ...IdParams.properties, ...ClassParams.properties }), response: { '200': ClassStatusSchema, '4xx': ErrorResponse } } })
+
+/** The class teacher's placement of a student short of minutes (mvp-plan S5a); answers with the class as it is afterwards. */
+export const postCampaignsByIdClassesByClassNamePlace = defineEndpoint({ ...metadata.postCampaignsByIdClassesByClassNamePlace, schema: { params: StrictObject({ ...IdParams.properties, ...ClassParams.properties }), body: PlaceBody, response: { '200': ClassStatusSchema, '4xx': ErrorResponse } } })
 
 export const getCampaignsByIdItems = defineEndpoint({ ...metadata.getCampaignsByIdItems, schema: { params: IdParams, response: { '200': ItemsResponse, '4xx': ErrorResponse } } })
 

@@ -62,8 +62,12 @@ function mailSummary(s: MissingStudent): string {
 /** The set-up (name, year, days) changes while the campaign is set up or takes proposals; the window's settings until it opens. */
 const setUpEditable = computed(() => campaign.value !== undefined && ['draft', 'catalogue'].includes(campaign.value.state))
 const windowEditable = computed(() => campaign.value !== undefined && ['draft', 'catalogue', 'published'].includes(campaign.value.state))
-/** The daily minimum is the allocation's input and may change until a run is published; after the close it is the one setting left to change. */
+/** The daily minimum is the allocation's input and may change until a run is published. */
 const minimumEditable = computed(() => windowEditable.value || (campaign.value !== undefined && ['closed', 'review'].includes(campaign.value.state)))
+/** The swap window's dates may be set until the window has begun: the organizer sets them when publishing. */
+const swapEditable = computed(() => minimumEditable.value || (campaign.value !== undefined && campaign.value.state === 'results' && (campaign.value.swapFrom === null || Date.parse(campaign.value.swapFrom) > Date.now())))
+const settingsEditable = computed(() => minimumEditable.value || swapEditable.value)
+const settingsButton = computed(() => windowEditable.value ? 'Einstellungen ändern' : minimumEditable.value ? 'Mindestminuten und Ummeldefenster ändern' : 'Ummeldefenster ändern')
 /** The grades the demand lists: those of the roster, or those the demand knows. */
 const demandGrades = computed(() => grades.value.length > 0 ? grades.value : [...new Set(demand.value.flatMap((d) => d.grades.map((g) => g.grade)))].sort((a, b) => a - b))
 
@@ -137,10 +141,12 @@ async function onSaveSettings(): Promise<void> {
       changes.opensAt = instantOrNull(opensAt.value)
       changes.closesAt = instantOrNull(closesAt.value)
       changes.lateUntil = instantOrNull(lateUntil.value)
-      changes.swapFrom = instantOrNull(swapFrom.value)
-      changes.swapUntil = instantOrNull(swapUntil.value)
       changes.wishesPerGroup = Number(wishesPerGroup.value)
       changes.showTeachers = showTeachers.value
+    }
+    if (swapEditable.value) {
+      changes.swapFrom = instantOrNull(swapFrom.value)
+      changes.swapUntil = instantOrNull(swapUntil.value)
     }
     if (minimumEditable.value) {
       changes.dailyMinimum = Object.fromEntries(Object.entries(dailyMinimum.value).filter(([, minutes]) => String(minutes).trim() !== '').map(([grade, minutes]) => [grade, Number(minutes)]))
@@ -286,12 +292,12 @@ function onSubmitPending(): void {
           Zuteilung
         </RouterLink>
         <button
-          v-if="!editing && minimumEditable"
+          v-if="!editing && settingsEditable"
           type="button"
           class="ghost"
           @click="startEditing"
         >
-          {{ windowEditable ? 'Einstellungen ändern' : 'Mindestminuten ändern' }}
+          {{ settingsButton }}
         </button>
         <a
           class="button ghost-link"
@@ -410,7 +416,7 @@ function onSubmitPending(): void {
               <input
                 id="edit-swap-from"
                 v-model="swapFrom"
-                :disabled="!windowEditable"
+                :disabled="!swapEditable"
                 type="datetime-local"
               >
             </p>
@@ -419,7 +425,7 @@ function onSubmitPending(): void {
               <input
                 id="edit-swap-until"
                 v-model="swapUntil"
-                :disabled="!windowEditable"
+                :disabled="!swapEditable"
                 type="datetime-local"
               >
             </p>
