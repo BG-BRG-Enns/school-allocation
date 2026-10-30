@@ -3,6 +3,7 @@
 // account, with class and grade, and the roles they hold.
 
 import { computed } from 'vue'
+import { withBase } from '../lib/base.ts'
 import { KIND_LABELS, ROLE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
@@ -48,4 +49,9 @@ const personText = computed(() => {
       </ul>
     </dd>
   </dl>
+  <!-- The licences of the packages the web build bundles, which it writes next to the app (third-party-notices/README.md). -->
+  <p>
+    SchulWahl ist freie Software unter der MIT-Lizenz. Die Lizenzen der Programmbibliotheken, die diese Seiten enthalten:
+    <a :href="withBase('/third-party-licenses.txt')">third-party-licenses.txt</a>
+  </p>
 </template>

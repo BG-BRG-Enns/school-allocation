@@ -294,6 +294,10 @@ jobs:
             exit 1
           fi
 
+          # The notices travel with the image, and the licences of what the
+          # web build bundles with the app (third-party-notices/README.md).
+          docker run --rm school-allocation:ci test -s third-party-notices/README.md -a -s third-party-notices/ISC-libsodium.txt -a -s apps/web/dist/third-party-licenses.txt
+
           # Keeps the container names free if the step is retried in place, and
           # stops a failed assertion from leaving containers running.
           cleanup() { docker rm -f school-allocation-ci school-allocation-ci-db >/dev/null 2>&1 || true; }
@@ -412,6 +416,12 @@ jobs:
           wait_healthy
           if ! migrate | grep -q 'nothing to apply'; then
             echo "Expected a second migration run to be a no-op" >&2
+            exit 1
+          fi
+
+          # The bundled packages' licences are served next to the app.
+          if ! curl -fsS http://127.0.0.1:3000/third-party-licenses.txt | grep -q '^## vue-router '; then
+            echo "Expected /third-party-licenses.txt to name vue-router" >&2
             exit 1
           fi
 
@@ -547,6 +557,8 @@ jobs:
             echo "Expected the solver image to run as '10002:10002', got '$user'" >&2
             exit 1
           fi
+          # The notices travel with the image (apps/solver/third-party-notices/README.md).
+          docker run --rm school-allocation-solver:ci test -s third-party-notices/README.md -a -s third-party-notices/EPL-2.0.txt
           cleanup() { docker rm -f school-allocation-solver-ci >/dev/null 2>&1 || true; }
           trap cleanup EXIT
           docker run -d --name school-allocation-solver-ci --read-only --cap-drop ALL --security-opt no-new-privileges \

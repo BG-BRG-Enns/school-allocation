@@ -58,6 +58,9 @@ COPY packages/api-contracts/package.json packages/api-contracts/
 COPY packages/school-core/src packages/school-core/src
 COPY packages/api-contracts/src packages/api-contracts/src
 COPY apps/api apps/api
+# The notices for what the image carries beyond its packages' own licence
+# files (third-party-notices/README.md).
+COPY third-party-notices third-party-notices
 COPY --from=web /app/apps/web/dist apps/web/dist
 
 # What was built, reported by /api/health. Set by the CI and release

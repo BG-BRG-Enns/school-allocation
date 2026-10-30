@@ -47,3 +47,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Report security problems privately as de
 ## License
 
 [MIT](LICENSE). The engineering conventions, the sign-in, the migration runner and the deployment model come from [school-election](https://github.com/cmiicbrg/school-election), by the same author under the same license.
+
+The images carry the notices for what they contain of other projects beyond their packages' own licence files: [`third-party-notices/`](third-party-notices/README.md) for the app, [`apps/solver/third-party-notices/`](apps/solver/third-party-notices/README.md) for the solver. The web app's bundled packages are listed with their licences in `third-party-licenses.txt` next to the app, linked from the account page.

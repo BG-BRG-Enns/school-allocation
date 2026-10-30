@@ -30,6 +30,9 @@ COPY --from=requirements /lock/requirements.txt ./
 RUN pip install --require-hashes --no-deps -r requirements.txt
 
 COPY app ./app
+# The notices for what the wheels carry beyond their own licence files
+# (third-party-notices/README.md).
+COPY third-party-notices ./third-party-notices
 
 ARG APP_VERSION=""
 ARG GIT_SHA=""

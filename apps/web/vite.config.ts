@@ -30,6 +30,10 @@ export default defineConfig({
     // Vite's default inlines the small font subsets, which the browser
     // then refuses and logs on every page.
     assetsInlineLimit: 0,
+    // The licences of every package bundled into the app's files (Vue and
+    // vue-router among them), next to the app, which serves it as text; the
+    // account page links it (third-party-notices/README.md).
+    license: { fileName: 'third-party-licenses.txt' },
   },
   server: {
     // The API serves the built app in production; in development Vite
