@@ -7,19 +7,22 @@
 --
 -- The guards refuse every deletion for every role, as they should; the
 -- purge is the one path through them. It is a definer function owned by
--- the migrator, the only role with DELETE, which switches the guards off
--- for its own transaction with a transaction-local setting that the guards
--- read first. The runtime role has no DELETE anywhere, so the switch alone
--- opens nothing: whoever can set it could not delete a row. The function
--- is listed in apps/api/lib/runtime-privileges.ts (RUNTIME_FUNCTIONS).
+-- the migrator, which switches the guards off for its own transaction with
+-- a transaction-local setting that the guards read first. The guards honour
+-- the setting only while a definer function runs (current_user differs
+-- from session_user then), so the runtime role, which may set any setting
+-- and may delete a draft or a pre-assignment by class, cannot switch a
+-- guard off from outside. The function is listed in
+-- apps/api/lib/runtime-privileges.ts (RUNTIME_FUNCTIONS).
 
 -- Every guard that refuses a deletion learns the switch, inline: a trigger
 -- runs as whoever writes, and the runtime role may execute no function the
--- grant list does not name. The rule stays as it was for everyone else.
+-- grant list does not name. The rule stays as it was for everyone else,
+-- the owner at a prompt included (current_user is session_user there).
 
 create or replace function audit_event_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   perform refuse('the audit log is append-only');
   return null;
 end
@@ -27,7 +30,7 @@ $$;
 
 create or replace function role_grant_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   if tg_op = 'DELETE' then
     perform refuse('a role grant is revoked, not removed');
   end if;
@@ -44,7 +47,7 @@ $$;
 
 create or replace function import_batch_guard() returns trigger language plpgsql as $$
 begin
-  if coalesce(current_setting('schulwahl.purge', true), '') = 'on' then
+  if coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then
     if tg_op = 'DELETE' then return old; end if;
     if tg_op = 'UPDATE' then return new; end if;
   end if;
@@ -76,7 +79,7 @@ $$;
 
 create or replace function roster_entry_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   if tg_op in ('DELETE', 'TRUNCATE') then
     perform refuse('a roster entry is kept with its batch, not removed');
     return null;
@@ -96,7 +99,7 @@ $$;
 
 create or replace function identity_binding_guard() returns trigger language plpgsql as $$
 begin
-  if coalesce(current_setting('schulwahl.purge', true), '') = 'on' then
+  if coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then
     if tg_op = 'DELETE' then return old; end if;
     if tg_op = 'UPDATE' then return new; end if;
   end if;
@@ -118,7 +121,7 @@ $$;
 
 create or replace function catalog_item_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   if tg_op in ('DELETE', 'TRUNCATE') then
     if tg_op = 'TRUNCATE' or old.state <> 'draft' or old.number is not null then
       perform refuse('an item past draft or with a catalogue number is withdrawn, not removed');
@@ -137,7 +140,7 @@ $$;
 
 create or replace function class_teacher_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   if tg_op in ('DELETE', 'TRUNCATE') then
     perform refuse('a class teacher assignment is revoked, not removed');
   end if;
@@ -154,7 +157,7 @@ $$;
 
 create or replace function pre_assignment_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   if tg_op = 'DELETE' and old.source = 'class' and old.exempted_at is null then
     return old;
   end if;
@@ -173,7 +176,7 @@ $$;
 
 create or replace function choice_revision_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   perform refuse('a choice revision is never changed or removed');
   return null;
 end
@@ -181,7 +184,7 @@ $$;
 
 create or replace function outbox_mail_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   if tg_op in ('DELETE', 'TRUNCATE') then
     perform refuse('a mail stays in the outbox as the record of what was sent');
   end if;
@@ -199,7 +202,7 @@ $$;
 
 create or replace function allocation_run_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   if tg_op in ('DELETE', 'TRUNCATE') then
     perform refuse('an allocation run is the record of what was computed; it is never removed');
   end if;
@@ -222,7 +225,7 @@ $$;
 
 create or replace function assignment_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   if tg_op in ('DELETE', 'TRUNCATE') then
     perform refuse('an assignment row is never removed');
     return null;
@@ -244,7 +247,7 @@ $$;
 
 create or replace function assignment_change_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   perform refuse('a change of an assignment is never changed or removed');
   return null;
 end
@@ -252,12 +255,12 @@ $$;
 
 create or replace function attendance_guard() returns trigger language plpgsql as $$
 begin
-  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' then return old; end if;
+  if tg_op = 'DELETE' and coalesce(current_setting('schulwahl.purge', true), '') = 'on' and current_user <> session_user then return old; end if;
   if tg_op in ('DELETE', 'TRUNCATE') then
     perform refuse('an attendance record is corrected, not removed');
     return null;
   end if;
-  if new.session_id <> old.session_id or new.person_id <> old.person_id then
+  if new.item_id <> old.item_id or new.position <> old.position or new.person_id <> old.person_id then
     perform refuse('an attendance record keeps its session and person');
   end if;
   return new;
@@ -284,13 +287,16 @@ begin
   if exists (select 1 from campaign where id = any(campaigns) and state <> 'archived') then
     raise exception 'a campaign of % is not archived', year using errcode = '55000';
   end if;
-  -- The year's roster batches, unless a campaign of another year still goes by one.
+  -- The year's roster batches, unless a campaign of another year froze one, and never the roster in force (the newest
+  -- committed batch): a campaign not yet frozen, whatever its year, goes by that one.
   select coalesce(array_agg(b.id), '{}') into batches from import_batch b
-   where b.school_year = year and not exists (select 1 from campaign c where c.roster_batch_id = b.id and c.school_year <> year);
+   where b.school_year = year
+     and not exists (select 1 from campaign c where c.roster_batch_id = b.id and c.school_year <> year)
+     and b.id is distinct from (select id from import_batch where state = 'committed' order by decided_at desc limit 1);
   perform set_config('schulwahl.purge', 'on', true);
 
   -- The campaigns, from the leaves up.
-  with d as (delete from attendance a using item_session s, catalog_item i where a.session_id = s.id and s.item_id = i.id and i.campaign_id = any(campaigns) returning 1) select count(*) into n from d;
+  with d as (delete from attendance a using catalog_item i where a.item_id = i.id and i.campaign_id = any(campaigns) returning 1) select count(*) into n from d;
   relation := 'attendance'; removed := n; return next;
   with d as (delete from assignment a using allocation_run r where a.run_id = r.id and r.campaign_id = any(campaigns) returning 1) select count(*) into n from d;
   relation := 'assignment'; removed := n; return next;

@@ -85,15 +85,29 @@ test('a school year past its retention is purged whole; the next year, its peopl
   assert.equal((await send(h, carla, 'PUT', `/api/sessions/${sessionId}/attendance`, { entries: [{ personId: person(SARA.name), status: 'present' }] })).status, 200)
   assert.equal((await send(h, anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'archived' })).status, 200)
 
-  // 2026/27: a roster without Tim and Max, and a campaign being set up.
-  await commit('2026/27', [`${SARA.email};Sara;Schülerin;8A;12;student;${CARLA.email}`, ...teachers])
+  // Where the runtime role may delete at all (a draft, by the catalogue's guard), the switch is not its to set: a guard honours it inside
+  // the definer function alone. The refusal reaches the runtime role as a permission error on refuse(), which the grant list does not
+  // name (so since the baseline); the guard refused either way.
+  await assert.rejects(h.db.tx(async (client) => {
+    await client.query('set local schulwahl.purge = \'on\'')
+    await client.query('delete from catalog_item where id = $1', [klettern])
+  }), /withdrawn, not removed|permission denied for function refuse/)
+
+  // 2026/27: a campaign being set up, which goes by the roster in force until its close; that roster is 2023/24's batch for now.
   const next = await send<Campaign>(h, anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'Projektwoche 2027', schoolYear: '2026/27', projectDays: ['2027-06-21'] })
   assert.equal(next.status, 201)
+  const inForce = await get<{ years: { schoolYear: string, reached: boolean, campaigns: { state: string }[], batches: number }[] }>(h, anna, '/api/admin/retention')
+  assert.deepEqual(inForce.body.years.map((y) => [y.schoolYear, y.batches]), [['2026/27', 0], ['2023/24', 1]])
+  // Purging 2023/24 now keeps its batch: it is the roster in force, and the 2026/27 campaign reads it. Then a 2026/27 roster without Tim and Max.
+  const kept = await send<{ error?: string, removed: { relation: string, count: number }[] }>(h, anna, 'POST', '/api/admin/purge', { schoolYear: '2023/24', reason: 'Probe' })
+  assert.equal(kept.status, 200, JSON.stringify(kept.body))
+  assert.deepEqual(kept.body.removed.filter((r) => ['import_batch', 'roster_entry', 'person', 'campaign'].includes(r.relation)).map((r) => [r.relation, r.count]), [['campaign', 1], ['roster_entry', 0], ['import_batch', 0], ['person', 0]], 'the campaign went, the roster in force stayed')
+  await commit('2026/27', [`${SARA.email};Sara;Schülerin;8A;12;student;${CARLA.email}`, ...teachers])
 
   // The overview: both years, the old one past its retention, the new one not.
   const overview = await get<{ years: { schoolYear: string, reached: boolean, campaigns: { state: string }[], batches: number }[] }>(h, anna, '/api/admin/retention')
   assert.equal(overview.status, 200, JSON.stringify(overview.body))
-  assert.deepEqual(overview.body.years.map((y) => [y.schoolYear, y.reached, y.campaigns.map((c) => c.state), y.batches]), [['2026/27', false, ['draft'], 1], ['2023/24', true, ['archived'], 1]])
+  assert.deepEqual(overview.body.years.map((y) => [y.schoolYear, y.reached, y.campaigns.map((c) => c.state), y.batches]), [['2026/27', false, ['draft'], 1], ['2023/24', true, [], 1]], 'the old year\'s batch is left to purge')
   assert.equal((await get(h, bernd, '/api/admin/retention')).status, 403)
 
   // Refusals: still in retention; not an administrator; a year nobody has.
@@ -109,14 +123,7 @@ test('a school year past its retention is purged whole; the next year, its peopl
   const done = await purge(anna, '2023/24')
   assert.equal(done.status, 200, JSON.stringify(done.body))
   const removed = Object.fromEntries(done.body.removed.map((r) => [r.relation, r.count]))
-  assert.equal(removed.campaign, 1)
-  assert.equal(removed.catalog_item, 2)
-  assert.equal(removed.allocation_run, 1)
-  assert.equal(removed.assignment_change, 1)
-  assert.ok((removed.assignment ?? 0) >= 3, 'the run\'s rows and the swap\'s')
-  assert.equal(removed.attendance, 1)
-  assert.ok((removed.outbox_mail ?? 0) >= 3, 'the invitations, the results, the swap')
-  assert.ok((removed.audit_event ?? 0) >= 5)
+  assert.equal(removed.campaign, 0, 'went with the first purge')
   assert.equal(removed.roster_entry, 6)
   assert.equal(removed.import_batch, 1)
   assert.equal(removed.person, 2, 'Tim and Max')
@@ -130,9 +137,18 @@ test('a school year past its retention is purged whole; the next year, its peopl
   assert.equal((await owner.query('select 1 from app_user where oid = $1', [SARA.oid])).rowCount, 1)
   assert.equal((await owner.query('select 1 from identity_binding where oid = $1 and import_batch_id is null', [SARA.oid])).rowCount, 1, 'her binding stays, its batch reference cleared')
   assert.equal((await get(h, anna, `/api/campaigns/${id}`)).status, 404)
+  const first = Object.fromEntries(kept.body.removed.map((r) => [r.relation, r.count]))
+  assert.equal(first.catalog_item, 2)
+  assert.equal(first.allocation_run, 1)
+  assert.equal(first.assignment_change, 1)
+  assert.ok((first.assignment ?? 0) >= 3, 'the run\'s rows and the swap\'s')
+  assert.equal(first.attendance, 1)
+  assert.ok((first.outbox_mail ?? 0) >= 3, 'the invitations, the results, the swap')
+  assert.ok((first.audit_event ?? 0) >= 5)
   assert.equal((await get(h, anna, `/api/campaigns/${next.body.id}`)).status, 200)
   assert.equal((await get(h, sara, '/api/auth/me')).status, 200, 'Sara is still who she was')
   const events = await readAudit(h.db, SCHOOL_SCOPE)
+  assert.equal(events.filter((e) => e.action === 'retention.purged').length, 2, 'both purges, the roster commit between them')
   assert.equal(events.at(-1)?.action, 'retention.purged')
   assert.deepEqual(events.at(-1)?.metadata.schoolYear, '2023/24')
   assert.equal(verifyAuditChain(events).valid, true, 'the school\'s chain is untouched')
