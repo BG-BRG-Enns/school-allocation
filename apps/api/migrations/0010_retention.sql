@@ -285,6 +285,11 @@ begin
   if year !~ '^\d{4}/\d{2}$' then
     raise exception 'not a school year: %', year using errcode = '22023';
   end if;
+  -- The retention (D-15): a year after the school year's end, the first of September of the year after the second, in
+  -- Vienna. The service checks it first and says so in words; here it is what the stored data must satisfy whoever calls.
+  if now() < make_timestamptz(substring(year from 1 for 4)::integer + 2, 9, 1, 0, 0, 0, 'Europe/Vienna') then
+    raise exception 'the retention of % has not ended', year using errcode = '55000';
+  end if;
   select coalesce(array_agg(id), '{}') into campaigns from campaign where school_year = year;
   if exists (select 1 from campaign where id = any(campaigns) and state <> 'archived') then
     raise exception 'a campaign of % is not archived', year using errcode = '55000';
@@ -314,6 +319,10 @@ begin
   relation := 'pre_assignment'; removed := n; return next;
   with d as (delete from outbox_mail where campaign_id = any(campaigns) returning 1) select count(*) into n from d;
   relation := 'outbox_mail'; removed := n; return next;
+  with d as (delete from item_teacher t using catalog_item i where t.item_id = i.id and i.campaign_id = any(campaigns) returning 1) select count(*) into n from d;
+  relation := 'item_teacher'; removed := n; return next;
+  with d as (delete from item_session s using catalog_item i where s.item_id = i.id and i.campaign_id = any(campaigns) returning 1) select count(*) into n from d;
+  relation := 'item_session'; removed := n; return next;
   with d as (delete from catalog_item where campaign_id = any(campaigns) returning 1) select count(*) into n from d;
   relation := 'catalog_item'; removed := n; return next;
   with d as (delete from role_grant where campaign_id = any(campaigns) returning 1) select count(*) into n from d;

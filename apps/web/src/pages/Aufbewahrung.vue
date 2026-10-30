@@ -9,7 +9,7 @@ import { useFeedback } from '../lib/feedback.ts'
 import { formatWhenShort } from '../lib/format.ts'
 import { CAMPAIGN_STATE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
-import { isSchoolAdmin } from '../lib/session.ts'
+import { isSchoolAdmin, session } from '../lib/session.ts'
 
 usePageTitle(() => 'Aufbewahrung')
 const years = ref<RetentionYear[]>([])
@@ -19,11 +19,14 @@ const chosen = ref('')
 const confirmYear = ref('')
 const reason = ref('')
 const removed = ref<{ relation: string, count: number }[] | null>(null)
+/** Administrators and auditors read the overview; administrators purge. */
+const mayRead = computed(() => isSchoolAdmin.value || (session.value?.roles.includes('read_only_auditor') ?? false))
 
 const candidate = computed(() => years.value.find((y) => y.schoolYear === chosen.value))
 const ready = computed(() => candidate.value !== undefined && candidate.value.reached && candidate.value.campaigns.every((c) => c.state === 'archived') && confirmYear.value.trim() === chosen.value && reason.value.trim() !== '')
 
 async function load(): Promise<void> {
+  if (!mayRead.value) return
   await loading.run(async () => {
     years.value = (await loadRetention()).years
   })
@@ -52,10 +55,10 @@ async function onPurge(): Promise<void> {
   </p>
   <h1>Aufbewahrung</h1>
   <p
-    v-if="!isSchoolAdmin"
+    v-if="!mayRead"
     role="alert"
   >
-    Die Aufbewahrung ist der Administration der Schule vorbehalten.
+    Die Aufbewahrung ist der Administration der Schule vorbehalten; die Einsicht liest mit.
   </p>
   <template v-else>
     <p class="muted">
@@ -135,7 +138,7 @@ async function onPurge(): Promise<void> {
         </tbody>
       </table>
     </section>
-    <section>
+    <section v-if="isSchoolAdmin">
       <h2>Schuljahr löschen</h2>
       <form
         aria-label="Schuljahr löschen"

@@ -115,6 +115,7 @@ test('a school year past its retention is purged whole; the next year, its peopl
   // Refusals: still in retention; not an administrator; a year nobody has.
   const purge = (jar: typeof anna, schoolYear: string) => send<{ error?: string, removed: { relation: string, count: number }[] }>(h, jar, 'POST', '/api/admin/purge', { schoolYear, reason: 'Aufbewahrungsfrist abgelaufen' })
   assert.equal((await purge(anna, '2026/27')).body.error, 'retention_not_reached')
+  await assert.rejects(owner.query('select * from purge_school_year(\'2026/27\')'), /retention of 2026\/27 has not ended/, 'the function refuses it too, whoever calls')
   assert.equal((await purge(bernd, '2023/24')).status, 403)
   assert.equal((await purge(anna, '2019/20')).status, 404)
   await assert.rejects(h.db.query('delete from campaign where id = $1', [id]), /permission denied/, 'the runtime role deletes nothing itself')
@@ -142,6 +143,8 @@ test('a school year past its retention is purged whole; the next year, its peopl
   assert.equal((await get(h, anna, `/api/campaigns/${id}`)).status, 404)
   const first = Object.fromEntries(kept.body.removed.map((r) => [r.relation, r.count]))
   assert.equal(first.catalog_item, 2)
+  assert.equal(first.item_session, 2)
+  assert.equal(first.item_teacher, 2)
   assert.equal(first.allocation_run, 1)
   assert.equal(first.assignment_change, 1)
   assert.ok((first.assignment ?? 0) >= 3, 'the run\'s rows and the swap\'s')
