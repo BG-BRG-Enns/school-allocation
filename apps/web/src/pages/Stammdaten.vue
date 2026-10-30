@@ -10,10 +10,11 @@ import { csvTemplatePath, graphPickerStartPath, graphStartPath, loadRoster, save
 import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
+import { t } from '../lib/i18n.ts'
 import { BATCH_STATE_LABELS, KIND_LABELS, REFRESH_ERROR_LABELS, SOURCE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
-usePageTitle(() => 'Stammdaten')
+usePageTitle(() => t.common.page.roster)
 const route = useRoute()
 const router = useRouter()
 
@@ -133,7 +134,7 @@ async function onSaveGroups(): Promise<void> {
     const saved = await saveGroups(payload)
     groups.value = saved.groups.map((group) => ({ ...group, key: nextKey++ }))
     if (overview.value) overview.value.groups = saved.groups
-  }, 'Gruppen gespeichert.')
+  }, t.roster.groups.saved)
 }
 
 const graphStart = computed(() => withBase(graphStartPath(schoolYear.value)))
@@ -158,14 +159,14 @@ async function onUpload(): Promise<void> {
 }
 
 function summaryText(batch: RosterOverview['batches'][number]): string {
-  if (batch.state === 'rejected') return `${batch.problems.length} Problem${batch.problems.length === 1 ? '' : 'e'}`
+  if (batch.state === 'rejected') return t.roster.batches.problems(batch.problems.length)
   const { added, removed, changed } = batch.summary
   return `+${added} −${removed} ~${changed}`
 }
 </script>
 
 <template>
-  <h1>Stammdaten</h1>
+  <h1>{{ t.common.page.roster }}</h1>
   <p
     v-if="refreshError"
     role="alert"
@@ -182,25 +183,25 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
   </p>
 
   <section v-if="overview">
-    <h2>Aktuelle Personenliste</h2>
+    <h2>{{ t.roster.current.title }}</h2>
     <p v-if="!overview.current">
-      Noch keine Personenliste übernommen. Importieren Sie die Personen aus den Entra-Gruppen oder aus einer CSV-Datei.
+      {{ t.roster.current.none }}
     </p>
     <dl v-else>
-      <dt>Übernommen</dt>
+      <dt>{{ t.roster.current.committed }}</dt>
       <dd>{{ formatWhen(overview.current.decidedAt) }}</dd>
-      <dt>Quelle</dt>
+      <dt>{{ t.roster.source }}</dt>
       <dd>{{ SOURCE_LABELS[overview.current.source] ?? overview.current.source }}</dd>
-      <dt>Schuljahr</dt>
+      <dt>{{ t.common.field.schoolYear }}</dt>
       <dd>{{ overview.current.schoolYear }}</dd>
-      <dt>Personen</dt>
+      <dt>{{ t.roster.persons }}</dt>
       <dd>{{ overview.current.rowCount }}</dd>
     </dl>
   </section>
 
   <section v-if="overview">
-    <h2>Entra-Gruppen</h2>
-    <p>Die Gruppen der Schule, aus denen die Personenliste gelesen wird: je Klasse eine Schülergruppe mit Klasse und Schulstufe, dazu die Gruppe der Lehrkräfte. Suchen Sie die Gruppen bei Microsoft nach ihrem Namen, oder tragen Sie die Gruppen-ID ein, die in Entra bei der Gruppe steht (Objekt-ID). Untergruppen werden mitgelesen: Eine Klasse, deren Schüler/innen in Untergruppen stehen, wird nur einmal eingetragen, entweder die Klassengruppe oder ihre Untergruppen (3A, oder 3AR und 3AG), sonst stehen die Personen doppelt in der Liste.</p>
+    <h2>{{ t.roster.groups.title }}</h2>
+    <p>{{ t.roster.groups.intro }}</p>
     <form @submit.prevent="onSaveGroups">
       <table
         v-if="groups.length > 0"
@@ -209,22 +210,22 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
         <thead>
           <tr>
             <th scope="col">
-              Gruppen-ID
+              {{ t.roster.groups.id }}
             </th>
             <th scope="col">
-              Bezeichnung
+              {{ t.roster.groups.label }}
             </th>
             <th scope="col">
-              Art
+              {{ t.roster.groups.kind }}
             </th>
             <th scope="col">
-              Klasse
+              {{ t.common.field.className }}
             </th>
             <th scope="col">
-              Schulstufe
+              {{ t.common.field.grade }}
             </th>
             <th scope="col">
-              <span class="visually-hidden">Entfernen</span>
+              <span class="visually-hidden">{{ t.common.remove }}</span>
             </th>
           </tr>
         </thead>
@@ -236,7 +237,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
             <td>
               <input
                 v-model="group.groupId"
-                :aria-label="`Gruppen-ID ${group.label || 'neue Gruppe'}`"
+                :aria-label="t.roster.groups.fieldOf(t.roster.groups.id, group.label || t.roster.groups.newGroup)"
                 required
                 pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
                 size="36"
@@ -245,7 +246,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
             <td>
               <input
                 v-model="group.label"
-                :aria-label="`Bezeichnung ${group.groupId || 'neue Gruppe'}`"
+                :aria-label="t.roster.groups.fieldOf(t.roster.groups.label, group.groupId || t.roster.groups.newGroup)"
                 required
                 maxlength="200"
               >
@@ -253,7 +254,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
             <td>
               <select
                 v-model="group.kind"
-                :aria-label="`Art ${group.label || 'neue Gruppe'}`"
+                :aria-label="t.roster.groups.fieldOf(t.roster.groups.kind, group.label || t.roster.groups.newGroup)"
               >
                 <option value="student">
                   {{ KIND_LABELS.student }}
@@ -266,7 +267,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
             <td>
               <input
                 v-model="group.className"
-                :aria-label="`Klasse ${group.label || 'neue Gruppe'}`"
+                :aria-label="t.roster.groups.fieldOf(t.common.field.className, group.label || t.roster.groups.newGroup)"
                 :disabled="group.kind !== 'student'"
                 :required="group.kind === 'student'"
                 maxlength="16"
@@ -277,7 +278,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
             <td>
               <input
                 v-model.number="group.grade"
-                :aria-label="`Schulstufe ${group.label || 'neue Gruppe'}`"
+                :aria-label="t.roster.groups.fieldOf(t.common.field.grade, group.label || t.roster.groups.newGroup)"
                 :disabled="group.kind !== 'student'"
                 :required="group.kind === 'student'"
                 type="number"
@@ -292,28 +293,28 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
                 class="ghost"
                 @click="removeGroup(group.key)"
               >
-                Entfernen
+                {{ t.common.remove }}
               </button>
             </td>
           </tr>
         </tbody>
       </table>
       <p v-else>
-        Noch keine Gruppen eingetragen.
+        {{ t.roster.groups.none }}
       </p>
       <div
         v-if="pickerOpen"
         class="panel"
       >
-        <h3>Gruppen suchen</h3>
+        <h3>{{ t.roster.picker.title }}</h3>
         <p
           v-if="pickerNeedsAuthorization"
           class="notice"
         >
-          Für die Suche ist eine Anmeldung bei Microsoft nötig: <a :href="withBase(graphPickerStartPath)">Bei Microsoft anmelden und Gruppen suchen</a>.
+          {{ t.roster.picker.authorizationNeeded }} <a :href="withBase(graphPickerStartPath)">{{ t.roster.picker.authorize }}</a>.
         </p>
         <p class="field">
-          <label for="group-search">Name der Gruppe beginnt mit</label>
+          <label for="group-search">{{ t.roster.picker.query }}</label>
           <input
             id="group-search"
             v-model="pickerQuery"
@@ -329,9 +330,9 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
             :disabled="pickerFeedback.busy.value"
             @click="findClassGroups"
           >
-            Alle Klassengruppen suchen
+            {{ t.roster.picker.allClasses }}
           </button>
-          <span class="muted">Gruppen, deren Name eine Klasse ist (5A, 1B, …). Klasse und Schulstufe werden aus dem Namen vorbelegt: 5A → 9. Schulstufe.</span>
+          <span class="muted">{{ t.roster.picker.allClassesHint }}</span>
         </p>
         <p
           v-if="allClasses && pickerResults.length > 1"
@@ -341,7 +342,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
             type="button"
             @click="takeAllGroups"
           >
-            Alle {{ pickerResults.length }} Gruppen übernehmen
+            {{ t.roster.picker.takeAll(pickerResults.length) }}
           </button>
         </p>
         <ul
@@ -357,7 +358,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
               class="ghost"
               @click="takeGroup(group)"
             >
-              {{ group.displayName }} übernehmen
+              {{ t.roster.picker.take(group.displayName) }}
             </button>
             <span
               v-if="group.description"
@@ -369,7 +370,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
           v-else-if="(pickerQuery.trim() !== '' || allClasses) && !pickerFeedback.busy.value && !pickerFeedback.error.value"
           class="muted"
         >
-          {{ allClasses ? 'Keine Gruppe, deren Name eine Klasse ist, die nicht schon eingetragen wäre.' : 'Keine Gruppe mit diesem Anfang.' }}
+          {{ allClasses ? t.roster.picker.noClassGroup : t.roster.picker.noMatch }}
         </p>
         <p
           v-if="pickerFeedback.error.value && !pickerNeedsAuthorization"
@@ -385,18 +386,18 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
           class="ghost"
           @click="addGroup"
         >
-          Gruppe hinzufügen
+          {{ t.roster.groups.add }}
         </button>
         <a
           v-if="!pickerOpen"
           class="button ghost-link"
           :href="withBase(graphPickerStartPath)"
-        >Gruppen bei Microsoft suchen</a>
+        >{{ t.roster.groups.searchAtMicrosoft }}</a>
         <button
           type="submit"
           :disabled="groupsFeedback.busy.value"
         >
-          Gruppen speichern
+          {{ t.roster.groups.save }}
         </button>
       </p>
       <p
@@ -415,10 +416,10 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
       </p>
     </form>
 
-    <h3>Aus den Entra-Gruppen aktualisieren</h3>
-    <p>Sie werden zu Microsoft weitergeleitet und erlauben SchulWahl, mit Ihrem Konto die Mitglieder der Gruppen zu lesen ({{ overview.graphScopes.join(', ') }}). Die Liste wird gelesen und Ihnen zur Prüfung gezeigt, bevor sie gilt.</p>
+    <h3>{{ t.roster.refresh.title }}</h3>
+    <p>{{ t.roster.refresh.intro(overview.graphScopes.join(', ')) }}</p>
     <p class="field">
-      <label for="school-year">Schuljahr</label>
+      <label for="school-year">{{ t.common.field.schoolYear }}</label>
       <input
         id="school-year"
         v-model="schoolYear"
@@ -433,23 +434,23 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
         v-if="canRefresh"
         class="button"
         :href="graphStart"
-      >Aus Entra-Gruppen aktualisieren</a>
+      >{{ t.roster.refresh.start }}</a>
       <span
         v-else
         class="muted"
-      >Tragen Sie zuerst die Gruppen ein und speichern Sie sie.</span>
+      >{{ t.roster.refresh.groupsFirst }}</span>
     </p>
   </section>
 
   <section v-if="overview">
-    <h2>CSV-Datei hochladen</h2>
+    <h2>{{ t.roster.csv.title }}</h2>
     <p>
-      Eine Zeile je Person mit den Spalten der
-      <a :href="withBase(csvTemplatePath)">Vorlage</a>: E-Mail-Adresse, Vorname, Nachname, Klasse, Schulstufe, Art (student oder teacher), optional die E-Mail-Adresse des Klassenvorstands. Trennzeichen Semikolon oder Komma. Die Personen werden beim ersten Anmelden über ihre Schul-E-Mail-Adresse erkannt.
+      {{ t.roster.csv.columnsOf }}
+      <a :href="withBase(csvTemplatePath)">{{ t.roster.csv.template }}</a>: {{ t.roster.csv.columns }}
     </p>
     <form @submit.prevent="onUpload">
       <p class="field">
-        <label for="csv-file">Datei</label>
+        <label for="csv-file">{{ t.roster.csv.file }}</label>
         <input
           id="csv-file"
           type="file"
@@ -458,7 +459,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
         >
       </p>
       <p class="field">
-        <label for="csv-text">Oder Inhalt einfügen</label>
+        <label for="csv-text">{{ t.roster.csv.paste }}</label>
         <textarea
           id="csv-text"
           v-model="csvText"
@@ -467,7 +468,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
         />
       </p>
       <p class="field">
-        <label for="csv-school-year">Schuljahr</label>
+        <label for="csv-school-year">{{ t.common.field.schoolYear }}</label>
         <input
           id="csv-school-year"
           v-model="schoolYear"
@@ -481,7 +482,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
           type="submit"
           :disabled="csvFeedback.busy.value || csvText.trim() === ''"
         >
-          Importieren
+          {{ t.roster.csv.import }}
         </button>
       </p>
       <p
@@ -495,30 +496,30 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
   </section>
 
   <section v-if="overview && overview.batches.length > 0">
-    <h2>Importe</h2>
+    <h2>{{ t.roster.batches.title }}</h2>
     <table class="table">
       <thead>
         <tr>
           <th scope="col">
-            Gelesen
+            {{ t.roster.fetched }}
           </th>
           <th scope="col">
-            Quelle
+            {{ t.roster.source }}
           </th>
           <th scope="col">
-            Schuljahr
+            {{ t.common.field.schoolYear }}
           </th>
           <th scope="col">
-            Personen
+            {{ t.roster.persons }}
           </th>
           <th scope="col">
-            Änderungen
+            {{ t.roster.batches.changes }}
           </th>
           <th scope="col">
-            Stand
+            {{ t.common.field.state }}
           </th>
           <th scope="col">
-            <span class="visually-hidden">Ansehen</span>
+            <span class="visually-hidden">{{ t.common.view }}</span>
           </th>
         </tr>
       </thead>
@@ -537,7 +538,7 @@ function summaryText(batch: RosterOverview['batches'][number]): string {
           </td>
           <td>
             <RouterLink :to="`/verwaltung/stammdaten/import/${batch.id}`">
-              Ansehen
+              {{ t.common.view }}
             </RouterLink>
           </td>
         </tr>

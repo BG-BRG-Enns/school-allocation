@@ -10,6 +10,7 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { signInUrl } from './lib/api-rules.ts'
 import { withBase } from './lib/base.ts'
+import { t } from './lib/i18n.ts'
 import { isSchoolAdmin, loadSession, session, signOut } from './lib/session.ts'
 
 const route = useRoute()
@@ -45,20 +46,20 @@ function onSignOut(): void {
         to="/"
         class="brand"
       >
-        SchulWahl
+        {{ t.common.appName }}
       </RouterLink>
       <nav
         v-if="session"
-        aria-label="Konto"
+        :aria-label="t.shell.navigation"
       >
         <RouterLink to="/wahlen">
-          Wahlen
+          {{ t.common.page.campaigns }}
         </RouterLink>
         <RouterLink
           v-if="isSchoolAdmin"
           to="/verwaltung"
         >
-          Verwaltung
+          {{ t.common.page.admin }}
         </RouterLink>
         <RouterLink
           to="/konto"
@@ -71,7 +72,7 @@ function onSignOut(): void {
           class="ghost"
           @click="onSignOut"
         >
-          Abmelden
+          {{ t.shell.signOut }}
         </button>
       </nav>
     </header>
@@ -80,13 +81,13 @@ function onSignOut(): void {
         v-if="loadFailed"
         role="alert"
       >
-        Der Server antwortet gerade nicht.
+        {{ t.shell.serverDown }}
         <button
           type="button"
           class="ghost"
           @click="load"
         >
-          Erneut versuchen
+          {{ t.shell.retry }}
         </button>
       </p>
       <RouterView v-else-if="shown" />

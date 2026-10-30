@@ -6,10 +6,11 @@
 import { computed, onMounted, ref } from 'vue'
 import { loadClasses, saveClassTeachers, searchClassTeachers, type ClassWithTeachers } from '../lib/admin-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
+import { t } from '../lib/i18n.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
-usePageTitle(() => 'Klassenvorstände')
+usePageTitle(() => t.common.page.classTeachers)
 const classes = ref<ClassWithTeachers[]>([])
 const loading = useFeedback()
 const saving = useFeedback()
@@ -29,7 +30,7 @@ onMounted(() => loading.run(async () => {
 /** The class teachers as the table names them; the ones the roster names are marked. */
 function teacherNames(c: ClassWithTeachers): string {
   if (c.teachers.length === 0) return '–'
-  return c.teachers.map((t) => (t.source === 'roster' ? `${t.displayName} (laut Personenliste)` : t.displayName)).join(', ')
+  return c.teachers.map((teacher) => (teacher.source === 'roster' ? t.classTeachers.byRoster(teacher.displayName) : teacher.displayName)).join(', ')
 }
 
 function startEditing(c: ClassWithTeachers): void {
@@ -66,7 +67,7 @@ async function onSave(): Promise<void> {
   if (!e) return
   const ok = await saving.run(async () => {
     classes.value = (await saveClassTeachers(e.className, e.teachers.map((t) => t.personId))).classes
-  }, 'Klassenvorstände gespeichert.')
+  }, t.classTeachers.saved)
   if (ok) editing.value = null
 }
 </script>
@@ -74,18 +75,18 @@ async function onSave(): Promise<void> {
 <template>
   <p>
     <RouterLink to="/verwaltung">
-      ← Verwaltung
+      ← {{ t.common.page.admin }}
     </RouterLink>
   </p>
-  <h1>Klassenvorstände</h1>
+  <h1>{{ t.common.page.classTeachers }}</h1>
   <p
     v-if="!mayEdit"
     role="alert"
   >
-    Die Klassenvorstände ordnen die Administration und die Organisation einer Wahl zu.
+    {{ t.classTeachers.editorsOnly }}
   </p>
   <template v-else>
-    <p>Wer eine Klasse führt, sieht ihren Stand in jeder Wahl und meldet nach der Zuteilung Schüler/innen ohne Platz nach. Nennt die Personenliste einen Klassenvorstand (Spalte class_teacher_email), gilt er hier auch.</p>
+    <p>{{ t.classTeachers.intro }}</p>
     <p
       v-if="loading.error.value"
       role="alert"
@@ -94,7 +95,7 @@ async function onSave(): Promise<void> {
       {{ loading.error.value }}
     </p>
     <p v-if="!loading.busy.value && classes.length === 0">
-      Es gilt noch keine Personenliste mit Klassen.
+      {{ t.classTeachers.noClasses }}
     </p>
     <table
       v-else
@@ -103,19 +104,19 @@ async function onSave(): Promise<void> {
       <thead>
         <tr>
           <th scope="col">
-            Klasse
+            {{ t.common.field.className }}
           </th>
           <th scope="col">
-            Schulstufe
+            {{ t.common.field.grade }}
           </th>
           <th scope="col">
-            Schüler/innen
+            {{ t.common.field.students }}
           </th>
           <th scope="col">
-            Klassenvorstand
+            {{ t.classTeachers.classTeacher }}
           </th>
           <th scope="col">
-            <span class="visually-hidden">Aktionen</span>
+            <span class="visually-hidden">{{ t.common.field.actions }}</span>
           </th>
         </tr>
       </thead>
@@ -134,7 +135,7 @@ async function onSave(): Promise<void> {
               class="ghost"
               @click="startEditing(c)"
             >
-              Zuordnen
+              {{ t.classTeachers.assign }}
             </button>
           </td>
         </tr>
@@ -143,24 +144,24 @@ async function onSave(): Promise<void> {
     <form
       v-if="editing"
       class="panel"
-      :aria-label="`Klassenvorstand der ${editing.className} zuordnen`"
+      :aria-label="t.classTeachers.assignTo(editing.className)"
       @submit.prevent="onSave"
     >
-      <h3>Klassenvorstand der {{ editing.className }}</h3>
+      <h3>{{ t.classTeachers.of(editing.className) }}</h3>
       <div class="chips">
         <button
-          v-for="t in editing.teachers"
-          :key="t.personId"
+          v-for="teacher in editing.teachers"
+          :key="teacher.personId"
           type="button"
           class="ghost"
-          :aria-label="`${t.displayName} entfernen`"
-          @click="remove(t.personId)"
+          :aria-label="t.classTeachers.removeTeacher(teacher.displayName)"
+          @click="remove(teacher.personId)"
         >
-          {{ t.displayName }} ✕
+          {{ teacher.displayName }} ✕
         </button>
       </div>
       <p class="field">
-        <label for="kv-search">Lehrkraft hinzufügen</label>
+        <label for="kv-search">{{ t.classTeachers.addTeacher }}</label>
         <input
           id="kv-search"
           v-model="query"
@@ -182,7 +183,7 @@ async function onSave(): Promise<void> {
             class="ghost"
             @click="add(p)"
           >
-            {{ p.displayName }} hinzufügen
+            {{ t.classTeachers.addPerson(p.displayName) }}
           </button>
         </li>
       </ul>
@@ -191,14 +192,14 @@ async function onSave(): Promise<void> {
           type="submit"
           :disabled="saving.busy.value"
         >
-          Speichern
+          {{ t.common.save }}
         </button>
         <button
           type="button"
           class="ghost"
           @click="editing = null"
         >
-          Abbrechen
+          {{ t.common.cancel }}
         </button>
       </p>
       <p

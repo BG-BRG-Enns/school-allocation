@@ -10,6 +10,7 @@ import { loadPeriods } from '../lib/admin-api.ts'
 import { loadCatalogue, type Campaign, type Item } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatFee, formatSpanOnGrid } from '../lib/format.ts'
+import { t } from '../lib/i18n.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string }>()
@@ -17,7 +18,7 @@ const campaign = ref<Campaign | null>(null)
 const items = ref<Item[]>([])
 const grid = ref<Period[]>([])
 const loading = useFeedback()
-usePageTitle(() => campaign.value ? `Katalog ${campaign.value.name}` : 'Katalog')
+usePageTitle(() => campaign.value ? t.catalogue.titleOf(campaign.value.name) : t.catalogue.title)
 
 async function load(): Promise<void> {
   await loading.run(async () => {
@@ -31,26 +32,31 @@ onMounted(load)
 watch(() => props.id, load)
 
 function places(item: Item): string {
-  if (item.fixedClasses.length === 0) return `${item.places} Plätze`
-  return item.places > 0 ? `fix für ${item.fixedClasses.join(', ')}, dazu ${item.places} Plätze` : `fix für ${item.fixedClasses.join(', ')}`
+  if (item.fixedClasses.length === 0) return t.catalogue.places(item.places)
+  return item.places > 0 ? t.catalogue.fixedAndPlaces(item.fixedClasses.join(', '), item.places) : t.catalogue.fixed(item.fixedClasses.join(', '))
 }
 
 function print(): void {
   window.print()
 }
 
+/** What a session credits, as "angerechnet 240 min + 60 min". */
+function credited(session: Item['sessions'][number]): string {
+  return t.catalogue.credited(session.credits.map((c) => t.common.minutes(c.minutes)).join(' + '))
+}
+
 function who(item: Item): string {
   const parts: string[] = []
-  if (item.eligibleGrades.length > 0) parts.push(`${item.eligibleGrades.join('., ')}. Schulstufe`)
+  if (item.eligibleGrades.length > 0) parts.push(t.catalogue.grades(item.eligibleGrades))
   if (item.eligibleClasses.length > 0) parts.push(item.eligibleClasses.join(', '))
-  return parts.length === 0 ? 'alle Schulstufen' : parts.join(' · ')
+  return parts.length === 0 ? t.catalogue.allGrades : parts.join(' · ')
 }
 </script>
 
 <template>
   <p class="no-print">
     <RouterLink :to="`/wahlen/${props.id}`">
-      ← Zur Wahl
+      ← {{ t.common.backToCampaign }}
     </RouterLink>
   </p>
   <p
@@ -61,19 +67,19 @@ function who(item: Item): string {
     {{ loading.error.value }}
   </p>
   <template v-if="campaign">
-    <h1>Katalog {{ campaign.name }}</h1>
-    <p>Projekttage: {{ campaign.projectDays.map(formatDay).join(', ') }}</p>
+    <h1>{{ t.catalogue.titleOf(campaign.name) }}</h1>
+    <p>{{ t.catalogue.projectDays(campaign.projectDays.map(formatDay).join(', ')) }}</p>
     <p class="actions no-print">
       <button
         type="button"
         class="ghost"
         @click="print"
       >
-        Drucken
+        {{ t.catalogue.print }}
       </button>
     </p>
     <p v-if="items.length === 0">
-      Der Katalog ist noch leer.
+      {{ t.catalogue.empty }}
     </p>
     <article
       v-for="item in items"
@@ -85,7 +91,7 @@ function who(item: Item): string {
         v-if="item.teachers.length > 0 || item.location"
         class="muted"
       >
-        {{ item.teachers.map((t) => t.displayName).join(', ') }}<template v-if="item.location">
+        {{ item.teachers.map((teacher) => teacher.displayName).join(', ') }}<template v-if="item.location">
           {{ item.teachers.length > 0 ? '· ' : '' }}{{ item.location }}
         </template>
       </p>
@@ -103,12 +109,12 @@ function who(item: Item): string {
           {{ formatSpanOnGrid(grid, s.startsAt, s.endsAt) }}<template v-if="s.location">
             · {{ s.location }}
           </template>
-          <span class="muted"> · angerechnet {{ s.credits.map((c) => `${c.minutes} min`).join(' + ') }}</span>
+          <span class="muted"> · {{ credited(s) }}</span>
         </li>
       </ul>
       <p>
-        {{ places(item) }} · für {{ who(item) }}<template v-if="item.feeCents > 0">
-          · Beitrag {{ formatFee(item.feeCents) }}<template v-if="item.feeNote">
+        {{ places(item) }} · {{ t.catalogue.forWhom(who(item)) }}<template v-if="item.feeCents > 0">
+          · {{ t.catalogue.fee(formatFee(item.feeCents)) }}<template v-if="item.feeNote">
             ({{ item.feeNote }})
           </template>
         </template>

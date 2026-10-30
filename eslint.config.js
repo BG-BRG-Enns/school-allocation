@@ -111,6 +111,29 @@ export default [
       'vue/no-v-html': 'error',
     },
   },
+  // Every word on a page comes from the message catalogue
+  // (packages/messages/src/de.ts), so a template holds none of its own:
+  // only punctuation, symbols and numbers stand bare. The rule sees text
+  // and the attributes a person reads (title, aria-label, placeholder,
+  // alt); a word inside an expression is the reviewer's to catch.
+  {
+    files: ['apps/web/src/**/*.vue'],
+    rules: {
+      'vue/no-bare-strings-in-template': ['error', {
+        allowlist: [
+          '(', ')', ',', '.', ';', ':', '!', '?', '&', '+', '-', '=', '*', '/', '#', '%', '[', ']', '{', '}', '<', '>', '|',
+          '·', '•', '‐', '–', '—', '−', '…', '←', '→', '€', '×', '✕', '„', '“', '"', '\'',
+          String.raw`/\d+/`,
+        ],
+        attributes: {
+          '/.+/': ['title', 'aria-label', 'aria-placeholder', 'aria-roledescription', 'aria-valuetext', 'aria-description'],
+          'input': ['placeholder'],
+          'textarea': ['placeholder'],
+          'img': ['alt'],
+        },
+      }],
+    },
+  },
 
   // The domain package is pure: eligibility, time arithmetic, completeness,
   // the allocation model and its validation, the lifecycle guards. It must

@@ -13,6 +13,13 @@
 // Sie and du stand as the pages have them today; the mail texts an
 // organizer edits are stored in the database and are not here.
 
+const plural = new Intl.PluralRules('de')
+
+/** `one` for a count the language treats as one, `other` for every other. */
+function byCount(count: number, one: string, other: string): string {
+  return plural.select(count) === 'one' ? one : other
+}
+
 export const de = {
   common: {
     appName: 'SchulWahl',
@@ -80,6 +87,14 @@ export const de = {
     periods: (from: number, to: number) => from === to ? `${from}. EH` : `${from}.–${to}. EH`,
     /** An amount already formatted as a number, with the currency: "15,00 €". */
     euros: (amount: string) => `${amount} €`,
+  },
+
+  /** The shell around every page (App.vue). */
+  shell: {
+    navigation: 'Konto',
+    signOut: 'Abmelden',
+    serverDown: 'Der Server antwortet gerade nicht.',
+    retry: 'Erneut versuchen',
   },
 
   /** The words for the API's codes, one map per list of codes; a test checks that every code has its word. */
@@ -409,6 +424,696 @@ export const de = {
     no_change: 'Bitte eine Aktivität angeben, in die oder aus der die Person kommt.',
     not_assigned: 'Diese Person ist dieser Aktivität nicht zugeteilt; Anwesenheit gibt es nur für Zugeteilte.',
     retention_not_reached: 'Die Aufbewahrungsfrist dieses Schuljahrs ist noch nicht abgelaufen: ein Jahr nach seinem Ende.',
+  },
+
+  /** SignIn.vue: one button, to the school's Microsoft sign-in. */
+  signIn: {
+    intro: 'Melden Sie sich mit Ihrem Schulkonto (Microsoft) an.',
+    signIn: 'Anmelden',
+  },
+
+  /** Start.vue: who is signed in, and their campaigns. */
+  start: {
+    /** Followed by the name, in bold, and a full stop. */
+    signedInAs: 'Angemeldet als',
+    noCampaigns: 'Es gibt noch keine Wahl, an der Sie teilnehmen oder die Sie betreuen.',
+  },
+
+  /** Account.vue: who the app takes the signed-in person for. */
+  account: {
+    atSchool: 'An der Schule',
+    notInRoster: 'In der aktuellen Personenliste der Schule nicht (mehr) enthalten.',
+    /** "Schüler/in, Klasse 5A (9. Schulstufe)" */
+    student: (kind: string, className: string, grade: number | null) => `${kind}, Klasse ${className}${grade === null ? '' : ` (${grade}. Schulstufe)`}`,
+    unbound: 'Noch keiner Person der Schule zugeordnet. Wenn Sie an einer Wahl teilnehmen sollen, wenden Sie sich bitte an die Verwaltung.',
+    roles: 'Rollen',
+    noRoles: 'Keine besonderen Rollen.',
+  },
+
+  /** Wahlen.vue: the campaigns the person may see, and the organizer's form for a new one. */
+  campaigns: {
+    none: 'Noch keine Wahl.',
+    /** The table's column of campaign names. */
+    campaign: 'Wahl',
+    new: 'Neue Wahl',
+    namePlaceholder: 'Projektwoche 2027',
+    create: 'Wahl anlegen',
+  },
+
+  /** Wahl.vue: one campaign, its state and days, its activities, and what the person may do. */
+  campaign: {
+    title: 'Wahl',
+    /** "Schuljahr 2026/27 · Projekttage: Mo., 21.06.2027, Di., 22.06.2027" */
+    yearAndDays: (schoolYear: string, days: string) => `Schuljahr ${schoolYear} · Projekttage: ${days}`,
+    /** The window in one line; the parts are joined with commas, the wishes follow after a dot. */
+    window: {
+      opens: (from: string, until: string) => `Wahl von ${from} bis ${until}`,
+      late: (until: string) => `Nachfrist bis ${until}`,
+      swap: (from: string, until: string) => `Ummelden von ${from} bis ${until}`,
+      wishes: (wishes: number) => `${wishes} Wünsche je Zeitgruppe`,
+    },
+    myClass: (className: string) => `Meine Klasse ${className}`,
+    projectDays: 'Projekttage',
+    organization: {
+      heading: 'Organisation',
+      itemCounts: (counts: { draft: number, proposed: number, approved: number, withdrawn: number }) => `${counts.draft} Entwürfe · ${counts.proposed} eingereicht · ${counts.approved} genehmigt · ${counts.withdrawn} zurückgezogen`,
+      collect: 'Aktivitäten sammeln',
+      publish: 'Katalog veröffentlichen',
+      open: 'Wahl öffnen',
+      archive: 'Wahl abschließen',
+      archiveConfirm: 'Die Wahl abschließen? Danach ändert sich nichts mehr: kein Tausch, keine Zuteilung, keine Anwesenheit.',
+      close: 'Wahl beenden',
+      editSettings: 'Einstellungen ändern',
+      editMinimumAndSwap: 'Mindestminuten und Ummeldefenster ändern',
+      editSwap: 'Ummeldefenster ändern',
+      catalogueExport: 'Katalog als Excel',
+    },
+    /** The organizer's settings form; Wahlen.vue's form for a new campaign uses its name and day fields too. */
+    settings: {
+      label: 'Einstellungen der Wahl',
+      name: 'Bezeichnung',
+      projectDay: (day: number) => `Projekttag ${day}`,
+      window: 'Wahl',
+      opens: 'Beginn',
+      closes: 'Ende',
+      lateUntil: 'Nachfrist bis',
+      swapFrom: 'Ummelden von',
+      swapUntil: 'Ummelden bis',
+      wishesPerGroup: 'Wünsche je Zeitgruppe',
+      dailyMinimum: (grade: number) => `Mindestminuten je Tag, ${grade}. Schulstufe`,
+      showTeachers: 'Der Katalog nennt die Lehrkräfte der Aktivitäten',
+    },
+    student: {
+      viewResult: 'Mein Ergebnis ansehen',
+      giveWishes: 'Wünsche abgeben oder ändern',
+      offered: 'Was zur Wahl steht',
+    },
+    missing: {
+      heading: 'Wahlstand',
+      summary: (students: number, incomplete: number) => `${students} Schüler/innen, ${incomplete} ohne vollständige Wünsche.`,
+      export: 'Wahlstand als Excel',
+      mails: 'Nachrichten',
+      enter: 'Eingeben',
+    },
+    demand: {
+      heading: 'Bedarf',
+      intro: 'Je Projekttag und Schulstufe: wie viele Schüler/innen einen Platz brauchen (ohne die in einer Klassenaktivität), und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten.',
+      cell: (needing: number, offered: number) => `${needing} brauchen · ${offered} angeboten`,
+    },
+    items: {
+      heading: 'Aktivitäten',
+      viewCatalogue: 'Katalog ansehen',
+      none: 'Noch keine Aktivitäten.',
+      fixedFor: (classes: string) => `fix für ${classes}`,
+      reviewNote: (note: string) => `Rückmeldung: ${note}`,
+      participants: 'Teilnehmer/innen',
+      propose: 'Einreichen',
+      proposed: 'Eingereicht.',
+      unpropose: 'Zurück zum Entwurf',
+      delete: 'Löschen',
+      deleted: 'Entwurf gelöscht.',
+      approve: 'Genehmigen',
+      approved: 'Genehmigt.',
+      return: 'Zurückgeben',
+      withdraw: 'Zurückziehen',
+    },
+    /** Returning or withdrawing an item, with the note or reason it needs. */
+    pending: {
+      returnTitle: (title: string) => `${title} zurückgeben`,
+      withdrawTitle: (title: string) => `${title} zurückziehen`,
+      returnNote: 'Rückmeldung an die Lehrkräfte',
+    },
+  },
+
+  /** Katalog.vue: the catalogue as students read it and the school prints it. */
+  catalogue: {
+    title: 'Katalog',
+    titleOf: (campaign: string) => `Katalog ${campaign}`,
+    projectDays: (days: string) => `Projekttage: ${days}`,
+    print: 'Drucken',
+    empty: 'Der Katalog ist noch leer.',
+    /** A session's credited minutes, "angerechnet 240 min + 60 min". */
+    credited: (minutes: string) => `angerechnet ${minutes}`,
+    places: (places: number) => `${places} Plätze`,
+    fixedAndPlaces: (classes: string, places: number) => `fix für ${classes}, dazu ${places} Plätze`,
+    fixed: (classes: string) => `fix für ${classes}`,
+    /** Who may choose the item: "für 9., 10. Schulstufe · 5A". */
+    forWhom: (who: string) => `für ${who}`,
+    grades: (grades: readonly number[]) => `${grades.join('., ')}. Schulstufe`,
+    allGrades: 'alle Schulstufen',
+    fee: (amount: string) => `Beitrag ${amount}`,
+  },
+
+  /** Aktivitaet.vue: proposing or editing an activity. */
+  item: {
+    editTitle: 'Aktivität bearbeiten',
+    /** A refusal that names a session, counted from 1: "… (Termin 2)". */
+    inSession: (problem: string, session: number) => `${problem} (Termin ${session})`,
+    unknownTeachers: 'Eine Lehrkraft ist nicht in der Personenliste',
+    reviewNote: (note: string) => `Rückmeldung der Organisation: ${note}`,
+    title: 'Titel',
+    description: 'Beschreibung',
+    location: 'Ort oder Treffpunkt',
+    teachers: {
+      /** The chip's label for a screen reader. */
+      remove: (name: string) => `${name} entfernen`,
+      search: 'Lehrkraft hinzufügen',
+      add: (name: string) => `${name} hinzufügen`,
+    },
+    sessions: {
+      intro: 'Ein Termin liegt in den Unterrichtseinheiten der Schule oder, etwa ein Ausflug, nach der Uhr. Angerechnet werden die Minuten, die die Lehrkraft je Projekttag angibt; Anreise und Pausen zählen nicht.',
+      session: (number: number) => `Termin ${number}`,
+      /** Whether the session is placed in the period grid or by the clock. */
+      mode: 'Eingabe',
+      byPeriods: 'nach Einheiten',
+      byClock: 'nach Uhrzeit',
+      fromPeriod: 'ab Einheit',
+      count: 'Einheiten',
+      location: 'Ort',
+      startsOn: 'Beginn am',
+      /** The clock time after "Beginn am" and "Ende am". */
+      at: 'um',
+      endsOn: 'Ende am',
+      minutesOn: (day: string) => `Minuten am ${day}`,
+      remove: 'Termin entfernen',
+      add: 'Termin hinzufügen',
+    },
+    participation: {
+      heading: 'Teilnahme',
+      fixedClasses: 'Fix zugeteilte Klassen (die Aktivität findet für sie statt; sie wählen sie nicht)',
+      /** The places of an activity for fixed classes: those other students may rank. */
+      extraPlaces: 'Zusätzliche Plätze für andere Schüler/innen',
+      minParticipants: 'Mindestteilnehmer/innen',
+      cancellable: 'Darf bei zu wenigen Anmeldungen abgesagt werden',
+      eligibleGrades: 'Wählbar für Schulstufen (keine Auswahl: alle)',
+      eligibleClasses: 'Wählbar für Klassen (keine Auswahl: alle)',
+    },
+    fee: {
+      amount: 'Beitrag in Euro (leer: keiner)',
+      note: 'Wofür',
+    },
+    saveAndPropose: 'Speichern und einreichen',
+    participants: {
+      heading: (count: number) => `Teilnehmer/innen (${count})`,
+      cancelled: 'Diese Aktivität wurde bei der Zuteilung abgesagt: zu wenige Wünsche für ihre Mindestteilnehmerzahl.',
+      none: 'Niemand wurde dieser Aktivität zugeteilt.',
+    },
+  },
+
+  /** Wuensche.vue: a student's wishes, or an organizer's entry on a student's behalf. */
+  wishes: {
+    titleOnBehalf: 'Wünsche eingeben',
+    onBehalf: (name: string, className: string) => `Im Namen von ${name} (${className}). Die Eingabe wird mit Begründung protokolliert.`,
+    /** After the campaign's name: "bis zu 3 Wünsche je Zeitgruppe". */
+    cap: (cap: number) => `bis zu ${cap} Wünsche je Zeitgruppe`,
+    closesAt: (when: string) => `Wahl bis ${when}`,
+    lateUntil: (when: string) => `Nachfrist bis ${when}`,
+    notAccepting: 'Die Wahl nimmt derzeit keine Wünsche an.',
+    lateNotice: 'Wünsche aus der Nachfrist werden nach den anderen zugeteilt.',
+    /** After the state's badge: the window (a WINDOW_LABELS word) and the version of the saved list. */
+    savedIn: (window: string, version: number) => `gespeichert im ${window}, Fassung ${version}`,
+    nothingOffered: 'Für Sie steht nichts zur Wahl.',
+    /** After the title of a class activity, in bold. */
+    fixedForYourClass: 'fix für Ihre Klasse',
+    /** A time group's legend, after its time: "1 von 3 Wünschen". */
+    groupCount: (wishes: number, required: number) => `${wishes} von ${required} Wünschen`,
+    wish: 'Wunsch',
+    /** The select of an item's wish number. */
+    wishFor: (title: string) => `Wunsch ${title}`,
+    saveWishes: 'Wünsche speichern',
+    allGroupsComplete: 'Alle Zeitgruppen haben ihre Wünsche.',
+    wishesMissing: 'Es fehlen noch Wünsche.',
+    /** Follows the two above for a student, whose changes need no button. */
+    savedAtOnce: 'Jede Änderung wird sofort gespeichert.',
+    exemptions: {
+      title: 'Befreiungen',
+      exempt: 'Befreien',
+      from: (title: string) => `Von ${title} befreien`,
+      thenChooses: (name: string) => `${name} wählt dann für diese Zeit selbst.`,
+      done: 'Befreit.',
+    },
+  },
+
+  /** Klasse.vue: a class as its class teacher sees it in a campaign. */
+  schoolClass: {
+    title: (className: string) => `Klasse ${className}`,
+    schoolYear: (schoolYear: string) => `Schuljahr ${schoolYear}`,
+    /** A student's places when there are none. */
+    noPlace: 'kein Platz',
+    /** What an activity offered for a gap still has. */
+    freePlaces: (free: number) => `${free} ${byCount(free, 'freier Platz', 'freie Plätze')}`,
+    placed: 'Zugeteilt; die Schülerin oder der Schüler wird benachrichtigt.',
+    attendanceSaved: 'Anwesenheit gespeichert.',
+    classActivities: 'Klassenaktivitäten',
+    noClassActivity: 'Keine Aktivität nimmt die ganze Klasse mit.',
+    unplaced: {
+      heading: (count: number) => `Nicht vollständig zugeteilt (${count})`,
+      none: 'Alle Schüler/innen der Klasse haben an jedem Tag ihr Programm.',
+      /** After the student's name, in bold, and a colon. */
+      minutesMissing: (minutes: number) => `${minutes} Minuten fehlen`,
+      /** The places a student short of minutes already has, after a "·". */
+      sofar: (items: string) => `bisher ${items}`,
+      /** The placement form's label for a screen reader. */
+      form: (name: string) => `${name} zuteilen`,
+      noOffer: 'Keine Aktivität mit freien Plätzen passt in die Lücke; die Organisation kann anders zuteilen.',
+      itemFor: (name: string) => `Aktivität für ${name}`,
+      reasonFor: (name: string) => `Begründung für ${name}`,
+      place: 'Zuteilen',
+      note: 'Die Zuteilung in eine Lücke ist der Weg des Klassenvorstands; die Schülerin oder der Schüler wird benachrichtigt, die Organisation sieht jede Änderung mit ihrer Begründung.',
+    },
+    attendance: {
+      heading: 'Anwesenheit',
+      intro: 'Je Projekttag und Termin, für die Schüler/innen der Klasse; getrennt von der Zuteilung.',
+      recordable: 'Eintragen und speichern, Korrekturen jederzeit bis zum Abschluss der Wahl.',
+      readOnly: 'Nur lesen.',
+      noSession: 'An diesem Tag hat niemand aus der Klasse einen Termin.',
+      /** The day's form, for a screen reader. */
+      ofDay: (day: string) => `Anwesenheit ${day}`,
+      status: 'Anwesenheit',
+      note: 'Notiz',
+      statusOf: (name: string, title: string) => `Anwesenheit ${name}, ${title}`,
+      noteOf: (name: string, title: string) => `Notiz ${name}, ${title}`,
+      save: 'Anwesenheit speichern',
+      export: 'Anwesenheit als Excel',
+    },
+    students: (count: number) => `Schüler/innen (${count})`,
+    choicesLater: 'Wer schon gewählt hat, zeigt diese Seite, sobald die Wahl läuft.',
+  },
+
+  /** Zuteilung.vue: the organizer's runs, their review and the changes after publication. */
+  allocation: {
+    published: 'Das Ergebnis ist veröffentlicht; die Benachrichtigungen sind unterwegs.',
+    changed: 'Die Zuteilung ist geändert; die Schülerin oder der Schüler wird benachrichtigt.',
+    started: 'Die Zuteilung wird berechnet.',
+    /** A student's place on a day in the review, in brackets after the item. */
+    place: {
+      wish: (rank: number | null) => `${rank}. Wunsch`,
+      fallback: 'Ersatz',
+      fixed: 'Klasse',
+    },
+    /** The published run: its exports, the changes since and the change by hand. */
+    publication: {
+      heading: 'Veröffentlicht',
+      text: (seq: number, when: string) => `Lauf ${seq} ist das Ergebnis dieser Wahl (veröffentlicht ${when}). Die Schüler/innen sehen ihr Programm, die Lehrkräfte ihre Teilnehmer/innen, die Klassenvorstände die Plätze ihrer Klasse.`,
+      assignmentsExport: 'Zuteilung als Excel',
+      attendanceExport: 'Anwesenheit als Excel',
+      changes: (count: number) => `Änderungen seit der Veröffentlichung (${count})`,
+      noChanges: 'Noch keine: kein Tausch, keine Zuteilung durch einen Klassenvorstand, keine Änderung von Hand.',
+      when: 'Wann',
+      kind: 'Art',
+      left: 'Nicht mehr',
+      to: 'Neu',
+      by: 'Durch',
+      /** After the kind of a change that overrode a full item or a minimum. */
+      forced: 'erzwungen',
+    },
+    /** The organizer's change by hand after publication. */
+    change: {
+      title: 'Zuteilung von Hand ändern',
+      rules: 'Dieselben Regeln wie beim Tausch: in eine Aktivität mit freien Plätzen, die zur Schulstufe passt und sich mit nichts überschneidet, das bleibt; eine Klassenaktivität bleibt immer. Eine volle Aktivität oder ein Minimum darf die Organisation übergehen, mit Häkchen; das wird festgehalten.',
+      from: 'Herausnehmen aus',
+      to: 'Einteilen in',
+      /** The free places of an item, in brackets after it. */
+      free: (count: number) => `${count} frei`,
+      force: 'Volle Aktivität oder Minimum übergehen (wird festgehalten)',
+      submit: 'Ändern',
+    },
+    start: {
+      heading: 'Lauf starten',
+      /** Around the setting's name: "… eingerichtet (SOLVER_URL); eine Zuteilung …". */
+      noSolver: {
+        before: 'Auf diesem Server ist kein Solver eingerichtet',
+        after: 'eine Zuteilung kann nicht berechnet werden.',
+      },
+      unreachable: 'Der Solver antwortet nicht. Ein Lauf würde fehlschlagen.',
+      ready: (ortools: string, contract: string) => `Solver bereit (OR-Tools ${ortools}, Vertrag ${contract}).`,
+      notClosed: 'Eine Zuteilung wird berechnet, sobald die Wahl beendet ist.',
+      seed: 'Seed (leer: wird gezogen)',
+      seedExample: 'z. B. 4711',
+      limit: 'Zeitlimit pro Stufe (deterministische Sekunden, 1–60)',
+      limitHint: 'Eine deterministische Sekunde dauert auf dem Server mehrere Sekunden; derselbe Seed mit demselben Limit ergibt dieselbe Zuteilung.',
+      submit: 'Zuteilung berechnen',
+      running: 'Ein Lauf wird gerade berechnet …',
+    },
+    runs: {
+      heading: (count: number) => `Läufe (${count})`,
+      none: 'Noch kein Lauf.',
+      run: 'Lauf',
+      started: 'Gestartet',
+      status: 'Status',
+      seed: 'Seed',
+      limit: 'Limit',
+      deficit: 'Fehlende Minuten',
+      notCovered: 'Ohne alle Tage',
+      published: 'veröffentlicht',
+      repeatHint: (seed: number, limit: number) => `Noch einmal mit Seed ${seed} und Limit ${limit}: dieselbe Zuteilung, wenn sich nichts geändert hat`,
+      repeat: 'Wiederholen',
+    },
+    /** The review of one run. */
+    review: {
+      heading: (seq: number) => `Lauf ${seq}`,
+      stale: 'Seit diesem Lauf hat sich der Katalog, die Personenliste oder eine Klassenzuteilung geändert; das Ergebnis passt nicht mehr zur Wahl, wie sie jetzt steht. Für die Veröffentlichung ist ein neuer Lauf nötig.',
+      computing: 'Wird berechnet …',
+      /** A level the validator recomputed differently, after the level's name. */
+      levelMismatch: (reported: number | string, recomputed: number | string) => `gemeldet ${reported}, nachgerechnet ${recomputed}`,
+      /** In bold, followed by a colon and `warning`. */
+      warningLead: 'Hinweis vor dem Lösen',
+      warning: 'Für diese nicht absagbaren Aktivitäten kommen weniger Schüler/innen in Frage, als das Minimum verlangt. Schlägt der Lauf als unlösbar fehl, liegt es meist daran: absagbar machen, das Minimum senken oder die Aktivität zurückziehen.',
+      possible: (possible: number, minimum: number) => `${possible} möglich, ${minimum} nötig`,
+      meta: (seed: number, limit: number, solver: string, ortools: string, rules: number) => `Seed ${seed} · Limit ${limit} · Solver ${solver} (OR-Tools ${ortools}) · Regeln Version ${rules}`,
+      runExport: 'Lauf als Excel',
+      levels: 'Stufen',
+      level: 'Stufe',
+      firstPass: 'Wert (1. Durchgang)',
+      secondPass: 'Wert (2. Durchgang)',
+      comparison: 'Vergleich',
+      proven: '✓ bewiesen',
+      notProven: '≈ nicht bewiesen',
+      /** A level's difference to the compared run when there is none. */
+      equal: 'gleich',
+      passes: (passes: string, seed: number) => `Durchgänge: ${passes}. Zuerst niemand ohne volle Woche, dann so wenige fehlende Minuten wie möglich, dann so wenige wie möglich mit hohem Durchschnittswunsch, dann das beste Gesamtergebnis; Gleichstand entscheidet das Los mit Seed ${seed}.`,
+      wishes: 'Wünsche',
+      rank: (rank: string) => `${rank}. Wunsch`,
+      fallback: 'Ersatzplatz',
+      fixed: 'Klassenaktivität',
+      cancelled: 'Abgesagt',
+      deficits: (count: number) => `Fehlende Minuten (${count})`,
+      noDeficits: 'Niemandem fehlen Minuten.',
+      missing: 'Fehlend',
+      fallbacks: (count: number) => `Ersatzplätze (${count})`,
+      items: 'Aktivitäten',
+      assigned: 'Zugeteilt',
+      fixedClasses: 'Fix (Klassen)',
+      minimum: 'Minimum',
+      itemCancelled: 'abgesagt',
+      itemEmpty: 'leer',
+      classes: 'Klassen',
+      classWithDeficit: 'Mit fehlenden Minuten',
+      classWithFallback: 'Mit Ersatzplatz',
+      compare: 'Vergleich',
+      compareWith: 'Mit Lauf',
+      compareOption: (seq: number, seed: number) => `Lauf ${seq} (Seed ${seed})`,
+      /** After the number of students in bold. */
+      differences: (seq: number, otherSeq: number) => `Schüler/innen sind in Lauf ${seq} anders zugeteilt als in Lauf ${otherSeq}`,
+      /** After a colon, when no student differs. */
+      noDifferences: 'dieselbe Zuteilung',
+      /** Before the other run's items of a student. */
+      instead: 'statt',
+      studentList: (count: number) => `Schüler/innen (${count})`,
+      window: 'Fenster',
+      averageRank: 'Ø Wunsch',
+      noWishes: 'keine Wünsche',
+      minutesMissing: (minutes: number) => `${minutes} min fehlen`,
+      sources: (sources: string) => `Quellen: ${sources}.`,
+    },
+    /** The publication of a reviewed run. */
+    publish: {
+      heading: 'Veröffentlichen',
+      text: 'Dieser Lauf wird das Ergebnis der Wahl: die Schüler/innen erhalten ihr Programm, die Klassenvorstände die Liste der nicht vollständig Zugeteilten, die Lehrkräfte abgesagter Aktivitäten die Absage. Danach ist kein weiterer Lauf möglich.',
+      start: (seq: number) => `Lauf ${seq} veröffentlichen …`,
+      confirm: 'Veröffentlichung bestätigen',
+      noCancellations: 'Keine Aktivität wird abgesagt.',
+      cancellations: 'Diese Aktivitäten finden nicht statt, weil zu wenige sie gewünscht haben:',
+      confirmCancellations: 'Ich bestätige diese Absagen.',
+      submit: 'Jetzt veröffentlichen',
+    },
+    /** A reviewed run's counts, each after its number in bold. */
+    counts: {
+      students: (choosing: number) => `Schüler/innen, ${choosing} mit Wahl`,
+      covered: 'mit allen Tagen',
+      withDeficit: 'mit fehlenden Minuten',
+      withFallback: 'mit Ersatzplatz',
+      cancelled: 'abgesagt',
+      late: 'aus der Nachfrist',
+      nonSubmitters: 'ohne Wünsche',
+    },
+  },
+
+  /** Ergebnis.vue: a student's result, the swap window and the explanation. */
+  result: {
+    /** How a student came to an item. */
+    source: {
+      fixed: 'mit deiner Klasse',
+      wish: (rank: number | null) => `dein ${rank}. Wunsch`,
+      fallback: 'zugeteilt, da deine Wünsche hier nicht reichten',
+      swap: 'dein Tausch',
+      other: 'eingeteilt',
+    },
+    freePlaces: (count: number) => `${count} ${byCount(count, 'freier Platz', 'freie Plätze')}`,
+    swapInto: (item: string) => `In „${item}“ wechseln?`,
+    swapLeaving: (item: string, leaving: string) => `In „${item}“ wechseln und „${leaving}“ verlassen?`,
+    swapped: 'Dein Tausch ist eingetragen.',
+    notYet: 'Das Ergebnis ist noch nicht veröffentlicht. Sobald die Organisation die Zuteilung freigibt, steht es hier.',
+    publishedAt: (when: string) => `veröffentlicht ${when}`,
+    noItem: 'An diesem Tag hast du keine Aktivität.',
+    credited: (minutes: number) => `${minutes} Minuten angerechnet`,
+    fee: (amount: string) => `Beitrag ${amount}`,
+    deficit: (minutes: number) => `Hier fehlen dir noch ${minutes} Minuten: dein Klassenvorstand teilt dich einer Aktivität mit freien Plätzen zu.`,
+    noFee: 'Für deine Aktivitäten ist kein Beitrag zu zahlen.',
+    feeTotal: (amount: string) => `Insgesamt ${amount}; die Schule sagt, wie und bis wann.`,
+    swap: {
+      heading: 'Tauschen',
+      window: (from: string, until: string) => `Von ${from} bis ${until} kannst du in eine Aktivität mit freien Plätzen wechseln. Wer zuerst kommt, bekommt den Platz; eine Aktivität deiner Klasse bleibt, und es dürfen danach nicht mehr Minuten fehlen als jetzt.`,
+      noOffers: 'Zur Zeit steht keine andere Aktivität für dich zur Wahl.',
+      leaves: (items: string) => `Dafür verlässt du: ${items}`,
+      submit: 'Wechseln',
+    },
+    changes: 'Änderungen seit der Veröffentlichung',
+    left: (items: string) => `nicht mehr ${items}`,
+    entered: (item: string) => `neu ${item}`,
+    explanation: {
+      heading: 'So kam die Zuteilung zustande',
+      rule: (seed: number, seq: number) => `Zuerst sollte niemand ohne volle Woche bleiben, dann sollten so wenige Minuten wie möglich fehlen, dann so wenige Schüler/innen wie möglich überwiegend späte Wünsche bekommen, dann das Ganze so gut wie möglich ausgehen. Wo zwei Zuteilungen gleich gut waren, hat das Los entschieden, mit der aufgezeichneten Zahl ${seed} (Lauf ${seq}).`,
+      late: 'Deine Wünsche kamen in der Nachfrist und wurden nach den anderen zugeteilt.',
+      noWishes: 'Du hattest keine Wünsche abgegeben und wurdest auf freie Plätze ohne Beitrag gesetzt.',
+    },
+  },
+
+  /** Verwaltung.vue: what a school administrator maintains. */
+  admin: {
+    adminsOnly: 'Die Verwaltung ist der Administration der Schule vorbehalten.',
+    roster: 'Die Personenliste der Schule: aus den Entra-Gruppen oder aus einer CSV-Datei, mit Klassen und Schulstufen.',
+    people: 'Wer sich angemeldet hat, wem das Konto zugeordnet ist, wer eine Wahl organisiert, wer gesperrt ist.',
+    classTeachers: 'Wer welche Klasse führt und ihren Stand in einer Wahl sieht.',
+    periods: 'Die Unterrichtseinheiten der Schule, in denen Lehrkräfte ihre Termine angeben.',
+    mailTemplates: 'Die Texte der Nachrichten, die eine Wahl verschickt: Einladungen, Erinnerungen, Listen an die Klassenvorstände.',
+    retention: 'Welche Schuljahre Aufzeichnungen haben und wie lange sie bleiben; das Löschen eines Schuljahrs, ein Jahr nach seinem Ende.',
+  },
+
+  /** Stammdaten.vue: the list in force, the Entra groups, a refresh from them, a CSV upload, the imports so far. */
+  roster: {
+    /** Column and field names the list in force, the imports and an import's page share. */
+    source: 'Quelle',
+    persons: 'Personen',
+    fetched: 'Gelesen',
+    current: {
+      title: 'Aktuelle Personenliste',
+      none: 'Noch keine Personenliste übernommen. Importieren Sie die Personen aus den Entra-Gruppen oder aus einer CSV-Datei.',
+      committed: 'Übernommen',
+    },
+    groups: {
+      title: 'Entra-Gruppen',
+      intro: 'Die Gruppen der Schule, aus denen die Personenliste gelesen wird: je Klasse eine Schülergruppe mit Klasse und Schulstufe, dazu die Gruppe der Lehrkräfte. Suchen Sie die Gruppen bei Microsoft nach ihrem Namen, oder tragen Sie die Gruppen-ID ein, die in Entra bei der Gruppe steht (Objekt-ID). Untergruppen werden mitgelesen: Eine Klasse, deren Schüler/innen in Untergruppen stehen, wird nur einmal eingetragen, entweder die Klassengruppe oder ihre Untergruppen (3A, oder 3AR und 3AG), sonst stehen die Personen doppelt in der Liste.',
+      id: 'Gruppen-ID',
+      label: 'Bezeichnung',
+      kind: 'Art',
+      /** A row's field as a screen reader names it: the column and the group, "Klasse 5A". */
+      fieldOf: (field: string, group: string) => `${field} ${group}`,
+      /** The group a row's fields name while it has no label (or id) yet. */
+      newGroup: 'neue Gruppe',
+      none: 'Noch keine Gruppen eingetragen.',
+      add: 'Gruppe hinzufügen',
+      searchAtMicrosoft: 'Gruppen bei Microsoft suchen',
+      save: 'Gruppen speichern',
+      saved: 'Gruppen gespeichert.',
+    },
+    /** The search over the tenant's groups by name. */
+    picker: {
+      title: 'Gruppen suchen',
+      /** Followed by the link `authorize` and a full stop. */
+      authorizationNeeded: 'Für die Suche ist eine Anmeldung bei Microsoft nötig:',
+      authorize: 'Bei Microsoft anmelden und Gruppen suchen',
+      query: 'Name der Gruppe beginnt mit',
+      allClasses: 'Alle Klassengruppen suchen',
+      allClassesHint: 'Gruppen, deren Name eine Klasse ist (5A, 1B, …). Klasse und Schulstufe werden aus dem Namen vorbelegt: 5A → 9. Schulstufe.',
+      takeAll: (count: number) => `Alle ${count} Gruppen übernehmen`,
+      take: (group: string) => `${group} übernehmen`,
+      noClassGroup: 'Keine Gruppe, deren Name eine Klasse ist, die nicht schon eingetragen wäre.',
+      noMatch: 'Keine Gruppe mit diesem Anfang.',
+    },
+    refresh: {
+      title: 'Aus den Entra-Gruppen aktualisieren',
+      /** `scopes`: the Graph permissions, comma-separated. */
+      intro: (scopes: string) => `Sie werden zu Microsoft weitergeleitet und erlauben SchulWahl, mit Ihrem Konto die Mitglieder der Gruppen zu lesen (${scopes}). Die Liste wird gelesen und Ihnen zur Prüfung gezeigt, bevor sie gilt.`,
+      start: 'Aus Entra-Gruppen aktualisieren',
+      groupsFirst: 'Tragen Sie zuerst die Gruppen ein und speichern Sie sie.',
+    },
+    csv: {
+      title: 'CSV-Datei hochladen',
+      /** Followed by the link `template`, a colon and `columns`. */
+      columnsOf: 'Eine Zeile je Person mit den Spalten der',
+      template: 'Vorlage',
+      columns: 'E-Mail-Adresse, Vorname, Nachname, Klasse, Schulstufe, Art (student oder teacher), optional die E-Mail-Adresse des Klassenvorstands. Trennzeichen Semikolon oder Komma. Die Personen werden beim ersten Anmelden über ihre Schul-E-Mail-Adresse erkannt.',
+      file: 'Datei',
+      paste: 'Oder Inhalt einfügen',
+      import: 'Importieren',
+    },
+    batches: {
+      title: 'Importe',
+      changes: 'Änderungen',
+      /** A refused import's changes column: how many problems it has. */
+      problems: (count: number) => `${count} ${byCount(count, 'Problem', 'Probleme')}`,
+    },
+  },
+
+  /** Import.vue: one import, its changes against the list in force, its problems, and the decision. */
+  rosterImport: {
+    title: 'Import',
+    /** When the import was read, and by whom. */
+    fetchedBy: (when: string, who: string) => `${when} von ${who}`,
+    decided: 'Entschieden',
+    problems: {
+      title: 'Probleme',
+      rejected: 'Die Liste wurde abgelehnt. Beheben Sie die Probleme in der Quelle und importieren Sie noch einmal.',
+      line: (line: number) => `Zeile ${line}`,
+    },
+    warnings: 'Hinweise',
+    changes: {
+      title: 'Änderungen gegenüber der aktuellen Liste',
+      summary: (counts: { added: number, removed: number, changed: number, unchanged: number }) => `${counts.added} neu, ${counts.removed} entfernt, ${counts.changed} geändert, ${counts.unchanged} unverändert.`,
+      commit: 'Übernehmen',
+      discard: 'Verwerfen',
+      committed: 'Die Liste gilt jetzt.',
+      discarded: 'Der Import wurde verworfen.',
+      added: 'Neu',
+      removed: 'Entfernt',
+      changed: 'Geändert',
+      kindAndClass: 'Art, Klasse',
+      change: 'Änderung',
+    },
+  },
+
+  /** Personen.vue: accounts, the roster person behind each, roles, blocking; every action with a reason. */
+  people: {
+    roles: 'Rollen',
+    accounts: {
+      title: 'Konten',
+      filter: 'Name oder E-Mail',
+      unboundOnly: 'nur ohne Zuordnung',
+      apply: 'Filtern',
+      none: 'Keine Konten gefunden.',
+      lastSignIn: 'Letzte Anmeldung',
+      person: 'Person',
+      blocked: 'gesperrt',
+      unbound: 'Nicht zugeordnet',
+      notInRoster: 'Nicht in der aktuellen Liste',
+    },
+    /** The buttons in an account's row, by the action they prepare. */
+    open: {
+      bind: 'Zuordnen',
+      grant: 'Rolle',
+      block: 'Sperren',
+      unblock: 'Entsperren',
+    },
+    /** The heading of the form an action is prepared in, with the account's name. */
+    title: {
+      bind: (name: string) => `${name} einer Person zuordnen`,
+      block: (name: string) => `${name} sperren`,
+      unblock: (name: string) => `${name} entsperren`,
+      grant: (name: string) => `${name} eine Rolle erteilen`,
+    },
+    personSearch: 'Person der Schule',
+    personSearchPlaceholder: 'Name, Klasse oder E-Mail',
+    noPerson: 'Keine Person gefunden.',
+    /** After a person found for binding whose current account the binding releases. */
+    currentAccount: (account: string) => `derzeit Konto „${account}“, das dabei gelöst wird`,
+    /** The form's submit button, by action. */
+    submit: {
+      bind: 'Zuordnen',
+      block: 'Sperren',
+      unblock: 'Entsperren',
+      grant: 'Rolle erteilen',
+    },
+    grants: {
+      none: 'Niemand hat eine besondere Rolle.',
+      granted: 'Erteilt',
+      /** When the role was granted, and by whom. */
+      grantedBy: (when: string, who: string) => `${when} von ${who}`,
+      revoke: 'Entziehen',
+      /** The revocation form's heading: the person and the role. */
+      revokeTitle: (name: string, role: string) => `${name}: ${role} entziehen`,
+    },
+  },
+
+  /** Klassen.vue: the classes and their class teachers. */
+  classTeachers: {
+    saved: 'Klassenvorstände gespeichert.',
+    /** A class teacher the roster names, in the table. */
+    byRoster: (name: string) => `${name} (laut Personenliste)`,
+    editorsOnly: 'Die Klassenvorstände ordnen die Administration und die Organisation einer Wahl zu.',
+    intro: 'Wer eine Klasse führt, sieht ihren Stand in jeder Wahl und meldet nach der Zuteilung Schüler/innen ohne Platz nach. Nennt die Personenliste einen Klassenvorstand (Spalte class_teacher_email), gilt er hier auch.',
+    noClasses: 'Es gilt noch keine Personenliste mit Klassen.',
+    classTeacher: 'Klassenvorstand',
+    assign: 'Zuordnen',
+    assignTo: (className: string) => `Klassenvorstand der ${className} zuordnen`,
+    of: (className: string) => `Klassenvorstand der ${className}`,
+    removeTeacher: (name: string) => `${name} entfernen`,
+    addTeacher: 'Lehrkraft hinzufügen',
+    addPerson: (name: string) => `${name} hinzufügen`,
+  },
+
+  /** Zeiten.vue: the school's period grid. */
+  periods: {
+    adminsOnly: 'Das Stundenraster ändert die Administration der Schule.',
+    intro: 'Die Unterrichtseinheiten der Schule, in denen Lehrkräfte ihre Termine angeben („ab der 2. Einheit, 2 Einheiten lang“). Termine mit anderen Zeiten, etwa Ausflüge, werden nach der Uhr eingegeben.',
+    period: 'Einheit',
+    starts: 'Beginn',
+    ends: 'Ende',
+    startsOf: (period: number) => `Beginn ${period}. Einheit`,
+    endsOf: (period: number) => `Ende ${period}. Einheit`,
+    add: 'Einheit anfügen',
+    removeLast: 'Letzte entfernen',
+    saved: 'Stundenraster gespeichert.',
+  },
+
+  /** Mailvorlagen.vue: the texts of the mails a campaign sends; the texts themselves are stored, not here. */
+  mailTemplates: {
+    editorsOnly: 'Die Mailvorlagen ändern die Administration und die Organisation einer Wahl.',
+    intro: 'Die Texte der Nachrichten, die eine Wahl verschickt. Platzhalter in doppelten geschweiften Klammern füllt das Programm beim Versand; jede Vorlage nennt die ihren.',
+    mailOff: 'Der Mailversand ist auf diesem Server nicht eingerichtet: Nachrichten bleiben in der Warteschlange, bis er es ist.',
+    saved: 'Vorlage gespeichert.',
+    testQueued: 'Testmail an Ihre Adresse in die Warteschlange gestellt.',
+    /** Followed by a colon and the template's placeholders. */
+    placeholders: 'Platzhalter',
+    sendTest: 'Testmail an mich',
+    /** The form of a template, by the mail's kind. */
+    editing: (kind: string) => `${kind} bearbeiten`,
+    subject: 'Betreff',
+    body: 'Text',
+  },
+
+  /** Aufbewahrung.vue: the school years' records and the purge of one. */
+  retention: {
+    adminsOnly: 'Die Aufbewahrung ist der Administration der Schule vorbehalten; die Einsicht liest mit.',
+    intro: 'Die Aufzeichnungen einer Projektwoche werden bis ein Jahr nach dem Ende ihres Schuljahrs aufbewahrt. Danach löscht die Administration sie hier, mit Begründung; von selbst wird nichts gelöscht. Vorher die Zuteilung und die Beitragsliste als Excel sichern, falls die Buchhaltung sie noch braucht: gelöscht ist gelöscht.',
+    purged: 'Die Aufzeichnungen des Schuljahrs sind gelöscht.',
+    years: 'Schuljahre',
+    none: 'Noch keine Aufzeichnungen.',
+    /** The columns of the years' table, besides the school year. */
+    campaigns: 'Wahlen',
+    batches: 'Personenlisten',
+    classTeachers: 'Klassenvorstände',
+    retainedUntil: 'Aufbewahrung bis',
+    expired: 'abgelaufen',
+    purge: {
+      title: 'Schuljahr löschen',
+      /** After a school year that cannot be purged yet, in the list to choose from. */
+      stillRetained: 'Aufbewahrung läuft noch',
+      notArchived: 'eine Wahl ist nicht abgeschlossen',
+      confirm: 'Zur Bestätigung das Schuljahr noch einmal',
+      submit: 'Aufzeichnungen löschen',
+      removed: 'Gelöscht',
+    },
   },
 }
 

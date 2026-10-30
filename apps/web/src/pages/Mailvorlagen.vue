@@ -8,11 +8,12 @@ import { computed, onMounted, ref } from 'vue'
 import { loadMailTemplates, saveMailTemplate, sendTestMail, type MailTemplate, type TemplateInvalidBody } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { useFeedback } from '../lib/feedback.ts'
+import { t } from '../lib/i18n.ts'
 import { MAIL_KIND_LABELS, TEMPLATE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
-usePageTitle(() => 'Mailvorlagen')
+usePageTitle(() => t.common.page.mailTemplates)
 const templates = ref<MailTemplate[]>([])
 const mailEnabled = ref(false)
 const loading = useFeedback()
@@ -44,7 +45,7 @@ async function onSave(): Promise<void> {
   const ok = await saving.run(async () => {
     try {
       const saved = (await saveMailTemplate(e.kind, e.subject.trim(), e.body)).template
-      templates.value = templates.value.map((t) => (t.kind === saved.kind ? saved : t))
+      templates.value = templates.value.map((template) => (template.kind === saved.kind ? saved : template))
     } catch (err) {
       if (err instanceof ApiError && err.code === 'template_invalid') {
         const body = err.body as unknown as TemplateInvalidBody
@@ -52,37 +53,37 @@ async function onSave(): Promise<void> {
       }
       throw err
     }
-  }, 'Vorlage gespeichert.')
+  }, t.mailTemplates.saved)
   if (ok) editing.value = null
 }
 
 async function onTest(kind: MailKind): Promise<void> {
   await saving.run(async () => {
     await sendTestMail(kind)
-  }, 'Testmail an Ihre Adresse in die Warteschlange gestellt.')
+  }, t.mailTemplates.testQueued)
 }
 </script>
 
 <template>
   <p>
     <RouterLink to="/verwaltung">
-      ← Verwaltung
+      ← {{ t.common.page.admin }}
     </RouterLink>
   </p>
-  <h1>Mailvorlagen</h1>
+  <h1>{{ t.common.page.mailTemplates }}</h1>
   <p
     v-if="!mayEdit"
     role="alert"
   >
-    Die Mailvorlagen ändern die Administration und die Organisation einer Wahl.
+    {{ t.mailTemplates.editorsOnly }}
   </p>
   <template v-else>
-    <p>Die Texte der Nachrichten, die eine Wahl verschickt. Platzhalter in doppelten geschweiften Klammern füllt das Programm beim Versand; jede Vorlage nennt die ihren.</p>
+    <p>{{ t.mailTemplates.intro }}</p>
     <p
       v-if="!mailEnabled && !loading.busy.value"
       class="notice"
     >
-      Der Mailversand ist auf diesem Server nicht eingerichtet: Nachrichten bleiben in der Warteschlange, bis er es ist.
+      {{ t.mailTemplates.mailOff }}
     </p>
     <p
       v-if="loading.error.value"
@@ -114,7 +115,7 @@ async function onTest(kind: MailKind): Promise<void> {
         <p><strong>{{ template.subject }}</strong></p>
         <pre class="mail-body">{{ template.body }}</pre>
         <p class="muted">
-          Platzhalter: {{ placeholderList(template) }}
+          {{ t.mailTemplates.placeholders }}: {{ placeholderList(template) }}
         </p>
         <p class="actions">
           <button
@@ -122,7 +123,7 @@ async function onTest(kind: MailKind): Promise<void> {
             class="ghost"
             @click="startEditing(template)"
           >
-            Bearbeiten
+            {{ t.common.edit }}
           </button>
           <button
             v-if="mailEnabled"
@@ -131,18 +132,18 @@ async function onTest(kind: MailKind): Promise<void> {
             :disabled="saving.busy.value"
             @click="onTest(template.kind)"
           >
-            Testmail an mich
+            {{ t.mailTemplates.sendTest }}
           </button>
         </p>
       </template>
       <form
         v-else-if="editing"
         class="panel"
-        :aria-label="`${MAIL_KIND_LABELS[template.kind] ?? template.kind} bearbeiten`"
+        :aria-label="t.mailTemplates.editing(MAIL_KIND_LABELS[template.kind] ?? template.kind)"
         @submit.prevent="onSave"
       >
         <p class="field">
-          <label :for="`subject-${template.kind}`">Betreff</label>
+          <label :for="`subject-${template.kind}`">{{ t.mailTemplates.subject }}</label>
           <input
             :id="`subject-${template.kind}`"
             v-model="editing.subject"
@@ -151,7 +152,7 @@ async function onTest(kind: MailKind): Promise<void> {
           >
         </p>
         <p class="field">
-          <label :for="`body-${template.kind}`">Text</label>
+          <label :for="`body-${template.kind}`">{{ t.mailTemplates.body }}</label>
           <textarea
             :id="`body-${template.kind}`"
             v-model="editing.body"
@@ -161,7 +162,7 @@ async function onTest(kind: MailKind): Promise<void> {
           />
         </p>
         <p class="muted">
-          Platzhalter: {{ placeholderList(template) }}
+          {{ t.mailTemplates.placeholders }}: {{ placeholderList(template) }}
         </p>
         <ul
           v-if="problems.length > 0"
@@ -180,14 +181,14 @@ async function onTest(kind: MailKind): Promise<void> {
             type="submit"
             :disabled="saving.busy.value"
           >
-            Speichern
+            {{ t.common.save }}
           </button>
           <button
             type="button"
             class="ghost"
             @click="editing = null"
           >
-            Abbrechen
+            {{ t.common.cancel }}
           </button>
         </p>
       </form>

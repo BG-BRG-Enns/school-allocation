@@ -8,11 +8,12 @@ import { onMounted, ref } from 'vue'
 import { loadPeriods, savePeriods, type Period } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { useFeedback } from '../lib/feedback.ts'
+import { t } from '../lib/i18n.ts'
 import { PERIOD_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { isSchoolAdmin } from '../lib/session.ts'
 
-usePageTitle(() => 'Stundenraster')
+usePageTitle(() => t.common.page.periods)
 const periods = ref<Period[]>([])
 const loading = useFeedback()
 const saving = useFeedback()
@@ -50,25 +51,25 @@ async function onSave(): Promise<void> {
       }
       throw err
     }
-  }, 'Stundenraster gespeichert.')
+  }, t.periods.saved)
 }
 </script>
 
 <template>
   <p>
     <RouterLink to="/verwaltung">
-      ← Verwaltung
+      ← {{ t.common.page.admin }}
     </RouterLink>
   </p>
-  <h1>Stundenraster</h1>
+  <h1>{{ t.common.page.periods }}</h1>
   <p
     v-if="!isSchoolAdmin"
     role="alert"
   >
-    Das Stundenraster ändert die Administration der Schule.
+    {{ t.periods.adminsOnly }}
   </p>
   <template v-else>
-    <p>Die Unterrichtseinheiten der Schule, in denen Lehrkräfte ihre Termine angeben („ab der 2. Einheit, 2 Einheiten lang“). Termine mit anderen Zeiten, etwa Ausflüge, werden nach der Uhr eingegeben.</p>
+    <p>{{ t.periods.intro }}</p>
     <p
       v-if="loading.error.value"
       role="alert"
@@ -81,13 +82,13 @@ async function onSave(): Promise<void> {
         <thead>
           <tr>
             <th scope="col">
-              Einheit
+              {{ t.periods.period }}
             </th>
             <th scope="col">
-              Beginn
+              {{ t.periods.starts }}
             </th>
             <th scope="col">
-              Ende
+              {{ t.periods.ends }}
             </th>
           </tr>
         </thead>
@@ -96,11 +97,11 @@ async function onSave(): Promise<void> {
             v-for="(p, index) in periods"
             :key="index"
           >
-            <td>{{ index + 1 }}. EH</td>
+            <td>{{ t.format.period(index + 1) }}</td>
             <td>
               <input
                 v-model="p.starts"
-                :aria-label="`Beginn ${index + 1}. Einheit`"
+                :aria-label="t.periods.startsOf(index + 1)"
                 type="time"
                 required
               >
@@ -108,7 +109,7 @@ async function onSave(): Promise<void> {
             <td>
               <input
                 v-model="p.ends"
-                :aria-label="`Ende ${index + 1}. Einheit`"
+                :aria-label="t.periods.endsOf(index + 1)"
                 type="time"
                 required
               >
@@ -123,7 +124,7 @@ async function onSave(): Promise<void> {
           :disabled="periods.length >= 20"
           @click="addPeriod"
         >
-          Einheit anfügen
+          {{ t.periods.add }}
         </button>
         <button
           type="button"
@@ -131,13 +132,13 @@ async function onSave(): Promise<void> {
           :disabled="periods.length <= 1"
           @click="removeLast"
         >
-          Letzte entfernen
+          {{ t.periods.removeLast }}
         </button>
         <button
           type="submit"
           :disabled="saving.busy.value"
         >
-          Speichern
+          {{ t.common.save }}
         </button>
       </p>
       <ul

@@ -12,12 +12,13 @@ import { ApiError } from '../lib/api-rules.ts'
 import { exemptStudent, loadChoiceOf, loadMyChoice, saveChoiceOf, saveMyChoice, type ChoiceView, type GroupView, type Item, type RankingInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatFee, formatSpanOnGrid, formatWhenShort, localDateOf } from '../lib/format.ts'
+import { t } from '../lib/i18n.ts'
 import { RANKING_PROBLEM_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string, personId?: string }>()
 const onBehalf = computed(() => props.personId !== undefined)
-usePageTitle(() => onBehalf.value ? 'Wünsche eingeben' : 'Meine Wünsche')
+usePageTitle(() => onBehalf.value ? t.wishes.titleOnBehalf : t.common.page.wishes)
 
 const view = ref<ChoiceView | null>(null)
 const grid = ref<Period[]>([])
@@ -113,7 +114,7 @@ async function saveNow(): Promise<void> {
       }
       throw err
     }
-  }, 'Gespeichert.')
+  }, t.common.saved)
 }
 
 async function exempt(): Promise<void> {
@@ -123,7 +124,7 @@ async function exempt(): Promise<void> {
     view.value = await exemptStudent(props.id, props.personId as string, item.id, exemptReason.value.trim())
     edits += 1
     ranking.value = Object.fromEntries(Object.entries(view.value.ranking).map(([key, ids]) => [key, [...ids]]))
-  }, 'Befreit.')
+  }, t.wishes.exemptions.done)
   if (ok) {
     exempting.value = null
     exemptReason.value = ''
@@ -134,10 +135,10 @@ async function exempt(): Promise<void> {
 <template>
   <p>
     <RouterLink :to="`/wahlen/${props.id}`">
-      ← Zur Wahl
+      ← {{ t.common.backToCampaign }}
     </RouterLink>
   </p>
-  <h1>{{ onBehalf ? 'Wünsche eingeben' : 'Meine Wünsche' }}</h1>
+  <h1>{{ onBehalf ? t.wishes.titleOnBehalf : t.common.page.wishes }}</h1>
   <p
     v-if="loading.error.value"
     role="alert"
@@ -150,36 +151,36 @@ async function exempt(): Promise<void> {
       v-if="onBehalf"
       class="notice"
     >
-      Im Namen von {{ view.student.displayName }} ({{ view.student.className }}). Die Eingabe wird mit Begründung protokolliert.
+      {{ t.wishes.onBehalf(view.student.displayName, view.student.className) }}
     </p>
     <p class="muted">
-      {{ campaign.name }} · bis zu {{ view.cap }} Wünsche je Zeitgruppe
+      {{ campaign.name }} · {{ t.wishes.cap(view.cap) }}
       <template v-if="campaign.closesAt">
-        · Wahl bis {{ formatWhenShort(campaign.closesAt) }}
+        · {{ t.wishes.closesAt(formatWhenShort(campaign.closesAt)) }}
       </template>
       <template v-if="campaign.state === 'grace' && campaign.lateUntil">
-        · Nachfrist bis {{ formatWhenShort(campaign.lateUntil) }}
+        · {{ t.wishes.lateUntil(formatWhenShort(campaign.lateUntil)) }}
       </template>
     </p>
     <p
       v-if="!editable"
       class="notice"
     >
-      Die Wahl nimmt derzeit keine Wünsche an.
+      {{ t.wishes.notAccepting }}
     </p>
     <p
       v-else-if="view.window === 'late' || campaign.state === 'grace'"
       class="notice"
     >
-      Wünsche aus der Nachfrist werden nach den anderen zugeteilt.
+      {{ t.wishes.lateNotice }}
     </p>
     <p v-if="view.window">
-      <span :class="['badge', view.complete ? 'badge-approved' : 'badge-proposed']">{{ view.complete ? 'vollständig' : 'unvollständig' }}</span>
-      gespeichert im {{ WINDOW_LABELS[view.window] ?? view.window }}, Fassung {{ view.version }}
+      <span :class="['badge', view.complete ? 'badge-approved' : 'badge-proposed']">{{ view.complete ? t.labels.choiceState.complete : t.labels.choiceState.incomplete }}</span>
+      {{ t.wishes.savedIn(WINDOW_LABELS[view.window] ?? view.window, view.version) }}
     </p>
 
     <p v-if="view.groups.length === 0 && view.fixed.length === 0">
-      Für Sie steht nichts zur Wahl.
+      {{ t.wishes.nothingOffered }}
     </p>
     <form @submit.prevent="save">
       <section
@@ -195,11 +196,11 @@ async function exempt(): Promise<void> {
             v-for="item in d.fixed"
             :key="item.id"
           >
-            <strong>{{ item.title }}</strong> · fix für Ihre Klasse
+            <strong>{{ item.title }}</strong> · {{ t.wishes.fixedForYourClass }}
             <span
               v-if="item.feeCents > 0"
               class="muted"
-            > · Beitrag {{ formatFee(item.feeCents) }}</span>
+            > · {{ t.common.field.fee }} {{ formatFee(item.feeCents) }}</span>
           </li>
         </ul>
         <fieldset
@@ -208,21 +209,21 @@ async function exempt(): Promise<void> {
           class="field"
           :disabled="!editable"
         >
-          <legend>{{ formatSpanOnGrid(grid, group.startsAt, group.endsAt) }} · {{ wishesOf(group) }} von {{ group.required }} Wünschen</legend>
+          <legend>{{ formatSpanOnGrid(grid, group.startsAt, group.endsAt) }} · {{ t.wishes.groupCount(wishesOf(group), group.required) }}</legend>
           <table class="table">
             <thead>
               <tr>
                 <th scope="col">
-                  Wunsch
+                  {{ t.wishes.wish }}
                 </th>
                 <th scope="col">
-                  Aktivität
+                  {{ t.common.field.item }}
                 </th>
                 <th scope="col">
-                  Plätze
+                  {{ t.common.field.places }}
                 </th>
                 <th scope="col">
-                  Beitrag
+                  {{ t.common.field.fee }}
                 </th>
               </tr>
             </thead>
@@ -233,7 +234,7 @@ async function exempt(): Promise<void> {
               >
                 <td>
                   <select
-                    :aria-label="`Wunsch ${item.title}`"
+                    :aria-label="t.wishes.wishFor(item.title)"
                     :value="rankOf(group, item)"
                     @change="setRank(group, item, Number(($event.target as HTMLSelectElement).value))"
                   >
@@ -269,7 +270,7 @@ async function exempt(): Promise<void> {
         v-if="onBehalf && editable"
         class="field"
       >
-        <label for="reason">Begründung</label>
+        <label for="reason">{{ t.common.field.reason }}</label>
         <input
           id="reason"
           v-model="reason"
@@ -312,14 +313,14 @@ async function exempt(): Promise<void> {
           type="submit"
           :disabled="saving.busy.value"
         >
-          Wünsche speichern
+          {{ t.wishes.saveWishes }}
         </button>
-        <span class="muted">{{ complete ? 'Alle Zeitgruppen haben ihre Wünsche.' : 'Es fehlen noch Wünsche.' }}{{ onBehalf ? '' : ' Jede Änderung wird sofort gespeichert.' }}</span>
+        <span class="muted">{{ complete ? t.wishes.allGroupsComplete : t.wishes.wishesMissing }}{{ onBehalf ? '' : ` ${t.wishes.savedAtOnce}` }}</span>
       </p>
     </form>
 
     <section v-if="onBehalf && editable && view.fixed.length > 0">
-      <h2>Befreiungen</h2>
+      <h2>{{ t.wishes.exemptions.title }}</h2>
       <ul class="plain">
         <li
           v-for="item in view.fixed"
@@ -331,22 +332,22 @@ async function exempt(): Promise<void> {
             class="ghost"
             @click="exempting = item; exemptReason = ''"
           >
-            Befreien
+            {{ t.wishes.exemptions.exempt }}
           </button>
         </li>
       </ul>
       <form
         v-if="exempting"
         class="panel"
-        :aria-label="`Von ${exempting.title} befreien`"
+        :aria-label="t.wishes.exemptions.from(exempting.title)"
         @submit.prevent="exempt"
       >
-        <h3>Von {{ exempting.title }} befreien</h3>
+        <h3>{{ t.wishes.exemptions.from(exempting.title) }}</h3>
         <p class="muted">
-          {{ view.student.displayName }} wählt dann für diese Zeit selbst.
+          {{ t.wishes.exemptions.thenChooses(view.student.displayName) }}
         </p>
         <p class="field">
-          <label for="exempt-reason">Begründung</label>
+          <label for="exempt-reason">{{ t.common.field.reason }}</label>
           <input
             id="exempt-reason"
             v-model="exemptReason"
@@ -359,14 +360,14 @@ async function exempt(): Promise<void> {
             type="submit"
             :disabled="saving.busy.value"
           >
-            Befreien
+            {{ t.wishes.exemptions.exempt }}
           </button>
           <button
             type="button"
             class="ghost"
             @click="exempting = null"
           >
-            Abbrechen
+            {{ t.common.cancel }}
           </button>
         </p>
       </form>
