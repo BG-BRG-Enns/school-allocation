@@ -1,18 +1,22 @@
 // The words the journeys find the app's elements by: the message catalogue
-// of E2E_LOCALE, German unless set (the only language so far). A wording
+// of E2E_LOCALE, German unless set. The harness sets the school's language
+// to the same (e2e/harness/server.ts), so the app speaks it. A wording
 // change in the catalogue is then no change to a spec. What a journey types
 // into a form, the names of its test people and the stand-in's own sign-in
 // page stay literal in the specs.
 
-import { intlLocale, LOCALES, messagesFor, type Locale } from '../../packages/messages/src/index.ts'
+import { intlLocale, isLocale, LOCALES, messagesFor } from '../../packages/messages/src/index.ts'
 
 const locale = process.env.E2E_LOCALE ?? 'de'
-if (!(LOCALES as readonly string[]).includes(locale)) throw new Error(`E2E_LOCALE must be one of ${LOCALES.join(', ')}, not ${locale}`)
+if (!isLocale(locale)) throw new Error(`E2E_LOCALE must be one of ${LOCALES.join(', ')}, not ${locale}`)
 
-export const t = messagesFor(locale as Locale)
+/** The school's language in the journeys. */
+export const LOCALE = locale
+
+export const t = messagesFor(LOCALE)
 
 /** The browser's locale for the journeys, the one the app formats in. */
-export const INTL_LOCALE = intlLocale(locale as Locale)
+export const INTL_LOCALE = intlLocale(LOCALE)
 
 /** `text` as a part of a RegExp, its special characters escaped: for a pattern built around the catalogue's words. */
 export function literally(text: string): string {
