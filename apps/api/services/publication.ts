@@ -31,7 +31,12 @@ import { firstNameOf, formatWhen } from './window.ts'
 const dayShort = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit' })
 const clock = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, hour: '2-digit', minute: '2-digit' })
 
-const same = (a: readonly string[], b: readonly string[]) => [...new Set(a)].sort().join(',') === [...new Set(b)].sort().join(',')
+/** The two lists name the same ids, in any order. */
+function same(a: readonly string[], b: readonly string[]): boolean {
+  const left = new Set(a)
+  const right = new Set(b)
+  return left.size === right.size && [...left].every((id) => right.has(id))
+}
 
 /** The item as a line of a student's programme: its number and title, the day and the clock span of each session. */
 function programmeLine(item: Item, source: Assignment['source']): string {
