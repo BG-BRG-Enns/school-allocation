@@ -161,7 +161,8 @@ export async function runWorkbook(review: RunReviewResponse, changes?: readonly 
           ['Nr.', 'Wann', 'Art', 'Klasse', 'Name', 'Nicht mehr', 'Neu', 'Begründung', 'Erzwungen', 'Durch'].map(header),
           ...changes.map((c) => [
             { type: Number, value: c.seq },
-            { type: Date, value: new Date(c.changedAt), format: 'dd.mm.yyyy hh:mm' },
+            // As text in the school's time: an Excel date carries no zone and would show UTC.
+            { type: String, value: whenLong.format(new Date(c.changedAt)) },
             { type: String, value: CHANGE_KIND_LABELS[c.kind] ?? c.kind },
             { type: String, value: c.className },
             { type: String, value: c.displayName },
@@ -184,3 +185,4 @@ export async function runWorkbook(review: RunReviewResponse, changes?: readonly 
 }
 
 const dayShort = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit' })
+const whenLong = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })

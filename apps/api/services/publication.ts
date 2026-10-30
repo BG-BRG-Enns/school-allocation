@@ -17,7 +17,7 @@ import { lockedCampaign, readCampaign, updateState } from '../lib/dao/campaigns.
 import { listCampaignItems } from '../lib/dao/items.ts'
 import { campaignStudents } from '../lib/dao/choices.ts'
 import { classTeachersByClass } from '../lib/dao/window.ts'
-import type { Database, Queryable } from '../lib/db.ts'
+import { readSnapshot, type Database, type Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import { enqueueMail } from '../lib/mail/outbox.ts'
 import type { AllocationRun, StoredRun } from '../lib/models/allocation.ts'
@@ -192,14 +192,16 @@ export function unavailableItems(run: Pick<StoredRun, 'cancelledItemIds'>, items
 export async function myResult(db: Database, campaign: Campaign, caller: Caller) {
   const personId = caller.person?.kind === 'student' ? caller.person.id : null
   if (personId === null) throw new ApplicationError('not_a_student')
-  const { run } = await requirePublished(db, campaign.id)
-  const rows = await store.listAssignments(db, run.id)
+  // The rows and the changes of one moment: a swap committing in between would show the move and the old place at once.
+  const { run, rows, all, log } = await readSnapshot(db, async (client) => {
+    const { run } = await requirePublished(client, campaign.id)
+    return { run, rows: await store.listAssignments(client, run.id), all: await listCampaignItems(client, campaign.id), log: await store.listChanges(client, run.id) }
+  })
   const mine = rows.filter((r) => r.personId === personId)
   const explanation = explainStudent(run.snapshot, mine, personId)
   if (!explanation) throw new ApplicationError('not_found')
-  const all = await listCampaignItems(db, campaign.id)
   const offers = swapWindowOpen(campaign) ? moveOffers(run.snapshot, rows, personId, 'swap', unavailableItems(run, all)) : null
-  const changes = (await store.listChanges(db, run.id)).filter((c) => c.personId === personId).map((c) => ({ kind: c.kind, toItemId: c.toItemId, leftItemIds: c.leftItemIds, changedAt: c.changedAt }))
+  const changes = log.filter((c) => c.personId === personId).map((c) => ({ kind: c.kind, toItemId: c.toItemId, leftItemIds: c.leftItemIds, changedAt: c.changedAt }))
   // Every item the page names: the places given (one withdrawn since publication still names a place given), the items
   // on offer, the items left. The fee is the run's, as the student saw it when ranking and as the workbook sums it.
   const named = new Set([...mine.map((r) => r.itemId), ...(offers ?? []).map((o) => o.itemId), ...changes.flatMap((c) => [...c.leftItemIds, ...(c.toItemId === null ? [] : [c.toItemId])])])
@@ -262,8 +264,10 @@ export async function classPlacements(db: Queryable, campaign: Campaign, classNa
   return result
 }
 
-/** The published run's review with its changes, for the assignments workbook. */
-export async function publishedReview(db: Database, campaignId: string, changes: (campaign: Campaign) => Promise<AssignmentChange[]>) {
-  const { campaign, run } = await requirePublished(db, campaignId)
-  return { campaign, review: await runReview(db, campaign, run.id), changes: await changes(campaign) }
+/** The published run's review with its changes, for the assignments workbook; both read at one moment, so the sheets agree. */
+export async function publishedReview(db: Database, campaignId: string, changes: (client: Queryable, campaign: Campaign) => Promise<AssignmentChange[]>) {
+  return readSnapshot(db, async (client) => {
+    const { campaign, run } = await requirePublished(client, campaignId)
+    return { campaign, review: await runReview(client, campaign, run.id), changes: await changes(client, campaign) }
+  })
 }

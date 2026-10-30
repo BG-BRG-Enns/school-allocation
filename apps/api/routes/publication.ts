@@ -36,7 +36,7 @@ export async function publicationRoutes(app: FastifyInstance, { db, guards, base
   })
 
   registerEndpoint(app, endpoints.getAdminCampaignsByIdExportAssignmentsXlsx, { ...auditor, exposeHeadRoute: false }, async (request, reply) => {
-    const { campaign, review, changes } = await publishedReview(db, request.params.id, (c) => changeLog(db, c))
+    const { campaign, review, changes } = await publishedReview(db, request.params.id, (client, c) => changeLog(client, c))
     const bytes = await runWorkbook(review, changes)
     return reply
       .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
