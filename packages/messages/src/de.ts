@@ -10,9 +10,10 @@
 // function of it, and a count that changes the words asks the language's
 // plural rules.
 //
-// Sie and du stand as the pages have them today. The mail templates'
-// default texts are here too (`mail`); a text an organizer saves instead
-// is stored in the database.
+// The words follow docs/glossary.md, and du addresses everyone;
+// de-formal.ts says Sie to staff. The mail templates' default texts are
+// here too (`mail`); a text an organizer saves instead is stored in the
+// database.
 
 const plural = new Intl.PluralRules('de')
 
@@ -1148,7 +1149,7 @@ export const de = {
       deadline: 'Mo., 08.03.2027, 20:00',
       project_days: 'Mo., 21.06.2027, Di., 22.06.2027',
       class_name: '5A',
-      window: 'Anmeldefenster 1',
+      window: 'Anmeldezeitraum',
       list: '- Maria Muster\n- Max Muster',
       programme: 'Mo., 21.06.: 3. Klettern (08:30 – 12:15)\nDi., 22.06.: 7. Wien (Klasse)',
       swap_period: 'Mo., 05.07.2027, 08:00 bis Mo., 12.07.2027, 20:00',
@@ -1301,48 +1302,48 @@ export const de = {
    */
   mail: {
     choice_invitation: {
-      subject: 'Projektwoche {{campaign}}: Wünsche bis {{deadline}} abgeben',
-      body: 'Hallo {{first_name}},\n\ndie Wahl für {{campaign}} ({{project_days}}) ist offen. Bitte gib deine Wünsche bis {{deadline}} ab (mit dem Schulkonto anmelden):\n\n{{link}}\n\nWann du innerhalb der Frist wählst, spielt für die Zuteilung keine Rolle; bis {{deadline}} kannst du deine Wünsche noch ändern. Bist du mit deiner Klasse fix bei einer Aktivität, wählst du nur für die übrige Zeit.\n\nViel Spaß beim Aussuchen!',
+      subject: '{{campaign}}: Wünsche bis {{deadline}} abgeben',
+      body: 'Hallo {{first_name}},\n\ndie Anmeldung für {{campaign}} ({{project_days}}) ist offen. Gib deine Wünsche bitte bis {{deadline}} ab; du loggst dich mit deinem Schulkonto ein:\n\n{{link}}\n\nWann du dich im Anmeldezeitraum anmeldest, spielt für die Einteilung keine Rolle, und bis {{deadline}} kannst du deine Wünsche noch ändern. Nimmt deine ganze Klasse an einer Aktivität teil, wählst du nur für die übrige Zeit.\n\nViel Spaß beim Aussuchen!',
     },
     choice_reminder: {
       subject: 'Erinnerung: Wünsche für {{campaign}} bis {{deadline}}',
-      body: 'Hallo {{first_name}},\n\ndeine Wünsche für {{campaign}} sind noch nicht vollständig. Bitte gib sie bis {{deadline}} ab:\n\n{{link}}\n\nFalls du es gerade erst erledigt hast, betrachte diese Nachricht als gegenstandslos.',
+      body: 'Hallo {{first_name}},\n\ndeine Wünsche für {{campaign}} sind noch nicht vollständig. Gib sie bitte bis {{deadline}} ab:\n\n{{link}}\n\nHast du das gerade erledigt? Dann vergiss diese E-Mail einfach.',
     },
     grace_invitation: {
       subject: 'Nachfrist: Wünsche für {{campaign}} bis {{deadline}}',
-      body: 'Hallo {{first_name}},\n\ndie Wahl für {{campaign}} ist zu Ende, deine Wünsche fehlen noch oder sind unvollständig. Bis {{deadline}} kannst du sie nachholen:\n\n{{link}}\n\nWünsche aus der Nachfrist werden nach den anderen zugeteilt. Wer bis dahin nichts abgibt, bekommt einen Platz in einer Aktivität ohne Beitrag mit freien Plätzen.',
+      body: 'Hallo {{first_name}},\n\nder Anmeldezeitraum für {{campaign}} ist zu Ende, und deine Wünsche fehlen noch oder sind unvollständig. Bis {{deadline}} kannst du sie nachholen:\n\n{{link}}\n\nWünsche aus der Nachfrist kommen nach den anderen dran. Wer bis dahin keine abgibt, bekommt Restplätze ohne Kosten.',
     },
     grace_reminder: {
       subject: 'Letzte Erinnerung: Wünsche für {{campaign}} bis {{deadline}}',
-      body: 'Hallo {{first_name}},\n\nmorgen endet die Nachfrist für {{campaign}}. Deine Wünsche fehlen noch:\n\n{{link}}',
+      body: 'Hallo {{first_name}},\n\nmorgen endet die Nachfrist für {{campaign}}, und deine Wünsche fehlen noch:\n\n{{link}}',
     },
     missed_deadline: {
-      subject: '{{campaign}}: Wünsche nicht abgegeben',
-      body: 'Hallo {{first_name}},\n\ndie Frist für {{campaign}} ist abgelaufen, ohne dass vollständige Wünsche von dir vorliegen. Du bekommst einen Platz in einer Aktivität ohne Beitrag mit freien Plätzen, oder dein Klassenvorstand teilt dich zu. Dein Ergebnis siehst du nach der Veröffentlichung hier:\n\n{{link}}',
+      subject: '{{campaign}}: keine Wünsche abgegeben',
+      body: 'Hallo {{first_name}},\n\ndie Anmeldung für {{campaign}} ist zu Ende, und deine Wünsche sind nicht vollständig. Du bekommst deshalb Restplätze ohne Kosten, oder dein Klassenvorstand teilt dich ein. Deine Einteilung siehst du nach der Veröffentlichung hier:\n\n{{link}}',
     },
     class_missing: {
       subject: '{{campaign}}: fehlende Wünsche der {{class_name}} ({{window}})',
-      body: 'Hallo {{first_name}},\n\naus deiner Klasse {{class_name}} fehlen bei {{campaign}} ({{window}}) noch folgende Wünsche:\n\n{{list}}\n\nBitte erinnere diese Schüler/innen daran. Den Stand der Klasse siehst du hier:\n\n{{link}}',
+      body: 'Hallo {{first_name}},\n\naus deiner Klasse {{class_name}} fehlen bei {{campaign}} ({{window}}) noch diese Wünsche:\n\n{{list}}\n\nBitte erinnere diese Schüler*innen daran. Den Stand der Klasse siehst du hier:\n\n{{link}}',
     },
     result_published: {
-      subject: '{{campaign}}: deine Zuteilung',
-      body: 'Hallo {{first_name}},\n\ndie Zuteilung für {{campaign}} steht fest. Das ist dein Programm:\n\n{{programme}}\n\n{{#if swap_period}}Wer tauschen möchte: Im Zeitraum {{swap_period}} kannst du in eine Aktivität mit freien Plätzen wechseln.\n\n{{/if}}Alle Einzelheiten und die Begründung der Zuteilung siehst du hier:\n\n{{link}}',
+      subject: '{{campaign}}: deine Einteilung',
+      body: 'Hallo {{first_name}},\n\ndie Einteilung für {{campaign}} steht fest. Das ist dein Programm:\n\n{{programme}}\n\n{{#if swap_period}}Wenn du tauschen möchtest: In der Tauschzeit, {{swap_period}}, kannst du in eine Aktivität mit freien Plätzen wechseln.\n\n{{/if}}Alle Einzelheiten und wie deine Einteilung zustande kam, siehst du hier:\n\n{{link}}',
     },
     class_unplaced: {
-      subject: '{{campaign}}: Schüler/innen der {{class_name}} ohne vollständigen Platz',
-      body: 'Hallo {{first_name}},\n\nbei der Zuteilung für {{campaign}} konnten aus deiner Klasse {{class_name}} nicht alle vollständig untergebracht werden:\n\n{{list}}\n\nBitte teile diese Schüler/innen einer Aktivität mit freien Plätzen zu. Den Stand der Klasse siehst du hier:\n\n{{link}}',
+      subject: '{{campaign}}: noch nicht alle aus der {{class_name}} eingeteilt',
+      body: 'Hallo {{first_name}},\n\nbei {{campaign}} sind aus deiner Klasse {{class_name}} noch nicht alle für jeden Tag eingeteilt:\n\n{{list}}\n\nBitte teile sie in Aktivitäten mit freien Plätzen ein. Den Stand der Klasse siehst du hier:\n\n{{link}}',
     },
     item_cancelled: {
-      subject: '{{campaign}}: {{activity}} findet nicht statt',
-      body: 'Hallo {{first_name}},\n\ndeine Aktivität „{{activity}}“ bei {{campaign}} hat die Mindestteilnehmerzahl von {{minimum}} nicht erreicht ({{wish_count}} Wünsche) und wurde bei der Zuteilung abgesagt. Die Schüler/innen wurden auf ihre weiteren Wünsche verteilt.\n\n{{link}}',
+      subject: '{{campaign}}: {{activity}} fällt aus',
+      body: 'Hallo {{first_name}},\n\ndeine Aktivität „{{activity}}“ bei {{campaign}} hat die Mindestzahl von {{minimum}} nicht erreicht ({{wish_count}} Wünsche) und fällt deshalb aus. Wer sie gewünscht hat, ist nach den weiteren Wünschen eingeteilt.\n\n{{link}}',
     },
     swap_confirmed: {
       subject: '{{campaign}}: dein Tausch',
       body: 'Hallo {{first_name}},\n\ndein Tausch bei {{campaign}} ist eingetragen. Das ist jetzt dein Programm:\n\n{{programme}}\n\nAlle Einzelheiten siehst du hier:\n\n{{link}}',
     },
     assignment_changed: {
-      subject: '{{campaign}}: deine Zuteilung wurde geändert',
-      body: 'Hallo {{first_name}},\n\ndeine Zuteilung bei {{campaign}} wurde von {{changed_by}} geändert: {{change}}\n\nDas ist jetzt dein Programm:\n\n{{programme}}\n\nAlle Einzelheiten siehst du hier:\n\n{{link}}',
+      subject: '{{campaign}}: deine Einteilung wurde geändert',
+      body: 'Hallo {{first_name}},\n\ndeine Einteilung bei {{campaign}} wurde von {{changed_by}} geändert: {{change}}\n\nDas ist jetzt dein Programm:\n\n{{programme}}\n\nAlle Einzelheiten siehst du hier:\n\n{{link}}',
     },
   },
 }

@@ -134,7 +134,7 @@ test('the test mail goes through the outbox to an authenticated SMTP server; tra
   assert.deepEqual(mail.to, [ANNA.email])
   assert.equal(headerOf(mail.data, 'From'), 'SchulWahl <wahl@schule.example.org>')
   assert.equal(headerOf(mail.data, 'Reply-To'), 'sekretariat@schule.example.org')
-  assert.equal(decodeHeader(headerOf(mail.data, 'Subject') ?? ''), '[TEST] Projektwoche Projektwoche 2027: Wünsche bis Mo., 08.03.2027, 20:00 abgeben')
+  assert.equal(decodeHeader(headerOf(mail.data, 'Subject') ?? ''), '[TEST] Projektwoche 2027: Wünsche bis Mo., 08.03.2027, 20:00 abgeben')
   assert.match(headerOf(mail.data, 'Message-ID') ?? '', /^<[0-9a-f-]+@schule\.example\.org>$/)
   assert.match(bodyOf(mail.data), /Hallo Maria,/)
   const owner = createDatabase(h.ownerUrl, () => {})
