@@ -81,11 +81,14 @@ for file in "$dir"/apps/api/migrations/*.sql; do
   fi
 done
 if [ "$problems" -ne 0 ]; then
-  summary "Compatibility with $ref ($sha): the migrations do not continue that release's."
+  summary "Compatibility with $ref ($sha): this checkout's migrations do not continue the ones that release applied."
   exit 1
 fi
 
 (cd "$dir" && npm ci --ignore-scripts --no-audit --no-fund --loglevel=error)
+# Without --throw-deprecation, as the release's own script ran: a
+# deprecation in the release's code is that release's, not a sign that
+# the schema breaks it.
 status=0
 (cd "$dir/apps/api" && CI=true node --test --test-concurrency=1 --test-skip-pattern="$SKIP" "test/**/*.test.ts") || status=$?
 if [ "$status" -eq 0 ]; then
