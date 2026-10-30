@@ -189,6 +189,17 @@ test('the class teacher places a student short of minutes into a gap; the organi
   assert.equal((await change({ personId: '00000000-0000-4000-8000-000000000000', itemId: s.items.tanz, reason: 'Test' })).status, 404)
   assert.equal((await send(s, s.bernd, 'POST', `/api/admin/campaigns/${id}/assignments`, { personId: s.saraPerson, itemId: s.items.tanz, reason: 'Test' })).status, 403)
 
+  // The catalogue after publication: the words of an item may change, what the allocation computed with may not.
+  const items = await get<{ items: { id: string, title: string, feeCents: number, places: number, minParticipants: number, cancellableBelowMin: boolean, fixedClasses: string[], eligibleGrades: number[], eligibleClasses: string[], teachers: { personId: string }[], sessions: { startsAt: string, endsAt: string, credits: { date: string, minutes: number }[] }[] }[] }>(s, s.anna, `/api/campaigns/${id}/items`)
+  const klettern = items.body.items.find((i) => i.id === s.items.klettern)
+  assert.ok(klettern)
+  // The body as the form sends it: the optional texts left out when empty.
+  const body = { title: klettern.title, feeCents: klettern.feeCents, places: klettern.places, minParticipants: klettern.minParticipants, cancellableBelowMin: klettern.cancellableBelowMin, fixedClasses: klettern.fixedClasses, eligibleGrades: klettern.eligibleGrades, eligibleClasses: klettern.eligibleClasses, teachers: klettern.teachers.map((t) => t.personId), sessions: klettern.sessions.map((x) => ({ startsAt: x.startsAt, endsAt: x.endsAt, credits: x.credits })) }
+  const worded = await send<{ error?: string }>(s, s.anna, 'PATCH', `/api/items/${s.items.klettern}`, { ...body, description: 'Mit Helm.' })
+  assert.equal(worded.status, 200, JSON.stringify(worded.body))
+  assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/items/${s.items.klettern}`, { ...body, places: 30 })).body.error, 'campaign_state', 'the places the run was computed with')
+  assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/items/${s.items.klettern}`, { ...body, sessions: [{ ...body.sessions[0], endsAt: '2027-06-21T13:00:00+02:00' }] })).body.error, 'campaign_state')
+
   // What is left: Sara in Tanz, Tim short of Monday again, as the class page and the student's result say; the log carries every change with its reason.
   const now = await status(s.anna)
   assert.deepEqual(now.body.students.map((st) => [st.displayName, st.placement?.deficit]), [[SARA.name, 0], [TIM.name, 200]])

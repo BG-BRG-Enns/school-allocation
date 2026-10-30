@@ -105,8 +105,9 @@ Points D-06 and D-13 left to the implementation, settled with the swap window an
   archive.
 - **The organizer's change may override a full item and a minimum, with a flag that is recorded**;
   a class activity, eligibility, an overlap and a coverage loss are never overridden (a removal may
-  cost coverage, which the class's list then shows). The override exists because an item is editable
-  only while the catalogue is open, so places cannot be raised after publication.
+  cost coverage, which the class's list then shows). The override exists because from publication on
+  an approved item's times, places, minimum, fee and eligibility are what the run was computed with and
+  no longer change (only its words may), so places cannot be raised after publication.
 - **The swap window's dates stay editable until the window has begun**, also in `results`, so the
   organizer sets them when publishing.
 

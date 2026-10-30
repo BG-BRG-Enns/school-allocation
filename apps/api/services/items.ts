@@ -62,10 +62,21 @@ export async function createItem(db: Database, campaignId: string, input: ItemIn
   return mustRead(db, id)
 }
 
+/** Whether the edit changes what the allocation computed with: the times and credits, the places and the minimum, the fee, the classes and grades. */
+function allocationRelevantChange(current: Item, input: ItemInput): boolean {
+  const sorted = (list: readonly (string | number)[]) => [...list].sort().join(',')
+  const sessions = (list: readonly { startsAt: string, endsAt: string, credits: readonly { date: string, minutes: number }[] }[]) =>
+    list.map((s) => `${Date.parse(s.startsAt)}-${Date.parse(s.endsAt)}:${[...s.credits].sort((a, b) => a.date.localeCompare(b.date)).map((c) => `${c.date}=${c.minutes}`).join('+')}`).sort().join('|')
+  return current.places !== input.places || current.minParticipants !== input.minParticipants || current.cancellableBelowMin !== input.cancellableBelowMin || current.feeCents !== input.feeCents
+    || sorted(current.fixedClasses) !== sorted(input.fixedClasses) || sorted(current.eligibleGrades) !== sorted(input.eligibleGrades) || sorted(current.eligibleClasses) !== sorted(input.eligibleClasses)
+    || sessions(current.sessions) !== sessions(input.sessions)
+}
+
 /**
  * Replaces an activity's content. Its own people may do that while it is a
  * draft and the campaign takes proposals; an organizer may at any time but
- * withdrawn, audited unless it is their own.
+ * withdrawn, audited unless it is their own; from publication on only its
+ * words, not what the allocation computed with.
  */
 export async function updateItem(db: Database, id: string, input: ItemInput, caller: Caller, organizer: boolean): Promise<Item> {
   await db.tx(async (client) => {
@@ -83,6 +94,9 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
       throw new ApplicationError('campaign_state')
     }
     if (current.state === 'withdrawn') throw new ApplicationError('item_state')
+    // From publication on, an approved item is what the published run was computed with: its times, places, minimum,
+    // fee and eligibility stay (the result, the swaps and the placements read them); the words may still change.
+    if (campaign !== undefined && (campaign.state === 'results' || campaign.state === 'archived') && current.state === 'approved' && allocationRelevantChange(current, input)) throw new ApplicationError('campaign_state')
     await validate(client, current.campaignId, input)
     await store.updateContent(client, id, input)
     await store.deleteTeachers(client, id)
