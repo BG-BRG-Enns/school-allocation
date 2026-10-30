@@ -8,14 +8,14 @@ import { expect, test } from '../support/test.ts'
 import { ANNA, BERND, SARA } from '../support/personas.ts'
 import { shot } from '../support/screenshot.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
-import { t } from '../support/messages.ts'
+import { day, fee, t } from '../support/messages.ts'
 
 test.describe.configure({ mode: 'serial' })
 
 test('die Organisation legt die Anmeldung an und öffnet sie für Aktivitäten', async ({ page }) => {
   await openAs(page, ANNA, '/wahlen')
   await expect(page.getByRole('heading', { name: t.common.page.campaigns })).toBeVisible()
-  await page.getByLabel(t.campaign.settings.name).fill('Projektwoche 2027')
+  await page.getByLabel(t.campaign.settings.name, { exact: true }).fill('Projektwoche 2027')
   await page.getByLabel(t.common.field.schoolYear).fill('2026/27')
   await page.getByLabel(t.campaign.settings.projectDay(1)).fill('2027-06-21')
   await page.getByRole('button', { name: t.common.addDay }).click()
@@ -42,7 +42,7 @@ test('eine Lehrkraft reicht eine Aktivität ein; die Organisation genehmigt und 
   await page.getByLabel(t.item.sessions.fromPeriod).selectOption('2')
   await page.getByLabel(t.item.sessions.count, { exact: true }).fill('4')
   await expect(page.getByText('08:30 – 12:15')).toBeVisible()
-  await page.getByLabel(t.item.sessions.minutesOn('Mo., 21.06.2027')).fill('210')
+  await page.getByLabel(t.item.sessions.minutesOn(day('2027-06-21'))).fill('210')
   await page.getByLabel(t.common.field.places, { exact: true }).fill('12')
   await page.getByLabel(t.item.participation.minParticipants).fill('6')
   await page.getByLabel(t.item.fee.amount).fill('15,00')
@@ -52,7 +52,7 @@ test('eine Lehrkraft reicht eine Aktivität ein; die Organisation genehmigt und 
   const row = page.getByRole('row', { name: /Klettern/ })
   await expect(row).toContainText(t.labels.itemState.proposed)
   await expect(row).toContainText(BERND.name)
-  await expect(row).toContainText(t.format.euros('15,00'))
+  await expect(row).toContainText(fee(1500))
   await shot(page, '16-wahl-eingereicht')
   await signOut(page)
 
@@ -75,8 +75,8 @@ test('Schüler*innen lesen den veröffentlichten Katalog mit Nummern', async ({ 
   await page.getByRole('link', { name: t.campaign.items.viewCatalogue }).click()
   await expect(page.getByRole('heading', { name: t.catalogue.titleOf('Projektwoche 2027') })).toBeVisible()
   await expect(page.getByRole('heading', { name: '1 · Klettern' })).toBeVisible()
-  await expect(page.getByText(`Mo., 21.06.2027, ${t.format.periods(2, 5)} (08:30 – 12:15)`)).toBeVisible()
-  await expect(page.getByText(`${t.catalogue.places(12)} · ${t.catalogue.forWhom(t.catalogue.allGrades)} · ${t.catalogue.fee(t.format.euros('15,00'))}`)).toBeVisible()
+  await expect(page.getByText(`${day('2027-06-21')}, ${t.format.periods(2, 5)} (08:30 – 12:15)`)).toBeVisible()
+  await expect(page.getByText(`${t.catalogue.places(12)} · ${t.catalogue.forWhom(t.catalogue.allGrades)} · ${t.catalogue.fee(fee(1500))}`)).toBeVisible()
   await expect(page.getByRole('button', { name: t.catalogue.print })).toBeVisible()
   await shot(page, '18-katalog')
   await signOut(page)

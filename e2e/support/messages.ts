@@ -18,6 +18,27 @@ export const t = messagesFor(LOCALE)
 /** The browser's locale for the journeys, the one the app formats in. */
 export const INTL_LOCALE = intlLocale(LOCALE)
 
+// Dates as the pages write them (apps/web/src/lib/format.ts), in the
+// journeys' locale. A spec names a school day or a wall-clock time of the
+// school; formatting it in UTC keeps exactly that day and time.
+const dayFormat = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+const dayTimeFormat = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+
+/** A school day (YYYY-MM-DD) as the pages write it: "Mo., 21.06.2027" in German, "Mon, 21/06/2027" in English. */
+export function day(date: string): string {
+  return dayFormat.format(new Date(`${date}T12:00:00Z`))
+}
+
+/** A wall-clock time of the school (YYYY-MM-DDTHH:MM) as the pages write it: "Mo., 01.03., 08:00". */
+export function dayTime(local: string): string {
+  return dayTimeFormat.format(new Date(`${local}:00Z`))
+}
+
+/** An amount in cents as the pages write a fee (apps/web/src/lib/format.ts formatFee): "15,00 €" in German, "€15.00" in English. */
+export function fee(cents: number): string {
+  return t.format.euros((cents / 100).toLocaleString(INTL_LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+}
+
 /** `text` as a part of a RegExp, its special characters escaped: for a pattern built around the catalogue's words. */
 export function literally(text: string): string {
   return text.replaceAll(/[.*+?^${}()|[\]\\/]/g, '\\$&')

@@ -9,7 +9,7 @@ import { refused } from '../support/console.ts'
 import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
 import { shot } from '../support/screenshot.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
-import { LOCALE, t } from '../support/messages.ts'
+import { day, dayTime, literally, LOCALE, t } from '../support/messages.ts'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -98,10 +98,10 @@ test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: 'Projektwoche 2027' }).click()
   await expect(page.getByRole('heading', { name: t.campaign.demand.heading })).toBeVisible()
-  await expect(page.getByRole('row', { name: /Mo., 21.06.2027/ })).toContainText(t.campaign.demand.cell(2, 12))
+  await expect(page.getByRole('row', { name: new RegExp(literally(day('2027-06-21'))) })).toContainText(t.campaign.demand.cell(2, 12))
   await page.getByRole('button', { name: t.campaign.organization.editSettings }).click()
   const form = page.getByRole('form', { name: t.campaign.settings.label })
-  await expect(form.getByLabel(t.campaign.settings.name)).toBeDisabled()
+  await expect(form.getByLabel(t.campaign.settings.name, { exact: true })).toBeDisabled()
   await form.getByLabel(t.campaign.settings.opens, { exact: true }).fill('2027-03-01T08:00')
   await form.getByLabel(t.campaign.settings.closes, { exact: true }).fill('2027-03-08T20:00')
   await form.getByLabel(t.campaign.settings.lateUntil).fill('2027-03-12T20:00')
@@ -110,6 +110,6 @@ test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag
   await shot(page, '23-wahlfenster')
   await form.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.common.saved)
-  await expect(page.getByText(`${t.campaign.window.opens('Mo., 01.03., 08:00', 'Mo., 08.03., 20:00')}, ${t.campaign.window.late('Fr., 12.03., 20:00')} · ${t.campaign.window.wishes(3)}`)).toBeVisible()
+  await expect(page.getByText(`${t.campaign.window.opens(dayTime('2027-03-01T08:00'), dayTime('2027-03-08T20:00'))}, ${t.campaign.window.late(dayTime('2027-03-12T20:00'))} · ${t.campaign.window.wishes(3)}`)).toBeVisible()
   await signOut(page)
 })
