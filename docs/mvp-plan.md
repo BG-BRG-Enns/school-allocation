@@ -123,6 +123,11 @@ lifecycle, and is tested with synthetic data only.
 
 **S5c · The retention purge (D-15).**
 
+- The school years with their records and when each may go; the administrator's purge of a year past
+  its retention with every campaign archived, with a reason, audited in the school scope with the
+  counts; the people nobody names any more go with their accounts. A definer function behind a guard
+  switch; the runtime role deletes nothing itself.
+
 **S6 · Release and deploy readiness.**
 
 - Quadlet units, signed images, auto-update with the `busy` gate.

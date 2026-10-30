@@ -74,6 +74,8 @@ export const AUDIT_ACTIONS = [
   'assignment.changed',
   // Attendance (campaign scope): a class teacher or an organizer records a session's attendance for the students named.
   'attendance.recorded',
+  // Retention (school scope): an administrator purged a school year's records, with the reason and the counts.
+  'retention.purged',
 ] as const
 
 export type AuditAction = typeof AUDIT_ACTIONS[number]

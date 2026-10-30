@@ -305,6 +305,14 @@
   },
   {
     "method": "GET",
+    "url": "/api/admin/retention",
+    "body": null,
+    "params": null,
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/admin/roles",
     "body": null,
     "params": null,
@@ -1526,6 +1534,33 @@
       },
       "additionalProperties": false
     },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "POST",
+    "url": "/api/admin/purge",
+    "body": {
+      "type": "object",
+      "required": [
+        "schoolYear",
+        "reason"
+      ],
+      "properties": {
+        "schoolYear": {
+          "type": "string",
+          "pattern": "^(\\d{4})\\/(\\d{2})$"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^(?=.*\\S)[^\\p{Cc}\\p{Cs}\\p{Zl}\\p{Zp}]+$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": null,
     "querystring": null,
     "bodyLimit": null
   },

@@ -94,7 +94,10 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
 }
 
 /** Functions the runtime role may execute, by their signature as PostgreSQL prints a regprocedure: argument types without spaces between them. */
-export const RUNTIME_FUNCTIONS: readonly string[] = []
+export const RUNTIME_FUNCTIONS: readonly string[] = [
+  // The retention purge (0010): a definer function owned by the migrator, the one path through the guards; the service checks the date and the reason and writes the audit event.
+  'purge_school_year(text)',
+]
 
 const IDENTIFIER = /^[a-z_][a-z0-9_]*$/
 const SIGNATURE = /^[a-z_][a-z0-9_]*\((?:[a-z_][a-z0-9_ ]*(?:,[a-z_][a-z0-9_ ]*)*)?\)$/

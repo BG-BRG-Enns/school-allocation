@@ -15,6 +15,7 @@ import Katalog from './pages/Katalog.vue'
 import Klasse from './pages/Klasse.vue'
 import Klassen from './pages/Klassen.vue'
 import Mailvorlagen from './pages/Mailvorlagen.vue'
+import Aufbewahrung from './pages/Aufbewahrung.vue'
 import Personen from './pages/Personen.vue'
 import SignIn from './pages/SignIn.vue'
 import Stammdaten from './pages/Stammdaten.vue'
@@ -49,5 +50,6 @@ export const router = createRouter({
     { path: '/verwaltung/klassen', component: Klassen },
     { path: '/verwaltung/zeiten', component: Zeiten },
     { path: '/verwaltung/mailvorlagen', component: Mailvorlagen },
+    { path: '/verwaltung/aufbewahrung', component: Aufbewahrung },
   ],
 })

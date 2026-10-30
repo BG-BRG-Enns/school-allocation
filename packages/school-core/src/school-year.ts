@@ -22,3 +22,22 @@ export function schoolYearOf(year: number, month: number): string {
   const first = month >= 9 ? year : year - 1
   return `${first}/${String((first + 1) % 100).padStart(2, '0')}`
 }
+
+/** The first and second calendar year of a school year's label; the caller checked isSchoolYear. */
+export function yearsOf(label: string): [number, number] {
+  const match = SCHOOL_YEAR.exec(label)
+  if (!match) throw new RangeError(`not a school year: ${label}`)
+  const first = Number(match[1])
+  return [first, first + 1]
+}
+
+/**
+ * When the retention of a school year's project-week records ends (D-15):
+ * one year after the school year's end, so the first of September of the
+ * year after the second, at its start in Vienna (UTC+2 then). An ISO 8601
+ * instant; the caller, which has the clock, compares.
+ */
+export function retentionEndsAt(label: string): string {
+  const [, second] = yearsOf(label)
+  return `${second + 1}-08-31T22:00:00.000Z`
+}

@@ -10,7 +10,7 @@ export type { Period } from '@school-allocation/school-core'
 import type { RosterGroup } from '@school-allocation/api-contracts'
 import { apiRequest } from './api.ts'
 
-export type { Account, Batch, BatchDetail, BatchState, ClassTeacher, ClassWithTeachers, Grant, GraphGroup, MailTemplate, RosterGroup, RosterOverview, RosterPerson, StoredEntry, TemplateInvalidBody } from '@school-allocation/api-contracts'
+export type { Account, Batch, BatchDetail, BatchState, ClassTeacher, ClassWithTeachers, Grant, GraphGroup, MailTemplate, RosterGroup, RosterOverview, RosterPerson, StoredEntry, TemplateInvalidBody, RetentionYear } from '@school-allocation/api-contracts'
 export const loadRoster = () => apiRequest(endpoints.getAdminRoster, { })
 export const saveGroups = (groups: RosterGroup[]) => apiRequest(endpoints.putAdminRosterGroups, { body: { groups } })
 export const uploadCsv = (csv: string, schoolYear: string) => apiRequest(endpoints.postAdminRosterCsv, { body: { csv, schoolYear } })
@@ -43,3 +43,5 @@ export const bindAccount = (userId: string, personId: string, reason: string) =>
 export const loadGrants = () => apiRequest(endpoints.getAdminRoles, { })
 export const grantRole = (userId: string, role: Role, reason: string) => apiRequest(endpoints.postAdminRoles, { body: { userId, role, reason } })
 export const revokeGrant = (id: string, reason: string) => apiRequest(endpoints.postAdminRolesByIdRevoke, { params: { id: id }, body: { reason } })
+export const loadRetention = () => apiRequest(endpoints.getAdminRetention, { })
+export const purgeSchoolYear = (schoolYear: string, reason: string) => apiRequest(endpoints.postAdminPurge, { body: { schoolYear, reason } })
