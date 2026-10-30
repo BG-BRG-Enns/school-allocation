@@ -3,16 +3,25 @@
 -- (D-16) or an organizer, from publication to the archive. Separate from the
 -- assignments: an absent student keeps their place. A record is corrected
 -- in place (the audit event keeps who said what when); never removed.
--- Compatible with the release before it: one new table. No grants here.
+--
+-- A session is named by its item and its position, not its id: the release
+-- before this one rewrites an item's sessions on every edit (delete, then
+-- insert, the positions the same), and a record must survive that. The
+-- reference is checked at commit, so a rewrite inside one transaction
+-- passes; a session really gone takes its records' reference with it, which
+-- the check then refuses. Compatible with the release before it: one new
+-- table. No grants here.
 
 create table attendance (
-  session_id uuid not null references item_session (id),
+  item_id uuid not null references catalog_item (id),
+  position smallint not null,
   person_id uuid not null references person (id),
   status text not null check (status in ('present', 'absent', 'excused')),
   note text not null default '' check (char_length(note) <= 200),
   recorded_by uuid not null references app_user (id),
   recorded_at timestamptz not null default now(),
-  primary key (session_id, person_id)
+  primary key (item_id, position, person_id),
+  foreign key (item_id, position) references item_session (item_id, position) deferrable initially deferred
 );
 create index attendance_person on attendance (person_id);
 
@@ -22,7 +31,7 @@ begin
     perform refuse('an attendance record is corrected, not removed');
     return null;
   end if;
-  if new.session_id <> old.session_id or new.person_id <> old.person_id then
+  if new.item_id <> old.item_id or new.position <> old.position or new.person_id <> old.person_id then
     perform refuse('an attendance record keeps its session and person');
   end if;
   return new;

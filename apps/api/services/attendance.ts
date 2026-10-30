@@ -115,13 +115,13 @@ export async function recordAttendance(db: Database, caller: Caller, sessionId: 
       const student = students.get(personId)
       if (!student || !assigned.has(personId)) throw new ApplicationError('not_assigned', personId)
       if (!mayRecord(caller, campaign, student.className)) throw new ApplicationError('forbidden')
-      await store.upsertAttendance(client, session.id, personId, entry.status, (entry.note ?? '').trim(), caller.id)
+      await store.upsertAttendance(client, session.itemId, session.position, personId, entry.status, (entry.note ?? '').trim(), caller.id)
       recorded += 1
     }
     const counts = { present: 0, absent: 0, excused: 0 }
     for (const entry of canon.values()) counts[entry.status] += 1
     const actor = actorOf(caller)
-    await appendAudit(client, { scopeId: campaign.id, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: 'attendance.recorded', metadata: { sessionId: session.id, itemId: session.itemId, ...counts } })
+    await appendAudit(client, { scopeId: campaign.id, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: 'attendance.recorded', metadata: { sessionId: session.id, itemId: session.itemId, position: session.position, ...counts } })
   })
   return { recorded }
 }

@@ -88,7 +88,8 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   assignment: { table: ['SELECT', 'INSERT'], updateColumns: ['superseded_by'] },
   // A change after publication is written once and read; never changed or removed.
   assignment_change: { table: ['SELECT', 'INSERT'] },
-  // Attendance is recorded and corrected in place; never removed (the trigger keeps the rest).
+  // Attendance is recorded and corrected in place; never removed (the trigger keeps the rest). It names a session by its
+  // item and position, so the previous release's rewrite of an item's sessions keeps it.
   attendance: { table: ['SELECT', 'INSERT'], updateColumns: ['status', 'note', 'recorded_by', 'recorded_at'] },
 }
 

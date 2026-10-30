@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { AllocationRun, ClassAttendanceResponse, RunReviewResponse } from '@school-allocation/api-contracts'
 import { readAudit } from '../lib/audit.ts'
+import { createDatabase } from '../lib/db.ts'
 import { startFakeSolver } from './helpers/fake-solver.ts'
 import { DB, get, send, signIn } from './helpers/harness.ts'
 import { CARLA, SARA, TIM } from './helpers/personas.ts'
@@ -17,6 +18,8 @@ test('the class teacher records attendance for their class, session by session; 
   const solver = await startFakeSolver()
   t.after(() => solver.close())
   const s = await school(t, { SOLVER_URL: solver.baseUrl })
+  const owner = createDatabase(s.ownerUrl, () => {})
+  t.after(() => owner.close())
   const id = s.campaign.id
   const settings = { name: s.campaign.name, schoolYear: s.campaign.schoolYear, projectDays: s.campaign.projectDays }
   assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...settings, dailyMinimum: { 9: 200 }, swapFrom: new Date(Date.now() - 3_600_000).toISOString(), swapUntil: new Date(Date.now() + 86_400_000).toISOString() })).status, 200)
@@ -80,6 +83,14 @@ test('the class teacher records attendance for their class, session by session; 
   const relocated = await send<{ error?: string }>(s, s.anna, 'PATCH', `/api/items/${s.items.tanz}`, { ...body, sessions: body.sessions.map((x) => ({ ...x, location: 'Turnsaal 2' })) })
   assert.equal(relocated.status, 200, JSON.stringify(relocated.body))
   assert.equal((await attendance(carla)).body.days[0]?.rows.find((r) => r.title === 'Tanz')?.status, 'excused', 'a location written in place keeps the session too')
+
+  // The previous release rewrites an item's sessions on every edit, the positions the same: the records, named by item and position, survive at commit.
+  await owner.query(`do $$ declare r record; begin
+    for r in select * from item_session where item_id = $1 loop
+      delete from item_session where id = r.id;
+      insert into item_session (item_id, position, starts_at, ends_at, location, credits) values (r.item_id, r.position, r.starts_at, r.ends_at, r.location, r.credits);
+    end loop; end $$`.replace('$1', `'${s.items.tanz}'`))
+  assert.equal((await attendance(carla)).body.days[0]?.rows.find((r) => r.title === 'Tanz')?.status, 'excused', 'the rewrite of the release before keeps the record')
 
   // The workbooks: the class's for Carla, the campaign's for Anna; Sara neither.
   for (const [jar, url, name] of [[carla, `/api/campaigns/${id}/classes/5A/attendance.xlsx`, 'anwesenheit-5A-2026-27.xlsx'], [s.anna, `/api/admin/campaigns/${id}/export/attendance.xlsx`, 'anwesenheit-2026-27.xlsx']] as const) {
