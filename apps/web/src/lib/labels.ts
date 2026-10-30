@@ -131,6 +131,77 @@ export const MAIL_KIND_LABELS: Readonly<Record<string, string>> = {
   class_missing: 'Fehlende Wünsche an den Klassenvorstand',
 }
 
+/** What became of an allocation run (packages/api-contracts/src/allocation.ts RUN_STATUSES). */
+export const RUN_STATUS_LABELS: Readonly<Record<string, string>> = {
+  running: 'läuft',
+  succeeded: 'fertig',
+  failed: 'fehlgeschlagen',
+  interrupted: 'unterbrochen',
+}
+
+/** Why a run failed (RUN_FAILURE_CODES). */
+export const RUN_FAILURE_LABELS: Readonly<Record<string, string>> = {
+  solver_unreachable: 'Der Solver war nicht erreichbar',
+  solver_answer_invalid: 'Die Antwort des Solvers entsprach nicht dem Vertrag',
+  solver_infeasible: 'Keine Zuteilung erfüllt alle harten Regeln (meist eine Mindestteilnehmerzahl, die nicht absagbar ist)',
+  solver_unknown: 'Der Solver fand im Zeitlimit keine Lösung',
+  model_invalid: 'Das Modell war für den Solver nicht verwendbar',
+  validation_failed: 'Die Prüfung des Ergebnisses ist fehlgeschlagen; es wurde verworfen',
+  internal_error: 'Ein interner Fehler; die Protokolle des Servers sagen mehr',
+}
+
+/** The solver's answer per pass (school-core SOLVE_STATUSES). */
+export const SOLVE_STATUS_LABELS: Readonly<Record<string, string>> = {
+  OPTIMAL: 'optimal',
+  FEASIBLE: 'gültig, nicht bewiesen',
+  INFEASIBLE: 'unlösbar',
+  UNKNOWN: 'keine Lösung im Zeitlimit',
+  MODEL_INVALID: 'Modell ungültig',
+}
+
+/** A level of the lexicographic objective (school-core levelNames); a threshold level is labelled by its number. */
+export function levelLabel(name: string): string {
+  if (name === 'students_with_deficit') return 'Schüler/innen mit fehlenden Minuten'
+  if (name === 'deficit_minutes') return 'Fehlende Minuten insgesamt'
+  if (name === 'total_cost') return 'Gesamtkosten (gewichtete Wunschnummern)'
+  if (name === 'tiebreak') return 'Los'
+  if (name.startsWith('over:')) return `Schüler/innen mit Durchschnittswunsch über ${Number(name.slice(5)) / 1000}`
+  return name
+}
+
+/** Why the validator refused a result (school-core ALLOCATION_PROBLEM_CODES). */
+export const ALLOCATION_PROBLEM_LABELS: Readonly<Record<string, string>> = {
+  pass_not_solved: 'Ein Durchgang wurde nicht gelöst',
+  status_inconsistent: 'Der gemeldete Status passt nicht zu den Stufen',
+  levels_unexpected: 'Die Stufen der Antwort passen nicht zur Anfrage',
+  cancelled_twice: 'Eine Aktivität ist zweimal abgesagt',
+  level_mismatch: 'Ein Stufenwert stimmt mit der Nachrechnung nicht überein',
+  not_in_pass: 'Zuteilung an jemanden, der in diesem Durchgang nicht vorkommt',
+  unknown_item: 'Eine Aktivität, die es in der Anfrage nicht gibt',
+  assigned_twice: 'Eine Zuteilung kommt zweimal vor',
+  not_an_option: 'Eine Aktivität, die weder gewünscht noch Ersatz war',
+  paid_fallback: 'Eine Aktivität mit Beitrag als Ersatzplatz',
+  cancelled_not_cancellable: 'Eine Aktivität abgesagt, die nicht abgesagt werden darf',
+  assigned_to_cancelled: 'Zuteilung an eine abgesagte Aktivität',
+  capacity_exceeded: 'Mehr Zuteilungen als Plätze',
+  below_minimum: 'Weniger Zuteilungen als das Minimum',
+  overlap: 'Zwei Aktivitäten überschneiden sich',
+  overlaps_fixed: 'Eine Aktivität überschneidet sich mit einer Klassenaktivität',
+  first_pass_changed: 'Der zweite Durchgang hat den ersten verändert',
+  pre_assignment_missing: 'Eine Klassenzuteilung fehlt',
+  pre_assignment_changed: 'Eine Klassenzuteilung wurde verändert',
+  assignment_mismatch: 'Die gespeicherten Zeilen passen nicht zum Ergebnis',
+}
+
+/** The source of a student's place (school-core ASSIGNMENT_SOURCES). */
+export const ASSIGNMENT_SOURCE_LABELS: Readonly<Record<string, string>> = {
+  fixed: 'Klassenaktivität',
+  wish: 'Wunsch',
+  fallback: 'Ersatzplatz',
+  swap: 'Tausch',
+  manual: 'händisch',
+}
+
 /** The state of a mail in the outbox (apps/api/lib/mail/outbox.ts MAIL_STATES). */
 export const MAIL_STATE_LABELS: Readonly<Record<string, string>> = {
   queued: 'in der Warteschlange',

@@ -3,7 +3,7 @@
 import type * as Core from '@school-allocation/school-core'
 import type { Static } from 'typebox'
 import type { GrantBody } from './administration.ts'
-import type { AllocationInputProblemSchema, AllocationProblemSchema, AllocationWarningSchema, LevelValueSchema, SolveRequestSchema, SolveResponseSchema, SolveStatusSchema } from './allocation.ts'
+import type { AllocationInputProblemSchema, AllocationProblemSchema, AllocationSummarySchema, AllocationWarningSchema, ExplainedDaySchema, ExplainedItemSchema, LevelValueSchema, SolveRequestSchema, SolveResponseSchema, SolveStatusSchema, StudentExplanationSchema } from './allocation.ts'
 import type { CatalogueProblemCodeSchema, CatalogueProblemSchema, CreditSchema, DayDemandSchema, ItemStateSchema } from './campaigns.ts'
 import type { CreditBody, PeriodBody } from './catalogue.ts'
 import type { RankingProblemCodeSchema, RankingProblemSchema } from './choices.ts'
@@ -42,6 +42,10 @@ export type DomainSchemaChecks = [
   Assert<Equal<Static<typeof AllocationProblemSchema>, Core.AllocationProblem>>,
   Assert<Equal<Static<typeof AllocationInputProblemSchema>, Core.AllocationInputProblem>>,
   Assert<Equal<Static<typeof AllocationWarningSchema>, Core.AllocationWarning>>,
+  Assert<Equal<Static<typeof ExplainedItemSchema>, Core.ExplainedItem>>,
+  Assert<Equal<Static<typeof ExplainedDaySchema>, Core.ExplainedDay>>,
+  Assert<Equal<Static<typeof StudentExplanationSchema>, Core.StudentExplanation>>,
+  Assert<Equal<Static<typeof AllocationSummarySchema>, Core.AllocationSummary>>,
 ]
 
 // Guard against weakening this check to one-way structural assignability.

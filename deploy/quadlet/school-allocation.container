@@ -31,6 +31,8 @@ Environment=DATABASE_PASSWORD_FILE=/run/secrets/db-runtime-password
 Environment=ENTRA_CLIENT_SECRET_FILE=/run/secrets/entra-client-secret
 Environment=SESSION_KEY_FILE=/run/secrets/session-key
 Environment=SMTP_PASSWORD_FILE=/run/secrets/smtp-password
+# The allocation solver, on the internal network alone (school-allocation-solver.container).
+Environment=SOLVER_URL=http://school-allocation-solver:8000
 Volume=%h/school-allocation/secrets/db-runtime-password:/run/secrets/db-runtime-password:ro,z
 Volume=%h/school-allocation/secrets/entra-client-secret:/run/secrets/entra-client-secret:ro,z
 Volume=%h/school-allocation/secrets/session-key:/run/secrets/session-key:ro,z

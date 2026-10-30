@@ -4,6 +4,7 @@ import { ConfigError, loadConfig, type Config } from './config.ts'
 import { checkRuntimeConnection, createDatabase, describeDatabase } from './lib/db.ts'
 import { interruptStaleJobs } from './lib/jobs.ts'
 import { sqlState } from './lib/pg-errors.ts'
+import { recoverInterruptedRuns } from './services/allocation.ts'
 
 // An operator problem: name it and stop, without a stack trace to read past.
 function refuse(reason: string): never {
@@ -48,6 +49,9 @@ server.log.info({ database: describeDatabase(config.databaseUrl) }, 'database co
 // was interrupted by the previous process's end (lib/jobs.ts).
 const interrupted = await interruptStaleJobs(db)
 if (interrupted > 0) server.log.warn({ interrupted }, 'jobs left unfinished by the previous process were marked interrupted')
+// An allocation run among them is recorded as interrupted and its campaign moved to review; the organizer starts another.
+const interruptedRuns = await recoverInterruptedRuns(db)
+if (interruptedRuns > 0) server.log.warn({ interruptedRuns }, 'allocation runs left running by the previous process were marked interrupted')
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {

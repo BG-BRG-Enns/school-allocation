@@ -134,6 +134,76 @@
   },
   {
     "method": "GET",
+    "url": "/api/admin/campaigns/:id/runs",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
+    "url": "/api/admin/campaigns/:id/runs/:runId",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "runId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
+    "url": "/api/admin/campaigns/:id/runs/:runId/export.xlsx",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "runId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/admin/classes",
     "body": null,
     "params": null,
@@ -307,6 +377,14 @@
       },
       "additionalProperties": false
     },
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
+    "url": "/api/admin/solver",
+    "body": null,
+    "params": null,
+    "querystring": null,
     "bodyLimit": null
   },
   {
@@ -988,6 +1066,41 @@
           "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
         },
         "itemId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "POST",
+    "url": "/api/admin/campaigns/:id/runs",
+    "body": {
+      "type": "object",
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "deterministicTimePerLevel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
           "type": "string",
           "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
         }

@@ -33,6 +33,16 @@ export const postAdminRoles = { method: 'POST', path: '/api/admin/roles', transp
 
 export const postAdminRolesByIdRevoke = { method: 'POST', path: '/api/admin/roles/:id/revoke', transport: 'empty' } as const satisfies EndpointMetadata
 
+export const getAdminSolver = { method: 'GET', path: '/api/admin/solver', transport: 'json' } as const satisfies EndpointMetadata
+
+export const postAdminCampaignsByIdRuns = { method: 'POST', path: '/api/admin/campaigns/:id/runs', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getAdminCampaignsByIdRuns = { method: 'GET', path: '/api/admin/campaigns/:id/runs', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getAdminCampaignsByIdRunsByRunId = { method: 'GET', path: '/api/admin/campaigns/:id/runs/:runId', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getAdminCampaignsByIdRunsByRunIdExportXlsx = { method: 'GET', path: '/api/admin/campaigns/:id/runs/:runId/export.xlsx', transport: 'download' } as const satisfies EndpointMetadata
+
 export const getAdminAudit = { method: 'GET', path: '/api/admin/audit', transport: 'json' } as const satisfies EndpointMetadata
 
 export const getAuthLogin = { method: 'GET', path: '/api/auth/login', transport: 'redirect' } as const satisfies EndpointMetadata

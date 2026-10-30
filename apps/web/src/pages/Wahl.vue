@@ -60,6 +60,8 @@ function mailSummary(s: MissingStudent): string {
 /** The set-up (name, year, days) changes while the campaign is set up or takes proposals; the window's settings until it opens. */
 const setUpEditable = computed(() => campaign.value !== undefined && ['draft', 'catalogue'].includes(campaign.value.state))
 const windowEditable = computed(() => campaign.value !== undefined && ['draft', 'catalogue', 'published'].includes(campaign.value.state))
+/** The daily minimum is the allocation's input and may change until a run is published; after the close it is the one setting left to change. */
+const minimumEditable = computed(() => windowEditable.value || (campaign.value !== undefined && ['closed', 'review'].includes(campaign.value.state)))
 /** The grades the demand lists: those of the roster, or those the demand knows. */
 const demandGrades = computed(() => grades.value.length > 0 ? grades.value : [...new Set(demand.value.flatMap((d) => d.grades.map((g) => g.grade)))].sort((a, b) => a - b))
 
@@ -136,8 +138,10 @@ async function onSaveSettings(): Promise<void> {
       changes.swapFrom = instantOrNull(swapFrom.value)
       changes.swapUntil = instantOrNull(swapUntil.value)
       changes.wishesPerGroup = Number(wishesPerGroup.value)
-      changes.dailyMinimum = Object.fromEntries(Object.entries(dailyMinimum.value).filter(([, minutes]) => String(minutes).trim() !== '').map(([grade, minutes]) => [grade, Number(minutes)]))
       changes.showTeachers = showTeachers.value
+    }
+    if (minimumEditable.value) {
+      changes.dailyMinimum = Object.fromEntries(Object.entries(dailyMinimum.value).filter(([, minutes]) => String(minutes).trim() !== '').map(([grade, minutes]) => [grade, Number(minutes)]))
     }
     await updateCampaign(props.id, changes)
   }, 'Gespeichert.')
@@ -272,13 +276,20 @@ function onSubmitPending(): void {
         >
           Wahl beenden
         </button>
+        <RouterLink
+          v-if="['closed', 'allocating', 'review', 'results'].includes(campaign.state)"
+          class="button"
+          :to="`/wahlen/${campaign.id}/zuteilung`"
+        >
+          Zuteilung
+        </RouterLink>
         <button
-          v-if="!editing && windowEditable"
+          v-if="!editing && minimumEditable"
           type="button"
           class="ghost"
           @click="startEditing"
         >
-          Einstellungen ändern
+          {{ windowEditable ? 'Einstellungen ändern' : 'Mindestminuten ändern' }}
         </button>
         <a
           class="button ghost-link"
@@ -368,6 +379,7 @@ function onSubmitPending(): void {
               <input
                 id="edit-opens"
                 v-model="opensAt"
+                :disabled="!windowEditable"
                 type="datetime-local"
               >
             </p>
@@ -376,6 +388,7 @@ function onSubmitPending(): void {
               <input
                 id="edit-closes"
                 v-model="closesAt"
+                :disabled="!windowEditable"
                 type="datetime-local"
               >
             </p>
@@ -384,6 +397,7 @@ function onSubmitPending(): void {
               <input
                 id="edit-late"
                 v-model="lateUntil"
+                :disabled="!windowEditable"
                 type="datetime-local"
               >
             </p>
@@ -394,6 +408,7 @@ function onSubmitPending(): void {
               <input
                 id="edit-swap-from"
                 v-model="swapFrom"
+                :disabled="!windowEditable"
                 type="datetime-local"
               >
             </p>
@@ -402,6 +417,7 @@ function onSubmitPending(): void {
               <input
                 id="edit-swap-until"
                 v-model="swapUntil"
+                :disabled="!windowEditable"
                 type="datetime-local"
               >
             </p>
@@ -410,6 +426,7 @@ function onSubmitPending(): void {
               <input
                 id="edit-wishes"
                 v-model.number="wishesPerGroup"
+                :disabled="!windowEditable"
                 type="number"
                 min="1"
                 max="10"
@@ -438,6 +455,7 @@ function onSubmitPending(): void {
             <label>
               <input
                 v-model="showTeachers"
+                :disabled="!windowEditable"
                 type="checkbox"
               >
               Der Katalog nennt die Lehrkräfte der Aktivitäten

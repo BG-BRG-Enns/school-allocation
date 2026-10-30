@@ -27,3 +27,14 @@ test('the server configuration carries the list, and refuses to start with a bad
     (err: unknown) => err instanceof ConfigError && err.message.includes('BOOTSTRAP_ADMINS'),
   )
 })
+
+test('SOLVER_URL is an http(s) address kept without trailing slashes; unset means no solver; credentials, a query or another scheme are refused', () => {
+  const solverUrl = (value: string | undefined) => loadConfig({ ...SERVER_ENV, PUBLIC_URL: ORIGIN, SOLVER_URL: value }).solverUrl
+  assert.equal(solverUrl(undefined), null)
+  assert.equal(solverUrl(' '), null)
+  assert.equal(solverUrl('http://school-allocation-solver:8000/'), 'http://school-allocation-solver:8000')
+  assert.equal(solverUrl('https://solver.example.org/allocation//'), 'https://solver.example.org/allocation')
+  for (const bad of ['solver:8000', 'ftp://solver', 'http://user:pw@solver', 'http://solver/?a=1', 'http://solver/#x']) {
+    assert.throws(() => solverUrl(bad), (err: unknown) => err instanceof ConfigError && err.message.includes('SOLVER_URL'), bad)
+  }
+})
