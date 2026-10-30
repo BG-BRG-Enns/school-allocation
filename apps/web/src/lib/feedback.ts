@@ -4,6 +4,7 @@
 
 import { ref } from 'vue'
 import { errorMessage } from './api-rules.ts'
+import { INTL_LOCALE } from './i18n.ts'
 
 export function useFeedback() {
   const busy = ref(false)
@@ -33,5 +34,5 @@ export function useFeedback() {
 /** A date and time as the lists show them, in the school's locale. */
 export function formatWhen(iso: string | null | undefined): string {
   if (!iso) return '–'
-  return new Date(iso).toLocaleString('de-AT', { dateStyle: 'medium', timeStyle: 'short' })
+  return new Date(iso).toLocaleString(INTL_LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
 }
