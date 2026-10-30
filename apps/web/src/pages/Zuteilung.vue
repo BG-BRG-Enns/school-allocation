@@ -11,7 +11,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { assignmentsExportPath, changeAssignment, loadChanges, loadRun, loadRuns, loadSolverStatus, publishRun, runExportPath, startRun, type AllocationRun, type AssignmentChange, type ReviewStudent, type RunReviewResponse, type SolverStatusResponse } from '../lib/allocation-api.ts'
 import { withBase } from '../lib/base.ts'
-import { loadCampaign, type Campaign } from '../lib/campaigns-api.ts'
+import { loadCampaign, loadItems, type Campaign, type Item } from '../lib/campaigns-api.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
 import { formatDay } from '../lib/format.ts'
 import { ALLOCATION_PROBLEM_LABELS, ASSIGNMENT_SOURCE_LABELS, CAMPAIGN_STATE_LABELS, CHANGE_KIND_LABELS, levelLabel, RUN_FAILURE_LABELS, RUN_STATUS_LABELS, SOLVE_STATUS_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
@@ -54,6 +54,8 @@ const running = computed(() => runs.value.some((r) => r.status === 'running'))
 
 /** After publication: the published run's review (for names), the changes since, and the organizer's form. */
 const published = ref<RunReviewResponse | null>(null)
+/** The catalogue as it stands, for the organizer's picker: an item withdrawn since publication is no target. */
+const catalogue = ref<Item[]>([])
 const changes = ref<AssignmentChange[]>([])
 const changePerson = ref('')
 const changeTo = ref('')
@@ -62,7 +64,10 @@ const changeReason = ref('')
 const changeForce = ref(false)
 const publishedStudents = computed(() => published.value?.students ?? [])
 const changeStudent = computed(() => publishedStudents.value.find((s) => s.personId === changePerson.value))
-const changeItems = computed(() => (published.value?.items ?? []).filter((i) => !i.cancelled))
+const changeItems = computed(() => {
+  const approved = new Set(catalogue.value.filter((i) => i.state === 'approved').map((i) => i.id))
+  return (published.value?.items ?? []).filter((i) => !i.cancelled && approved.has(i.itemId))
+})
 const canChange = computed(() => campaign.value?.state === 'results' && changePerson.value !== '' && (changeTo.value !== '' || changeFrom.value !== '') && changeReason.value.trim() !== '')
 const publishedLabel = (itemId: string): string => published.value === null ? itemId : itemTitle(published.value, itemId)
 
@@ -95,9 +100,11 @@ async function load(): Promise<void> {
     if (done !== undefined) {
       published.value = await loadRun(props.id, done.id)
       changes.value = (await loadChanges(props.id)).changes
+      catalogue.value = (await loadItems(props.id)).items
     } else {
       published.value = null
       changes.value = []
+      catalogue.value = []
     }
   })
 }
@@ -333,7 +340,7 @@ const levelDelta = (name: string): number | null => {
                 :key="i.itemId"
                 :value="i.itemId"
               >
-                {{ i.number === null ? i.title : `${i.number}. ${i.title}` }} ({{ i.places - i.assigned }} frei)
+                {{ i.number === null ? i.title : `${i.number}. ${i.title}` }} ({{ Math.max(0, i.places - i.assigned) }} frei)
               </option>
             </select>
           </p>

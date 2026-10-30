@@ -56,11 +56,11 @@ function itemsOverlap(a: AllocationItem | undefined, b: AllocationItem | undefin
   return a !== undefined && b !== undefined && a.sessions.some((s) => b.sessions.some((t) => overlaps(s, t)))
 }
 
-/** The free places of an item: its places less the students in it other than by class (D-24: a class activity's places are its spare seats). */
+/** The free places of an item: its places less the students in it other than by class (D-24: a class activity's places are its spare seats); never below zero, which an organizer's forced placement could otherwise reach. */
 export function freePlaces(input: AllocationInput, assignments: readonly Assignment[], itemId: string): number {
   const item = input.items.find((i) => i.id === itemId)
   if (!item) return 0
-  return item.rules.places - assignments.filter((a) => a.itemId === itemId && a.source !== 'fixed').length
+  return Math.max(0, item.rules.places - assignments.filter((a) => a.itemId === itemId && a.source !== 'fixed').length)
 }
 
 /** The items a move into `toItemId` would have to leave: every item the student is in, other than by class, that overlaps it (rule 7: a move is within the time group). */

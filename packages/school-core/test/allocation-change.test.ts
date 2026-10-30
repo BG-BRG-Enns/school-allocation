@@ -40,6 +40,7 @@ const codes = (problems: { code: string }[]) => problems.map((p) => p.code)
 test('free places count the students in an item other than by class; a swap leaves the overlapping items the student is not in by class', () => {
   assert.equal(freePlaces(INPUT, ROWS, 'dance'), 7)
   assert.equal(freePlaces(INPUT, ROWS, 'climbing'), 0)
+  assert.equal(freePlaces(INPUT, [...ROWS, row('tim', 'climbing', 'manual')], 'climbing'), 0, 'a forced second student is no negative place')
   assert.equal(freePlaces(INPUT, ROWS, 'vienna'), 1, 'the spare seat on the bus; the class does not count against it')
   assert.deepEqual(leavesForSwap(INPUT, ROWS, 'sara', 'reading'), ['dance'])
   assert.deepEqual(leavesForSwap(INPUT, ROWS, 'sara', 'pottery'), ['chess'])
