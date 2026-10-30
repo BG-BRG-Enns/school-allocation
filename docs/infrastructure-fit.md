@@ -34,10 +34,18 @@ this; it is not a blocker.
 ## 3. Updates: nightly, always
 
 Decision D-14: a school updates nothing by hand. A tag is released; the host picks it up overnight,
-also while a choice window is open. Security updates do not wait for weeks-long windows. This binds
-the code to three rules:
+also while a choice window is open. Security updates do not wait for weeks-long windows. Small updates
+that break one thing now and then, fixed by the next release, keep a host closer to its code than rare
+large ones that break many things at once (project lead, 2026-10-31). This binds the code to three
+rules:
 
-1. **Every migration works with the previous release's code** (expand first, contract in a later release). The health-gated automatic rollback can then run old code on the new schema safely. CI runs the previous release's test suite against the new schema. The exception is a release that fixes a vulnerability: it sets a release floor, which the migrator of every earlier release refuses, so no host goes back behind the fix.
+1. **A release runs only on the schema it was built for.** A migration that older code cannot run on
+   raises the schema version (`-- schema-version: N`); the migrator and the server of a release built for
+   less refuse the database. The nightly update has no automatic rollback: a release that fails to start
+   leaves the app down, where someone notices, until the next release fixes it, instead of running the
+   previous release on a schema nobody checked it against. A few hours down in a two-week choice window
+   cost less than keeping every schema change compatible with the release before. A release that fixes
+   a vulnerability raises the version, so no host goes back behind the fix.
 2. **No state lives only in the browser or in process memory.** Every change to a ranking is saved
    at once; a restart loses at most one in-flight request.
 3. **`busy` means "a job is executing"**: an allocation run, a roster import, an outbox flush. Minutes,

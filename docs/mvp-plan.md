@@ -199,17 +199,16 @@ A credible calendar estimate needs the target project-week date. **Open.**
   - student sees result; in the swap window moves into a free place, is refused a full one;
   - class teacher places an unplaced student;
   - KV records attendance.
-- **Upgrade safety:** the previous release's test suite runs against the new schema in CI (the
-  auto-update rollback guarantee).
+- **Upgrade safety:** a release refuses a schema version above the one it was built for, in its
+  migrator and at the server's start (`apps/api/test/db/migrate.test.ts`).
 
 ## Rollout and rollback
 
 - **Release:** tag → image is signed → hosts update overnight (D-14).
-- **Rollback:**
-  - automatic via the health-gated `podman auto-update`;
-  - manually by pinning the previous tag.
-
-  Schema compatibility makes both safe.
+- **A failed update** stays down: `podman auto-update` runs without its rollback, so someone notices,
+  and the next release fixes it. An operator may pin the previous tag instead, as long as the failed
+  release did not raise the schema version; if it did, the previous release refuses the database, and a
+  restore from the backup before the update is the way back.
 - **Campaign-level fallback:** if allocation fails or is not accepted, the organizer exports all
   rankings (xlsx) and allocates manually as before. Results can be entered as manual assignments, so
   the record stays complete.
