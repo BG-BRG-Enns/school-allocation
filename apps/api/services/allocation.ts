@@ -218,14 +218,17 @@ function toPassResult(compiled: CompiledPass, response: SolveResponse): PassResu
 /** At start: runs left running by the previous process are interrupted, their campaigns moved to review, audited as the restart's doing. */
 export async function recoverInterruptedRuns(db: Database): Promise<number> {
   return db.tx(async (client) => {
-    const runs = await store.interruptRunningRuns(client)
-    for (const run of runs) {
+    let interrupted = 0
+    // The campaign's lock before the run's row, the order a finishing job takes them in; a job that finished meanwhile is left alone.
+    for (const run of await store.runningRuns(client)) {
       await lockScope(client, run.campaignId)
+      if (!(await store.interruptRun(client, run.id))) continue
+      interrupted++
       const current = await lockedCampaign(client, run.campaignId)
       if (current?.state === 'allocating') await updateState(client, run.campaignId, 'review')
       await appendAudit(client, { scopeId: run.campaignId, actor: RECOVERY_ACTOR, action: 'run.interrupted', metadata: { runId: run.id, seq: run.seq, campaignState: current?.state ?? '' } })
     }
-    return runs.length
+    return interrupted
   })
 }
 

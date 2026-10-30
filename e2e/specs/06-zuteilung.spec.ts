@@ -35,7 +35,7 @@ test('die Organisation beendet die Wahl und berechnet eine Zuteilung; die Prüfu
   await expect(page.getByRole('heading', { name: 'Lauf 2' })).toBeVisible()
   await expect(runs.getByRole('row', { name: /^2 / })).toContainText('fertig')
   await page.getByLabel('Mit Lauf').selectOption({ label: 'Lauf 1 (Seed 4711)' })
-  await expect(page.getByText('dieselbe Zuteilung')).toBeVisible()
+  await expect(page.getByText(/Schüler\/innen sind in Lauf 2 anders zugeteilt als in Lauf 1/)).toContainText('dieselbe Zuteilung')
   await shot(page, '30-zuteilung-vergleich')
   await signOut(page)
 })

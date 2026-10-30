@@ -17,6 +17,7 @@ import { ConfigError, isLoopbackHost, loadConfig, type Config } from '../config.
 import { checkRuntimeConnection, createDatabase, describeDatabase } from '../lib/db.ts'
 import { interruptStaleJobs } from '../lib/jobs.ts'
 import { sqlState } from '../lib/pg-errors.ts'
+import { recoverInterruptedRuns } from '../services/allocation.ts'
 import { CLIENT_ID, CLIENT_SECRET, secretFile, TENANT_ID } from './helpers/env.ts'
 import { startFakeEntra } from './helpers/fake-entra.ts'
 import { CLASS_5A_GROUP, startFakeGraph, TEACHERS_GROUP } from './helpers/fake-graph.ts'
@@ -67,6 +68,7 @@ server.addHook('onClose', async () => {
   await graph.close()
 })
 await interruptStaleJobs(db)
+await recoverInterruptedRuns(db)
 server.log.warn({ authority: entra.authority }, 'sign-in is the test stand-in, not Microsoft Entra ID: for development only')
 server.log.warn({ graph: graph.baseUrl, groups: [CLASS_5A_GROUP, TEACHERS_GROUP] }, 'Graph is a stand-in with two groups: label them under Verwaltung → Stammdaten')
 

@@ -55,7 +55,13 @@ function schedule(): void {
 }
 onMounted(() => void load().then(schedule))
 onBeforeUnmount(() => clearTimeout(timer))
-watch(() => props.id, () => void load().then(schedule))
+// Another campaign in the same page: nothing of the previous one's runs carries over.
+watch(() => props.id, () => {
+  selected.value = null
+  other.value = null
+  compareId.value = ''
+  void load().then(schedule)
+})
 
 async function onStart(seedValue?: number, limitValue?: number): Promise<void> {
   const body: { seed?: number, deterministicTimePerLevel?: number } = {}

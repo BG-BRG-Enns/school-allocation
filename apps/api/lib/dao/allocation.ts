@@ -120,11 +120,19 @@ export async function listAssignments(db: Queryable, runId: string): Promise<Ass
 }
 
 /** At start: every run still `running` was interrupted by the previous process's end. Returns them. */
-export async function interruptRunningRuns(client: Queryable): Promise<{ id: string, campaignId: string, seq: number }[]> {
-  const { rows } = await client.query<{ id: string, campaign_id: string, seq: number }>(
-    'update allocation_run set status = \'interrupted\', finished_at = now(), failure = \'internal_error\', detail = \'interrupted by a restart\' where status = \'running\' returning id, campaign_id, seq',
-  )
+/** The runs still marked running, by campaign: what a restart has to interrupt. */
+export async function runningRuns(client: Queryable): Promise<{ id: string, campaignId: string, seq: number }[]> {
+  const { rows } = await client.query<{ id: string, campaign_id: string, seq: number }>('select id, campaign_id, seq from allocation_run where status = \'running\' order by campaign_id, seq')
   return rows.map((row) => ({ id: row.id, campaignId: row.campaign_id, seq: row.seq }))
+}
+
+/** Marks one run interrupted if it is still running; false when a job finished it meanwhile. */
+export async function interruptRun(client: Queryable, runId: string): Promise<boolean> {
+  const { rowCount } = await client.query(
+    'update allocation_run set status = \'interrupted\', finished_at = now(), failure = \'internal_error\', detail = \'interrupted by a restart\' where id = $1 and status = \'running\'',
+    [runId],
+  )
+  return rowCount === 1
 }
 
 /** Person id → the items they are placed into by class, exemptions left out. */
