@@ -64,9 +64,10 @@ export async function createItem(db: Database, campaignId: string, input: ItemIn
 
 /** Whether the edit changes what the allocation computed with: the times and credits, the places and the minimum, the fee, the classes and grades. */
 function allocationRelevantChange(current: Item, input: ItemInput): boolean {
-  const sorted = (list: readonly (string | number)[]) => [...list].sort().join(',')
+  const byText = (a: string | number, b: string | number) => String(a).localeCompare(String(b), 'en')
+  const sorted = (list: readonly (string | number)[]) => [...list].sort(byText).join(',')
   const sessions = (list: readonly { startsAt: string, endsAt: string, credits: readonly { date: string, minutes: number }[] }[]) =>
-    list.map((s) => `${Date.parse(s.startsAt)}-${Date.parse(s.endsAt)}:${[...s.credits].sort((a, b) => a.date.localeCompare(b.date)).map((c) => `${c.date}=${c.minutes}`).join('+')}`).sort().join('|')
+    list.map((s) => `${Date.parse(s.startsAt)}-${Date.parse(s.endsAt)}:${[...s.credits].sort((a, b) => a.date.localeCompare(b.date, 'en')).map((c) => `${c.date}=${c.minutes}`).join('+')}`).sort(byText).join('|')
   return current.places !== input.places || current.minParticipants !== input.minParticipants || current.cancellableBelowMin !== input.cancellableBelowMin || current.feeCents !== input.feeCents
     || sorted(current.fixedClasses) !== sorted(input.fixedClasses) || sorted(current.eligibleGrades) !== sorted(input.eligibleGrades) || sorted(current.eligibleClasses) !== sorted(input.eligibleClasses)
     || sessions(current.sessions) !== sessions(input.sessions)
