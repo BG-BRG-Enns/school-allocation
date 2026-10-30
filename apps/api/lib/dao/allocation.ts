@@ -152,3 +152,31 @@ export async function actorOfUser(db: Queryable, userId: string): Promise<AuditA
   const { rows: [row] } = await db.query<{ tid: string, oid: string, display_name: string }>('select tid, oid, display_name from app_user where id = $1', [userId])
   return row === undefined ? undefined : { tid: row.tid, oid: row.oid, name: row.display_name }
 }
+
+/** The campaign's published run, with its snapshot; undefined before publication. */
+export async function readPublishedRun(db: Queryable, campaignId: string): Promise<StoredRun | undefined> {
+  const { rows: [row] } = await db.query<RunRowWithSnapshot>(`select ${COLUMNS}, r.snapshot ${FROM} where r.campaign_id = $1 and r.published_at is not null`, [campaignId])
+  return row === undefined ? undefined : { ...toRun(row), snapshot: row.snapshot, passResults: row.passes }
+}
+
+/** The run locked for publication; the caller holds the campaign's lock and checks what it finds. */
+export async function lockRun(client: Queryable, campaignId: string, runId: string): Promise<StoredRun | undefined> {
+  const { rows: [row] } = await client.query<RunRowWithSnapshot>(`select ${COLUMNS}, r.snapshot ${FROM} where r.campaign_id = $1 and r.id = $2 for update of r`, [campaignId, runId])
+  return row === undefined ? undefined : { ...toRun(row), snapshot: row.snapshot, passResults: row.passes }
+}
+
+export async function markPublished(client: Queryable, runId: string, userId: string): Promise<void> {
+  await client.query('update allocation_run set published_at = now(), published_by = $2 where id = $1 and published_at is null', [runId, userId])
+}
+
+/** The teachers among `personIds` with an address, from the campaign's roster. */
+export async function teacherAddresses(db: Queryable, batchId: string | null, personIds: readonly string[]): Promise<Map<string, { displayName: string, address: string }>> {
+  if (personIds.length === 0) return new Map()
+  const { rows } = await db.query<{ person_id: string, display_name: string, address: string }>(
+    `select e.person_id, e.display_name, coalesce(e.mail, e.upn) as address from roster_entry e
+      where e.batch_id = coalesce($1::uuid, (select id from import_batch where state = 'committed' order by decided_at desc limit 1))
+        and e.kind = 'teacher' and e.person_id = any($2::uuid[]) and coalesce(e.mail, e.upn) is not null`,
+    [batchId, personIds],
+  )
+  return new Map(rows.map((row) => [row.person_id, { displayName: row.display_name, address: row.address }]))
+}

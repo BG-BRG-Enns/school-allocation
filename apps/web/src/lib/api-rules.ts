@@ -105,6 +105,10 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   daily_minimum_missing: 'Für diese Schulstufen fehlt die Mindestminutenzahl je Tag; sie lässt sich in den Einstellungen der Wahl auch jetzt noch eintragen:',
   fixed_items_overlap: 'Zwei Klassenaktivitäten nehmen dieselbe Klasse zur gleichen Zeit mit. Bitte den Katalog berichtigen.',
   no_students: 'Die Personenliste der Wahl enthält keine Schüler/innen.',
+  run_not_publishable: 'Nur ein gelungener Lauf kann veröffentlicht werden.',
+  run_stale: 'Seit diesem Lauf hat sich die Wahl geändert; für die Veröffentlichung ist ein neuer Lauf nötig.',
+  cancelled_mismatch: 'Die bestätigten Absagen sind nicht die des Laufs. Bitte die Seite neu laden und noch einmal prüfen.',
+  not_published: 'Das Ergebnis ist noch nicht veröffentlicht.',
 }
 
 /** Refusals whose answer names what is wrong (the grades, say): the sentence carries it. */

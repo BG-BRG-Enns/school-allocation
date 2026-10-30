@@ -63,6 +63,8 @@ export const AUDIT_ACTIONS = [
   'run.started',
   'run.finished',
   'run.interrupted',
+  // The organizer publishes a run: the campaign's result, with the cancelled items confirmed.
+  'run.published',
 ] as const
 
 export type AuditAction = typeof AUDIT_ACTIONS[number]
