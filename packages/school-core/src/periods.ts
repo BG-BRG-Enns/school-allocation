@@ -70,10 +70,10 @@ export function spanOfPeriods(grid: readonly Period[], from: number, count: numb
 }
 
 /**
- * The periods a clock span covers exactly, as "2. EH" or "2.–3. EH";
- * undefined when the span does not start and end on the grid's lines (a
- * trip at 07:30, a return at 18:00). The number pattern is the school's,
- * the word is the UI's to translate.
+ * The first and the last period a clock span covers exactly; undefined when
+ * the span does not start and end on the grid's lines (a trip at 07:30, a
+ * return at 18:00). Numbers only: the words a page shows for them,
+ * "2.–3. EH", are the message catalogue's.
  */
 export function periodsOfSpan(grid: readonly Period[], starts: string, ends: string): { from: number, to: number } | undefined {
   const first = grid.find((p) => p.starts === starts)

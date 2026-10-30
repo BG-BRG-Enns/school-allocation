@@ -1115,6 +1115,111 @@ export const de = {
       removed: 'Gelöscht',
     },
   },
+
+  /** The workbooks the API writes (apps/api/lib/xlsx.ts): sheets, the columns the pages do not name, cell values. */
+  workbook: {
+    sheet: {
+      missing: 'Wahlstand',
+      items: 'Aktivitäten',
+      sessions: 'Termine',
+      attendance: 'Anwesenheit',
+      students: 'Schülerinnen und Schüler',
+      participants: 'Teilnehmer',
+      deficits: 'Fehlende Minuten',
+      changes: 'Änderungen',
+    },
+    column: {
+      window: 'Fenster',
+      savedAt: 'Zuletzt gespeichert',
+      mails: 'Nachrichten',
+      title: 'Titel',
+      description: 'Beschreibung',
+      location: 'Ort',
+      minParticipants: 'Mindestteilnehmer',
+      cancellableBelowMinimum: 'Absagbar unter Minimum',
+      fixedClasses: 'Fixe Klassen',
+      grades: 'Schulstufen',
+      classes: 'Klassen',
+      fee: 'Beitrag (€)',
+      feeNote: 'Beitrag: Anmerkung',
+      minutes: 'Minuten',
+      starts: 'Beginn',
+      ends: 'Ende',
+      credits: 'Angerechnet (Tag: Minuten)',
+      from: 'Von',
+      until: 'Bis',
+      attendance: 'Anwesenheit',
+      note: 'Notiz',
+      deficit: 'Fehlende Minuten',
+      kind: 'Art',
+      wish: 'Wunsch',
+      assigned: 'Zugeteilt',
+      fixed: 'Fix (Klassen)',
+      minimum: 'Minimum',
+      cancelled: 'Abgesagt',
+      when: 'Wann',
+      left: 'Nicht mehr',
+      to: 'Neu',
+      forced: 'Erzwungen',
+      by: 'Durch',
+    },
+    yes: 'ja',
+    no: 'nein',
+    /** How a student came to an item, in brackets after it in the day's cell. */
+    place: {
+      wish: (rank: number | null) => `${rank}. Wunsch`,
+      fallback: 'Ersatzplatz',
+      fixed: 'Klasse',
+    },
+    /** The source of a participant's place (school-core ASSIGNMENT_SOURCES), as the participants' sheet names it. */
+    source: {
+      fixed: 'Klassenaktivität',
+      wish: 'Wunsch',
+      fallback: 'Ersatzplatz',
+      swap: 'Tausch',
+      manual: 'Händisch',
+    },
+  },
+
+  /** The names of the files the server sends for download; a school year arrives as "2026-27". */
+  files: {
+    catalogue: (schoolYear: string) => `katalog-${schoolYear}.xlsx`,
+    missing: (schoolYear: string) => `wahlstand-${schoolYear}.xlsx`,
+    assignments: (schoolYear: string) => `zuteilung-${schoolYear}.xlsx`,
+    run: (seq: number) => `zuteilung-lauf-${seq}.xlsx`,
+    attendance: (schoolYear: string) => `anwesenheit-${schoolYear}.xlsx`,
+    classAttendance: (className: string, schoolYear: string) => `anwesenheit-${className}-${schoolYear}.xlsx`,
+    rosterTemplate: 'schulwahl-personen.csv',
+  },
+
+  /**
+   * The values the server fills into a notice's placeholders: the lines of a
+   * student's programme, who changed a place and what changed. The texts
+   * around them are the mail templates, which the database keeps.
+   */
+  notices: {
+    programme: {
+      /** After an item the student has with their class, in brackets. */
+      fixed: 'Klasse',
+      /** The fee of an item, its amount already formatted. */
+      fee: (amount: string) => `Beitrag ${amount} €`,
+      /** The last line when minutes are still missing: the days with their minutes. */
+      missing: (days: string) => `Noch ohne Platz: ${days} – dein Klassenvorstand teilt dich zu.`,
+    },
+    /** The swap window: "Mo., 28.06.2027, 08:00 bis Mi., 30.06.2027, 18:00". */
+    swapWindow: (from: string, until: string) => `${from} bis ${until}`,
+    /** Who changed a student's place, as the sentence "… von {{wer}} geändert" needs it. */
+    changedBy: {
+      classTeacher: 'deinem Klassenvorstand',
+      organizer: 'der Organisation',
+    },
+    /** What a change by hand did. */
+    change: {
+      left: (items: string) => `nicht mehr ${items}`,
+      entered: (item: string) => `neu ${item}`,
+      replaced: (left: string, item: string) => `statt ${left} jetzt ${item}`,
+    },
+  },
 }
 
 /** The shape every language's catalogue has: the German one's keys, with any wording. */

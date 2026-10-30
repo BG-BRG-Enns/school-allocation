@@ -7,6 +7,7 @@ import type { FastifyInstance } from 'fastify'
 import { actorOf } from '../lib/actor.ts'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
+import { t } from '../lib/i18n.ts'
 import type { SolverClient } from '../lib/solver-client.ts'
 import { runWorkbook } from '../lib/xlsx.ts'
 import { listRuns, runCampaign, runReview, solverStatus, startRun } from '../services/allocation.ts'
@@ -44,7 +45,7 @@ export async function allocationRoutes(app: FastifyInstance, { db, guards, solve
     const bytes = await runWorkbook(review)
     return reply
       .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      .header('content-disposition', `attachment; filename="zuteilung-lauf-${review.run.seq}.xlsx"`)
+      .header('content-disposition', `attachment; filename="${t.files.run(review.run.seq)}"`)
       .send(bytes)
   })
 }

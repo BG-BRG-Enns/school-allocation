@@ -17,6 +17,7 @@ import { campaignStudent, campaignStudents } from '../lib/dao/choices.ts'
 import { listCampaignItems } from '../lib/dao/items.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
+import { t } from '../lib/i18n.ts'
 import { enqueueMail } from '../lib/mail/outbox.ts'
 import type { StoredChange, StoredRun } from '../lib/models/allocation.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
@@ -94,8 +95,8 @@ function changeText(locked: Locked, move: Move): string {
     return item ? itemLabel(item) : '?'
   }
   const left = move.leaves.map(label).join(', ')
-  if (move.toItemId === null) return `nicht mehr ${left}`
-  return left === '' ? `neu ${label(move.toItemId)}` : `statt ${left} jetzt ${label(move.toItemId)}`
+  if (move.toItemId === null) return t.notices.change.left(left)
+  return left === '' ? t.notices.change.entered(label(move.toItemId)) : t.notices.change.replaced(left, label(move.toItemId))
 }
 
 const auditActor = (actor: Actor) => ({ tid: actor.tid, oid: actor.oid, name: actor.name })
@@ -142,7 +143,7 @@ export async function placeStudent(db: Database, context: WindowContext, campaig
     refuse(checkMove(locked.run.snapshot, locked.rows, move, { unavailable: locked.unavailable }))
     const actor = actorOf(caller)
     const change = await write(client, locked, move, 'place', reason, false, actor)
-    await notify(client, context, locked, student, move, change.id, { wer: asClassTeacher ? 'deinem Klassenvorstand' : 'der Organisation', aenderung: changeText(locked, move) })
+    await notify(client, context, locked, student, move, change.id, { wer: asClassTeacher ? t.notices.changedBy.classTeacher : t.notices.changedBy.organizer, aenderung: changeText(locked, move) })
     await appendAudit(client, { scopeId: campaign.id, actor: auditActor(actor), action: 'assignment.placed', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId: student.personId, toItemId: move.toItemId, className } })
   })
 }
@@ -176,7 +177,7 @@ export async function changeAssignment(db: Database, context: WindowContext, cam
     const actor = actorOf(caller)
     const change = await write(client, locked, move, kind, input.reason, force, actor)
     changeId = change.id
-    await notify(client, context, locked, student, move, change.id, { wer: 'der Organisation', aenderung: changeText(locked, move) })
+    await notify(client, context, locked, student, move, change.id, { wer: t.notices.changedBy.organizer, aenderung: changeText(locked, move) })
     await appendAudit(client, { scopeId: campaign.id, actor: auditActor(actor), action: 'assignment.changed', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId: student.personId, kind, toItemId, fromItemId, forced: force } })
   })
   const change = (await changeLog(db, campaign)).find((c) => c.id === changeId)
