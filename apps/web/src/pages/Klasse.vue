@@ -36,6 +36,8 @@ async function onPlace(personId: string): Promise<void> {
   if (itemId === '' || reason === '') return
   const ok = await action.run(async () => {
     status.value = await placeStudent(props.id, props.className, personId, itemId, reason)
+    // The placed student has a session to be recorded in now; the marks already set stay.
+    await refreshAttendance()
   }, 'Zugeteilt; die Schülerin oder der Schüler wird benachrichtigt.')
   if (ok) {
     delete chosen.value[personId]
@@ -57,6 +59,16 @@ async function loadAttendance(): Promise<void> {
   }
   attendance.value = await loadClassAttendance(props.id, props.className)
   marks.value = Object.fromEntries(attendance.value.days.flatMap((d) => d.rows.map((r) => [markKey(r.sessionId, r.personId), r.status ?? ''])))
+}
+
+/** The rows again, the marks already set kept; new rows get what was recorded. */
+async function refreshAttendance(): Promise<void> {
+  if (attendance.value === null) return
+  attendance.value = await loadClassAttendance(props.id, props.className)
+  for (const r of attendance.value.days.flatMap((d) => d.rows)) {
+    const key = markKey(r.sessionId, r.personId)
+    if (!(key in marks.value)) marks.value[key] = r.status ?? ''
+  }
 }
 
 /** Saves a day's marks: one request per session, the students of the class in it, each with the note already recorded; the other days' unsaved marks stay. */

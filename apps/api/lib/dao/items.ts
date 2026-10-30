@@ -150,6 +150,13 @@ export async function deleteTeachers(db: Queryable, id: string) {
   await db.query('delete from item_teacher where item_id = $1', [id])
 }
 
+/** A session's location changed in place, by position: the session keeps its id, and with it what refers to it. */
+export async function updateSessionLocations(db: Queryable, itemId: string, locations: readonly string[]) {
+  for (const [position, location] of locations.entries()) {
+    await db.query('update item_session set location = $3 where item_id = $1 and position = $2', [itemId, position, location])
+  }
+}
+
 export async function deleteSessions(db: Queryable, id: string) {
   await db.query('delete from item_session where item_id = $1', [id])
 }

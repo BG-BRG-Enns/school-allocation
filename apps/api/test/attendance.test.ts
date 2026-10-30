@@ -77,6 +77,9 @@ test('the class teacher records attendance for their class, session by session; 
   const worded = await send<{ error?: string }>(s, s.anna, 'PATCH', `/api/items/${s.items.tanz}`, { ...body, description: 'Mit Musik.' })
   assert.equal(worded.status, 200, JSON.stringify(worded.body))
   assert.equal((await attendance(carla)).body.days[0]?.rows.find((r) => r.title === 'Tanz')?.status, 'excused', 'the session kept its id and its record')
+  const relocated = await send<{ error?: string }>(s, s.anna, 'PATCH', `/api/items/${s.items.tanz}`, { ...body, sessions: body.sessions.map((x) => ({ ...x, location: 'Turnsaal 2' })) })
+  assert.equal(relocated.status, 200, JSON.stringify(relocated.body))
+  assert.equal((await attendance(carla)).body.days[0]?.rows.find((r) => r.title === 'Tanz')?.status, 'excused', 'a location written in place keeps the session too')
 
   // The workbooks: the class's for Carla, the campaign's for Anna; Sara neither.
   for (const [jar, url, name] of [[carla, `/api/campaigns/${id}/classes/5A/attendance.xlsx`, 'anwesenheit-5A-2026-27.xlsx'], [s.anna, `/api/admin/campaigns/${id}/export/attendance.xlsx`, 'anwesenheit-2026-27.xlsx']] as const) {

@@ -67,13 +67,19 @@ export async function classAttendance(db: Database, campaign: Campaign, caller: 
   return { className, recordable: mayRecord(caller, campaign, className), days: await rows(db, campaign, students) }
 }
 
-/** Every row of the campaign (the organizer's and the auditor's workbook), or a class's. */
+/** Every row of the campaign (the organizer's and the auditor's workbook), or a class's: one per student and session, a session over two days once. */
 export async function attendanceRows(db: Database, campaign: Campaign, caller: Caller, className?: string): Promise<AttendanceRow[]> {
   if (className !== undefined && !mayRead(caller, className)) throw new ApplicationError('forbidden')
   if (className === undefined && !isOrganizer(caller) && !caller.roles.includes('read_only_auditor')) throw new ApplicationError('forbidden')
   const students = await campaignStudents(db, campaign, className)
   if (className !== undefined && students.length === 0) throw new ApplicationError('not_found')
-  return (await rows(db, campaign, students)).flatMap((d) => d.rows)
+  const seen = new Set<string>()
+  return (await rows(db, campaign, students)).flatMap((d) => d.rows).filter((r) => {
+    const key = `${r.sessionId}\u0000${r.personId}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 export interface AttendanceEntry {
@@ -89,14 +95,15 @@ export interface AttendanceEntry {
  * of their class. Audited with the counts.
  */
 export async function recordAttendance(db: Database, caller: Caller, sessionId: string, entries: readonly AttendanceEntry[]): Promise<{ recorded: number }> {
-  const session = await store.sessionOf(db, sessionId.toLowerCase())
-  if (!session || session.itemState !== 'approved') throw new ApplicationError('not_found')
-  const seen = await readCampaign(db, session.campaignId)
+  // Read once for the campaign to lock, then again under its lock: an edit or a withdrawal in between is seen.
+  const seen = await store.sessionOf(db, sessionId.toLowerCase())
   if (!seen) throw new ApplicationError('not_found')
   const canon = new Map(entries.map((e) => [e.personId.toLowerCase(), e]))
   let recorded = 0
   await db.tx(async (client) => {
-    await lockScope(client, session.campaignId)
+    await lockScope(client, seen.campaignId)
+    const session = await store.sessionOf(client, seen.id)
+    if (!session || session.campaignId !== seen.campaignId || session.itemState !== 'approved') throw new ApplicationError('not_found')
     const campaign = await lockedCampaign(client, session.campaignId)
     if (!campaign) throw new ApplicationError('not_found')
     if (campaign.state !== 'results') throw new ApplicationError('campaign_state')

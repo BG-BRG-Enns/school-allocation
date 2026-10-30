@@ -58,9 +58,10 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
       'withdrawn_at', 'withdrawn_by', 'withdraw_reason',
     ],
   },
-  // Teachers and sessions of an item are replaced as a whole when it is edited.
+  // Teachers of an item are replaced as a whole when it is edited; sessions too when their times change, else a
+  // session keeps its id (the attendance refers to it) and only its location is written.
   item_teacher: { table: ['SELECT', 'INSERT', 'DELETE'] },
-  item_session: { table: ['SELECT', 'INSERT', 'DELETE'] },
+  item_session: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['location'] },
   // The period grid is replaced as a whole by an administrator, audited.
   period_grid: { table: ['SELECT', 'INSERT', 'DELETE'] },
   // A class teacher is assigned and revoked, never changed otherwise or

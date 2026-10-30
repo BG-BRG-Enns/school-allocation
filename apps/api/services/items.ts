@@ -67,14 +67,18 @@ function sessionsKey(list: readonly { startsAt: string, endsAt: string, location
   return list.map((s) => `${Date.parse(s.startsAt)}-${Date.parse(s.endsAt)}@${s.location ?? ''}:${[...s.credits].sort((a, b) => a.date.localeCompare(b.date, 'en')).map((c) => `${c.date}=${c.minutes}`).join('+')}`).join('|')
 }
 
+/** The sessions' times and credits alone, the locations left out. */
+function timedSessionsKey(list: readonly { startsAt: string, endsAt: string, credits: readonly { date: string, minutes: number }[] }[]): string {
+  return sessionsKey(list.map((s) => ({ ...s, location: '' })))
+}
+
 /** Whether the edit changes what the allocation computed with: the times and credits, the places and the minimum, the fee, the classes and grades. */
 function allocationRelevantChange(current: Item, input: ItemInput): boolean {
   const byText = (a: string | number, b: string | number) => String(a).localeCompare(String(b), 'en')
   const sorted = (list: readonly (string | number)[]) => [...list].sort(byText).join(',')
-  const timed = (list: readonly { startsAt: string, endsAt: string, credits: readonly { date: string, minutes: number }[] }[]) => sessionsKey(list.map((s) => ({ ...s, location: '' })))
   return current.places !== input.places || current.minParticipants !== input.minParticipants || current.cancellableBelowMin !== input.cancellableBelowMin || current.feeCents !== input.feeCents
     || sorted(current.fixedClasses) !== sorted(input.fixedClasses) || sorted(current.eligibleGrades) !== sorted(input.eligibleGrades) || sorted(current.eligibleClasses) !== sorted(input.eligibleClasses)
-    || timed(current.sessions) !== timed(input.sessions)
+    || timedSessionsKey(current.sessions) !== timedSessionsKey(input.sessions)
 }
 
 /**
@@ -107,10 +111,12 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
     await validate(client, current.campaignId, input)
     await store.updateContent(client, id, input)
     await store.deleteTeachers(client, id)
-    // Sessions are replaced only when they change: a session keeps its id, and with it the attendance recorded for it.
-    const sessionsChanged = sessionsKey(current.sessions) !== sessionsKey(input.sessions)
-    if (sessionsChanged) await store.deleteSessions(client, id)
-    await writeParts(client, id, sessionsChanged ? input : { ...input, sessions: [] })
+    // Sessions are replaced only when their times or credits change: otherwise a session keeps its id, and with it the
+    // attendance recorded for it, and a changed location is written in place.
+    const timesChanged = timedSessionsKey(current.sessions) !== timedSessionsKey(input.sessions)
+    if (timesChanged) await store.deleteSessions(client, id)
+    else if (sessionsKey(current.sessions) !== sessionsKey(input.sessions)) await store.updateSessionLocations(client, id, input.sessions.map((s) => s.location ?? ''))
+    await writeParts(client, id, timesChanged ? input : { ...input, sessions: [] })
     if (campaign !== undefined && current.state === 'approved' && (campaign.state === 'open' || campaign.state === 'grace')) {
       await reconcilePreAssignments(client, current.campaignId, id)
     }
@@ -133,6 +139,8 @@ export async function deleteDraft(db: Database, id: string, caller: Caller): Pro
     if (!current) throw new ApplicationError('not_found')
     if (!isOwn(caller, current)) throw new ApplicationError('forbidden')
     if (current.state !== 'draft' || current.number !== null) throw new ApplicationError('item_state')
+    // An archived campaign changes no more, a forgotten draft included.
+    if ((await store.lockCampaignForUpdate(client, current))?.state === 'archived') throw new ApplicationError('campaign_state')
     await store.deleteItem(client, id)
   })
 }
