@@ -95,8 +95,9 @@ export async function attendanceWorkbook(rows: readonly AttendanceRow[]): Promis
       { type: String, value: dayShort.format(new Date(r.startsAt)) },
       { type: Number, value: r.number ?? undefined },
       { type: String, value: r.title },
-      { type: Date, value: new Date(r.startsAt), format: 'dd.mm.yyyy hh:mm' },
-      { type: Date, value: new Date(r.endsAt), format: 'dd.mm.yyyy hh:mm' },
+      // As text in the school's time: an Excel date carries no zone and would show UTC.
+      { type: String, value: whenLong.format(new Date(r.startsAt)) },
+      { type: String, value: whenLong.format(new Date(r.endsAt)) },
       { type: String, value: r.className },
       { type: String, value: r.displayName },
       { type: String, value: r.status === null ? '' : ATTENDANCE_LABELS[r.status] ?? r.status },
