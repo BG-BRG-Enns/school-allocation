@@ -48,6 +48,7 @@ async function onPlace(personId: string): Promise<void> {
 /** The attendance, from publication on; the marks as edited, per session and student, saved per project day. */
 const attendance = ref<ClassAttendanceResponse | null>(null)
 const marks = ref<Record<string, AttendanceStatus | ''>>({})
+const notes = ref<Record<string, string>>({})
 const markKey = (sessionId: string, personId: string) => `${sessionId}\u0000${personId}`
 const STATUSES: AttendanceStatus[] = ['present', 'absent', 'excused']
 
@@ -59,6 +60,7 @@ async function loadAttendance(): Promise<void> {
   }
   attendance.value = await loadClassAttendance(props.id, props.className)
   marks.value = Object.fromEntries(attendance.value.days.flatMap((d) => d.rows.map((r) => [markKey(r.sessionId, r.personId), r.status ?? ''])))
+  notes.value = Object.fromEntries(attendance.value.days.flatMap((d) => d.rows.map((r) => [markKey(r.sessionId, r.personId), r.note])))
 }
 
 /** The rows again, the marks already set kept; new rows get what was recorded. */
@@ -68,6 +70,7 @@ async function refreshAttendance(): Promise<void> {
   for (const r of attendance.value.days.flatMap((d) => d.rows)) {
     const key = markKey(r.sessionId, r.personId)
     if (!(key in marks.value)) marks.value[key] = r.status ?? ''
+    if (!(key in notes.value)) notes.value[key] = r.note
   }
 }
 
@@ -77,17 +80,21 @@ async function onSaveAttendance(date: string): Promise<void> {
   if (!day) return
   const bySession = new Map<string, { personId: string, status: AttendanceStatus, note: string }[]>()
   for (const r of day.rows) {
-    const status = marks.value[markKey(r.sessionId, r.personId)]
+    const key = markKey(r.sessionId, r.personId)
+    const status = marks.value[key]
     if (status === '' || status === undefined) continue
     const list = bySession.get(r.sessionId) ?? []
-    list.push({ personId: r.personId, status, note: r.note })
+    list.push({ personId: r.personId, status, note: (notes.value[key] ?? r.note).trim().slice(0, 200) })
     bySession.set(r.sessionId, list)
   }
   await action.run(async () => {
     for (const [sessionId, entries] of bySession) await recordAttendance(sessionId, entries)
     const fresh = await loadClassAttendance(props.id, props.className)
     attendance.value = fresh
-    for (const r of fresh.days.find((d) => d.date === date)?.rows ?? []) marks.value[markKey(r.sessionId, r.personId)] = r.status ?? ''
+    for (const r of fresh.days.find((d) => d.date === date)?.rows ?? []) {
+      marks.value[markKey(r.sessionId, r.personId)] = r.status ?? ''
+      notes.value[markKey(r.sessionId, r.personId)] = r.note
+    }
   }, 'Anwesenheit gespeichert.')
 }
 
@@ -259,6 +266,7 @@ watch(() => [props.id, props.className], load)
                 <th>Schüler/in</th>
                 <th>Aktivität</th>
                 <th>Anwesenheit</th>
+                <th>Notiz</th>
               </tr>
             </thead>
             <tbody>
@@ -288,6 +296,15 @@ watch(() => [props.id, props.className], load)
                       {{ ATTENDANCE_STATUS_LABELS[st] ?? st }}
                     </option>
                   </select>
+                </td>
+                <td>
+                  <input
+                    v-model="notes[markKey(r.sessionId, r.personId)]"
+                    type="text"
+                    maxlength="200"
+                    :aria-label="`Notiz ${r.displayName}, ${r.title}`"
+                    :disabled="!attendance.recordable"
+                  >
                 </td>
               </tr>
             </tbody>

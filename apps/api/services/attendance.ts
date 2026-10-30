@@ -47,7 +47,8 @@ async function rows(db: Queryable, campaign: Campaign, students: readonly Campai
     for (const a of mine) {
       const item = byItem.get(a.itemId)
       const student = named.get(a.personId)
-      if (!item || !student) continue
+      // An item withdrawn after publication still names a place given (the result says so), but it does not take place: no attendance for it.
+      if (!item || !student || item.state !== 'approved') continue
       for (const session of item.sessions) {
         if (!datesOfSpan(instantOf(session.startsAt) ?? 0, instantOf(session.endsAt) ?? 0).includes(date)) continue
         const record = recorded.get(`${session.id}\u0000${a.personId}`)

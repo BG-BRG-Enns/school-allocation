@@ -52,7 +52,7 @@ test('the class teacher records attendance for their class, session by session; 
   assert.equal((await attendance(s.bernd)).status, 403, 'a teacher who is not the class teacher')
   assert.equal((await attendance(s.sara)).status, 403)
   assert.equal((await attendance(carla, '5B')).status, 403)
-  const tanz = before.body.days[0]?.rows.find((r) => r.title === 'Tanz')?.sessionId ?? ''
+  let tanz = before.body.days[0]?.rows.find((r) => r.title === 'Tanz')?.sessionId ?? ''
   const klettern = before.body.days[0]?.rows.find((r) => r.title === 'Klettern')?.sessionId ?? ''
   const wien = before.body.days[1]?.rows[0]?.sessionId ?? ''
 
@@ -90,7 +90,15 @@ test('the class teacher records attendance for their class, session by session; 
       delete from item_session where id = r.id;
       insert into item_session (item_id, position, starts_at, ends_at, location, credits) values (r.item_id, r.position, r.starts_at, r.ends_at, r.location, r.credits);
     end loop; end $$`.replace('$1', `'${s.items.tanz}'`))
-  assert.equal((await attendance(carla)).body.days[0]?.rows.find((r) => r.title === 'Tanz')?.status, 'excused', 'the rewrite of the release before keeps the record')
+  const rewritten = await attendance(carla)
+  assert.equal(rewritten.body.days[0]?.rows.find((r) => r.title === 'Tanz')?.status, 'excused', 'the rewrite of the release before keeps the record')
+  // The rewritten session has a new id; the record followed the item and the position.
+  tanz = rewritten.body.days[0]?.rows.find((r) => r.title === 'Tanz')?.sessionId ?? ''
+
+  // An item withdrawn after publication does not take place: its sessions leave the attendance, and recording for one is refused.
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${s.items.klettern}/withdraw`, { reason: 'Kletterhalle gesperrt' })).status, 200)
+  assert.deepEqual((await attendance(carla)).body.days[0]?.rows.map((r) => r.title), ['Tanz'])
+  assert.equal((await record(carla, klettern, [{ personId: s.timPerson, status: 'present' }])).status, 404)
 
   // The workbooks: the class's for Carla, the campaign's for Anna; Sara neither.
   for (const [jar, url, name] of [[carla, `/api/campaigns/${id}/classes/5A/attendance.xlsx`, 'anwesenheit-5A-2026-27.xlsx'], [s.anna, `/api/admin/campaigns/${id}/export/attendance.xlsx`, 'anwesenheit-2026-27.xlsx']] as const) {
@@ -106,7 +114,7 @@ test('the class teacher records attendance for their class, session by session; 
   const archived = await send<{ state: string }>(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'archived' })
   assert.equal(archived.status, 200, JSON.stringify(archived.body))
   assert.equal(archived.body.state, 'archived')
-  assert.equal((await record(carla, klettern, [{ personId: s.timPerson, status: 'present' }])).body.error, 'campaign_state')
+  assert.equal((await record(carla, tanz, [{ personId: s.saraPerson, status: 'present' }])).body.error, 'campaign_state')
   assert.equal((await send<{ error: string }>(s, s.sara, 'POST', `/api/campaigns/${id}/swap`, { itemId: s.items.klettern })).body.error, 'campaign_state')
   assert.equal((await send<{ error: string }>(s, s.anna, 'POST', `/api/admin/campaigns/${id}/assignments`, { personId: s.timPerson, removeItemId: s.items.klettern, reason: 'Test' })).body.error, 'campaign_state')
   assert.equal((await attendance(carla)).body.recordable, false)
