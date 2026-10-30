@@ -81,6 +81,7 @@ Formatting is enforced by ESLint; there is no separate formatter. `npx eslint . 
 - Add or update tests for behaviour changes. Changes to completeness, the allocation model or its validator need tests that cover the boundary cases.
 - Explain in the description why the change is needed, not only what it does.
 - A migration works with the previous release's code. Deployments update themselves nightly and roll back automatically; the schema has to carry both.
+- A release that ships the fix of a vulnerability in the app (in the code, the base image or a dependency) carries a release floor: a migration whose first line is `-- release-floor: <the fix>`, which may be all it holds. Add it with the fix, or in the release's pull request when the fix came in as a dependency update. The migrator of every earlier release refuses a database that reached a floor, so a host never goes back behind the fix; for the same reason the release has no automatic rollback, and it is verified before it is tagged.
 
 ## Dependencies
 

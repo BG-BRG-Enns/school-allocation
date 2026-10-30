@@ -141,7 +141,7 @@ When the proxy runs on another host, bring the app's port there over a tunnel fr
 
 ## Updates
 
-`podman-auto-update.timer` pulls new `v1` images nightly and restarts the units whose image changed. The app's unit runs the migrations before every start, with the image it is about to run, so the app never starts on an old schema; a migration is written to work with the previous release too, so the automatic rollback after a failed health check is safe.
+`podman-auto-update.timer` pulls new `v1` images nightly and restarts the units whose image changed. The app's unit runs the migrations before every start, with the image it is about to run, so the app never starts on an old schema; a migration is written to work with the previous release too, so the automatic rollback after a failed health check is safe. The one exception is a release that fixes a vulnerability: it carries a release floor, which the migrator of every earlier release refuses. Should the registry ever serve an earlier `v1`, that release does not start, and `podman auto-update` rolls back to the release that ran; a release with a floor has no earlier release to fall back to either, so it is verified before it is tagged. The PostgreSQL and solver images have no such floor.
 
 The update is skipped, without failing, while a job is executing (an allocation run, a roster import, an outbox flush): `busy.conf` makes `not-busy.sh` the unit's condition, and it asks the health check. Choices and catalogue changes are saved as they are made, so a restart at night loses nothing a person has done.
 

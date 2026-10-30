@@ -1,9 +1,12 @@
 // The migrator against a real server: idempotent, and the runtime role ends
 // up with exactly the listed rights. What the triggers keep, whoever writes.
 
-import { test } from 'node:test'
+import { test, type TestContext } from 'node:test'
 import assert from 'node:assert/strict'
-import { migrate } from '../../scripts/migrate.ts'
+import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { migrate, MigrationError, MIGRATIONS_DIR } from '../../scripts/migrate.ts'
 import { RUNTIME_TABLES } from '../../lib/runtime-privileges.ts'
 import { SQLSTATE, sqlState } from '../../lib/pg-errors.ts'
 import { createTestDatabase, DB, TEST_RUNTIME_PASSWORD, withClient } from '../helpers/db.ts'
@@ -165,4 +168,38 @@ test('a database a newer release migrated is accepted by an older migrator (the 
     'insert into schema_migrations (filename, sha256) values ($1, $2)', ['0000_before_the_baseline.sql', 'e'.repeat(64)],
   ))
   await assert.rejects(migrate({ databaseUrl: db.ownerUrl, runtimePassword: TEST_RUNTIME_PASSWORD }), /0000_before_the_baseline\.sql is missing/)
+})
+
+/** A migrations directory: this release's files and `extra`, as a later release would have them. */
+async function migrationsWith(t: TestContext, extra: Record<string, string>): Promise<string> {
+  const dir = await mkdtemp(path.join(tmpdir(), 'school-allocation-migrations-'))
+  t.after(() => rm(dir, { recursive: true, force: true }))
+  await cp(MIGRATIONS_DIR, dir, { recursive: true })
+  for (const [name, sql] of Object.entries(extra)) await writeFile(path.join(dir, name), sql)
+  return dir
+}
+
+test('a newer release\'s release floor refuses the database; the release that carries it and the ones after it still start', DB, async (t) => {
+  const db = await createTestDatabase(t)
+  const run = (migrationsDir?: string) => migrate({ databaseUrl: db.ownerUrl, runtimePassword: TEST_RUNTIME_PASSWORD, ...(migrationsDir === undefined ? {} : { migrationsDir }) })
+  const floorOf = (filename: string) => withClient(db.ownerUrl, async (c) => (await c.query<{ floor: boolean }>(
+    'select floor from schema_migrations where filename = $1', [filename],
+  )).rows[0]?.floor)
+  // A floor may be the line alone; the marker counts on the first line only.
+  const fix = await migrationsWith(t, {
+    '9001_fix.sql': '-- release-floor: v9.9.9 fixes a vulnerability\n',
+    '9002_note.sql': 'select 1;\n-- release-floor: not on the first line, so a comment\n',
+  })
+  assert.deepEqual(await run(fix), ['9001_fix.sql', '9002_note.sql'])
+  assert.equal(await floorOf('9001_fix.sql'), true)
+  assert.equal(await floorOf('9002_note.sql'), false)
+
+  // The release before it meets the floor among the migrations it does not know, and stops before it touches anything.
+  await assert.rejects(run(), (err: unknown) => err instanceof MigrationError && err.message.includes('9001_fix.sql') && err.message.includes('release floor'))
+  assert.deepEqual(await run(fix), [], 'the release that carries it still starts')
+  const later = await migrationsWith(t, { '9001_fix.sql': '-- release-floor: v9.9.9 fixes a vulnerability\n', '9002_note.sql': 'select 1;\n-- release-floor: not on the first line, so a comment\n', '9003_later.sql': 'select 1;\n' })
+  assert.deepEqual(await run(later), ['9003_later.sql'], 'and so does the release after it')
+  // The release that carries the floor meets only a newer plain migration there: the rollback case, as before.
+  assert.deepEqual(await run(fix), [], 'the release with the floor runs on the schema of the release after it')
+  await assert.rejects(run(), (err: unknown) => err instanceof MigrationError && err.message.includes('9001_fix.sql'), 'the release before the floor still does not')
 })

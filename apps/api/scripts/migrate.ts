@@ -26,6 +26,18 @@ export const MIGRATIONS_DIR = path.resolve(path.dirname(fileURLToPath(import.met
 const LOCK_KEY = 0x5c0e1ec7
 const FILE_NAME = /^\d{4}_[a-z0-9_]+\.sql$/
 
+// A release floor: a migration whose first line is `-- release-floor: `
+// and the fix it marks. A release that fixes a vulnerability carries one,
+// often that line alone (AGENTS.md). The migrator accepts the migrations
+// of a newer release, so that the automatic rollback can run the release
+// before it on the newer schema (pendingMigrations); a floor is the one it
+// refuses. A signature says which workflow built an image, not which
+// release is the newest, so a registry could serve an earlier signed
+// release under the line tag; its migrator meets the floor among the
+// migrations it does not know and stops, the unit does not start, and
+// podman-auto-update rolls back to the release that ran.
+const RELEASE_FLOOR = /^-- release-floor: \S/
+
 export interface MigrateOptions {
   /** Owner connection string, password included. */
   databaseUrl: string
@@ -65,13 +77,22 @@ export async function migrate(options: MigrateOptions): Promise<string[]> {
       sha256 text not null,
       applied_at timestamptz not null default now()
     )`)
-    const applied = new Map((await client.query<{ filename: string, sha256: string }>(
-      'select filename, sha256 from schema_migrations',
-    )).rows.map((row) => [row.filename, row.sha256]))
+    // Added after the table's first release; a migrator before it inserts
+    // without the column, which records no floor.
+    await client.query('alter table schema_migrations add column if not exists floor boolean not null default false')
+    const rows = (await client.query<{ filename: string, sha256: string, floor: boolean }>(
+      'select filename, sha256, floor from schema_migrations',
+    )).rows
+    const applied = new Map(rows.map((row) => [row.filename, row.sha256]))
 
     // The history is validated before the runtime role is touched.
     const pending = pendingMigrations(files, applied, migrationsDir, until)
     const ahead = aheadOf(files, applied)
+    const floors = new Set(rows.filter((row) => row.floor).map((row) => row.filename))
+    const behind = ahead.filter((name) => floors.has(name))
+    if (behind.length > 0) {
+      throw new MigrationError(`a newer release fixed a vulnerability and set a release floor (${behind.join(', ')}); this release must not run on the database`)
+    }
     if (ahead.length > 0) {
       // The rollback case (pendingMigrations): said out loud, since the
       // privileges reset below grants nothing on what those migrations
@@ -100,6 +121,8 @@ interface MigrationFile {
   name: string
   sql: string
   sha256: string
+  /** Whether it is a release floor (RELEASE_FLOOR). */
+  floor: boolean
 }
 
 async function assertMigrationRole(client: pg.Client): Promise<void> {
@@ -164,7 +187,7 @@ async function applyMigration(client: pg.Client, file: MigrationFile): Promise<v
   await client.query('begin')
   try {
     await client.query(file.sql)
-    await client.query('insert into schema_migrations (filename, sha256) values ($1, $2)', [file.name, file.sha256])
+    await client.query('insert into schema_migrations (filename, sha256, floor) values ($1, $2, $3)', [file.name, file.sha256, file.floor])
     await client.query('commit')
   } catch (err) {
     await client.query('rollback').catch(() => {})
@@ -184,7 +207,7 @@ async function migrationFiles(dir: string, until: string | undefined): Promise<M
   const selected = until === undefined ? names : names.filter((name) => name <= until)
   return Promise.all(selected.map(async (name) => {
     const sql = await readFile(path.join(dir, name), 'utf8')
-    return { name, sql, sha256: createHash('sha256').update(sql).digest('hex') }
+    return { name, sql, sha256: createHash('sha256').update(sql).digest('hex'), floor: RELEASE_FLOOR.test(sql.split('\n', 1)[0] ?? '') }
   }))
 }
 
