@@ -7,6 +7,7 @@
 
 import { defineConfig, devices } from '@playwright/test'
 import { BASE_PATH } from './e2e/support/base.ts'
+import { INTL_LOCALE } from './e2e/support/messages.ts'
 
 const PORT = Number(process.env.E2E_PORT ?? 3100)
 // The app's address with its base path and a trailing slash, so that the
@@ -26,7 +27,7 @@ export default defineConfig({
   reporter: ci ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL,
-    locale: 'de-AT',
+    locale: INTL_LOCALE,
     timezoneId: 'Europe/Vienna',
     trace: 'retain-on-failure',
     video: 'retain-on-failure',
