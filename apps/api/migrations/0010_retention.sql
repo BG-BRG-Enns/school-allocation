@@ -328,7 +328,8 @@ begin
   relation := 'roster_entry'; removed := n; return next;
   with d as (delete from import_batch where id = any(batches) returning 1) select count(*) into n from d;
   relation := 'import_batch'; removed := n; return next;
-  with d as (delete from class_teacher where school_year = year returning 1) select count(*) into n from d;
+  -- The year's class teachers go with the year's last batch: while one stays as the roster in force, they lead their classes still.
+  with d as (delete from class_teacher where school_year = year and not exists (select 1 from import_batch b where b.school_year = year) returning 1) select count(*) into n from d;
   relation := 'class_teacher'; removed := n; return next;
 
   -- The people nobody names any more: no roster entry, no item, no place, no record, no class to lead. Their bindings go,
@@ -364,6 +365,11 @@ begin
      and not exists (select 1 from allocation_run r where r.started_by = u.id or r.published_by = u.id)
      and not exists (select 1 from assignment_change c where c.changed_by = u.id)
      and not exists (select 1 from attendance a where a.recorded_by = u.id);
+  -- A person whose account stays (a remaining record names it) stays whole, binding included: a later purge finds the
+  -- account through the binding once the last reference is gone.
+  select coalesce(array_agg(id), '{}') into persons from unnest(persons) as id
+   where not exists (select 1 from identity_binding b where b.person_id = id
+                        and not exists (select 1 from app_user u where u.id = any(users) and u.tid = b.tid and u.oid = b.oid));
   with d as (delete from identity_binding where person_id = any(persons) returning 1) select count(*) into n from d;
   relation := 'identity_binding'; removed := n; return next;
   with d as (delete from app_user where id = any(users) returning 1) select count(*) into n from d;
