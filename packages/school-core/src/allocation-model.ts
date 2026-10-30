@@ -138,16 +138,17 @@ export interface AllocationResult {
   passes: [PassResult, PassResult]
 }
 
-export const ASSIGNMENT_SOURCES = ['fixed', 'wish', 'fallback'] as const
+/** How a student came to be in an item: by class, by the solver for a wish or as a fee-free fallback, by their own move in the swap window, or by hand after publication (allocation-change.ts). */
+export const ASSIGNMENT_SOURCES = ['fixed', 'wish', 'fallback', 'swap', 'manual'] as const
 export type AssignmentSource = typeof ASSIGNMENT_SOURCES[number]
 
 export interface Assignment {
   personId: string
   itemId: string
   source: AssignmentSource
-  /** The pass that made it; null for a pre-assignment. */
+  /** The pass that made it; null for a pre-assignment and for a row added after publication. */
   pass: Pass | null
-  /** The wish number for a ranked item; null for a pre-assignment or a fallback. */
+  /** The wish number for a ranked item; null otherwise. */
   rank: number | null
 }
 

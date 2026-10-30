@@ -102,14 +102,23 @@ lifecycle, and is tested with synthetic data only.
 - Student result with explanation; participant lists for teachers; the class teacher's list of
   unplaced students; the assignments workbook with the fee per student.
 
-**S5 · After publication.**
+**S5 · After publication**, in three steps, each its own pull request.
 
-- The swap window (D-06): free places per item, the student's move under the campaign lock, the
-  minimum protected, confirmation mail.
-- Manual placement of unplaced students by the class teacher, manual changes by the organizer,
-  validated and audited; no second round.
-- The retention purge (D-15).
-- KV attendance per session for own class; attendance export.
+**S5a · Changes after publication.**
+
+- The swap window (D-06): the free places per item, the student's move under the campaign lock
+  leaving what overlaps, the minimum protected, the coverage protected, confirmation mail.
+- Placement of students short of minutes by the class teacher (into a gap, with a reason); changes by
+  the organizer (into, out of, or both; a full item and a minimum overridable, recorded); the same
+  rules for all, audited, the student notified; no second round. A change supersedes rows and adds
+  rows; the organizer's log and the workbook carry every change with its reason.
+- The swap window's dates settable until the window begins.
+
+**S5b · Attendance and the archive.**
+
+- KV attendance per session for own class; attendance exports; `results → archived` by the organizer.
+
+**S5c · The retention purge (D-15).**
 
 **S6 · Release and deploy readiness.**
 

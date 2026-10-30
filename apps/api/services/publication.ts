@@ -1,11 +1,15 @@
-// The publication of a run (docs/domain-and-api.md §3 rule 7 is S5; §4,
-// §8): the organizer publishes one run of a campaign in review, confirming
-// the items it cancelled; the campaign moves to results and the notices go
-// out in the same transaction. From then on a student reads their result
-// with its explanation, a teacher the participants of their item, a class
-// teacher the places of their class, and the organizer the workbook.
+// The publication of a run (docs/domain-and-api.md §4, §8): the organizer
+// publishes one run of a campaign in review, confirming the items it
+// cancelled; the campaign moves to results and the notices go out in the
+// same transaction. From then on a student reads their result with its
+// explanation (and, while the swap window is open, what they could move
+// into), a teacher the participants of their item, a class teacher the
+// places of their class, and the organizer the workbook. Every read is of
+// the run's current rows: what the changes after publication
+// (assignment-changes.ts) left standing.
 
-import { explainStudent, type Assignment, type StudentExplanation } from '@school-allocation/school-core'
+import { explainStudent, moveOffers, type Assignment, type StudentExplanation } from '@school-allocation/school-core'
+import type { AssignmentChange } from '@school-allocation/api-contracts/publication'
 import type { Actor, Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
 import * as store from '../lib/dao/allocation.ts'
@@ -13,7 +17,7 @@ import { lockedCampaign, readCampaign, updateState } from '../lib/dao/campaigns.
 import { listCampaignItems } from '../lib/dao/items.ts'
 import { campaignStudents } from '../lib/dao/choices.ts'
 import { classTeachersByClass } from '../lib/dao/window.ts'
-import type { Database, Queryable } from '../lib/db.ts'
+import { readSnapshot, type Database, type Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import { enqueueMail } from '../lib/mail/outbox.ts'
 import type { AllocationRun, StoredRun } from '../lib/models/allocation.ts'
@@ -38,6 +42,11 @@ function same(a: readonly string[], b: readonly string[]): boolean {
   return left.size === right.size && [...left].every((id) => right.has(id))
 }
 
+/** The item as the notices name it: its number and title. */
+export function itemLabel(item: Pick<Item, 'number' | 'title'>): string {
+  return item.number === null ? item.title : `${item.number}. ${item.title}`
+}
+
 /** The item as a line of a student's programme: its number and title, the day and the clock span of each session. */
 function programmeLine(item: Item, source: Assignment['source']): string {
   const when = item.sessions.map((s) => {
@@ -48,8 +57,22 @@ function programmeLine(item: Item, source: Assignment['source']): string {
       ? `${dayShort.format(start)} ${clock.format(start)} – ${clock.format(end)}`
       : `${dayShort.format(start)} ${clock.format(start)} – ${dayShort.format(end)} ${clock.format(end)}`
   }).join(', ')
-  const title = item.number === null ? item.title : `${item.number}. ${item.title}`
-  return `${when}: ${title}${source === 'fixed' ? ' (Klasse)' : ''}${item.feeCents > 0 ? ` – Beitrag ${(item.feeCents / 100).toFixed(2).replace('.', ',')} €` : ''}`
+  return `${when}: ${itemLabel(item)}${source === 'fixed' ? ' (Klasse)' : ''}${item.feeCents > 0 ? ` – Beitrag ${(item.feeCents / 100).toFixed(2).replace('.', ',')} €` : ''}`
+}
+
+/** The minutes a student still misses, per day, as the notices say it; empty when none. */
+export function missingLines(explanation: StudentExplanation): string[] {
+  return explanation.days.filter((d) => d.deficit > 0).map((d) => `${dayShort.format(new Date(`${d.date}T12:00:00Z`))} ${d.deficit} min`)
+}
+
+/** A student's programme as the notices list it: the items in the order of their first session, then what is still missing. */
+export function programmeLines(explanation: StudentExplanation, items: Map<string, Item>): string[] {
+  const lines = explanation.items.map((e) => ({ item: items.get(e.itemId), source: e.source })).filter((e): e is { item: Item, source: Assignment['source'] } => e.item !== undefined)
+    .sort((a, b) => (a.item.sessions[0]?.startsAt ?? '').localeCompare(b.item.sessions[0]?.startsAt ?? ''))
+    .map((e) => programmeLine(e.item, e.source))
+  const missing = missingLines(explanation)
+  if (missing.length > 0) lines.push(`Noch ohne Platz: ${missing.join(', ')} – dein Klassenvorstand teilt dich zu.`)
+  return lines
 }
 
 function swapWindowText(campaign: Campaign): string {
@@ -104,14 +127,10 @@ async function notifyPublication(client: Queryable, context: WindowContext, camp
   for (const student of students) {
     const explanation = explainStudent(run.snapshot, rows, student.personId)
     if (!explanation) continue
-    const missing = explanation.days.filter((d) => d.deficit > 0).map((d) => `${dayShort.format(new Date(`${d.date}T12:00:00Z`))} ${d.deficit} min`)
+    const missing = missingLines(explanation)
     if (missing.length > 0) short.set(student.personId, { student, missing })
     if (student.address === null) continue
-    const lines = explanation.items.map((e) => ({ item: byId.get(e.itemId), source: e.source })).filter((e): e is { item: Item, source: Assignment['source'] } => e.item !== undefined)
-      .sort((a, b) => (a.item.sessions[0]?.startsAt ?? '').localeCompare(b.item.sessions[0]?.startsAt ?? ''))
-      .map((e) => programmeLine(e.item, e.source))
-    if (missing.length > 0) lines.push(`Noch ohne Platz: ${missing.join(', ')} – dein Klassenvorstand teilt dich zu.`)
-    const { subject, body } = renderTemplate(result, { ...common(student.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/ergebnis`, zuteilung: lines.join('\n') || '–', tauschfenster: swapWindowText(campaign) })
+    const { subject, body } = renderTemplate(result, { ...common(student.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/ergebnis`, zuteilung: programmeLines(explanation, byId).join('\n') || '–', tauschfenster: swapWindowText(campaign) })
     if (await enqueueMail(client, { kind: 'result_published', campaignId: campaign.id, personId: student.personId, to: student.address, subject, body, dedupeKey: `result_published:${campaign.id}:${student.personId}:${run.id}` })) queued += 1
   }
 
@@ -154,25 +173,49 @@ export async function requirePublished(db: Queryable, campaignId: string): Promi
   return { campaign, run }
 }
 
-/** A student's own result: their places with the explanation, the items as the catalogue shows them, the fee, the swap window. */
+/** Whether `now` is inside the campaign's swap window (D-06). */
+export function swapWindowOpen(campaign: Pick<Campaign, 'state' | 'swapFrom' | 'swapUntil'>, now = Date.now()): boolean {
+  return campaign.state === 'results' && campaign.swapFrom !== null && campaign.swapUntil !== null && Date.parse(campaign.swapFrom) <= now && now <= Date.parse(campaign.swapUntil)
+}
+
+/** Items nobody enters after publication: cancelled by the run, withdrawn since. */
+export function unavailableItems(run: Pick<StoredRun, 'cancelledItemIds'>, items: readonly Item[]): Set<string> {
+  return new Set([...run.cancelledItemIds, ...items.filter((item) => item.state !== 'approved').map((item) => item.id)])
+}
+
+/**
+ * A student's own result: their places with the explanation, the items as
+ * the catalogue shows them, the fee, the swap window and, while it is
+ * open, what they could move into (D-13: the free places per item), and
+ * their own changes since publication.
+ */
 export async function myResult(db: Database, campaign: Campaign, caller: Caller) {
   const personId = caller.person?.kind === 'student' ? caller.person.id : null
   if (personId === null) throw new ApplicationError('not_a_student')
-  const { run } = await requirePublished(db, campaign.id)
-  const rows = (await store.listAssignments(db, run.id)).filter((r) => r.personId === personId)
-  const explanation = explainStudent(run.snapshot, rows, personId)
+  // The rows and the changes of one moment: a swap committing in between would show the move and the old place at once.
+  const { run, rows, all, log } = await readSnapshot(db, async (client) => {
+    const { run } = await requirePublished(client, campaign.id)
+    return { run, rows: await store.listAssignments(client, run.id), all: await listCampaignItems(client, campaign.id), log: await store.listChanges(client, run.id) }
+  })
+  const mine = rows.filter((r) => r.personId === personId)
+  const explanation = explainStudent(run.snapshot, mine, personId)
   if (!explanation) throw new ApplicationError('not_found')
-  // Every item the campaign had: one withdrawn since publication still names a place given. The fee is the run's,
-  // as the student saw it when ranking and as the workbook sums it; a fee changed since is not theirs.
+  const offers = swapWindowOpen(campaign) ? moveOffers(run.snapshot, rows, personId, 'swap', unavailableItems(run, all)) : null
+  const changes = log.filter((c) => c.personId === personId).map((c) => ({ kind: c.kind, toItemId: c.toItemId, leftItemIds: c.leftItemIds, changedAt: c.changedAt }))
+  // Every item the page names: the places given (one withdrawn since publication still names a place given), the items
+  // on offer, the items left. The fee is the run's, as the student saw it when ranking and as the workbook sums it.
+  const named = new Set([...mine.map((r) => r.itemId), ...(offers ?? []).map((o) => o.itemId), ...changes.flatMap((c) => [...c.leftItemIds, ...(c.toItemId === null ? [] : [c.toItemId])])])
   const frozenFee = new Map(run.snapshot.items.map((item) => [item.id, item.feeCents]))
-  const items = (await listCampaignItems(db, campaign.id)).filter((item) => rows.some((r) => r.itemId === item.id)).map((item) => ({ ...item, feeCents: frozenFee.get(item.id) ?? item.feeCents }))
+  const items = all.filter((item) => named.has(item.id)).map((item) => ({ ...item, feeCents: frozenFee.get(item.id) ?? item.feeCents }))
   return {
     campaign,
     run: { seq: run.seq, seed: run.seed, publishedAt: run.publishedAt ?? '' },
     explanation,
     items: campaign.showTeachers ? items : items.map(withoutTeachers),
-    feeCents: items.reduce((sum, item) => sum + item.feeCents, 0),
+    feeCents: items.filter((item) => mine.some((r) => r.itemId === item.id)).reduce((sum, item) => sum + item.feeCents, 0),
     swapWindow: campaign.swapFrom !== null && campaign.swapUntil !== null ? { from: campaign.swapFrom, until: campaign.swapUntil } : null,
+    offers,
+    changes,
   }
 }
 
@@ -195,24 +238,36 @@ export async function participants(db: Database, campaign: Campaign, caller: Cal
 export interface ClassPlacement {
   items: { itemId: string, title: string, source: string }[]
   deficit: number
+  /** For a student short of minutes: the items a class teacher could place them into, full ones included so the page can say so. */
+  offers: { itemId: string, title: string, number: number | null, free: number, problems: string[] }[]
 }
 
-/** Per student of a class: their items and the minutes they miss, from the published run; empty when nothing is published. */
+/** Per student of a class: their items, the minutes they miss and what would fill the gap, from the published run's current rows; empty when nothing is published. */
 export async function classPlacements(db: Queryable, campaign: Campaign, className: string): Promise<Map<string, ClassPlacement>> {
   const run = await store.readPublishedRun(db, campaign.id)
   if (!run) return new Map()
   const [rows, items] = await Promise.all([store.listAssignments(db, run.id), listCampaignItems(db, campaign.id)])
-  const titles = new Map(items.map((item) => [item.id, item.title]))
+  const byId = new Map(items.map((item) => [item.id, item]))
+  const unavailable = unavailableItems(run, items)
   const result = new Map<string, ClassPlacement>()
   for (const student of run.snapshot.students.filter((s) => s.className === className)) {
     const explanation = explainStudent(run.snapshot, rows, student.personId) as StudentExplanation
-    result.set(student.personId, { items: explanation.items.map((e) => ({ itemId: e.itemId, title: titles.get(e.itemId) ?? '', source: e.source })), deficit: explanation.days.reduce((sum, d) => sum + d.deficit, 0) })
+    const deficit = explanation.days.reduce((sum, d) => sum + d.deficit, 0)
+    // What fits the gap as the rows stand; a full item is shown as full, one that overlaps or does not help is not shown.
+    const offers = deficit === 0
+      ? []
+      : moveOffers(run.snapshot, rows, student.personId, 'place', unavailable)
+          .filter((o) => o.problems.every((p) => p.code === 'item_full'))
+          .map((o) => ({ itemId: o.itemId, title: byId.get(o.itemId)?.title ?? '', number: byId.get(o.itemId)?.number ?? null, free: o.free, problems: o.problems.map((p) => p.code) }))
+    result.set(student.personId, { items: explanation.items.map((e) => ({ itemId: e.itemId, title: byId.get(e.itemId)?.title ?? '', source: e.source })), deficit, offers })
   }
   return result
 }
 
-/** The published run's review, for the assignments workbook. */
-export async function publishedReview(db: Database, campaignId: string) {
-  const { campaign, run } = await requirePublished(db, campaignId)
-  return { campaign, review: await runReview(db, campaign, run.id) }
+/** The published run's review with its changes, for the assignments workbook; both read at one moment, so the sheets agree. */
+export async function publishedReview(db: Database, campaignId: string, changes: (client: Queryable, campaign: Campaign) => Promise<AssignmentChange[]>) {
+  return readSnapshot(db, async (client) => {
+    const { campaign, run } = await requirePublished(client, campaignId)
+    return { campaign, review: await runReview(client, campaign, run.id), changes: await changes(client, campaign) }
+  })
 }

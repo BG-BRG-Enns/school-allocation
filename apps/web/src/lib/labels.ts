@@ -132,6 +132,8 @@ export const MAIL_KIND_LABELS: Readonly<Record<string, string>> = {
   result_published: 'Ergebnis veröffentlicht',
   class_unplaced: 'Nicht vollständig zugeteilte Schüler/innen an den Klassenvorstand',
   item_cancelled: 'Aktivität abgesagt (an die Lehrkräfte)',
+  swap_confirmed: 'Tausch bestätigt',
+  assignment_changed: 'Zuteilung geändert (durch Klassenvorstand oder Organisation)',
 }
 
 /** What became of an allocation run (packages/api-contracts/src/allocation.ts RUN_STATUSES). */
@@ -203,6 +205,27 @@ export const ASSIGNMENT_SOURCE_LABELS: Readonly<Record<string, string>> = {
   fallback: 'Ersatzplatz',
   swap: 'Tausch',
   manual: 'händisch',
+}
+
+/** A change of the published run (packages/api-contracts/src/publication.ts CHANGE_KINDS). */
+export const CHANGE_KIND_LABELS: Readonly<Record<string, string>> = {
+  swap: 'Tausch',
+  place: 'Zuteilung',
+  move: 'Umsetzung',
+  remove: 'Herausnahme',
+}
+
+/** Why a move after publication is refused (school-core MOVE_PROBLEM_CODES), as the pages say it next to the item. */
+export const MOVE_PROBLEM_LABELS: Readonly<Record<string, string>> = {
+  not_offered: 'steht nicht zur Wahl',
+  already_placed: 'schon zugeteilt',
+  item_full: 'voll',
+  not_placed: 'nicht zugeteilt',
+  leaves_fixed: 'Klassenaktivität bleibt',
+  below_minimum: 'die bisherige Aktivität käme unter ihr Minimum',
+  overlap: 'überschneidet sich',
+  coverage_lost: 'es würden Minuten fehlen',
+  fills_nothing: 'füllt keine Lücke',
 }
 
 /** The state of a mail in the outbox (apps/api/lib/mail/outbox.ts MAIL_STATES). */

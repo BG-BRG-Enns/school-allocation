@@ -33,6 +33,9 @@ export const PLACEHOLDERS: Readonly<Record<MailKind, readonly string[]>> = {
   result_published: [...COMMON, 'zuteilung', 'tauschfenster'],
   class_unplaced: [...COMMON, 'klasse', 'liste'],
   item_cancelled: [...COMMON, 'aktivitaet', 'anmeldungen', 'minimum'],
+  // After publication (S5a): the student's own move, and a change by the class teacher's or the organizer's hand (who, and what changed; the reason stays theirs).
+  swap_confirmed: [...COMMON, 'zuteilung'],
+  assignment_changed: [...COMMON, 'zuteilung', 'wer', 'aenderung'],
 }
 
 /** Sample values for a test mail, so the organizer sees every placeholder filled. */
@@ -51,6 +54,8 @@ export const SAMPLE_DATA: Readonly<Record<string, string>> = {
   aktivitaet: 'Töpfern',
   anmeldungen: '3',
   minimum: '8',
+  wer: 'deinem Klassenvorstand',
+  aenderung: 'neu: Mo., 21.06.: 5. Töpfern (08:30 – 12:15)',
 }
 
 /** Every placeholder name a parsed template reads, blocks included. */

@@ -22,7 +22,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           quarantine-days: "1"
-          trusted-images: docker.io/library/node,docker.io/library/postgres
+          trusted-images: docker.io/library/node,docker.io/library/postgres,docker.io/library/python,ghcr.io/astral-sh/uv
 
       - if: steps.evaluate.outputs.candidate == 'true' && steps.evaluate.outputs.quarantine-passed == 'true'
         uses: cmiic/dependabot-automation/cron@6f33c1e895e189c532875d5ea279ba4322290823 # v2.3.0

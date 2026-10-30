@@ -58,7 +58,8 @@ export function explainStudent(input: AllocationInput, assignments: readonly Ass
     const covered = explained.reduce((sum, e) => sum + (e.minutesByDate[date] ?? 0), 0)
     return { date, required: minimum, covered, deficit: Math.max(0, minimum - covered) }
   })
-  const chosen = explained.filter((e) => e.source !== 'fixed')
+  // The run's own placements: a move or a change after publication says nothing about how well the wishes were met.
+  const chosen = explained.filter((e) => e.source === 'wish' || e.source === 'fallback')
   const weight = (e: ExplainedItem) => Object.values(e.minutesByDate).reduce((sum, m) => sum + m, 0)
   const total = chosen.reduce((sum, e) => sum + weight(e), 0)
   const averageRank = total === 0 ? null : chosen.reduce((sum, e) => sum + (e.rank ?? input.wishesPerGroup + 1) * weight(e), 0) / total
@@ -95,7 +96,7 @@ export interface AllocationSummary {
     late: number
     nonSubmitters: number
   }
-  /** Assignment rows by wish number ('1' … cap), 'fallback' and 'fixed'. */
+  /** Assignment rows by wish number ('1' … cap), 'fallback' and 'fixed'; after publication also 'swap' and 'manual'. */
   ranks: Record<string, number>
   classes: ClassSummary[]
   items: ItemSummary[]
@@ -105,7 +106,7 @@ export interface AllocationSummary {
 
 /** The numbers of a run, from its stored rows. */
 export function summarizeAllocation(input: AllocationInput, assignments: readonly Assignment[], cancelled: readonly string[]): AllocationSummary {
-  const ranks: Record<string, number> = { fixed: 0, fallback: 0 }
+  const ranks: Record<string, number> = { fixed: 0, fallback: 0, swap: 0, manual: 0 }
   for (let r = 1; r <= input.wishesPerGroup; r++) ranks[String(r)] = 0
   const deficits: AllocationSummary['deficits'] = []
   const fallbacks: AllocationSummary['fallbacks'] = []

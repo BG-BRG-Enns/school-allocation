@@ -4,15 +4,17 @@
 // review of one (its levels, who got what, the missing minutes, the
 // fallbacks, the cancelled items, the counts per item and class), compared
 // with another run if wanted. A run executes in the background; the page
-// asks again until it is through. Publication comes with the next step.
+// asks again until it is through. Once a run is published, the page shows
+// what changed since (swaps, placements, the organizer's own changes, each
+// with its reason) and takes the organizer's change by hand.
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { assignmentsExportPath, loadRun, loadRuns, loadSolverStatus, publishRun, runExportPath, startRun, type AllocationRun, type ReviewStudent, type RunReviewResponse, type SolverStatusResponse } from '../lib/allocation-api.ts'
+import { assignmentsExportPath, changeAssignment, loadChanges, loadRun, loadRuns, loadSolverStatus, publishRun, runExportPath, startRun, type AllocationRun, type AssignmentChange, type ReviewStudent, type RunReviewResponse, type SolverStatusResponse } from '../lib/allocation-api.ts'
 import { withBase } from '../lib/base.ts'
-import { loadCampaign, type Campaign } from '../lib/campaigns-api.ts'
+import { loadCampaign, loadItems, type Campaign, type Item } from '../lib/campaigns-api.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
 import { formatDay } from '../lib/format.ts'
-import { ALLOCATION_PROBLEM_LABELS, ASSIGNMENT_SOURCE_LABELS, CAMPAIGN_STATE_LABELS, levelLabel, RUN_FAILURE_LABELS, RUN_STATUS_LABELS, SOLVE_STATUS_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
+import { ALLOCATION_PROBLEM_LABELS, ASSIGNMENT_SOURCE_LABELS, CAMPAIGN_STATE_LABELS, CHANGE_KIND_LABELS, levelLabel, RUN_FAILURE_LABELS, RUN_STATUS_LABELS, SOLVE_STATUS_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string }>()
@@ -50,6 +52,40 @@ async function onPublish(): Promise<void> {
 }
 const running = computed(() => runs.value.some((r) => r.status === 'running'))
 
+/** After publication: the published run's review (for names), the changes since, and the organizer's form. */
+const published = ref<RunReviewResponse | null>(null)
+/** The catalogue as it stands, for the organizer's picker: an item withdrawn since publication is no target. */
+const catalogue = ref<Item[]>([])
+const changes = ref<AssignmentChange[]>([])
+const changePerson = ref('')
+const changeTo = ref('')
+const changeFrom = ref('')
+const changeReason = ref('')
+const changeForce = ref(false)
+const publishedStudents = computed(() => published.value?.students ?? [])
+const changeStudent = computed(() => publishedStudents.value.find((s) => s.personId === changePerson.value))
+const changeItems = computed(() => {
+  const approved = new Set(catalogue.value.filter((i) => i.state === 'approved').map((i) => i.id))
+  return (published.value?.items ?? []).filter((i) => !i.cancelled && approved.has(i.itemId))
+})
+const canChange = computed(() => campaign.value?.state === 'results' && changePerson.value !== '' && (changeTo.value !== '' || changeFrom.value !== '') && changeReason.value.trim() !== '')
+const publishedLabel = (itemId: string): string => published.value === null ? itemId : itemTitle(published.value, itemId)
+
+async function onChange(): Promise<void> {
+  if (!canChange.value) return
+  await action.run(async () => {
+    await changeAssignment(props.id, { personId: changePerson.value, ...(changeTo.value === '' ? {} : { itemId: changeTo.value }), ...(changeFrom.value === '' ? {} : { removeItemId: changeFrom.value }), reason: changeReason.value.trim(), force: changeForce.value })
+    changeTo.value = ''
+    changeFrom.value = ''
+    changeReason.value = ''
+    changeForce.value = false
+    await load()
+  }, 'Die Zuteilung ist geändert; die Schülerin oder der Schüler wird benachrichtigt.')
+}
+watch(changePerson, () => {
+  changeFrom.value = ''
+})
+
 async function load(): Promise<void> {
   await loading.run(async () => {
     const [view, list, status] = await Promise.all([loadCampaign(props.id), loadRuns(props.id), loadSolverStatus()])
@@ -60,6 +96,16 @@ async function load(): Promise<void> {
     const current = selected.value?.run.id ?? list.runs[0]?.id
     if (current !== undefined) selected.value = await loadRun(props.id, current)
     if (compareId.value !== '') other.value = await loadRun(props.id, compareId.value)
+    const done = list.runs.find((r) => r.publishedAt !== null)
+    if (done !== undefined) {
+      published.value = await loadRun(props.id, done.id)
+      changes.value = (await loadChanges(props.id)).changes
+      catalogue.value = (await loadItems(props.id)).items
+    } else {
+      published.value = null
+      changes.value = []
+      catalogue.value = []
+    }
   })
 }
 
@@ -192,6 +238,141 @@ const levelDelta = (name: string): number | null => {
           :href="withBase(assignmentsExportPath(props.id))"
         >Zuteilung als Excel</a>
       </p>
+      <h3>Änderungen seit der Veröffentlichung ({{ changes.length }})</h3>
+      <p
+        v-if="changes.length === 0"
+        class="muted"
+      >
+        Noch keine: kein Tausch, keine Zuteilung durch einen Klassenvorstand, keine Änderung von Hand.
+      </p>
+      <table v-else>
+        <thead>
+          <tr>
+            <th>Nr.</th>
+            <th>Wann</th>
+            <th>Art</th>
+            <th>Schüler/in</th>
+            <th>Nicht mehr</th>
+            <th>Neu</th>
+            <th>Begründung</th>
+            <th>Durch</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="c in changes"
+            :key="c.id"
+          >
+            <td>{{ c.seq }}</td>
+            <td>{{ formatWhen(c.changedAt) }}</td>
+            <td>
+              {{ CHANGE_KIND_LABELS[c.kind] ?? c.kind }}<template v-if="c.forced">
+                · erzwungen
+              </template>
+            </td>
+            <td>{{ c.displayName }} ({{ c.className }})</td>
+            <td>{{ c.leftItemIds.map(publishedLabel).join(', ') }}</td>
+            <td>{{ c.toItemId === null ? '' : publishedLabel(c.toItemId) }}</td>
+            <td>{{ c.reason ?? '' }}</td>
+            <td>{{ c.changedBy.displayName }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <form
+        v-if="campaign.state === 'results' && published"
+        aria-label="Zuteilung von Hand ändern"
+        @submit.prevent="onChange"
+      >
+        <h3>Zuteilung von Hand ändern</h3>
+        <p class="muted">
+          Dieselben Regeln wie beim Tausch: in eine Aktivität mit freien Plätzen, die zur Schulstufe passt und sich mit nichts überschneidet, das bleibt; eine Klassenaktivität bleibt immer. Eine volle Aktivität oder ein Minimum darf die Organisation übergehen, mit Häkchen; das wird festgehalten.
+        </p>
+        <div class="row">
+          <p class="field">
+            <label for="change-person">Schüler/in</label>
+            <select
+              id="change-person"
+              v-model="changePerson"
+              required
+            >
+              <option value="">
+                Bitte wählen
+              </option>
+              <option
+                v-for="st in publishedStudents"
+                :key="st.personId"
+                :value="st.personId"
+              >
+                {{ st.displayName }} ({{ st.className }})
+              </option>
+            </select>
+          </p>
+          <p class="field">
+            <label for="change-from">Herausnehmen aus</label>
+            <select
+              id="change-from"
+              v-model="changeFrom"
+              :disabled="!changeStudent"
+            >
+              <option value="">
+                –
+              </option>
+              <option
+                v-for="e in changeStudent?.items ?? []"
+                :key="e.itemId"
+                :value="e.itemId"
+              >
+                {{ publishedLabel(e.itemId) }} ({{ ASSIGNMENT_SOURCE_LABELS[e.source] ?? e.source }})
+              </option>
+            </select>
+          </p>
+          <p class="field">
+            <label for="change-to">Einteilen in</label>
+            <select
+              id="change-to"
+              v-model="changeTo"
+            >
+              <option value="">
+                –
+              </option>
+              <option
+                v-for="i in changeItems"
+                :key="i.itemId"
+                :value="i.itemId"
+              >
+                {{ i.number === null ? i.title : `${i.number}. ${i.title}` }} ({{ Math.max(0, i.places - i.assigned) }} frei)
+              </option>
+            </select>
+          </p>
+        </div>
+        <p class="field">
+          <label for="change-reason">Begründung</label>
+          <input
+            id="change-reason"
+            v-model="changeReason"
+            type="text"
+            maxlength="500"
+            required
+          >
+        </p>
+        <p class="field">
+          <label>
+            <input
+              v-model="changeForce"
+              type="checkbox"
+            >
+            Volle Aktivität oder Minimum übergehen (wird festgehalten)
+          </label>
+        </p>
+        <p class="actions">
+          <button
+            type="submit"
+            :disabled="!canChange || action.busy.value"
+          >
+            Ändern
+          </button>
+        </p>
+      </form>
     </section>
 
     <section>

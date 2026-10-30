@@ -25,3 +25,18 @@ export interface RunFinish {
   detail: string | null
   problems: AllocationProblem[]
 }
+
+/** A change of the published run, as stored (0008): what the log, the workbook and a student's own list read. */
+export interface StoredChange {
+  id: string
+  seq: number
+  kind: 'swap' | 'place' | 'move' | 'remove'
+  personId: string
+  toItemId: string | null
+  /** The items the change's superseded rows had. */
+  leftItemIds: string[]
+  reason: string | null
+  forced: boolean
+  changedBy: { id: string, displayName: string }
+  changedAt: string
+}

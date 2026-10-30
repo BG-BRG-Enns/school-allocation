@@ -154,7 +154,7 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   await app.register(campaignsRoutes, { db, guards, baseUrl: config.publicUrl, wakeSender, ...under })
   await app.register(settingsRoutes, { db, guards, ...under })
   await app.register(windowRoutes, { db, guards, ...under })
-  await app.register(catalogueRoutes, { db, guards, ...under })
+  await app.register(catalogueRoutes, { db, guards, baseUrl: config.publicUrl, wakeSender, ...under })
   await app.register(itemsRoutes, { db, guards, ...under })
   await app.register(rosterImportsRoutes, { db, guards, ...under })
   await app.register(rosterGraphRoutes, { config, db, guards, entraAuthority: options.entraAuthority, graphBaseUrl: options.graphBaseUrl, ...under })

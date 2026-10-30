@@ -38,3 +38,18 @@ export interface AssignmentRow {
   pass: 1 | 2 | null
   rank: number | null
 }
+
+/** A change of the published run (0008), with the rows it superseded and the names the pages show. */
+export interface ChangeRow {
+  id: string
+  seq: number
+  kind: 'swap' | 'place' | 'move' | 'remove'
+  person_id: string
+  to_item_id: string | null
+  left_item_ids: string[]
+  reason: string | null
+  forced: boolean
+  changed_by: string
+  changed_by_name: string
+  changed_at: Date
+}

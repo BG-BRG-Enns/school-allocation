@@ -2,6 +2,7 @@
 // spreadsheets: one sheet of activities, one of sessions. Columns are typed
 // so the sheet sorts and sums; nothing about students is in it.
 
+import type { AssignmentChange } from '@school-allocation/api-contracts/publication'
 import writeXlsxFile from 'write-excel-file/node'
 import type { RunReviewResponse } from './models/allocation.ts'
 import type { StudentChoiceState } from './models/choices.ts'
@@ -82,13 +83,16 @@ export async function catalogueWorkbook(items: readonly Item[]): Promise<Buffer>
 
 const SOURCE_LABELS: Record<string, string> = { fixed: 'Klassenaktivität', wish: 'Wunsch', fallback: 'Ersatzplatz', swap: 'Tausch', manual: 'Händisch' }
 
+const CHANGE_KIND_LABELS: Record<string, string> = { swap: 'Tausch', place: 'Zuteilung', move: 'Umsetzung', remove: 'Herausnahme' }
+
 /**
  * A run as a workbook for the organizer's review and the school's lists:
  * every student with their items per day and the fee, the participants per
  * item, the items with their counts, and the missing minutes. The same
- * builder serves a published run.
+ * builder serves a published run, then with the sheet of the changes made
+ * since publication (the reason included: the sheet is the organizer's).
  */
-export async function runWorkbook(review: RunReviewResponse): Promise<Buffer> {
+export async function runWorkbook(review: RunReviewResponse, changes?: readonly AssignmentChange[]): Promise<Buffer> {
   const items = new Map(review.items.map((item) => [item.itemId, item]))
   const label = (itemId: string) => {
     const item = items.get(itemId)
@@ -148,13 +152,37 @@ export async function runWorkbook(review: RunReviewResponse): Promise<Buffer> {
       { type: Number, value: d.deficit },
     ])),
   ]
+  const changed = changes === undefined
+    ? []
+    : [{
+        sheet: 'Änderungen',
+        columns: [{ width: 6 }, { width: 18 }, { width: 12 }, { width: 8 }, { width: 30 }, { width: 36 }, { width: 36 }, { width: 40 }, { width: 10 }, { width: 24 }],
+        data: [
+          ['Nr.', 'Wann', 'Art', 'Klasse', 'Name', 'Nicht mehr', 'Neu', 'Begründung', 'Erzwungen', 'Durch'].map(header),
+          ...changes.map((c) => [
+            { type: Number, value: c.seq },
+            // As text in the school's time: an Excel date carries no zone and would show UTC.
+            { type: String, value: whenLong.format(new Date(c.changedAt)) },
+            { type: String, value: CHANGE_KIND_LABELS[c.kind] ?? c.kind },
+            { type: String, value: c.className },
+            { type: String, value: c.displayName },
+            { type: String, value: c.leftItemIds.map(label).join('; ') },
+            { type: String, value: c.toItemId === null ? '' : label(c.toItemId) },
+            { type: String, value: c.reason ?? '' },
+            { type: String, value: c.forced ? 'ja' : '' },
+            { type: String, value: c.changedBy.displayName },
+          ]),
+        ],
+      }]
   const workbook = writeXlsxFile([
     { sheet: 'Schülerinnen und Schüler', columns: [{ width: 8 }, { width: 10 }, { width: 30 }, { width: 16 }, ...review.projectDays.flatMap(() => [{ width: 40 }, { width: 9 }]), { width: 16 }, { width: 12 }], data: students },
     { sheet: 'Teilnehmer', columns: [{ width: 6 }, { width: 36 }, { width: 8 }, { width: 30 }, { width: 16 }, { width: 8 }], data: participants },
     { sheet: 'Aktivitäten', columns: [{ width: 6 }, { width: 36 }, { width: 8 }, { width: 10 }, { width: 12 }, { width: 9 }, { width: 9 }, { width: 12 }], data: activities },
     { sheet: 'Fehlende Minuten', columns: [{ width: 8 }, { width: 30 }, { width: 16 }, { width: 16 }], data: deficits },
+    ...changed,
   ])
   return workbook.toBuffer()
 }
 
 const dayShort = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit' })
+const whenLong = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })

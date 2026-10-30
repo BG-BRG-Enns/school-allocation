@@ -9,14 +9,19 @@ import type { FastifyInstance } from 'fastify'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { catalogueWorkbook } from '../lib/xlsx.ts'
+import { placeStudent } from '../services/assignment-changes.ts'
 import { catalogueView, classOptions, classStatus, demandView, itemsView, teacherOptions, visibleCampaign } from '../services/catalogue.ts'
 
 export interface CatalogueRoutesOptions {
   db: Database
   guards: Guards
+  /** Where the link in a placed student's notice points. */
+  baseUrl: string
+  /** Told after a placement, so the notice goes out without waiting for the next poll. */
+  wakeSender?: () => void
 }
 
-export async function catalogueRoutes(app: FastifyInstance, { db, guards }: CatalogueRoutesOptions): Promise<void> {
+export async function catalogueRoutes(app: FastifyInstance, { db, guards, baseUrl, wakeSender }: CatalogueRoutesOptions): Promise<void> {
   const signedIn = { preHandler: guards.requireSession }
 
   registerEndpoint(app, endpoints.getCampaignsByIdDemand, { ...signedIn }, async (request, _reply) => {
@@ -28,6 +33,14 @@ export async function catalogueRoutes(app: FastifyInstance, { db, guards }: Cata
   // adds (who has chosen) comes with it.
   registerEndpoint(app, endpoints.getCampaignsByIdClassesByClassNameStatus, { ...signedIn }, async (request, _reply) => {
     return classStatus(db, await visibleCampaign(db, callerOf(request), request.params.id), callerOf(request), request.params.className)
+  })
+
+  // The class teacher places a student of their class who is short of minutes; the class as it is afterwards.
+  registerEndpoint(app, endpoints.postCampaignsByIdClassesByClassNamePlace, { ...signedIn }, async (request, _reply) => {
+    const campaign = await visibleCampaign(db, callerOf(request), request.params.id)
+    await placeStudent(db, { baseUrl }, campaign, callerOf(request), request.params.className, request.body.personId, request.body.itemId, request.body.reason)
+    wakeSender?.()
+    return classStatus(db, campaign, callerOf(request), request.params.className)
   })
 
   registerEndpoint(app, endpoints.getCampaignsByIdItems, { ...signedIn }, async (request, _reply) => {

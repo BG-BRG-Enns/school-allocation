@@ -29,6 +29,26 @@
   },
   {
     "method": "GET",
+    "url": "/api/admin/campaigns/:id/assignments",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/admin/campaigns/:id/choices/:personId",
     "body": null,
     "params": {
@@ -1098,6 +1118,56 @@
   },
   {
     "method": "POST",
+    "url": "/api/admin/campaigns/:id/assignments",
+    "body": {
+      "type": "object",
+      "required": [
+        "personId",
+        "reason"
+      ],
+      "properties": {
+        "personId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "itemId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "removeItemId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^(?=.*\\S)[^\\p{Cc}\\p{Cs}\\p{Zl}\\p{Zp}]+$"
+        },
+        "force": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "POST",
     "url": "/api/admin/campaigns/:id/preassignments/:personId/:itemId/exempt",
     "body": {
       "type": "object",
@@ -1372,7 +1442,9 @@
             "class_missing",
             "result_published",
             "class_unplaced",
-            "item_cancelled"
+            "item_cancelled",
+            "swap_confirmed",
+            "assignment_changed"
           ]
         }
       },
@@ -1603,6 +1675,56 @@
   },
   {
     "method": "POST",
+    "url": "/api/campaigns/:id/classes/:className/place",
+    "body": {
+      "type": "object",
+      "required": [
+        "personId",
+        "itemId",
+        "reason"
+      ],
+      "properties": {
+        "personId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "itemId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^(?=.*\\S)[^\\p{Cc}\\p{Cs}\\p{Zl}\\p{Zp}]+$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "className"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "className": {
+          "type": "string",
+          "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._/-]{0,15}$",
+          "maxLength": 16
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "POST",
     "url": "/api/campaigns/:id/items",
     "body": {
       "type": "object",
@@ -1742,6 +1864,38 @@
             "additionalProperties": false
           },
           "maxItems": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "POST",
+    "url": "/api/campaigns/:id/swap",
+    "body": {
+      "type": "object",
+      "required": [
+        "itemId"
+      ],
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
         }
       },
       "additionalProperties": false
@@ -1935,7 +2089,9 @@
             "class_missing",
             "result_published",
             "class_unplaced",
-            "item_cancelled"
+            "item_cancelled",
+            "swap_confirmed",
+            "assignment_changed"
           ]
         }
       },

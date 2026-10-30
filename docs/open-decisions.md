@@ -89,6 +89,28 @@ Points the model left to the implementation, settled with the engine (`docs/doma
 - **A finished run moves the campaign to `review`, succeeded or failed**; a run interrupted by a
   restart is marked so and re-run by hand.
 
+## Sharpened by the changes after publication (S5a, 2026-10-30)
+
+Points D-06 and D-13 left to the implementation, settled with the swap window and the changes by hand
+(`docs/domain-and-api.md` §3 rule 7):
+
+- **A change supersedes rows and adds rows; nothing is updated or removed.** The published run's
+  current rows are those no change superseded; the change itself (kind, items, reason, who, when) is
+  the record the organizer and the auditor read. The reason never reaches a teacher or the student.
+- **A swap leaves what overlaps the target**, class activities excepted, which are never left; a
+  class activity's spare places may be entered like any other item's (D-24 revised). No project day
+  may end up with more minutes missing than before.
+- **The class teacher places into a gap only**: a student of their class short of minutes, into an
+  item with a free place that overlaps nothing of theirs, with a reason, from publication to the
+  archive.
+- **The organizer's change may override a full item and a minimum, with a flag that is recorded**;
+  a class activity, eligibility, an overlap and a coverage loss are never overridden (a removal may
+  cost coverage, which the class's list then shows). The override exists because from publication on
+  an approved item's times, places, minimum, fee and eligibility are what the run was computed with and
+  no longer change (only its words may), so places cannot be raised after publication.
+- **The swap window's dates stay editable until the window has begun**, also in `results`, so the
+  organizer sets them when publishing.
+
 ## Still open
 
 Nothing from the decision list of 2026-10-27 is open any more. Open from the school's concept

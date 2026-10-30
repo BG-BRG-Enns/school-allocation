@@ -74,7 +74,9 @@ read-only auditor. "own" = own activity or own record.
 | Enter choices on behalf of a student (audited, reason required) | – | – | – | ✓ | ✓ | – |
 | Exempt a student from a fixed class activity (audited, reason required) | – | – | – | ✓ | ✓ | – |
 | Run allocation, review, publish | – | – | – | ✓ | ✓ | – |
-| Manual reassignment after publication (audited) | – | – | – | ✓ | ✓ | – |
+| Move into an activity with free places during the swap window | ✓ | – | – | – | – | – |
+| Place a student of the class who is short of minutes into a gap (audited, reason required) | – | – | own class | ✓ | ✓ | – |
+| Manual reassignment after publication (audited, reason required; a full item or a minimum overridable, recorded) | – | – | – | ✓ | ✓ | – |
 | See the participant list of an activity (after publication) | – | own | own class | ✓ | ✓ | ✓ |
 | See individual rankings | – | – | – | ✓ | ✓ | ✓ |
 | See fees per participant (for accounting) | – | own | – | ✓ | ✓ | ✓ |

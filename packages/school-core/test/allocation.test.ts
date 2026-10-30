@@ -241,7 +241,7 @@ test('the rows of a result carry the pre-assignments, the pass and the wish numb
 
   const summary = summarizeAllocation(INPUT, rows, cancelledOf(result))
   assert.deepEqual(summary.students, { total: 6, choosing: 5, covered: 5, withDeficit: 0, withFallback: 3, late: 1, nonSubmitters: 1 })
-  assert.deepEqual(summary.ranks, { 1: 9, 2: 1, 3: 0, fallback: 6, fixed: 4 })
+  assert.deepEqual(summary.ranks, { 1: 9, 2: 1, 3: 0, fallback: 6, fixed: 4, swap: 0, manual: 0 })
   assert.deepEqual(summary.classes, [
     { className: '5A', students: 2, withDeficit: 0, withFallback: 1 },
     { className: '5B', students: 1, withDeficit: 0, withFallback: 0 },
