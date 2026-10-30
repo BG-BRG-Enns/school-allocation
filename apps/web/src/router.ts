@@ -9,6 +9,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { BASE_PATH } from './lib/base.ts'
 import Account from './pages/Account.vue'
 import Aktivitaet from './pages/Aktivitaet.vue'
+import Ergebnis from './pages/Ergebnis.vue'
 import Import from './pages/Import.vue'
 import Katalog from './pages/Katalog.vue'
 import Klasse from './pages/Klasse.vue'
@@ -40,6 +41,7 @@ export const router = createRouter({
     { path: '/wahlen/:id/wuensche', component: Wuensche, props: true },
     { path: '/wahlen/:id/wuensche/:personId', component: Wuensche, props: true },
     { path: '/wahlen/:id/zuteilung', component: Zuteilung, props: true },
+    { path: '/wahlen/:id/ergebnis', component: Ergebnis, props: true },
     { path: '/verwaltung', component: Verwaltung },
     { path: '/verwaltung/stammdaten', component: Stammdaten },
     { path: '/verwaltung/stammdaten/import/:id', component: Import, props: true },

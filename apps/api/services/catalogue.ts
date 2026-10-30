@@ -9,6 +9,7 @@ import { canSee, isOrganizer, isTeacher, mayPropose, maySeeDemand, withoutTeache
 import { campaignDemand, requireCampaign } from './campaigns.ts'
 import { choiceStates } from './choices.ts'
 import { catalogueItems, listItems } from './items.ts'
+import { classPlacements, type ClassPlacement } from './publication.ts'
 
 /** A campaign outside the caller's scope is indistinguishable from a missing one. */
 export async function visibleCampaign(db: Database, caller: Caller, id: string): Promise<Campaign> {
@@ -47,9 +48,17 @@ export async function classStatus(db: Database, campaign: Campaign, caller: Call
     // Once the window has opened, who has chosen; before, nobody has a list to speak of.
   const windowOpened = !['draft', 'catalogue', 'published'].includes(campaign.state)
   const states = windowOpened ? new Map((await choiceStates(db, campaign, className)).map((s) => [s.personId, s])) : new Map<string, StudentChoiceState>()
+  // From publication on, where each student is and what they miss; the class teacher places the unplaced (S5).
+  const published = campaign.state === 'results' || campaign.state === 'archived'
+  const placements = published ? await classPlacements(db, campaign, className) : new Map<string, ClassPlacement>()
   return {
     className,
-    students: students.map((s) => ({ ...s, choice: windowOpened ? (states.get(s.personId)?.state ?? 'none') : null, window: states.get(s.personId)?.window ?? null })),
+    students: students.map((s) => ({
+      ...s,
+      choice: windowOpened ? (states.get(s.personId)?.state ?? 'none') : null,
+      window: states.get(s.personId)?.window ?? null,
+      placement: published ? (placements.get(s.personId) ?? { items: [], deficit: 0 }) : null,
+    })),
     classActivities: items,
   }
 }

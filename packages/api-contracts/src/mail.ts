@@ -3,7 +3,7 @@
 import { Type, type Static } from 'typebox'
 import { Literals, StrictObject } from './common.ts'
 
-export const MAIL_KINDS = ['choice_invitation', 'choice_reminder', 'grace_invitation', 'grace_reminder', 'missed_deadline', 'class_missing'] as const
+export const MAIL_KINDS = ['choice_invitation', 'choice_reminder', 'grace_invitation', 'grace_reminder', 'missed_deadline', 'class_missing', 'result_published', 'class_unplaced', 'item_cancelled'] as const
 export const MailTemplateSchema = StrictObject({
   kind: Literals(MAIL_KINDS),
   subject: Type.String(),

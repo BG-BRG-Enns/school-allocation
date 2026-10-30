@@ -129,6 +129,9 @@ export const MAIL_KIND_LABELS: Readonly<Record<string, string>> = {
   grace_reminder: 'Erinnerung vor Ende der Nachfrist',
   missed_deadline: 'Frist versäumt',
   class_missing: 'Fehlende Wünsche an den Klassenvorstand',
+  result_published: 'Ergebnis veröffentlicht',
+  class_unplaced: 'Nicht vollständig zugeteilte Schüler/innen an den Klassenvorstand',
+  item_cancelled: 'Aktivität abgesagt (an die Lehrkräfte)',
 }
 
 /** What became of an allocation run (packages/api-contracts/src/allocation.ts RUN_STATUSES). */

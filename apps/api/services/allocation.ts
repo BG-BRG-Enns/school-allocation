@@ -40,12 +40,11 @@ const SOLVED = new Set(['OPTIMAL', 'FEASIBLE'])
 
 /** The campaign as the compiler sees it: the frozen roster with the pre-assignments and the rankings, the approved catalogue. */
 export async function snapshotOf(client: Queryable, campaign: Campaign, seed: number, deterministicTimePerLevel: number): Promise<AllocationInput> {
-  const [students, fixed, choices, items] = await Promise.all([
-    campaignStudents(client, campaign),
-    store.fixedItemsByPerson(client, campaign.id),
-    listChoices(client, campaign),
-    catalogueItems(client, campaign.id),
-  ])
+  // One after another: `client` may be a transaction's, which takes one query at a time.
+  const students = await campaignStudents(client, campaign)
+  const fixed = await store.fixedItemsByPerson(client, campaign.id)
+  const choices = await listChoices(client, campaign)
+  const items = await catalogueItems(client, campaign.id)
   const saved = new Map(choices.map((c) => [c.personId, c]))
   return {
     projectDays: campaign.projectDays,
