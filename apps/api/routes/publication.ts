@@ -8,7 +8,7 @@ import type { FastifyInstance } from 'fastify'
 import { actorOf } from '../lib/actor.ts'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { t } from '../lib/i18n.ts'
+import { schoolWords } from '../lib/i18n.ts'
 import { runWorkbook } from '../lib/xlsx.ts'
 import { runCampaign } from '../services/allocation.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
@@ -38,10 +38,11 @@ export async function publicationRoutes(app: FastifyInstance, { db, guards, base
 
   registerEndpoint(app, endpoints.getAdminCampaignsByIdExportAssignmentsXlsx, { ...auditor, exposeHeadRoute: false }, async (request, reply) => {
     const { campaign, review, changes } = await publishedReview(db, request.params.id, (client, c) => changeLog(client, c))
-    const bytes = await runWorkbook(review, changes)
+    const words = await schoolWords(db)
+    const bytes = await runWorkbook(words, review, changes)
     return reply
       .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      .header('content-disposition', `attachment; filename="${t.files.assignments(campaign.schoolYear.replace('/', '-'))}"`)
+      .header('content-disposition', `attachment; filename="${words.t.files.assignments(campaign.schoolYear.replace('/', '-'))}"`)
       .send(bytes)
   })
 

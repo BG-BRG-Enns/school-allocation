@@ -9,7 +9,7 @@ import { registerEndpoint } from '../lib/endpoint.ts'
 import type { FastifyInstance } from 'fastify'
 import { type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { t } from '../lib/i18n.ts'
+import { schoolWords } from '../lib/i18n.ts'
 import { missingWorkbook } from '../lib/xlsx.ts'
 
 export interface ChoiceReportsRoutesOptions {
@@ -27,10 +27,11 @@ export async function choiceReportsRoutes(app: FastifyInstance, { db, guards }: 
 
   registerEndpoint(app, endpoints.getAdminCampaignsByIdExportMissingXlsx, { ...auditor, exposeHeadRoute: false }, async (request, reply) => {
     const { campaign, students } = await missingReport(db, request.params.id)
-    const bytes = await missingWorkbook(students)
+    const words = await schoolWords(db)
+    const bytes = await missingWorkbook(words, students)
     return reply
       .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      .header('content-disposition', `attachment; filename="${t.files.missing(campaign.schoolYear.replace('/', '-'))}"`)
+      .header('content-disposition', `attachment; filename="${words.t.files.missing(campaign.schoolYear.replace('/', '-'))}"`)
       .send(bytes)
   })
 
