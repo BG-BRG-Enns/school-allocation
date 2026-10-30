@@ -51,6 +51,7 @@ export const APPLICATION_ERROR_STATUS = {
   not_published: 409,
   overlap: 422,
   project_day_twice: 422,
+  retention_not_reached: 409,
   run_in_progress: 409,
   run_not_publishable: 409,
   run_stale: 409,

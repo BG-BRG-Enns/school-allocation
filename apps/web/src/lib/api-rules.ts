@@ -122,6 +122,7 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   fully_placed: 'Diese Schülerin oder dieser Schüler hat an jedem Tag das Programm; eine Zuteilung in eine Lücke ist nicht nötig.',
   no_change: 'Bitte eine Aktivität angeben, in die oder aus der die Person kommt.',
   not_assigned: 'Diese Person ist dieser Aktivität nicht zugeteilt; Anwesenheit gibt es nur für Zugeteilte.',
+  retention_not_reached: 'Die Aufbewahrungsfrist dieses Schuljahrs ist noch nicht abgelaufen: ein Jahr nach seinem Ende.',
 }
 
 /** Refusals whose answer names what is wrong (the grades, say): the sentence carries it. */

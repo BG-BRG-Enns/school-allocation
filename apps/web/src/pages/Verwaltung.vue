@@ -49,5 +49,11 @@ usePageTitle(() => 'Verwaltung')
       </RouterLink>
       <p>Die Texte der Nachrichten, die eine Wahl verschickt: Einladungen, Erinnerungen, Listen an die Klassenvorstände.</p>
     </li>
+    <li>
+      <RouterLink to="/verwaltung/aufbewahrung">
+        Aufbewahrung
+      </RouterLink>
+      <p>Welche Schuljahre Aufzeichnungen haben und wie lange sie bleiben; das Löschen eines Schuljahrs, ein Jahr nach seinem Ende.</p>
+    </li>
   </ul>
 </template>

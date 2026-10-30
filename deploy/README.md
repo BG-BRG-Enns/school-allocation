@@ -156,6 +156,15 @@ A major version (`v2`) changes the line the units follow and is installed by han
 
 With linger enabled the units start at boot (`WantedBy=default.target`) in order: the database, then the solver and the migrations, then the app.
 
+## Retention
+
+Nothing is deleted automatically. A school administrator removes a school year's records on the
+Aufbewahrung page once a year has passed since the school year's end and every campaign of it is
+archived, with a reason; the audit log of the school keeps the purge with its counts. Export the
+assignments and fee workbooks of the year before, if the school's accounting still needs them: the
+purge removes the campaigns with everything under them, the year's roster batches and the people and
+accounts nobody names any more. Backups (below) are the host's, outside this rule.
+
 ## Backups
 
 The data lives in the volume `school-allocation-db` and nowhere else. Back it up the way the host backs up its other services; `podman exec school-allocation-postgres pg_dump -U postgres -Fc school_allocation` works at any time, and a dump before and after each allocation run is a sensible habit.

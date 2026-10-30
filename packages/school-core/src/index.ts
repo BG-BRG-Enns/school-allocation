@@ -51,7 +51,7 @@ export {
   type RosterCsvResult,
 } from './roster-csv.ts'
 
-export { SCHOOL_YEAR, isSchoolYear, schoolYearOf } from './school-year.ts'
+export { SCHOOL_YEAR, isSchoolYear, retentionEndsAt, schoolYearOf, yearsOf } from './school-year.ts'
 
 export {
   CATALOGUE_PROBLEM_CODES,

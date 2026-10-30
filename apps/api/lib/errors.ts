@@ -6,7 +6,7 @@ export type ApplicationErrorCode = 'no_groups' | 'validation_failed' | 'duplicat
   | 'solver_off' | 'run_in_progress' | 'daily_minimum_missing' | 'no_students' | 'fixed_items_overlap'
   | 'run_not_publishable' | 'run_stale' | 'cancelled_mismatch' | 'not_published'
   | 'swap_closed' | 'fully_placed' | 'no_change' | MoveProblemCode
-  | 'not_assigned'
+  | 'not_assigned' | 'retention_not_reached'
 
 /** A change the current state refuses; `code` is the answer's error code. */
 export class ApplicationError extends Error {

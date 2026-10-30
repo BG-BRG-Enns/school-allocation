@@ -111,6 +111,23 @@ Points D-06 and D-13 left to the implementation, settled with the swap window an
 - **The swap window's dates stay editable until the window has begun**, also in `results`, so the
   organizer sets them when publishing.
 
+## Sharpened by the retention purge (S5c, 2026-10-30)
+
+Points D-15 left to the implementation:
+
+- **A school year's records** are its campaigns with everything under them, its roster batches
+  (unless a campaign of another year still goes by one) and its class-teacher rows; then every person
+  no remaining record names, with their identity bindings and their accounts, unless the account holds
+  a role grant or did something the remaining records refer to. The school scope's audit chain stays:
+  it is the chain, it explains grants and imports still in force, and it records the purge itself with
+  the reason and the counts. The campaign scopes' chains go with their campaigns.
+- **The retention date** is one year after the school year's end: the first of September of the year
+  after the second (`2026/27` → 2028-09-01). Refused before, and while a campaign of the year is not
+  archived.
+- **The purge is the one path through the guards**: a definer function owned by the migrator, the only
+  role with `DELETE`, switching the guards off for its own transaction with a transaction-local setting
+  the guards read first. The runtime role could set the switch and still delete nothing.
+
 ## Still open
 
 Nothing from the decision list of 2026-10-27 is open any more. Open from the school's concept
