@@ -85,8 +85,12 @@ const directive = /^\s*#\s*([a-z]+)\s*=\s*(\S+)(?:\s.*)?$/i
 /** The frontend a Dockerfile's `# syntax=` directive names without a digest, or undefined. */
 export function unpinnedSyntax(dockerfile) {
   // Directives count only at the very top: the first line that is not one
-  // (a comment, a blank line, an instruction) ends them.
-  for (const line of dockerfile.split(/\r?\n/)) {
+  // (a comment, a blank line, an instruction) ends them. BuildKit drops a
+  // first line that starts with `#!` (an executable Dockerfile) before it
+  // reads them, so that line does not end them.
+  const lines = dockerfile.split(/\r?\n/)
+  if (lines[0]?.startsWith('#!')) lines.shift()
+  for (const line of lines) {
     const match = directive.exec(line)
     if (!match) return undefined
     if (match[1].toLowerCase() === 'syntax' && !digest.test(match[2])) return match[2]
