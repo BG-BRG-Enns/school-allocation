@@ -29,7 +29,7 @@ test('a function of a count chooses its words by the language\'s plural rules, a
   assert.equal(t.format.period(1), '1. EH')
   assert.equal(t.format.euros('15,00'), '15,00 €')
   assert.equal(t.common.gradeOrdinal(9), '9. Schulstufe')
-  assert.equal(t.labels.level.over(1.5), 'Schüler/innen mit Durchschnittswunsch über 1.5')
+  assert.equal(t.labels.level.over(1.5), 'Schüler*innen mit durchschnittlichem Wunsch über 1.5')
 })
 
 test('every catalogue has the German one\'s keys, and a function where German has one', () => {

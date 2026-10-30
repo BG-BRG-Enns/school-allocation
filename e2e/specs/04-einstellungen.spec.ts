@@ -1,6 +1,6 @@
-// Die Einstellungen der Schule und der Wahl: die Sprache, das Stundenraster, die
-// Klassenvorstände (die ihre Klasse in der Wahl sehen), die Gruppensuche
-// bei Microsoft für die Personenliste, das Wahlfenster und der Bedarf je
+// Die Einstellungen der Schule und der Anmeldung: die Sprache, das Stundenraster, die
+// Klassenvorstände (die ihre Klasse in der Anmeldung sehen), die Gruppensuche
+// bei Microsoft für die Klassenlisten, der Anmeldezeitraum und der Bedarf je
 // Tag und Schulstufe. Baut auf 02-stammdaten und 03-katalog auf.
 
 import { htmlLang } from '../../packages/messages/src/index.ts'
@@ -45,7 +45,7 @@ test('die Administration passt das Stundenraster an', async ({ page }) => {
   await signOut(page)
 })
 
-test('die Administration ordnet einen Klassenvorstand zu, der seine Klasse in der Wahl sieht', async ({ page }) => {
+test('die Administration ordnet einen Klassenvorstand zu, der seine Klasse in der Anmeldung sieht', async ({ page }) => {
   await openAs(page, ANNA, '/verwaltung/klassen')
   await expect(page.getByRole('heading', { name: t.common.page.classTeachers })).toBeVisible()
   await expect(page.getByRole('row', { name: /5A/ })).toContainText('–')
@@ -94,7 +94,7 @@ test('die Administration findet eine Entra-Gruppe über die Suche bei Microsoft'
   await signOut(page)
 })
 
-test('die Organisation legt das Wahlfenster fest und sieht den Bedarf je Tag und Schulstufe', async ({ page }) => {
+test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag und Schulstufe', async ({ page }) => {
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: 'Projektwoche 2027' }).click()
   await expect(page.getByRole('heading', { name: t.campaign.demand.heading })).toBeVisible()

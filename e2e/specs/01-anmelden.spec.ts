@@ -1,5 +1,5 @@
-// Anmelden und Abmelden: wer nicht angemeldet ist, landet auf der
-// Anmeldeseite und kommt nach der Anmeldung dorthin, wo er hinwollte.
+// Einloggen und Ausloggen: wer nicht eingeloggt ist, landet auf der
+// Login-Seite und kommt nach dem Einloggen dorthin, wo er hinwollte.
 
 import { expect, test } from '../support/test.ts'
 import { ANNA, SARA } from '../support/personas.ts'
@@ -11,7 +11,7 @@ import { openAs, signInAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
 
-test('wer nicht angemeldet ist, landet auf der Anmeldeseite und kommt angemeldet zur Startseite', async ({ page }) => {
+test('wer nicht eingeloggt ist, landet auf der Login-Seite und kommt eingeloggt zur Startseite', async ({ page }) => {
   await page.goto(at('/'))
   await expect(page).toHaveURL(new RegExp(`/anmelden\\?returnTo=${encodedPath('/')}$`))
   await expect(page).toHaveTitle(`${t.common.page.signIn} – ${t.common.appName}`)
@@ -39,7 +39,7 @@ test('ein Link in die App führt nach der Anmeldung dorthin; das Konto zeigt, wo
   expect(me.body).toMatchObject({ displayName: SARA.name, roles: [] })
 })
 
-test('wer angemeldet ist, wird von der Anmeldeseite gleich weitergeleitet', async ({ page }) => {
+test('wer eingeloggt ist, wird von der Login-Seite gleich weitergeleitet', async ({ page }) => {
   await openAs(page, ANNA, '/konto')
   await page.goto(at('/anmelden?returnTo=%2F'))
   await expect(page).toHaveURL(urlOf('/'))

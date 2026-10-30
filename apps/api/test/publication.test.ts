@@ -123,7 +123,7 @@ test('a run is published with its cancellations confirmed: results, notices once
   // The workbook, and the audit trail.
   const xlsx = await s.app.inject({ method: 'GET', url: `/api/admin/campaigns/${id}/export/assignments.xlsx`, headers: { cookie: s.anna.header() } })
   assert.equal(xlsx.statusCode, 200)
-  assert.match(String(xlsx.headers['content-disposition']), /zuteilung-2026-27\.xlsx/)
+  assert.match(String(xlsx.headers['content-disposition']), /einteilung-2026-27\.xlsx/)
   const actions = (await readAudit(s.db, id)).map((e) => e.action)
   assert.ok(actions.includes('run.published'))
   assert.equal(actions.filter((a) => a === 'campaign.transitioned').at(-1), 'campaign.transitioned')

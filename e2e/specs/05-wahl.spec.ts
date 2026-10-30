@@ -1,7 +1,7 @@
-// Die Wahl: die Organisation öffnet sie, eine Schülerin gibt ihre Wünsche
-// ab und ist vollständig, die Organisation sieht den Wahlstand und gibt
+// Die Anmeldung: die Organisation öffnet sie, eine Schülerin gibt ihre Wünsche
+// ab und ist vollständig, die Organisation sieht den Stand der Anmeldung und gibt
 // für einen Schüler ein, der Klassenvorstand sieht den Stand seiner
-// Klasse, die Mailvorlagen lassen sich ändern. Baut auf 03-katalog und
+// Klasse, die E-Mail-Vorlagen lassen sich ändern. Baut auf 03-katalog und
 // 04-einstellungen auf (Bernd ist Klassenvorstand der 5A).
 
 import { expect, test } from '../support/test.ts'
@@ -13,7 +13,7 @@ import { openAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
 
-test('die Organisation öffnet die Wahl; eine Schülerin gibt ihre Wünsche ab und ist vollständig', async ({ page }) => {
+test('die Organisation öffnet die Anmeldung; eine Schülerin gibt ihre Wünsche ab und ist vollständig', async ({ page }) => {
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: 'Projektwoche 2027' }).click()
   await page.getByRole('button', { name: t.campaign.organization.open }).click()
@@ -64,7 +64,7 @@ test('die Organisation gibt für einen Schüler ein; der Klassenvorstand sieht d
   await signOut(page)
 })
 
-test('die Administration ändert eine Mailvorlage; ein falscher Platzhalter wird abgewiesen, ein Klick fügt einen ein; Zurücksetzen bringt den vorgegebenen Text', async ({ page }) => {
+test('die Administration ändert eine E-Mail-Vorlage; ein falscher Platzhalter wird abgewiesen, ein Klick fügt einen ein; Zurücksetzen bringt den vorgegebenen Text', async ({ page }) => {
   await openAs(page, ANNA, '/verwaltung')
   await page.getByRole('link', { name: t.common.page.mailTemplates }).click()
   const reminder = t.labels.mailKind.choice_reminder

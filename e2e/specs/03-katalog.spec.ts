@@ -1,7 +1,7 @@
-// Der Katalog: die Organisation legt eine Wahl an und sammelt Aktivitäten,
+// Der Katalog: die Organisation legt eine Anmeldung an und sammelt Aktivitäten,
 // eine Lehrkraft reicht eine ein, die Organisation genehmigt und
-// veröffentlicht, und Schüler/innen lesen den nummerierten Katalog. Baut
-// auf der Personenliste aus 02-stammdaten auf (Anna organisiert als
+// veröffentlicht, und Schüler*innen lesen den nummerierten Katalog. Baut
+// auf den Klassenlisten aus 02-stammdaten auf (Anna organisiert als
 // Administratorin, Bernd ist Lehrkraft, Sara Schülerin der 5A).
 
 import { expect, test } from '../support/test.ts'
@@ -12,7 +12,7 @@ import { t } from '../support/messages.ts'
 
 test.describe.configure({ mode: 'serial' })
 
-test('die Organisation legt die Wahl an und öffnet sie für Aktivitäten', async ({ page }) => {
+test('die Organisation legt die Anmeldung an und öffnet sie für Aktivitäten', async ({ page }) => {
   await openAs(page, ANNA, '/wahlen')
   await expect(page.getByRole('heading', { name: t.common.page.campaigns })).toBeVisible()
   await page.getByLabel(t.campaign.settings.name).fill('Projektwoche 2027')
@@ -68,7 +68,7 @@ test('eine Lehrkraft reicht eine Aktivität ein; die Organisation genehmigt und 
   await signOut(page)
 })
 
-test('Schüler/innen lesen den veröffentlichten Katalog mit Nummern', async ({ page }) => {
+test('Schüler*innen lesen den veröffentlichten Katalog mit Nummern', async ({ page }) => {
   await openAs(page, SARA, '/wahlen')
   await page.getByRole('link', { name: 'Projektwoche 2027' }).click()
   await expect(page.getByRole('link', { name: t.common.page.newItem })).toHaveCount(0)

@@ -8,7 +8,10 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 
 - **Address.** `de` says **du** to everyone: students, teachers and staff, as colleagues at an
   Austrian AHS do. `de-formal` says **Sie** to staff and du to students; it differs from `de` in
-  address only. `en` says "you".
+  address only. `en` says "you", in British English (catalogue, programme, organisation), as its
+  dates and numbers are formatted for `en-GB`. Words both students and staff read (the sign-in
+  page, the account page, the errors) are phrased without address in `de-formal` ("Bitte
+  einloggen."), so neither group is addressed wrongly.
 - **Gender.** Persons take the asterisk: **Schüler\*innen**, **Teilnehmer\*innen**, singular
   **Schüler\*in** where a column or label needs it. A sentence about one student is rephrased
   rather than written as "der\*die Schüler\*in" ("Wer eingeteilt wurde, bekommt Bescheid"). Neutral
@@ -83,7 +86,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | roster | Klassenlisten | class lists | Q7 |
 | import batch | Import, Importe; Übernehmen; Verwerfen | import; apply; discard | |
 | Entra ids | Objekt-ID; Gruppen-ID | object ID; group ID | Entra's own words, administrators only |
-| roles | Administration · Organisation · Einsicht | administration · organization · read-only | |
+| roles | Administration · Organisation · Einsicht | administration · organisation · read-only | |
 | account, binding | Konto; zugeordnet | account; linked | |
 | signing in | einloggen; Einloggen, Ausloggen | sign in; sign out | |
 | retention purge | Aufbewahrung; "Schuljahr löschen" | retention; "delete school year" | |

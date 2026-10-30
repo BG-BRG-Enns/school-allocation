@@ -1,6 +1,6 @@
 // Anwesenheit und Abschluss: der Klassenvorstand trägt für seine Klasse
 // die Anwesenheit der Sportwoche ein und lädt die Liste; die Organisation
-// schließt die Wahl ab. Baut auf 07 auf (die Sportwoche ist veröffentlicht;
+// schließt die Anmeldung ab. Baut auf 07 auf (die Sportwoche ist veröffentlicht;
 // Sara ist in Bogenschießen, Tim in Werken und Schach).
 
 import { expect, test } from '../support/test.ts'
@@ -35,7 +35,7 @@ test('der Klassenvorstand trägt die Anwesenheit seiner Klasse ein und lädt die
   await signOut(page)
 })
 
-test('die Organisation schließt die Wahl ab; danach ist alles nur noch zu lesen', async ({ page }) => {
+test('die Organisation schließt die Anmeldung ab; danach ist alles nur noch zu lesen', async ({ page }) => {
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: NAME }).click()
   page.once('dialog', (dialog) => void dialog.accept())
