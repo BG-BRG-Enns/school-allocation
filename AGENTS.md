@@ -16,7 +16,7 @@ apps/api/migrations/      the v1 baseline and forward-only migrations on top of 
 apps/web/                 Vue 3 + Vite SPA, German UI
 apps/solver/              Python, FastAPI, OR-Tools CP-SAT; stateless, internal network only, speaks the contract in docs/domain-and-api.md §6; its tests in apps/solver/tests (pytest)
 e2e/                      Playwright journeys against the real server: harness, support, specs (playwright.config.ts at the root)
-scripts/lint-deps.mjs     exact-pin check across all workspaces
+scripts/lint-deps.mjs     pin check: exact versions in every workspace, digests for the Dockerfiles' frontend and the workflows' BuildKit
 scripts/postgres.sh       PostgreSQL for development and CI, the image the deployment follows
 deploy/                   the deployment: Quadlet units for the three containers, the PostgreSQL image, the nightly-update guard, the .env example, the proxy example (nginx) and the operator guide; generic, example.org placeholders only
 docs/                     the design: decisions, domain, API, plan, risks; update them with the behaviour they describe
@@ -67,7 +67,7 @@ These take precedence over convenience:
 ## Conventions
 
 - Dependencies are pinned exactly; Dependabot lands bumps, and the automerge workflow holds them for a one-day quarantine.
-- GitHub Actions are pinned by commit SHA with the version in a comment. Base images are pinned by tag and digest.
+- GitHub Actions are pinned by commit SHA with the version in a comment. Base images are pinned by tag and digest, and so is BuildKit, which runs the image builds (`driver-opts` of the buildx setup in both workflows); the Dockerfiles name no frontend of their own (`# syntax=`), so BuildKit's built-in one reads them. Dependabot does not see the BuildKit pin: it is bumped by hand. `lint:deps` refuses either without a digest.
 - CI runs on pull requests to `main`; a push to `main` runs the tests again for the SonarQube analysis of the default branch and warms the image caches. SonarQube's properties are in `sonar-project.properties`, its coverage the lcov file of `npm run test:coverage`. Images are published to GHCR only on `v*` tags.
 - `apps/api/migrations/0001_baseline.sql` is the schema of version 1. A change after it is a new migration on top, never an edit of an applied one.
 - The lifecycle's windows (what may change in which state, which state follows which) live in `school-core`'s guards, asked by the route and again under the campaign's lock. Triggers keep only what the stored data must satisfy whoever writes it. A trigger that restates a guard is not added.
