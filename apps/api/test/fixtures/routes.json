@@ -94,6 +94,26 @@
   },
   {
     "method": "GET",
+    "url": "/api/admin/campaigns/:id/export/attendance.xlsx",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/admin/campaigns/:id/export/catalogue.xlsx",
     "body": null,
     "params": {
@@ -569,6 +589,58 @@
         "id": {
           "type": "string",
           "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
+    "url": "/api/campaigns/:id/classes/:className/attendance.xlsx",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "className"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "className": {
+          "type": "string",
+          "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._/-]{0,15}$",
+          "maxLength": 16
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
+    "url": "/api/campaigns/:id/classes/:className/attendance",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "className"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "className": {
+          "type": "string",
+          "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._/-]{0,15}$",
+          "maxLength": 16
         }
       },
       "additionalProperties": false
@@ -1312,6 +1384,10 @@
             {
               "type": "string",
               "const": "closed"
+            },
+            {
+              "type": "string",
+              "const": "archived"
             }
           ]
         }
@@ -2230,6 +2306,64 @@
           },
           "maxProperties": 60,
           "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "PUT",
+    "url": "/api/sessions/:id/attendance",
+    "body": {
+      "type": "object",
+      "required": [
+        "entries"
+      ],
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "personId",
+              "status"
+            ],
+            "properties": {
+              "personId": {
+                "type": "string",
+                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+              },
+              "status": {
+                "enum": [
+                  "present",
+                  "absent",
+                  "excused"
+                ]
+              },
+              "note": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 1000
         }
       },
       "additionalProperties": false

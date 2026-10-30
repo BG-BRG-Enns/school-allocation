@@ -9,7 +9,7 @@
 // with its reason) and takes the organizer's change by hand.
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { assignmentsExportPath, changeAssignment, loadChanges, loadRun, loadRuns, loadSolverStatus, publishRun, runExportPath, startRun, type AllocationRun, type AssignmentChange, type ReviewStudent, type RunReviewResponse, type SolverStatusResponse } from '../lib/allocation-api.ts'
+import { assignmentsExportPath, attendanceExportPath, changeAssignment, loadChanges, loadRun, loadRuns, loadSolverStatus, publishRun, runExportPath, startRun, type AllocationRun, type AssignmentChange, type ReviewStudent, type RunReviewResponse, type SolverStatusResponse } from '../lib/allocation-api.ts'
 import { withBase } from '../lib/base.ts'
 import { loadCampaign, loadItems, type Campaign, type Item } from '../lib/campaigns-api.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
@@ -237,6 +237,10 @@ const levelDelta = (name: string): number | null => {
           class="button ghost-link"
           :href="withBase(assignmentsExportPath(props.id))"
         >Zuteilung als Excel</a>
+        <a
+          class="button ghost-link"
+          :href="withBase(attendanceExportPath(props.id))"
+        >Anwesenheit als Excel</a>
       </p>
       <h3>Änderungen seit der Veröffentlichung ({{ changes.length }})</h3>
       <p

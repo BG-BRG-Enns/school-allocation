@@ -158,7 +158,9 @@ async function onSaveSettings(): Promise<void> {
     await load()
   }
 }
-async function onTransition(to: 'catalogue' | 'published' | 'open' | 'closed'): Promise<void> {
+async function onTransition(to: 'catalogue' | 'published' | 'open' | 'closed' | 'archived'): Promise<void> {
+  // The archive is the end: nothing of the campaign changes afterwards, so it is asked once more.
+  if (to === 'archived' && !window.confirm('Die Wahl abschließen? Danach ändert sich nichts mehr: kein Tausch, keine Zuteilung, keine Anwesenheit.')) return
   const ok = await action.run(async () => {
     await transitionCampaign(props.id, to)
   })
@@ -276,6 +278,15 @@ function onSubmitPending(): void {
           Wahl öffnen
         </button>
         <button
+          v-if="campaign.state === 'results'"
+          type="button"
+          class="ghost"
+          :disabled="action.busy.value"
+          @click="onTransition('archived')"
+        >
+          Wahl abschließen
+        </button>
+        <button
           v-if="campaign.state === 'open' || campaign.state === 'grace'"
           type="button"
           class="ghost"
@@ -285,7 +296,7 @@ function onSubmitPending(): void {
           Wahl beenden
         </button>
         <RouterLink
-          v-if="['closed', 'allocating', 'review', 'results'].includes(campaign.state)"
+          v-if="['closed', 'allocating', 'review', 'results', 'archived'].includes(campaign.state)"
           class="button"
           :to="`/wahlen/${campaign.id}/zuteilung`"
         >

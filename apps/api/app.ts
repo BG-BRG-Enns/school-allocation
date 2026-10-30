@@ -30,6 +30,7 @@ import { choiceReportsRoutes } from './routes/choice-reports.ts'
 import { itemsRoutes } from './routes/items.ts'
 import { mailRoutes } from './routes/mail.ts'
 import { publicationRoutes } from './routes/publication.ts'
+import { attendanceRoutes } from './routes/attendance.ts'
 import { rosterGraphRoutes } from './routes/roster-graph.ts'
 import { rosterImportsRoutes } from './routes/roster-imports.ts'
 import { settingsRoutes } from './routes/settings.ts'
@@ -165,6 +166,7 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   const solver = config.solverUrl === null ? null : createSolverClient(config.solverUrl)
   await app.register(allocationRoutes, { db, guards, solver, ...under })
   await app.register(publicationRoutes, { db, guards, baseUrl: config.publicUrl, wakeSender, ...under })
+  await app.register(attendanceRoutes, { db, guards, ...under })
   // Stopping the background work is the process's first step at shutdown,
   // before it closes the database pool (server.ts): Fastify runs onClose
   // hooks last-registered first, so the hook below alone would run after

@@ -18,8 +18,8 @@ import { canSee } from '../lib/policies.ts'
 import { datesOfSpan } from '../lib/time.ts'
 import { windowEffects } from './window.ts'
 
-/** The states an organizer moves a campaign into by hand; the grace week comes by the clock alone, and the allocation with a later slice. */
-export const AVAILABLE_TRANSITIONS: readonly CampaignState[] = ['catalogue', 'published', 'open', 'closed']
+/** The states an organizer moves a campaign into by hand; the grace week comes by the clock alone, the allocation's states by a run and its publication. The archive closes the campaign after the event and the attendance: nothing changes afterwards. */
+export const AVAILABLE_TRANSITIONS: readonly CampaignState[] = ['catalogue', 'published', 'open', 'closed', 'archived']
 
 /** The states in which the window's settings may still change: everything before the window opens. */
 const WINDOW_SETTABLE: readonly CampaignState[] = ['draft', 'catalogue', 'published']

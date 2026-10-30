@@ -121,6 +121,7 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   fills_nothing: 'Diese Aktivität füllt keine Lücke: an ihrem Tag ist das Programm schon voll.',
   fully_placed: 'Diese Schülerin oder dieser Schüler hat an jedem Tag das Programm; eine Zuteilung in eine Lücke ist nicht nötig.',
   no_change: 'Bitte eine Aktivität angeben, in die oder aus der die Person kommt.',
+  not_assigned: 'Diese Person ist dieser Aktivität nicht zugeteilt; Anwesenheit gibt es nur für Zugeteilte.',
 }
 
 /** Refusals whose answer names what is wrong (the grades, say): the sentence carries it. */

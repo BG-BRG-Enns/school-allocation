@@ -3,14 +3,16 @@
 // the class activities that take the class on which days; who has chosen,
 // once the window is open; from publication on each one's places and the
 // minutes they miss, and for those short of minutes the placement into an
-// activity with free places that fits the gap (D-06), with a reason.
+// activity with free places that fits the gap (D-06), with a reason; and
+// the attendance per project day and session (D-16), recorded here.
 
 import { computed, onMounted, ref, watch } from 'vue'
-import { placeStudent } from '../lib/allocation-api.ts'
+import { classAttendanceExportPath, loadClassAttendance, placeStudent, recordAttendance, type AttendanceStatus, type ClassAttendanceResponse } from '../lib/allocation-api.ts'
+import { withBase } from '../lib/base.ts'
 import { loadCampaign, loadClassStatus, type Campaign, type ClassStatus } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { formatSpan } from '../lib/format.ts'
-import { ASSIGNMENT_SOURCE_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS, MOVE_PROBLEM_LABELS } from '../lib/labels.ts'
+import { formatDay, formatSpan } from '../lib/format.ts'
+import { ASSIGNMENT_SOURCE_LABELS, ATTENDANCE_STATUS_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS, MOVE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string, className: string }>()
@@ -34,6 +36,8 @@ async function onPlace(personId: string): Promise<void> {
   if (itemId === '' || reason === '') return
   const ok = await action.run(async () => {
     status.value = await placeStudent(props.id, props.className, personId, itemId, reason)
+    // The placed student has a session to be recorded in now; the marks already set stay.
+    await refreshAttendance()
   }, 'Zugeteilt; die Schülerin oder der Schüler wird benachrichtigt.')
   if (ok) {
     delete chosen.value[personId]
@@ -41,11 +45,65 @@ async function onPlace(personId: string): Promise<void> {
   }
 }
 
+/** The attendance, from publication on; the marks as edited, per session and student, saved per project day. */
+const attendance = ref<ClassAttendanceResponse | null>(null)
+const marks = ref<Record<string, AttendanceStatus | ''>>({})
+const notes = ref<Record<string, string>>({})
+const markKey = (sessionId: string, personId: string) => `${sessionId}\u0000${personId}`
+const STATUSES: AttendanceStatus[] = ['present', 'absent', 'excused']
+
+async function loadAttendance(): Promise<void> {
+  const c = campaign.value
+  if (!c || (c.state !== 'results' && c.state !== 'archived')) {
+    attendance.value = null
+    return
+  }
+  attendance.value = await loadClassAttendance(props.id, props.className)
+  marks.value = Object.fromEntries(attendance.value.days.flatMap((d) => d.rows.map((r) => [markKey(r.sessionId, r.personId), r.status ?? ''])))
+  notes.value = Object.fromEntries(attendance.value.days.flatMap((d) => d.rows.map((r) => [markKey(r.sessionId, r.personId), r.note])))
+}
+
+/** The rows again, the marks already set kept; new rows get what was recorded. */
+async function refreshAttendance(): Promise<void> {
+  if (attendance.value === null) return
+  attendance.value = await loadClassAttendance(props.id, props.className)
+  for (const r of attendance.value.days.flatMap((d) => d.rows)) {
+    const key = markKey(r.sessionId, r.personId)
+    if (!(key in marks.value)) marks.value[key] = r.status ?? ''
+    if (!(key in notes.value)) notes.value[key] = r.note
+  }
+}
+
+/** Saves a day's marks: one request per session, the students of the class in it, each with the note already recorded; the other days' unsaved marks stay. */
+async function onSaveAttendance(date: string): Promise<void> {
+  const day = attendance.value?.days.find((d) => d.date === date)
+  if (!day) return
+  const bySession = new Map<string, { personId: string, status: AttendanceStatus, note: string }[]>()
+  for (const r of day.rows) {
+    const key = markKey(r.sessionId, r.personId)
+    const status = marks.value[key]
+    if (status === '' || status === undefined) continue
+    const list = bySession.get(r.sessionId) ?? []
+    list.push({ personId: r.personId, status, note: (notes.value[key] ?? r.note).trim().slice(0, 200) })
+    bySession.set(r.sessionId, list)
+  }
+  await action.run(async () => {
+    for (const [sessionId, entries] of bySession) await recordAttendance(sessionId, entries)
+    const fresh = await loadClassAttendance(props.id, props.className)
+    attendance.value = fresh
+    for (const r of fresh.days.find((d) => d.date === date)?.rows ?? []) {
+      marks.value[markKey(r.sessionId, r.personId)] = r.status ?? ''
+      notes.value[markKey(r.sessionId, r.personId)] = r.note
+    }
+  }, 'Anwesenheit gespeichert.')
+}
+
 async function load(): Promise<void> {
   await loading.run(async () => {
     const [view, s] = await Promise.all([loadCampaign(props.id), loadClassStatus(props.id, props.className)])
     campaign.value = view.campaign
     status.value = s
+    await loadAttendance()
   })
 }
 onMounted(load)
@@ -179,6 +237,96 @@ watch(() => [props.id, props.className], load)
       </ul>
       <p class="muted">
         Die Zuteilung in eine Lücke ist der Weg des Klassenvorstands; die Schülerin oder der Schüler wird benachrichtigt, die Organisation sieht jede Änderung mit ihrer Begründung.
+      </p>
+    </section>
+    <section v-if="attendance">
+      <h2>Anwesenheit</h2>
+      <p class="muted">
+        Je Projekttag und Termin, für die Schüler/innen der Klasse; getrennt von der Zuteilung. {{ attendance.recordable ? 'Eintragen und speichern, Korrekturen jederzeit bis zum Abschluss der Wahl.' : 'Nur lesen.' }}
+      </p>
+      <div
+        v-for="day in attendance.days"
+        :key="day.date"
+      >
+        <h3>{{ formatDay(day.date) }}</h3>
+        <p
+          v-if="day.rows.length === 0"
+          class="muted"
+        >
+          An diesem Tag hat niemand aus der Klasse einen Termin.
+        </p>
+        <form
+          v-else
+          :aria-label="`Anwesenheit ${formatDay(day.date)}`"
+          @submit.prevent="onSaveAttendance(day.date)"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th>Schüler/in</th>
+                <th>Aktivität</th>
+                <th>Anwesenheit</th>
+                <th>Notiz</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="r in day.rows"
+                :key="`${r.sessionId}-${r.personId}`"
+              >
+                <td>{{ r.displayName }}</td>
+                <td>{{ r.number === null ? r.title : `${r.number}. ${r.title}` }} · {{ formatSpan(r.startsAt, r.endsAt) }}</td>
+                <td>
+                  <select
+                    v-model="marks[markKey(r.sessionId, r.personId)]"
+                    :aria-label="`Anwesenheit ${r.displayName}, ${r.title}`"
+                    :disabled="!attendance.recordable"
+                  >
+                    <option
+                      value=""
+                      :disabled="r.status !== null"
+                    >
+                      –
+                    </option>
+                    <option
+                      v-for="st in STATUSES"
+                      :key="st"
+                      :value="st"
+                    >
+                      {{ ATTENDANCE_STATUS_LABELS[st] ?? st }}
+                    </option>
+                  </select>
+                </td>
+                <td>
+                  <input
+                    v-model="notes[markKey(r.sessionId, r.personId)]"
+                    type="text"
+                    maxlength="200"
+                    :aria-label="`Notiz ${r.displayName}, ${r.title}`"
+                    :disabled="!attendance.recordable"
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p
+            v-if="attendance.recordable"
+            class="actions"
+          >
+            <button
+              type="submit"
+              :disabled="action.busy.value"
+            >
+              Anwesenheit speichern
+            </button>
+          </p>
+        </form>
+      </div>
+      <p class="actions">
+        <a
+          class="button ghost-link"
+          :href="withBase(classAttendanceExportPath(props.id, props.className))"
+        >Anwesenheit als Excel</a>
       </p>
     </section>
     <section>

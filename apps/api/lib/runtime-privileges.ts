@@ -58,9 +58,10 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
       'withdrawn_at', 'withdrawn_by', 'withdraw_reason',
     ],
   },
-  // Teachers and sessions of an item are replaced as a whole when it is edited.
+  // Teachers of an item are replaced as a whole when it is edited; sessions too when their times change, else a
+  // session keeps its id (the attendance refers to it) and only its location is written.
   item_teacher: { table: ['SELECT', 'INSERT', 'DELETE'] },
-  item_session: { table: ['SELECT', 'INSERT', 'DELETE'] },
+  item_session: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['location'] },
   // The period grid is replaced as a whole by an administrator, audited.
   period_grid: { table: ['SELECT', 'INSERT', 'DELETE'] },
   // A class teacher is assigned and revoked, never changed otherwise or
@@ -87,6 +88,9 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   assignment: { table: ['SELECT', 'INSERT'], updateColumns: ['superseded_by'] },
   // A change after publication is written once and read; never changed or removed.
   assignment_change: { table: ['SELECT', 'INSERT'] },
+  // Attendance is recorded and corrected in place; never removed (the trigger keeps the rest). It names a session by its
+  // item and position, so the previous release's rewrite of an item's sessions keeps it.
+  attendance: { table: ['SELECT', 'INSERT'], updateColumns: ['status', 'note', 'recorded_by', 'recorded_at'] },
 }
 
 /** Functions the runtime role may execute, by their signature as PostgreSQL prints a regprocedure: argument types without spaces between them. */

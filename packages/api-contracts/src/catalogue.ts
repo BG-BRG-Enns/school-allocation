@@ -54,7 +54,7 @@ export const ClassTeachersBody = StrictObject({ teachers: Type.Array(Uuid, { max
 export const ClassParams = StrictObject({ className: Type.String({ pattern: CLASS_NAME.source, maxLength: 16 }) })
 
 export const TransitionBody = StrictObject({
-  to: Type.Union([Type.Literal('catalogue'), Type.Literal('published'), Type.Literal('open'), Type.Literal('closed')]),
+  to: Type.Union([Type.Literal('catalogue'), Type.Literal('published'), Type.Literal('open'), Type.Literal('closed'), Type.Literal('archived')]),
 })
 
 export const CreditBody = StrictObject({
