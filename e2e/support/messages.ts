@@ -19,10 +19,15 @@ export function literally(text: string): string {
   return text.replaceAll(/[.*+?^${}()|[\]\\/]/g, '\\$&')
 }
 
-/** A catalogue sentence around a count the journey does not pin down, as a pattern that takes any count there. */
+/**
+ * A catalogue sentence around a count the journey does not pin down, as a
+ * pattern that takes any count there: the sentence for one, which may be
+ * worded apart from the others, or the one for any other count.
+ */
 export function anyCount(sentence: (count: number) => string): RegExp {
   const marker = 987654321
-  return new RegExp(sentence(marker).split(String(marker)).map(literally).join(String.raw`\d+`))
+  const other = sentence(marker).split(String(marker)).map(literally).join(String.raw`\d+`)
+  return new RegExp(`(?:${literally(sentence(1))}|${other})`)
 }
 
 /** The same for a value in words (a time, a version, an item): each place of it takes `value`, a pattern, any text unless given. */

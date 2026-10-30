@@ -59,7 +59,7 @@ A dependency change edits the exact pin in `pyproject.toml` and runs `uv lock`; 
 
 ## Words of the interface
 
-Every word the app shows, writes into a workbook or fills into a notice comes from `packages/messages/src/de.ts`; only the mail templates, which an organizer edits, are stored in the database. A new string goes there, under an English key in the group of its page (Wahl.vue's words are in `campaign`), or in `common` when several pages say the same thing; a value that depends on a number or a name is a function of it. Pages read it as `t.<group>.<key>` from `apps/web/src/lib/i18n.ts`, the API from `apps/api/lib/i18n.ts`, and the browser journeys look elements up by the same entries, so a change of wording is a change of that one file. ESLint refuses bare text in a template.
+Every word the app shows, writes into a workbook or fills into a notice comes from `packages/messages/src/de.ts`. Outside it on purpose: the mail templates, which an organizer edits and the database stores; the names the audit log records for the clock and the server's start (`Zeitsteuerung`, `Systemstart`), which are part of its hashed chain; the CSV roster's format (its example row and the kinds it accepts); and `lang` and `<title>` in `index.html`. A new string goes there, under an English key in the group of its page (Wahl.vue's words are in `campaign`), or in `common` when several pages say the same thing; a value that depends on a number or a name is a function of it. Pages read it as `t.<group>.<key>` from `apps/web/src/lib/i18n.ts`, the API from `apps/api/lib/i18n.ts`, and the browser journeys look elements up by the same entries, so a change of wording is a change of that one file. ESLint refuses bare text in a template.
 
 ## Checks
 
