@@ -1,5 +1,6 @@
 // Mail: the templates an organizer edits, checked against the subset and
-// their kind's placeholders; the test mail through the real outbox and an
+// their kind's placeholders, the catalogue's defaults until then and again
+// after a reset; the test mail through the real outbox and an
 // SMTP stand-in with authentication; the sender's states: sent on the
 // server's acceptance, retried on a transient reply, failed on a permanent
 // one or after the last attempt, and interrupted work failed at start.
@@ -12,7 +13,9 @@ import { createDatabase } from '../lib/db.ts'
 import { recoverInterruptedMails } from '../lib/mail/outbox.ts'
 import { Sender } from '../lib/mail/sender.ts'
 import { createMailTransport } from '../lib/mail/transport.ts'
-import { checkTemplate, renderTemplate } from '../services/mail-templates.ts'
+import { MAIL_KINDS } from '@school-allocation/api-contracts/mail'
+import { LOCALES, messagesFor } from '@school-allocation/messages'
+import { checkTemplate, defaultTemplates, PLACEHOLDER_NAMES, PLACEHOLDERS, renderTemplate, sampleData } from '../services/mail-templates.ts'
 import { ORIGIN, secretFile, SERVER_ENV } from './helpers/env.ts'
 import { bodyOf, decodeHeader, headerOf, startFakeSmtp, type FakeSmtp } from './helpers/fake-smtp.ts'
 import { DB, get, harness, send, signIn } from './helpers/harness.ts'
@@ -29,36 +32,79 @@ function mailEnv(smtp: FakeSmtp): Record<string, string> {
   }
 }
 
-test('a template is checked against the subset and its kind\'s placeholders; a save is audited; the test mail needs mail to be set up', DB, async (t) => {
+test('every catalogue has a default for every kind that passes its own check, and a meaning and a sample for every placeholder', () => {
+  assert.deepEqual([...new Set(Object.values(PLACEHOLDERS).flat())].sort(), [...PLACEHOLDER_NAMES].sort(), 'every placeholder is some kind\'s')
+  for (const locale of LOCALES) {
+    const t = messagesFor(locale)
+    assert.deepEqual(Object.keys(t.mail).sort(), [...MAIL_KINDS].sort(), locale)
+    for (const kind of MAIL_KINDS) {
+      const { subject, body } = defaultTemplates(locale)[kind]
+      assert.deepEqual(checkTemplate(kind, subject, body), [], `${locale} ${kind}`)
+    }
+    assert.deepEqual(Object.keys(t.mailTemplates.placeholder).sort(), [...PLACEHOLDER_NAMES].sort(), locale)
+    assert.deepEqual(Object.keys(sampleData(locale)).sort(), [...PLACEHOLDER_NAMES].sort(), locale)
+  }
+})
+
+test('a template is the catalogue\'s default until saved; a save is checked against the subset and its kind\'s placeholders, stored in the school\'s language and audited; a reset brings the default back; the test mail needs mail to be set up', DB, async (t) => {
   const h = await harness(t, ADMIN)
   const anna = await signIn(h, ANNA)
-  const list = await get<{ templates: { kind: string, placeholders: string[] }[], mailEnabled: boolean }>(h, anna, '/api/admin/mail-templates')
+  type Template = { kind: string, subject: string, body: string, placeholders: string[], custom: boolean, locale: string | null, updatedAt: string | null, updatedBy: string | null }
+  const list = await get<{ templates: Template[], mailEnabled: boolean }>(h, anna, '/api/admin/mail-templates')
   assert.equal(list.status, 200)
-  assert.deepEqual(list.body.templates.map((tpl) => tpl.kind), ['assignment_changed', 'choice_invitation', 'choice_reminder', 'class_missing', 'class_unplaced', 'grace_invitation', 'grace_reminder', 'item_cancelled', 'missed_deadline', 'result_published', 'swap_confirmed'])
-  assert.deepEqual(list.body.templates.find((tpl) => tpl.kind === 'class_missing')?.placeholders, ['vorname', 'name', 'wahl', 'link', 'klasse', 'fenster', 'liste'])
+  assert.deepEqual(list.body.templates.map((tpl) => tpl.kind), [...MAIL_KINDS], 'every kind, in the order a campaign sends them')
+  assert.deepEqual(list.body.templates.find((tpl) => tpl.kind === 'class_missing')?.placeholders, ['first_name', 'name', 'campaign', 'link', 'class_name', 'window', 'list'])
+  const defaults = messagesFor('de').mail
+  assert.deepEqual(list.body.templates.find((tpl) => tpl.kind === 'choice_reminder'), {
+    kind: 'choice_reminder', ...defaults.choice_reminder, placeholders: ['first_name', 'name', 'campaign', 'link', 'deadline'], custom: false, locale: null, updatedAt: null, updatedBy: null,
+  })
   assert.equal(list.body.mailEnabled, false)
   assert.equal((await get(h, await signIn(h, BERND), '/api/admin/mail-templates')).status, 403)
 
   const each = await send<{ error: string, problems: { code: string, message: string }[] }>(h, anna, 'PUT', '/api/admin/mail-templates/choice_reminder', { subject: 'x', body: '{{#each a}}y{{/each}}' })
   assert.equal(each.status, 422)
   assert.deepEqual(each.body.problems.map((p) => p.code), ['body_syntax'])
-  const stranger = await send<{ problems: { code: string, message: string }[] }>(h, anna, 'PUT', '/api/admin/mail-templates/choice_reminder', { subject: '{{klasse}}', body: 'Hallo {{vorname}}, {{liste}}' })
-  assert.deepEqual(stranger.body.problems, [{ code: 'unknown_placeholder', message: 'klasse' }, { code: 'unknown_placeholder', message: 'liste' }])
+  const stranger = await send<{ problems: { code: string, message: string }[] }>(h, anna, 'PUT', '/api/admin/mail-templates/choice_reminder', { subject: '{{class_name}}', body: 'Hallo {{first_name}}, {{list}} {{vorname}}' })
+  assert.deepEqual(stranger.body.problems, [{ code: 'unknown_placeholder', message: 'class_name' }, { code: 'unknown_placeholder', message: 'list' }, { code: 'unknown_placeholder', message: 'vorname' }], 'the German names are gone')
   assert.equal((await send(h, anna, 'PUT', '/api/admin/mail-templates/nope', { subject: 'x', body: 'y' })).status, 400)
   const empty = await send<{ problems: { code: string }[] }>(h, anna, 'PUT', '/api/admin/mail-templates/choice_reminder', { subject: '{{#if name}}{{else}}Hinweis{{/if}}', body: 'x' })
   assert.deepEqual(empty.body.problems.map((p) => p.code), ['subject_empty'], 'a subject that renders empty for a named recipient would block the notice')
-  assert.equal(renderTemplate({ subject: '{{frist}}', body: 'x' }, {}).subject, 'SchulWahl', 'and never reaches the outbox empty')
-  const saved = await send<{ template: { subject: string, body: string } }>(h, anna, 'PUT', '/api/admin/mail-templates/choice_reminder', { subject: 'Erinnerung: {{wahl}}', body: 'Hallo {{vorname}},\n{{#if frist}}bis {{frist}}{{/if}}: {{link}}' })
+  assert.equal(renderTemplate({ subject: '{{deadline}}', body: 'x' }, {}).subject, 'SchulWahl', 'and never reaches the outbox empty')
+  const saved = await send<{ template: Template }>(h, anna, 'PUT', '/api/admin/mail-templates/choice_reminder', { subject: 'Erinnerung: {{campaign}}', body: 'Hallo {{first_name}},\n{{#if deadline}}bis {{deadline}}{{/if}}: {{link}}' })
   assert.equal(saved.status, 200, JSON.stringify(saved.body))
-  assert.equal(saved.body.template.subject, 'Erinnerung: {{wahl}}')
+  assert.equal(saved.body.template.subject, 'Erinnerung: {{campaign}}')
+  assert.deepEqual([saved.body.template.custom, saved.body.template.locale], [true, 'de'])
+  assert.ok(saved.body.template.updatedAt && saved.body.template.updatedBy)
   const owner = createDatabase(h.ownerUrl, () => {})
   t.after(() => owner.close())
-  assert.deepEqual((await readAudit(owner, SCHOOL_SCOPE)).at(-1)?.action, 'mail.template-changed')
+  const changed = (await readAudit(owner, SCHOOL_SCOPE)).at(-1)
+  assert.deepEqual([changed?.action, changed?.metadata], ['mail.template-changed', { kind: 'choice_reminder', locale: 'de', subjectLength: 24, bodyLength: 71 }])
 
-  assert.deepEqual(renderTemplate(saved.body.template, { vorname: 'Sara', wahl: 'Projektwoche', frist: 'Mo., 08.03.', link: 'https://x' }), { subject: 'Erinnerung: Projektwoche', body: 'Hallo Sara,\nbis Mo., 08.03.: https://x' })
+  // The school changes its language: the saved text keeps the one it was written in, a save takes the school's.
+  assert.equal((await send(h, anna, 'PUT', '/api/admin/settings/language', { locale: 'en' })).status, 200)
+  const afterChange = await get<{ templates: Template[] }>(h, anna, '/api/admin/mail-templates')
+  assert.equal(afterChange.body.templates.find((tpl) => tpl.kind === 'choice_reminder')?.locale, 'de')
+  assert.equal(afterChange.body.templates.find((tpl) => tpl.kind === 'choice_invitation')?.locale, null, 'a default is in the school\'s language')
+  const resaved = await send<{ template: Template }>(h, anna, 'PUT', '/api/admin/mail-templates/choice_reminder', { subject: 'Reminder: {{campaign}}', body: 'Hello {{first_name}}: {{link}}' })
+  assert.equal(resaved.body.template.locale, 'en')
+  assert.equal((await owner.query('select 1 from mail_template')).rowCount, 1, 'one row per kind')
+
+  // The reset: the row goes, the default is back, audited once; a kind without a text of its own stays as it is, unrecorded.
+  assert.equal((await send(h, await signIn(h, BERND), 'DELETE', '/api/admin/mail-templates/choice_reminder')).status, 403)
+  const reset = await send<{ template: Template }>(h, anna, 'DELETE', '/api/admin/mail-templates/choice_reminder')
+  assert.equal(reset.status, 200, JSON.stringify(reset.body))
+  assert.deepEqual(reset.body.template, { kind: 'choice_reminder', ...messagesFor('en').mail.choice_reminder, placeholders: PLACEHOLDERS.choice_reminder, custom: false, locale: null, updatedAt: null, updatedBy: null })
+  assert.equal((await owner.query('select 1 from mail_template')).rowCount, 0)
+  const events = await readAudit(owner, SCHOOL_SCOPE)
+  assert.deepEqual([events.at(-1)?.action, events.at(-1)?.metadata], ['mail.template-reset', { kind: 'choice_reminder', locale: 'en' }])
+  assert.equal((await send(h, anna, 'DELETE', '/api/admin/mail-templates/choice_reminder')).status, 200)
+  assert.equal((await readAudit(owner, SCHOOL_SCOPE)).length, events.length)
+  assert.equal((await send(h, anna, 'DELETE', '/api/admin/mail-templates/nope')).status, 400)
+
+  assert.deepEqual(renderTemplate(saved.body.template, { first_name: 'Sara', campaign: 'Projektwoche', deadline: 'Mo., 08.03.', link: 'https://x' }), { subject: 'Erinnerung: Projektwoche', body: 'Hallo Sara,\nbis Mo., 08.03.: https://x' })
   assert.deepEqual(renderTemplate({ subject: 'a <b>', body: '{{name}}' }, { name: 'A & B' }), { subject: 'a <b>', body: 'A & B' }, 'plain text: nothing is escaped')
   assert.equal(renderTemplate({ subject: 'x', body: '{{name}}'.repeat(2000) }, { name: 'y'.repeat(100) }).body.length, 100_000, 'a body that renders past the outbox\'s bound is cut while rendering, never refused: a template must not block a transition')
-  assert.deepEqual(checkTemplate('missed_deadline', '{{vorname', 'x'), [{ code: 'subject_syntax', message: 'Unclosed mustache at line 1, column 1' }])
+  assert.deepEqual(checkTemplate('missed_deadline', '{{first_name', 'x'), [{ code: 'subject_syntax', message: 'Unclosed mustache at line 1, column 1' }])
 
   const off = await send<{ error: string }>(h, anna, 'POST', '/api/admin/mail-templates/choice_reminder/test')
   assert.equal(off.status, 409)

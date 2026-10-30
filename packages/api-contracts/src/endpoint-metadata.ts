@@ -123,6 +123,8 @@ export const getAdminMailTemplates = { method: 'GET', path: '/api/admin/mail-tem
 
 export const putAdminMailTemplatesByKind = { method: 'PUT', path: '/api/admin/mail-templates/:kind', transport: 'json' } as const satisfies EndpointMetadata
 
+export const deleteAdminMailTemplatesByKind = { method: 'DELETE', path: '/api/admin/mail-templates/:kind', transport: 'json' } as const satisfies EndpointMetadata
+
 export const postAdminMailTemplatesByKindTest = { method: 'POST', path: '/api/admin/mail-templates/:kind/test', transport: 'json' } as const satisfies EndpointMetadata
 
 export const getAdminMailStatus = { method: 'GET', path: '/api/admin/mail/status', transport: 'json' } as const satisfies EndpointMetadata

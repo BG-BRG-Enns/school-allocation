@@ -135,9 +135,9 @@ async function notifyPublication(client: Queryable, context: WindowContext, camp
   const items = await catalogueItems(client, campaign.id)
   const byId = new Map(items.map((item) => [item.id, item]))
   let queued = 0
-  const common = (displayName: string) => ({ vorname: firstNameOf(displayName), name: displayName, wahl: campaign.name })
+  const common = (displayName: string) => ({ first_name: firstNameOf(displayName), name: displayName, campaign: campaign.name })
 
-  const result = await readTemplate(client, 'result_published')
+  const result = await readTemplate(client, 'result_published', words.locale)
   const short = new Map<string, { student: CampaignStudent, missing: string[] }>()
   for (const student of students) {
     const explanation = explainStudent(run.snapshot, rows, student.personId)
@@ -145,25 +145,25 @@ async function notifyPublication(client: Queryable, context: WindowContext, camp
     const missing = programme.missing(explanation)
     if (missing.length > 0) short.set(student.personId, { student, missing })
     if (student.address === null) continue
-    const { subject, body } = renderTemplate(result, { ...common(student.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/ergebnis`, zuteilung: programme.lines(explanation, byId).join('\n') || '–', tauschfenster: swapWindow })
+    const { subject, body } = renderTemplate(result, { ...common(student.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/ergebnis`, programme: programme.lines(explanation, byId).join('\n') || '–', swap_period: swapWindow })
     if (await enqueueMail(client, { kind: 'result_published', campaignId: campaign.id, personId: student.personId, to: student.address, subject, body, dedupeKey: `result_published:${campaign.id}:${student.personId}:${run.id}` })) queued += 1
   }
 
   if (short.size > 0) {
-    const template = await readTemplate(client, 'class_unplaced')
+    const template = await readTemplate(client, 'class_unplaced', words.locale)
     const teachers = await classTeachersByClass(client, campaign)
     for (const [className, list] of teachers) {
       const mine = [...short.values()].filter((s) => s.student.className === className)
       if (mine.length === 0) continue
       for (const teacher of list) {
-        const { subject, body } = renderTemplate(template, { ...common(teacher.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/klasse/${encodeURIComponent(className)}`, klasse: className, liste: mine.map((s) => `- ${s.student.displayName}: ${s.missing.join(', ')}`).join('\n') })
+        const { subject, body } = renderTemplate(template, { ...common(teacher.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/klasse/${encodeURIComponent(className)}`, class_name: className, list: mine.map((s) => `- ${s.student.displayName}: ${s.missing.join(', ')}`).join('\n') })
         if (await enqueueMail(client, { kind: 'class_unplaced', campaignId: campaign.id, personId: teacher.personId, to: teacher.address, subject, body, dedupeKey: `class_unplaced:${campaign.id}:${className}:${teacher.personId}:${run.id}` })) queued += 1
       }
     }
   }
 
   if (run.cancelledItemIds.length > 0) {
-    const template = await readTemplate(client, 'item_cancelled')
+    const template = await readTemplate(client, 'item_cancelled', words.locale)
     const cancelled = run.cancelledItemIds.map((id) => byId.get(id)).filter((item): item is Item => item !== undefined)
     const addresses = await store.teacherAddresses(client, campaign.rosterBatchId, cancelled.flatMap((item) => item.teachers.map((t) => t.personId)))
     for (const item of cancelled) {
@@ -171,7 +171,7 @@ async function notifyPublication(client: Queryable, context: WindowContext, camp
       for (const teacher of item.teachers) {
         const address = addresses.get(teacher.personId)
         if (!address) continue
-        const { subject, body } = renderTemplate(template, { ...common(address.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/aktivitaet/${item.id}`, aktivitaet: item.title, anmeldungen: String(wished), minimum: String(item.minParticipants) })
+        const { subject, body } = renderTemplate(template, { ...common(address.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/aktivitaet/${item.id}`, activity: item.title, wish_count: String(wished), minimum: String(item.minParticipants) })
         if (await enqueueMail(client, { kind: 'item_cancelled', campaignId: campaign.id, personId: teacher.personId, to: address.address, subject, body, dedupeKey: `item_cancelled:${campaign.id}:${item.id}:${teacher.personId}:${run.id}` })) queued += 1
       }
     }

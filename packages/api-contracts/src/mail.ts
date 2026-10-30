@@ -2,14 +2,18 @@
 
 import { Type, type Static } from 'typebox'
 import { Literals, StrictObject } from './common.ts'
+import { SCHOOL_LOCALES } from './settings.ts'
 
 export const MAIL_KINDS = ['choice_invitation', 'choice_reminder', 'grace_invitation', 'grace_reminder', 'missed_deadline', 'class_missing', 'result_published', 'class_unplaced', 'item_cancelled', 'swap_confirmed', 'assignment_changed'] as const
+/** A kind's text as it stands: the school's own when an organizer saved one (`custom`, with the language it was written in), else the catalogue's default in the school's language. */
 export const MailTemplateSchema = StrictObject({
   kind: Literals(MAIL_KINDS),
   subject: Type.String(),
   body: Type.String(),
   placeholders: Type.Array(Type.String()),
-  updatedAt: Type.String(),
+  custom: Type.Boolean(),
+  locale: Type.Union([Literals(SCHOOL_LOCALES), Type.Null()]),
+  updatedAt: Type.Union([Type.String(), Type.Null()]),
   updatedBy: Type.Union([Type.String(), Type.Null()]),
 })
 export type MailTemplate = Static<typeof MailTemplateSchema>

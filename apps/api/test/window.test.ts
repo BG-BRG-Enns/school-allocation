@@ -94,16 +94,18 @@ test('opening the window places the fixed classes and invites the students; a st
   assert.equal((await send(s, s.sara, 'PUT', `/api/campaigns/${id}/my-choice`, { ranking: {} })).status, 409)
 })
 
-test('the notices speak the school\'s language as the transition reads it', DB, async (t) => {
+test('the notices speak the school\'s language as the transition reads it, in the text the school saved where it saved one', DB, async (t) => {
   const s = await school(t)
   const id = s.campaign.id
   const owner = createDatabase(s.ownerUrl, () => {})
   t.after(() => owner.close())
   assert.equal((await send(s, s.anna, 'PUT', '/api/admin/settings/language', { locale: 'en' })).status, 200)
+  const saved = await send(s, s.anna, 'PUT', '/api/admin/mail-templates/choice_invitation', { subject: 'Choose for {{campaign}}', body: 'Hello {{first_name}}, until {{deadline}} ({{project_days}}): {{link}}' })
+  assert.equal(saved.status, 200, JSON.stringify(saved.body))
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'open' })).status, 200)
-  const invitation = (await owner.query<{ body: string }>('select body from outbox_mail where campaign_id = $1 and to_address = $2', [id, SARA.email])).rows[0]?.body ?? ''
-  assert.match(invitation, /Mon, 08\/03\/2027, 20:00/)
-  assert.match(invitation, /Mon, 21\/06\/2027, Tue, 22\/06\/2027/)
+  const invitation = (await owner.query<{ subject: string, body: string }>('select subject, body from outbox_mail where campaign_id = $1 and to_address = $2', [id, SARA.email])).rows[0]
+  assert.equal(invitation?.subject, 'Choose for Projektwoche 2027')
+  assert.match(invitation?.body ?? '', /^Hello Sara, until Mon, 08\/03\/2027, 20:00 \(Mon, 21\/06\/2027, Tue, 22\/06\/2027\): https:\/\/.+\/wahlen\/.+\/wuensche$/)
 })
 
 test('an organizer enters a ranking on behalf and exempts a student from a class activity, both audited; the clock closes the window with its notices', DB, async (t) => {

@@ -36,6 +36,7 @@ export const searchClassTeachers = (q: string) => apiRequest(endpoints.getAdminC
 export const saveClassTeachers = (className: string, teachers: string[]) => apiRequest(endpoints.putAdminClassesByClassNameTeachers, { params: { className: className }, body: { teachers } })
 export const loadMailTemplates = () => apiRequest(endpoints.getAdminMailTemplates, { })
 export const saveMailTemplate = (kind: MailKind, subject: string, body: string) => apiRequest(endpoints.putAdminMailTemplatesByKind, { params: { kind: kind }, body: { subject, body } })
+export const resetMailTemplate = (kind: MailKind) => apiRequest(endpoints.deleteAdminMailTemplatesByKind, { params: { kind: kind } })
 export const sendTestMail = (kind: MailKind) => apiRequest(endpoints.postAdminMailTemplatesByKindTest, { params: { kind: kind } })
 export const loadMailStatus = () => apiRequest(endpoints.getAdminMailStatus, { })
 

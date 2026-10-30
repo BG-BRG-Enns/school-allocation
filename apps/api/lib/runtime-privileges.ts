@@ -81,9 +81,9 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   // appended and never touched.
   choice: { table: ['SELECT', 'INSERT'], updateColumns: ['ranking', 'saved_in', 'version', 'updated_at', 'entered_by'] },
   choice_revision: { table: ['SELECT', 'INSERT'] },
-  // Templates are seeded by a migration and edited in the app; a kind a
-  // later release adds is inserted by its migration.
-  mail_template: { table: ['SELECT'], updateColumns: ['subject', 'body', 'updated_at', 'updated_by'] },
+  // A row is the text an organizer saved for a kind, in the language it was written in, replaced by the next save; the
+  // reset removes it, and the catalogue's default applies again. Never truncated (the trigger refuses it).
+  mail_template: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['subject', 'body', 'locale', 'updated_at', 'updated_by'] },
   // A mail is queued and moved through its states by the sender; never removed.
   outbox_mail: { table: ['SELECT', 'INSERT'], updateColumns: ['state', 'attempts', 'detail', 'message_id', 'next_attempt_at', 'updated_at', 'sent_at'] },
   allocation_run: {
@@ -111,19 +111,24 @@ export const RUNTIME_FUNCTIONS: readonly string[] = [
 const IDENTIFIER = /^[a-z_][a-z0-9_]*$/
 const SIGNATURE = /^[a-z_][a-z0-9_]*\((?:[a-z_][a-z0-9_ ]*(?:,[a-z_][a-z0-9_ ]*)*)?\)$/
 
+/** Every column the list grants UPDATE on, as `table.column`. */
+export function listedColumns(): string[] {
+  return Object.entries(RUNTIME_TABLES).flatMap(([table, grant]) => (grant.updateColumns ?? []).map((column) => `${table}.${column}`))
+}
+
 /**
- * The GRANT statements for `role`, for the tables and functions that exist.
- * Names come from this file only, and are checked to be plain identifiers,
- * so they need no quoting.
+ * The GRANT statements for `role`, for the tables, columns (`table.column`)
+ * and functions that exist. Names come from this file only, and are checked
+ * to be plain identifiers, so they need no quoting.
  */
-export function grantStatements(role: string, existing: { tables: ReadonlySet<string>, functions: ReadonlySet<string> }): string[] {
+export function grantStatements(role: string, existing: { tables: ReadonlySet<string>, columns: ReadonlySet<string>, functions: ReadonlySet<string> }): string[] {
   const names = Object.entries(RUNTIME_TABLES).flatMap(([table, grant]) => [table, ...(grant.updateColumns ?? [])])
   const unsafe = [...names.filter((name) => !IDENTIFIER.test(name)), ...RUNTIME_FUNCTIONS.filter((signature) => !SIGNATURE.test(signature))]
   if (unsafe.length > 0) throw new Error(`runtime privileges: not a plain identifier or function signature: ${unsafe.join(', ')}`)
   return [
     ...Object.entries(RUNTIME_TABLES)
       .filter(([table]) => existing.tables.has(table))
-      .flatMap(([table, grant]) => tableGrants(role, table, grant)),
+      .flatMap(([table, grant]) => tableGrants(role, table, { ...grant, updateColumns: grant.updateColumns?.filter((column) => existing.columns.has(`${table}.${column}`)) })),
     ...RUNTIME_FUNCTIONS
       .filter((signature) => existing.functions.has(signature))
       .map((signature) => `grant execute on function ${signature} to ${role}`),

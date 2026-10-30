@@ -10,8 +10,9 @@
 // function of it, and a count that changes the words asks the language's
 // plural rules.
 //
-// Sie and du stand as the pages have them today; the mail texts an
-// organizer edits are stored in the database and are not here.
+// Sie and du stand as the pages have them today. The mail templates'
+// default texts are here too (`mail`); a text an organizer saves instead
+// is stored in the database.
 
 const plural = new Intl.PluralRules('de')
 
@@ -1091,7 +1092,7 @@ export const de = {
     saved: 'Stundenraster gespeichert.',
   },
 
-  /** Mailvorlagen.vue: the texts of the mails a campaign sends; the texts themselves are stored, not here. */
+  /** Mailvorlagen.vue: the texts of the mails a campaign sends; their defaults are the group `mail`, a school's own texts are stored. */
   mailTemplates: {
     editorsOnly: 'Die Mailvorlagen ändern die Administration und die Organisation einer Wahl.',
     intro: 'Die Texte der Nachrichten, die eine Wahl verschickt. Platzhalter in doppelten geschweiften Klammern füllt das Programm beim Versand; jede Vorlage nennt die ihren.',
@@ -1105,6 +1106,53 @@ export const de = {
     editing: (kind: string) => `${kind} bearbeiten`,
     subject: 'Betreff',
     body: 'Text',
+    /** Beside a template's name: whether the school saved a text of its own or the default applies. */
+    customText: 'Eigener Text der Schule',
+    defaultText: 'Vorgegebener Text',
+    reset: 'Zurücksetzen',
+    resetConfirm: 'Den eigenen Text der Schule löschen? Danach gilt wieder der vorgegebene Text.',
+    resetDone: 'Vorlage zurückgesetzt. Es gilt wieder der vorgegebene Text.',
+    /** A saved text in a language other than the school's; the language as labels.locale names it. */
+    otherLanguage: (language: string) => `Dieser Text wurde für „${language}“ geschrieben. Die Schule ist jetzt auf eine andere Sprache eingestellt: Übersetze ihn oder setze ihn zurück.`,
+    placeholderHint: 'Ein Klick auf einen Platzhalter fügt ihn dort ein, wo der Cursor zuletzt stand: im Betreff oder im Text.',
+    /** What each placeholder stands for (apps/api/services/mail-templates.ts PLACEHOLDERS), listed beside it while editing. */
+    placeholder: {
+      first_name: 'Vorname der Person, die die E-Mail bekommt',
+      name: 'Ganzer Name der Person, die die E-Mail bekommt',
+      campaign: 'Name der Anmeldung, z. B. Projektwoche 2027',
+      link: 'Link zur passenden Seite in SchulWahl',
+      deadline: 'Ende des Anmeldezeitraums oder der Nachfrist, mit Datum und Uhrzeit',
+      project_days: 'Die Projekttage',
+      class_name: 'Die Klasse, z. B. 5A',
+      window: 'Was zu Ende ist: der Anmeldezeitraum oder die Nachfrist',
+      list: 'Die betroffenen Schüler*innen, eine Zeile je Person',
+      programme: 'Die Einteilung: jede Aktivität mit Tag, Uhrzeit und Kosten, am Ende, was noch fehlt',
+      swap_period: 'Die Tauschzeit mit Beginn und Ende; leer, wenn es keine gibt',
+      activity: 'Titel der Aktivität',
+      wish_count: 'Wie viele Schüler*innen sich die Aktivität gewünscht haben',
+      minimum: 'Mindestzahl der Aktivität',
+      changed_by: 'Wer die Einteilung geändert hat: der Klassenvorstand oder die Organisation',
+      change: 'Was sich an der Einteilung geändert hat',
+    },
+    /** The values the test mail fills in, so that every placeholder shows filled. */
+    sample: {
+      first_name: 'Maria',
+      name: 'Maria Muster',
+      campaign: 'Projektwoche 2027',
+      link: 'https://wahl.example.org/wahlen/…',
+      deadline: 'Mo., 08.03.2027, 20:00',
+      project_days: 'Mo., 21.06.2027, Di., 22.06.2027',
+      class_name: '5A',
+      window: 'Anmeldefenster 1',
+      list: '- Maria Muster\n- Max Muster',
+      programme: 'Mo., 21.06.: 3. Klettern (08:30 – 12:15)\nDi., 22.06.: 7. Wien (Klasse)',
+      swap_period: 'Mo., 05.07.2027, 08:00 bis Mo., 12.07.2027, 20:00',
+      activity: 'Töpfern',
+      wish_count: '3',
+      minimum: '8',
+      changed_by: 'deinem Klassenvorstand',
+      change: 'neu: Mo., 21.06.: 5. Töpfern (08:30 – 12:15)',
+    },
   },
 
   /** Aufbewahrung.vue: the school years' records and the purge of one. */
@@ -1210,7 +1258,8 @@ export const de = {
   /**
    * The values the server fills into a notice's placeholders: the lines of a
    * student's programme, who changed a place and what changed. The texts
-   * around them are the mail templates, which the database keeps.
+   * around them are the mail templates: the defaults in `mail`, or what the
+   * school saved.
    */
   notices: {
     programme: {
@@ -1223,7 +1272,7 @@ export const de = {
     },
     /** The swap window: "Mo., 28.06.2027, 08:00 bis Mi., 30.06.2027, 18:00". */
     swapWindow: (from: string, until: string) => `${from} bis ${until}`,
-    /** Who changed a student's place, as the sentence "… von {{wer}} geändert" needs it. */
+    /** Who changed a student's place, as the sentence "… von {{changed_by}} geändert" needs it. */
     changedBy: {
       classTeacher: 'deinem Klassenvorstand',
       organizer: 'der Organisation',
@@ -1233,6 +1282,61 @@ export const de = {
       left: (items: string) => `nicht mehr ${items}`,
       entered: (item: string) => `neu ${item}`,
       replaced: (left: string, item: string) => `statt ${left} jetzt ${item}`,
+    },
+  },
+
+  /**
+   * The mail templates' default texts, by kind (packages/api-contracts/src/mail.ts
+   * MAIL_KINDS): what a notice says until an organizer saves a text of the
+   * school's own (Mailvorlagen.vue), which the database then keeps with the
+   * language it was written in. The placeholders in double braces are the
+   * kind's (apps/api/services/mail-templates.ts PLACEHOLDERS), filled when
+   * the notice is written.
+   */
+  mail: {
+    choice_invitation: {
+      subject: 'Projektwoche {{campaign}}: Wünsche bis {{deadline}} abgeben',
+      body: 'Hallo {{first_name}},\n\ndie Wahl für {{campaign}} ({{project_days}}) ist offen. Bitte gib deine Wünsche bis {{deadline}} ab (mit dem Schulkonto anmelden):\n\n{{link}}\n\nWann du innerhalb der Frist wählst, spielt für die Zuteilung keine Rolle; bis {{deadline}} kannst du deine Wünsche noch ändern. Bist du mit deiner Klasse fix bei einer Aktivität, wählst du nur für die übrige Zeit.\n\nViel Spaß beim Aussuchen!',
+    },
+    choice_reminder: {
+      subject: 'Erinnerung: Wünsche für {{campaign}} bis {{deadline}}',
+      body: 'Hallo {{first_name}},\n\ndeine Wünsche für {{campaign}} sind noch nicht vollständig. Bitte gib sie bis {{deadline}} ab:\n\n{{link}}\n\nFalls du es gerade erst erledigt hast, betrachte diese Nachricht als gegenstandslos.',
+    },
+    grace_invitation: {
+      subject: 'Nachfrist: Wünsche für {{campaign}} bis {{deadline}}',
+      body: 'Hallo {{first_name}},\n\ndie Wahl für {{campaign}} ist zu Ende, deine Wünsche fehlen noch oder sind unvollständig. Bis {{deadline}} kannst du sie nachholen:\n\n{{link}}\n\nWünsche aus der Nachfrist werden nach den anderen zugeteilt. Wer bis dahin nichts abgibt, bekommt einen Platz in einer Aktivität ohne Beitrag mit freien Plätzen.',
+    },
+    grace_reminder: {
+      subject: 'Letzte Erinnerung: Wünsche für {{campaign}} bis {{deadline}}',
+      body: 'Hallo {{first_name}},\n\nmorgen endet die Nachfrist für {{campaign}}. Deine Wünsche fehlen noch:\n\n{{link}}',
+    },
+    missed_deadline: {
+      subject: '{{campaign}}: Wünsche nicht abgegeben',
+      body: 'Hallo {{first_name}},\n\ndie Frist für {{campaign}} ist abgelaufen, ohne dass vollständige Wünsche von dir vorliegen. Du bekommst einen Platz in einer Aktivität ohne Beitrag mit freien Plätzen, oder dein Klassenvorstand teilt dich zu. Dein Ergebnis siehst du nach der Veröffentlichung hier:\n\n{{link}}',
+    },
+    class_missing: {
+      subject: '{{campaign}}: fehlende Wünsche der {{class_name}} ({{window}})',
+      body: 'Hallo {{first_name}},\n\naus deiner Klasse {{class_name}} fehlen bei {{campaign}} ({{window}}) noch folgende Wünsche:\n\n{{list}}\n\nBitte erinnere diese Schüler/innen daran. Den Stand der Klasse siehst du hier:\n\n{{link}}',
+    },
+    result_published: {
+      subject: '{{campaign}}: deine Zuteilung',
+      body: 'Hallo {{first_name}},\n\ndie Zuteilung für {{campaign}} steht fest. Das ist dein Programm:\n\n{{programme}}\n\n{{#if swap_period}}Wer tauschen möchte: Im Zeitraum {{swap_period}} kannst du in eine Aktivität mit freien Plätzen wechseln.\n\n{{/if}}Alle Einzelheiten und die Begründung der Zuteilung siehst du hier:\n\n{{link}}',
+    },
+    class_unplaced: {
+      subject: '{{campaign}}: Schüler/innen der {{class_name}} ohne vollständigen Platz',
+      body: 'Hallo {{first_name}},\n\nbei der Zuteilung für {{campaign}} konnten aus deiner Klasse {{class_name}} nicht alle vollständig untergebracht werden:\n\n{{list}}\n\nBitte teile diese Schüler/innen einer Aktivität mit freien Plätzen zu. Den Stand der Klasse siehst du hier:\n\n{{link}}',
+    },
+    item_cancelled: {
+      subject: '{{campaign}}: {{activity}} findet nicht statt',
+      body: 'Hallo {{first_name}},\n\ndeine Aktivität „{{activity}}“ bei {{campaign}} hat die Mindestteilnehmerzahl von {{minimum}} nicht erreicht ({{wish_count}} Wünsche) und wurde bei der Zuteilung abgesagt. Die Schüler/innen wurden auf ihre weiteren Wünsche verteilt.\n\n{{link}}',
+    },
+    swap_confirmed: {
+      subject: '{{campaign}}: dein Tausch',
+      body: 'Hallo {{first_name}},\n\ndein Tausch bei {{campaign}} ist eingetragen. Das ist jetzt dein Programm:\n\n{{programme}}\n\nAlle Einzelheiten siehst du hier:\n\n{{link}}',
+    },
+    assignment_changed: {
+      subject: '{{campaign}}: deine Zuteilung wurde geändert',
+      body: 'Hallo {{first_name}},\n\ndeine Zuteilung bei {{campaign}} wurde von {{changed_by}} geändert: {{change}}\n\nDas ist jetzt dein Programm:\n\n{{programme}}\n\nAlle Einzelheiten siehst du hier:\n\n{{link}}',
     },
   },
 }

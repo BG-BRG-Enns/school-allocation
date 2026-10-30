@@ -1,6 +1,37 @@
 [
   {
     "method": "DELETE",
+    "url": "/api/admin/mail-templates/:kind",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "choice_invitation",
+            "choice_reminder",
+            "grace_invitation",
+            "grace_reminder",
+            "missed_deadline",
+            "class_missing",
+            "result_published",
+            "class_unplaced",
+            "item_cancelled",
+            "swap_confirmed",
+            "assignment_changed"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "DELETE",
     "url": "/api/items/:id",
     "body": null,
     "params": {

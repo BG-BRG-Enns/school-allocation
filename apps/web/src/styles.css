@@ -411,3 +411,15 @@ ul.plain {
   padding: 0.75rem;
   border-radius: 6px;
 }
+
+/* The placeholders while editing a mail template: each a small button that puts it into the text, its meaning beside it. */
+.placeholders li {
+  margin: 4px 0;
+}
+
+.placeholders button {
+  padding: 2px 8px;
+  margin-right: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+}

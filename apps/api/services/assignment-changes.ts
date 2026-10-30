@@ -85,12 +85,12 @@ async function notify(client: Queryable, context: WindowContext, locked: Locked,
   const kind = by === null ? 'swap_confirmed' : 'assignment_changed'
   const after = applyMove(locked.rows, move, by === null ? 'swap' : 'manual')
   const explanation = explainStudent(locked.run.snapshot, after, student.personId)
-  const template = await readTemplate(client, kind)
+  const template = await readTemplate(client, kind, words.locale)
   const { subject, body } = renderTemplate(template, {
-    vorname: firstNameOf(student.displayName), name: student.displayName, wahl: locked.campaign.name,
+    first_name: firstNameOf(student.displayName), name: student.displayName, campaign: locked.campaign.name,
     link: `${context.baseUrl}/wahlen/${locked.campaign.id}/ergebnis`,
-    zuteilung: explanation ? programmeWriter(words).lines(explanation, locked.items).join('\n') || '–' : '–',
-    ...(by === null ? {} : { wer: words.t.notices.changedBy[by], aenderung: changeText(words.t, locked, move) }),
+    programme: explanation ? programmeWriter(words).lines(explanation, locked.items).join('\n') || '–' : '–',
+    ...(by === null ? {} : { changed_by: words.t.notices.changedBy[by], change: changeText(words.t, locked, move) }),
   })
   await enqueueMail(client, { kind, campaignId: locked.campaign.id, personId: student.personId, to: student.address, subject, body, dedupeKey: `${kind}:${locked.campaign.id}:${changeId}` })
 }
