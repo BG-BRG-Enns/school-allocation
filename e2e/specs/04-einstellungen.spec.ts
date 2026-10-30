@@ -1,16 +1,31 @@
-// Die Einstellungen der Schule und der Wahl: das Stundenraster, die
+// Die Einstellungen der Schule und der Wahl: die Sprache, das Stundenraster, die
 // Klassenvorstände (die ihre Klasse in der Wahl sehen), die Gruppensuche
 // bei Microsoft für die Personenliste, das Wahlfenster und der Bedarf je
 // Tag und Schulstufe. Baut auf 02-stammdaten und 03-katalog auf.
 
+import { htmlLang } from '../../packages/messages/src/index.ts'
 import { expect, test } from '../support/test.ts'
 import { refused } from '../support/console.ts'
 import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
 import { shot } from '../support/screenshot.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
-import { t } from '../support/messages.ts'
+import { LOCALE, t } from '../support/messages.ts'
 
 test.describe.configure({ mode: 'serial' })
+
+test('die Administration sieht die Sprache der Schule, die auch die Seite nennt; Speichern lädt die Seite neu', async ({ page }) => {
+  await openAs(page, ANNA, '/verwaltung')
+  await expect(page.locator('html')).toHaveAttribute('lang', htmlLang(LOCALE))
+  const language = page.getByLabel(t.admin.language.label)
+  await expect(language).toHaveValue(LOCALE)
+  await expect(language.getByRole('option')).toHaveText([t.labels.locale.de, t.labels.locale['de-formal'], t.labels.locale.en])
+  // The same language again: nothing changes, and the page loads anew.
+  const reloaded = page.waitForEvent('load')
+  await page.getByRole('button', { name: t.common.save }).click()
+  await reloaded
+  await expect(page.getByLabel(t.admin.language.label)).toHaveValue(LOCALE)
+  await signOut(page)
+})
 
 test('die Administration passt das Stundenraster an', async ({ page }) => {
   await openAs(page, ANNA, '/verwaltung')
