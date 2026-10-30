@@ -62,15 +62,19 @@ export async function createItem(db: Database, campaignId: string, input: ItemIn
   return mustRead(db, id)
 }
 
+/** The sessions as a comparable text: when, where, what they credit, in order. */
+function sessionsKey(list: readonly { startsAt: string, endsAt: string, location?: string, credits: readonly { date: string, minutes: number }[] }[]): string {
+  return list.map((s) => `${Date.parse(s.startsAt)}-${Date.parse(s.endsAt)}@${s.location ?? ''}:${[...s.credits].sort((a, b) => a.date.localeCompare(b.date, 'en')).map((c) => `${c.date}=${c.minutes}`).join('+')}`).join('|')
+}
+
 /** Whether the edit changes what the allocation computed with: the times and credits, the places and the minimum, the fee, the classes and grades. */
 function allocationRelevantChange(current: Item, input: ItemInput): boolean {
   const byText = (a: string | number, b: string | number) => String(a).localeCompare(String(b), 'en')
   const sorted = (list: readonly (string | number)[]) => [...list].sort(byText).join(',')
-  const sessions = (list: readonly { startsAt: string, endsAt: string, credits: readonly { date: string, minutes: number }[] }[]) =>
-    list.map((s) => `${Date.parse(s.startsAt)}-${Date.parse(s.endsAt)}:${[...s.credits].sort((a, b) => a.date.localeCompare(b.date, 'en')).map((c) => `${c.date}=${c.minutes}`).join('+')}`).sort(byText).join('|')
+  const timed = (list: readonly { startsAt: string, endsAt: string, credits: readonly { date: string, minutes: number }[] }[]) => sessionsKey(list.map((s) => ({ ...s, location: '' })))
   return current.places !== input.places || current.minParticipants !== input.minParticipants || current.cancellableBelowMin !== input.cancellableBelowMin || current.feeCents !== input.feeCents
     || sorted(current.fixedClasses) !== sorted(input.fixedClasses) || sorted(current.eligibleGrades) !== sorted(input.eligibleGrades) || sorted(current.eligibleClasses) !== sorted(input.eligibleClasses)
-    || sessions(current.sessions) !== sessions(input.sessions)
+    || timed(current.sessions) !== timed(input.sessions)
 }
 
 /**
@@ -95,14 +99,18 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
       throw new ApplicationError('campaign_state')
     }
     if (current.state === 'withdrawn') throw new ApplicationError('item_state')
-    // From publication on, an approved item is what the published run was computed with: its times, places, minimum,
-    // fee and eligibility stay (the result, the swaps and the placements read them); the words may still change.
-    if (campaign !== undefined && (campaign.state === 'results' || campaign.state === 'archived') && current.state === 'approved' && allocationRelevantChange(current, input)) throw new ApplicationError('campaign_state')
+    // An archived campaign changes no more. From publication on, an approved item is what the published run was computed
+    // with: its times, places, minimum, fee and eligibility stay (the result, the swaps and the placements read them); the
+    // words may still change.
+    if (campaign?.state === 'archived') throw new ApplicationError('campaign_state')
+    if (campaign?.state === 'results' && current.state === 'approved' && allocationRelevantChange(current, input)) throw new ApplicationError('campaign_state')
     await validate(client, current.campaignId, input)
     await store.updateContent(client, id, input)
     await store.deleteTeachers(client, id)
-    await store.deleteSessions(client, id)
-    await writeParts(client, id, input)
+    // Sessions are replaced only when they change: a session keeps its id, and with it the attendance recorded for it.
+    const sessionsChanged = sessionsKey(current.sessions) !== sessionsKey(input.sessions)
+    if (sessionsChanged) await store.deleteSessions(client, id)
+    await writeParts(client, id, sessionsChanged ? input : { ...input, sessions: [] })
     if (campaign !== undefined && current.state === 'approved' && (campaign.state === 'open' || campaign.state === 'grace')) {
       await reconcilePreAssignments(client, current.campaignId, id)
     }
@@ -201,6 +209,8 @@ async function moveItem(db: Database, id: string, to: ItemState, caller: Caller,
     const campaign = await store.lockCampaignForMove(client, current)
     if (!campaign) throw new ApplicationError('not_found')
     if (!organizer && !isOwn(caller, current)) throw new ApplicationError('forbidden')
+    // An archived campaign changes no more.
+    if (campaign.state === 'archived') throw new ApplicationError('campaign_state')
     const result = itemTransition(current.state, to)
     if (!result.ok) throw new ApplicationError('invalid_item_transition')
     await move(client, current, campaign.state)

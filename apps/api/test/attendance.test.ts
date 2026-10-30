@@ -69,6 +69,15 @@ test('the class teacher records attendance for their class, session by session; 
   const result = await get<{ explanation: { items: unknown[] } }>(s, s.sara, `/api/campaigns/${id}/my-result`)
   assert.equal(result.body.explanation.items.length, 2, 'attendance leaves the assignment alone (PW12)')
 
+  // An item with attendance recorded still takes an edit of its words: its sessions stay, and with them the records.
+  const items = await get<{ items: { id: string, title: string, feeCents: number, places: number, minParticipants: number, cancellableBelowMin: boolean, fixedClasses: string[], eligibleGrades: number[], eligibleClasses: string[], teachers: { personId: string }[], sessions: { startsAt: string, endsAt: string, credits: { date: string, minutes: number }[] }[] }[] }>(s, s.anna, `/api/campaigns/${id}/items`)
+  const tanzItem = items.body.items.find((i) => i.id === s.items.tanz)
+  assert.ok(tanzItem)
+  const body = { title: tanzItem.title, feeCents: tanzItem.feeCents, places: tanzItem.places, minParticipants: tanzItem.minParticipants, cancellableBelowMin: tanzItem.cancellableBelowMin, fixedClasses: tanzItem.fixedClasses, eligibleGrades: tanzItem.eligibleGrades, eligibleClasses: tanzItem.eligibleClasses, teachers: tanzItem.teachers.map((t) => t.personId), sessions: tanzItem.sessions.map((x) => ({ startsAt: x.startsAt, endsAt: x.endsAt, credits: x.credits })) }
+  const worded = await send<{ error?: string }>(s, s.anna, 'PATCH', `/api/items/${s.items.tanz}`, { ...body, description: 'Mit Musik.' })
+  assert.equal(worded.status, 200, JSON.stringify(worded.body))
+  assert.equal((await attendance(carla)).body.days[0]?.rows.find((r) => r.title === 'Tanz')?.status, 'excused', 'the session kept its id and its record')
+
   // The workbooks: the class's for Carla, the campaign's for Anna; Sara neither.
   for (const [jar, url, name] of [[carla, `/api/campaigns/${id}/classes/5A/attendance.xlsx`, 'anwesenheit-5A-2026-27.xlsx'], [s.anna, `/api/admin/campaigns/${id}/export/attendance.xlsx`, 'anwesenheit-2026-27.xlsx']] as const) {
     const xlsx = await s.app.inject({ method: 'GET', url, headers: { cookie: jar.header() } })
@@ -87,6 +96,8 @@ test('the class teacher records attendance for their class, session by session; 
   assert.equal((await send<{ error: string }>(s, s.sara, 'POST', `/api/campaigns/${id}/swap`, { itemId: s.items.klettern })).body.error, 'campaign_state')
   assert.equal((await send<{ error: string }>(s, s.anna, 'POST', `/api/admin/campaigns/${id}/assignments`, { personId: s.timPerson, removeItemId: s.items.klettern, reason: 'Test' })).body.error, 'campaign_state')
   assert.equal((await attendance(carla)).body.recordable, false)
+  assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/items/${s.items.tanz}`, { ...body, description: 'Nachher.' })).body.error, 'campaign_state', 'the catalogue changes no more')
+  assert.equal((await send<{ error: string }>(s, s.anna, 'POST', `/api/admin/items/${s.items.tanz}/withdraw`, { reason: 'Test' })).body.error, 'campaign_state')
   assert.equal((await get(s, s.sara, `/api/campaigns/${id}/my-result`)).status, 200, 'the result stays readable')
   assert.equal((await get<{ campaigns: { id: string }[] }>(s, s.sara, '/api/campaigns')).body.campaigns.some((c) => c.id === id), true, 'and listed')
 })

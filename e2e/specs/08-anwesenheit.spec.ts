@@ -1,10 +1,10 @@
 // Anwesenheit und Abschluss: der Klassenvorstand trägt für seine Klasse
 // die Anwesenheit der Sportwoche ein und lädt die Liste; die Organisation
-// schließt die Wahl ab. Baut auf 07 auf (die Sportwoche ist veröffentlicht,
-// Sara ist in Bogenschießen und Schach, Tim in Werken).
+// schließt die Wahl ab. Baut auf 07 auf (die Sportwoche ist veröffentlicht;
+// Sara ist in Bogenschießen, Tim in Werken und Schach).
 
 import { expect, test } from '../support/test.ts'
-import { ANNA, BERND, SARA } from '../support/personas.ts'
+import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
 import { shot } from '../support/screenshot.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
 
@@ -19,10 +19,13 @@ test('der Klassenvorstand trägt die Anwesenheit seiner Klasse ein und lädt die
   await expect(page.getByRole('heading', { name: 'Anwesenheit' })).toBeVisible()
   const day = page.getByRole('form', { name: 'Anwesenheit Mo., 28.06.2027' })
   await day.getByLabel(`Anwesenheit ${SARA.name}, Bogenschießen`).selectOption('present')
-  await day.getByLabel(`Anwesenheit ${SARA.name}, Schach`).selectOption('absent')
+  await day.getByLabel(`Anwesenheit ${TIM.name}, Schach`).selectOption('absent')
   await day.getByRole('button', { name: 'Anwesenheit speichern' }).click()
   await expect(page.getByRole('status')).toHaveText('Anwesenheit gespeichert.')
-  await expect(day.getByLabel(`Anwesenheit ${SARA.name}, Schach`)).toHaveValue('absent')
+  await expect(day.getByLabel(`Anwesenheit ${TIM.name}, Schach`)).toHaveValue('absent')
+  // Recorded means recorded: the empty choice is gone for these two, and still there for what nobody has marked.
+  await expect(day.getByLabel(`Anwesenheit ${TIM.name}, Schach`).getByRole('option', { name: '–' })).toBeDisabled()
+  await expect(day.getByLabel(`Anwesenheit ${TIM.name}, Werken`).getByRole('option', { name: '–' })).toBeEnabled()
   await shot(page, '38-anwesenheit')
   const download = page.waitForEvent('download')
   await page.getByRole('link', { name: 'Anwesenheit als Excel' }).click()

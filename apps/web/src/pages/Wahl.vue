@@ -296,7 +296,7 @@ function onSubmitPending(): void {
           Wahl beenden
         </button>
         <RouterLink
-          v-if="['closed', 'allocating', 'review', 'results'].includes(campaign.state)"
+          v-if="['closed', 'allocating', 'review', 'results', 'archived'].includes(campaign.state)"
           class="button"
           :to="`/wahlen/${campaign.id}/zuteilung`"
         >

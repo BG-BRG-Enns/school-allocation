@@ -59,21 +59,23 @@ async function loadAttendance(): Promise<void> {
   marks.value = Object.fromEntries(attendance.value.days.flatMap((d) => d.rows.map((r) => [markKey(r.sessionId, r.personId), r.status ?? ''])))
 }
 
-/** Saves a day's marks: one request per session, the students of the class in it. */
+/** Saves a day's marks: one request per session, the students of the class in it, each with the note already recorded; the other days' unsaved marks stay. */
 async function onSaveAttendance(date: string): Promise<void> {
   const day = attendance.value?.days.find((d) => d.date === date)
   if (!day) return
-  const bySession = new Map<string, { personId: string, status: AttendanceStatus }[]>()
+  const bySession = new Map<string, { personId: string, status: AttendanceStatus, note: string }[]>()
   for (const r of day.rows) {
     const status = marks.value[markKey(r.sessionId, r.personId)]
     if (status === '' || status === undefined) continue
     const list = bySession.get(r.sessionId) ?? []
-    list.push({ personId: r.personId, status })
+    list.push({ personId: r.personId, status, note: r.note })
     bySession.set(r.sessionId, list)
   }
   await action.run(async () => {
     for (const [sessionId, entries] of bySession) await recordAttendance(sessionId, entries)
-    await loadAttendance()
+    const fresh = await loadClassAttendance(props.id, props.className)
+    attendance.value = fresh
+    for (const r of fresh.days.find((d) => d.date === date)?.rows ?? []) marks.value[markKey(r.sessionId, r.personId)] = r.status ?? ''
   }, 'Anwesenheit gespeichert.')
 }
 
@@ -260,7 +262,10 @@ watch(() => [props.id, props.className], load)
                     :aria-label="`Anwesenheit ${r.displayName}, ${r.title}`"
                     :disabled="!attendance.recordable"
                   >
-                    <option value="">
+                    <option
+                      value=""
+                      :disabled="r.status !== null"
+                    >
                       –
                     </option>
                     <option
