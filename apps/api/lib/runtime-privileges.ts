@@ -97,6 +97,9 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
 export const RUNTIME_FUNCTIONS: readonly string[] = [
   // The retention purge (0010): a definer function owned by the migrator, the one path through the guards; the service checks the date and the reason and writes the audit event.
   'purge_school_year(text)',
+  // The guards' refusal (0001): a trigger runs as the role that writes, so the runtime role meets a guard's rule as SQLSTATE 55000 with
+  // its words rather than as a permission error on the function. It raises and returns nothing.
+  'refuse(text)',
 ]
 
 const IDENTIFIER = /^[a-z_][a-z0-9_]*$/
