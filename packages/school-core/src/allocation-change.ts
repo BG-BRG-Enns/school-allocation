@@ -14,9 +14,11 @@ import type { AllocationInput, AllocationItem, AllocationStudent, Assignment, As
  * activity of theirs or overlapping one); they are in it already; it is
  * full; an item left is not theirs; a class activity would be left; an
  * item left would drop under its minimum; the target overlaps an item they
- * keep; a project day would end up with more minutes missing than before.
+ * keep; a project day would end up with more minutes missing than before;
+ * a move that leaves nothing fills no gap (a seat taken on a day already
+ * covered).
  */
-export const MOVE_PROBLEM_CODES = ['not_offered', 'already_placed', 'item_full', 'not_placed', 'leaves_fixed', 'below_minimum', 'overlap', 'coverage_lost'] as const
+export const MOVE_PROBLEM_CODES = ['not_offered', 'already_placed', 'item_full', 'not_placed', 'leaves_fixed', 'below_minimum', 'overlap', 'coverage_lost', 'fills_nothing'] as const
 export type MoveProblemCode = typeof MOVE_PROBLEM_CODES[number]
 
 export interface MoveProblem {
@@ -124,6 +126,8 @@ export function checkMove(input: AllocationInput, assignments: readonly Assignme
       const before = deficits(input, student, mine.map((a) => a.itemId))
       const after = deficits(input, student, [...kept.map((a) => a.itemId), move.toItemId])
       if (input.projectDays.some((date) => (after.get(date) ?? 0) > (before.get(date) ?? 0))) problems.push({ code: 'coverage_lost', itemId: move.toItemId })
+      // Into a gap means into a gap: with nothing left, the target must bring a day closer to its minimum.
+      if (move.leaves.length === 0 && !input.projectDays.some((date) => (after.get(date) ?? 0) < (before.get(date) ?? 0))) problems.push({ code: 'fills_nothing', itemId: move.toItemId })
     }
   }
   return problems

@@ -33,6 +33,7 @@ interface Locked {
   campaign: Campaign
   run: StoredRun
   rows: Assignment[]
+  /** Every item the campaign had, its fee the run's. */
   items: Map<string, Item>
   /** Items nobody enters now: cancelled by the run, withdrawn since. */
   unavailable: Set<string>
@@ -47,7 +48,9 @@ async function lock(client: Queryable, campaignId: string): Promise<Locked> {
   if (!run) throw new ApplicationError('not_published')
   const rows = await store.listAssignments(client, run.id)
   const items = await listCampaignItems(client, campaignId)
-  return { campaign, run, rows, items: new Map(items.map((item) => [item.id, item])), unavailable: unavailableItems(run, items) }
+  // The fee as the run froze it, as the result and the workbook show it: a fee changed since is not the student's.
+  const frozenFee = new Map(run.snapshot.items.map((item) => [item.id, item.feeCents]))
+  return { campaign, run, rows, items: new Map(items.map((item) => [item.id, { ...item, feeCents: frozenFee.get(item.id) ?? item.feeCents }])), unavailable: unavailableItems(run, items) }
 }
 
 /** The first problem, as the refusal's code; the item it names as the detail. */

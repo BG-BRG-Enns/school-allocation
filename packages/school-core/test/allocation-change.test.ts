@@ -65,7 +65,10 @@ test('a move is refused for what the rules say, each by its code', () => {
   // Leaving chess leaves it empty under its minimum of one; the organizer may force that, the student may not.
   assert.deepEqual(swap('sara', 'crafts'), ['below_minimum'])
   assert.deepEqual(swap('sara', 'crafts', { force: true }), [])
-  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'sara', toItemId: 'reading', leaves: [] })), ['overlap'], 'a placement into a gap must not overlap what the student keeps')
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'sara', toItemId: 'reading', leaves: [] })), ['overlap', 'fills_nothing'], 'a placement into a gap must not overlap what the student keeps, and must fill one')
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'sara', toItemId: 'darts', leaves: [] })), ['not_offered'], 'the trip is Tuesday\'s; nothing of Sara\'s is placeable there')
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'lena', toItemId: 'crafts', leaves: [] })), [], 'Lena\'s afternoon is the gap crafts fills')
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'sara', toItemId: 'crafts', leaves: [] }, { force: true })), ['overlap', 'fills_nothing'], 'not even the organizer: a seat on a covered day is no placement')
   assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'sara', toItemId: null, leaves: ['vienna'] })), ['leaves_fixed'], 'never by hand either')
   assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'sara', toItemId: null, leaves: ['darts'] })), ['not_placed'])
   assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'sara', toItemId: null, leaves: ['chess'] })), ['below_minimum'])

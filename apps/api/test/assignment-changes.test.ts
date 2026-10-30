@@ -178,6 +178,9 @@ test('the class teacher places a student short of minutes into a gap; the organi
   assert.equal(overridden.status, 200, JSON.stringify(overridden.body))
   assert.equal(overridden.body.change.forced, true)
   assert.equal((await change({ personId: s.timPerson, removeItemId: s.items.klettern, reason: 'Test' })).body.error, 'not_placed')
+  assert.equal((await change({ personId: s.saraPerson, itemId: s.items.schwimmen, reason: 'Test', force: true })).body.error, 'overlap', 'into a gap means into a gap')
+  // A fee changed after publication is not the student's: the notice names the run's.
+  await owner.query('update catalog_item set fee_cents = 9900 where id = $1', [s.items.tanz])
   const removed = await change({ personId: s.timPerson, removeItemId: s.items.tanz, reason: 'Tim ist krank' })
   assert.equal(removed.status, 200, JSON.stringify(removed.body))
   assert.deepEqual([removed.body.change.kind, removed.body.change.forced], ['remove', false])
@@ -208,4 +211,6 @@ test('the class teacher places a student short of minutes into a gap; the organi
   assert.equal(changed.rows.length, 5)
   assert.match(changed.rows[1]?.body ?? '', /von der Organisation geändert: statt .*Tanz jetzt .*Klettern/)
   assert.match(changed.rows[4]?.body ?? '', /nicht mehr .*Tanz/)
+  assert.match(changed.rows[3]?.body ?? '', /Tanz – Beitrag 3,00 €/, 'the fee the run froze, not the 99 € of today')
+  assert.doesNotMatch(changed.rows[4]?.body ?? '', /99,00/)
 })

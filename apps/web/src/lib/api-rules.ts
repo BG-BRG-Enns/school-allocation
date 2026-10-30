@@ -118,6 +118,7 @@ export const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   below_minimum: 'Die bisherige Aktivität käme unter ihre Mindestteilnehmerzahl.',
   overlap: 'Die Aktivität überschneidet sich mit einer, die bleibt.',
   coverage_lost: 'Danach würden an einem Tag Minuten fehlen, die jetzt nicht fehlen.',
+  fills_nothing: 'Diese Aktivität füllt keine Lücke: an ihrem Tag ist das Programm schon voll.',
   fully_placed: 'Diese Schülerin oder dieser Schüler hat an jedem Tag das Programm; eine Zuteilung in eine Lücke ist nicht nötig.',
   no_change: 'Bitte eine Aktivität angeben, in die oder aus der die Person kommt.',
 }

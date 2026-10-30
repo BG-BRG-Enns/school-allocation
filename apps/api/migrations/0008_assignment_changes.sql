@@ -56,6 +56,8 @@ alter table assignment add column superseded_by uuid references assignment_chang
 alter table assignment drop constraint assignment_pkey;
 alter table assignment add primary key (id);
 create unique index assignment_current on assignment (run_id, person_id, item_id) where superseded_by is null;
+-- The change log asks which rows a change superseded.
+create index assignment_superseded on assignment (superseded_by) where superseded_by is not null;
 alter table assignment add constraint assignment_change_source check (source not in ('swap', 'manual') or change_id is not null);
 
 -- The guard: a row changes once, by being superseded by a change of its run; nothing else, ever.

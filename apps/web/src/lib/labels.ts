@@ -225,6 +225,7 @@ export const MOVE_PROBLEM_LABELS: Readonly<Record<string, string>> = {
   below_minimum: 'die bisherige Aktivität käme unter ihr Minimum',
   overlap: 'überschneidet sich',
   coverage_lost: 'es würden Minuten fehlen',
+  fills_nothing: 'füllt keine Lücke',
 }
 
 /** The state of a mail in the outbox (apps/api/lib/mail/outbox.ts MAIL_STATES). */

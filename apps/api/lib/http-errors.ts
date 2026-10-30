@@ -20,6 +20,7 @@ export const APPLICATION_ERROR_STATUS = {
   csv_invalid: 422,
   daily_minimum_missing: 422,
   duplicate_group: 422,
+  fills_nothing: 422,
   fixed_items_overlap: 422,
   forbidden: 403,
   fully_placed: 409,
