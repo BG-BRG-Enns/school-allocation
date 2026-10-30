@@ -51,9 +51,13 @@ const byDay = computed(() => {
     const day = r.explanation.days.find((d) => d.date === date)
     // An activity belongs to every day a session of it touches, credited minutes or not: a trip leaving on Monday evening is Monday's too.
     const entries = r.explanation.items
-      .map((e) => ({ ...e, item: r.items.find((i) => i.id === e.itemId), minutes: e.minutesByDate[date] ?? 0 }))
-      .filter((e) => e.minutes > 0 || (e.item?.sessions.some((s) => touches(s, date)) ?? false))
-      .sort((a, b) => (a.item?.sessions[0]?.startsAt ?? '').localeCompare(b.item?.sessions[0]?.startsAt ?? ''))
+      .map((e) => {
+        const item = r.items.find((i) => i.id === e.itemId)
+        // The day's sessions alone: a trip over the night is on both days, Monday's workshop not on Wednesday.
+        return { ...e, item, minutes: e.minutesByDate[date] ?? 0, sessions: item?.sessions.filter((s) => touches(s, date)) ?? [] }
+      })
+      .filter((e) => e.minutes > 0 || e.sessions.length > 0)
+      .sort((a, b) => (a.sessions[0]?.startsAt ?? '').localeCompare(b.sessions[0]?.startsAt ?? ''))
     return { date, day, entries }
   })
 })
@@ -114,7 +118,7 @@ function sourceText(source: string, rank: number | null): string {
           <span class="badge">{{ sourceText(e.source, e.rank) }}</span>
           <ul class="plain">
             <li
-              v-for="s in e.item?.sessions ?? []"
+              v-for="s in e.sessions"
               :key="s.id"
             >
               {{ formatSpanOnGrid(grid, s.startsAt, s.endsAt) }}<template v-if="s.location">
