@@ -193,7 +193,9 @@ function toChange(change: StoredChange, students: Map<string, CampaignStudent>):
 export async function changeLog(db: Queryable, campaign: Campaign): Promise<AssignmentChange[]> {
   const run = await store.readPublishedRun(db, campaign.id)
   if (!run) return []
-  const [rows, students] = await Promise.all([store.listChanges(db, run.id), campaignStudents(db, campaign)])
+  // One after another: `db` may be a snapshot's client (the published workbook), which takes one query at a time.
+  const rows = await store.listChanges(db, run.id)
+  const students = await campaignStudents(db, campaign)
   const named = new Map(students.map((s) => [s.personId, s]))
   return rows.map((row) => toChange(row, named))
 }

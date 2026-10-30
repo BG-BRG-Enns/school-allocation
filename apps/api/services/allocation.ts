@@ -240,7 +240,11 @@ export async function runReview(db: Queryable, campaign: Campaign, runId: string
   const run = await store.readRun(db, campaign.id, runId.toLowerCase())
   if (!run) throw new ApplicationError('not_found')
   // Every item the campaign ever had labels the rows: one withdrawn since the run still names what a student was given.
-  const [rows, students, items, current] = await Promise.all([store.listAssignments(db, run.id), campaignStudents(db, campaign), listCampaignItems(db, campaign.id), snapshotOf(db, campaign, 0, 0)])
+  // One after another: `db` may be a snapshot's client (the published workbook), which takes one query at a time.
+  const rows = await store.listAssignments(db, run.id)
+  const students = await campaignStudents(db, campaign)
+  const items = await listCampaignItems(db, campaign.id)
+  const current = await snapshotOf(db, campaign, 0, 0)
   const { snapshot, passResults: _passes, ...view } = run
   const summary = run.status === 'succeeded' ? summarizeAllocation(snapshot, rows, run.cancelledItemIds) : null
   const named = new Map(students.map((s) => [s.personId, s]))
