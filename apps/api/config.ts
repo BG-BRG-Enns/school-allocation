@@ -445,7 +445,10 @@ function parseSolverUrl(raw: string | undefined): string | null {
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new ConfigError('SOLVER_URL must use http or https')
   if (url.username || url.password || url.search || url.hash) throw new ConfigError('SOLVER_URL must carry no credentials, query or fragment')
-  return url.href.replace(/\/+$/, '')
+  // A loop, not /\/+$/: V8 retries that pattern from every slash of a run, quadratic in a long one.
+  let href = url.href
+  while (href.endsWith('/')) href = href.slice(0, -1)
+  return href
 }
 
 /** `true` or `false`, or the default when unset. */
