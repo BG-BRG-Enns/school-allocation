@@ -118,7 +118,7 @@ Every notice is a row of the outbox: who got what, when, and the server's reply 
 
 ## Under a path of an existing site
 
-`PUBLIC_URL=https://www.example.org/wahl` runs the app under `/wahl`: every route, cookie and link carries the prefix, and the proxy passes the path through unchanged (the variant at the end of `nginx.example.conf`). On a shared origin the app's defence against cross-site requests trusts that whole origin, so a page of another application on the same host could send requests with a signed-in person's cookies. A host of its own keeps that boundary; the app runs either way.
+`PUBLIC_URL=https://www.example.org/wahl` runs the app under `/wahl`: every route, cookie and link carries the prefix, and the proxy passes the path through unchanged (the variant at the end of `nginx.example.conf`). On a shared origin the app's defence against cross-site requests trusts that whole origin, so a page of another application on the same host could send requests with a signed-in person's cookies. Another cost: under a path the session cookie cannot be bound to the host by its name, so any host of `example.org` can set one for the app; the app refuses a session that was not started in the same browser, but a planted cookie can keep a person signed out until it expires. A host of its own keeps both boundaries; the app runs either way.
 
 ## First start
 
