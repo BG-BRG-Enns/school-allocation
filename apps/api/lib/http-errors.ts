@@ -42,6 +42,7 @@ export const APPLICATION_ERROR_STATUS = {
   no_roster: 422,
   no_students: 422,
   not_a_student: 403,
+  not_assigned: 422,
   not_blocked: 409,
   not_due: 409,
   not_found: 404,

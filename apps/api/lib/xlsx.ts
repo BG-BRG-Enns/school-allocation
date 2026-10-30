@@ -2,6 +2,7 @@
 // spreadsheets: one sheet of activities, one of sessions. Columns are typed
 // so the sheet sorts and sums; nothing about students is in it.
 
+import type { AttendanceRow } from '@school-allocation/api-contracts/attendance'
 import type { AssignmentChange } from '@school-allocation/api-contracts/publication'
 import writeXlsxFile from 'write-excel-file/node'
 import type { RunReviewResponse } from './models/allocation.ts'
@@ -84,6 +85,27 @@ export async function catalogueWorkbook(items: readonly Item[]): Promise<Buffer>
 const SOURCE_LABELS: Record<string, string> = { fixed: 'Klassenaktivität', wish: 'Wunsch', fallback: 'Ersatzplatz', swap: 'Tausch', manual: 'Händisch' }
 
 const CHANGE_KIND_LABELS: Record<string, string> = { swap: 'Tausch', place: 'Zuteilung', move: 'Umsetzung', remove: 'Herausnahme' }
+const ATTENDANCE_LABELS: Record<string, string> = { present: 'anwesend', absent: 'abwesend', excused: 'entschuldigt' }
+
+/** The attendance as a workbook: one row per student and session, with what was recorded; the whole campaign or one class. */
+export async function attendanceWorkbook(rows: readonly AttendanceRow[]): Promise<Buffer> {
+  const data = [
+    ['Tag', 'Nr.', 'Aktivität', 'Von', 'Bis', 'Klasse', 'Name', 'Anwesenheit', 'Notiz'].map(header),
+    ...rows.map((r) => [
+      { type: String, value: dayShort.format(new Date(r.startsAt)) },
+      { type: Number, value: r.number ?? undefined },
+      { type: String, value: r.title },
+      { type: Date, value: new Date(r.startsAt), format: 'dd.mm.yyyy hh:mm' },
+      { type: Date, value: new Date(r.endsAt), format: 'dd.mm.yyyy hh:mm' },
+      { type: String, value: r.className },
+      { type: String, value: r.displayName },
+      { type: String, value: r.status === null ? '' : ATTENDANCE_LABELS[r.status] ?? r.status },
+      { type: String, value: r.note },
+    ]),
+  ]
+  const workbook = writeXlsxFile([{ sheet: 'Anwesenheit', columns: [{ width: 12 }, { width: 6 }, { width: 36 }, { width: 18 }, { width: 18 }, { width: 8 }, { width: 30 }, { width: 14 }, { width: 40 }], data }])
+  return workbook.toBuffer()
+}
 
 /**
  * A run as a workbook for the organizer's review and the school's lists:

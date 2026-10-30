@@ -1,6 +1,7 @@
 export * from './admin-roster-endpoints.ts'
 export * from './admin-users-endpoints.ts'
 export * from './allocation-endpoints.ts'
+export * from './attendance-endpoints.ts'
 export * from './publication-endpoints.ts'
 export * from './auth-endpoints.ts'
 export * from './campaigns-endpoints.ts'

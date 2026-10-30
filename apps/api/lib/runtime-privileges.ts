@@ -87,6 +87,8 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   assignment: { table: ['SELECT', 'INSERT'], updateColumns: ['superseded_by'] },
   // A change after publication is written once and read; never changed or removed.
   assignment_change: { table: ['SELECT', 'INSERT'] },
+  // Attendance is recorded and corrected in place; never removed (the trigger keeps the rest).
+  attendance: { table: ['SELECT', 'INSERT'], updateColumns: ['status', 'note', 'recorded_by', 'recorded_at'] },
 }
 
 /** Functions the runtime role may execute, by their signature as PostgreSQL prints a regprocedure: argument types without spaces between them. */

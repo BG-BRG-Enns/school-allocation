@@ -228,6 +228,13 @@ export const MOVE_PROBLEM_LABELS: Readonly<Record<string, string>> = {
   fills_nothing: 'füllt keine Lücke',
 }
 
+/** What was recorded for a student in a session (packages/api-contracts/src/attendance.ts ATTENDANCE_STATUSES). */
+export const ATTENDANCE_STATUS_LABELS: Readonly<Record<string, string>> = {
+  present: 'anwesend',
+  absent: 'abwesend',
+  excused: 'entschuldigt',
+}
+
 /** The state of a mail in the outbox (apps/api/lib/mail/outbox.ts MAIL_STATES). */
 export const MAIL_STATE_LABELS: Readonly<Record<string, string>> = {
   queued: 'in der Warteschlange',

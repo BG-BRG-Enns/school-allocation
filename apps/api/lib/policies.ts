@@ -17,12 +17,14 @@ export function isTeacher(caller: Pick<Caller, 'person'>): boolean {
 /**
  * Whether the caller may see a campaign in `state`: organizers see all of
  * them, teachers also one taking proposals, everyone signed in what is
- * published. A campaign that is not visible does not exist for the caller.
+ * published, the archived campaign included (read-only: the result and
+ * the attendance stay readable). A campaign that is not visible does not
+ * exist for the caller.
  */
 export function canSee(caller: Pick<Caller, 'roles' | 'person'>, state: CampaignState): boolean {
   if (isOrganizer(caller)) return true
   if (state === 'catalogue') return isTeacher(caller)
-  return state !== 'draft' && state !== 'archived'
+  return state !== 'draft'
 }
 
 /** Who may propose: teachers of the roster in force, and organizers on anyone's behalf. They always see the teachers of an item. */

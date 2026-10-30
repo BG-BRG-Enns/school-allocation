@@ -116,7 +116,10 @@ lifecycle, and is tested with synthetic data only.
 
 **S5b · Attendance and the archive.**
 
-- KV attendance per session for own class; attendance exports; `results → archived` by the organizer.
+- KV attendance per session for own class (students currently assigned to the session's item; a
+  correction replaces; audited); the class's and the campaign's attendance workbooks.
+- `results → archived` by the organizer: nothing changes afterwards, everything stays readable for
+  everyone who could read it before.
 
 **S5c · The retention purge (D-15).**
 

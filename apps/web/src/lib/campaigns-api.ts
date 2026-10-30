@@ -34,7 +34,7 @@ export const missingExportPath = (id: string) => endpointPath(endpoints.getAdmin
 export const updateCampaign = (id: string, input: CampaignChanges) => apiRequest(endpoints.patchAdminCampaignsById, { params: { id: id }, body: input })
 export const loadDemand = (id: string) => apiRequest(endpoints.getCampaignsByIdDemand, { params: { id: id } })
 export const loadClassStatus = (id: string, className: string) => apiRequest(endpoints.getCampaignsByIdClassesByClassNameStatus, { params: { id: id, className: className } })
-export const transitionCampaign = (id: string, to: 'catalogue' | 'published' | 'open' | 'closed') => apiRequest(endpoints.postAdminCampaignsByIdTransition, { params: { id: id }, body: { to } })
+export const transitionCampaign = (id: string, to: 'catalogue' | 'published' | 'open' | 'closed' | 'archived') => apiRequest(endpoints.postAdminCampaignsByIdTransition, { params: { id: id }, body: { to } })
 export const approveItem = (id: string) => apiRequest(endpoints.postAdminItemsByIdApprove, { params: { id: id } })
 export const returnItem = (id: string, note: string) => apiRequest(endpoints.postAdminItemsByIdReturn, { params: { id: id }, body: { note } })
 export const withdrawItem = (id: string, reason: string) => apiRequest(endpoints.postAdminItemsByIdWithdraw, { params: { id: id }, body: { reason } })
