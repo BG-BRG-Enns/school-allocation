@@ -277,7 +277,9 @@ declare
   campaigns uuid[];
   batches uuid[];
   persons uuid[];
+  settled uuid[];
   users uuid[];
+  rounds integer := 0;
   n bigint;
 begin
   if year !~ '^\d{4}/\d{2}$' then
@@ -335,7 +337,7 @@ begin
   -- The people nobody names any more: no roster entry, no item, no place, no record, no class to lead. Their bindings go,
   -- and with them their accounts, unless an account also belongs to someone who stays, holds a role grant, or did
   -- something a remaining record refers to (a teacher who left keeps the account that proposed an item).
-  select coalesce(array_agg(p.id), '{}') into persons from person p
+  select coalesce(array_agg(p.id order by p.id), '{}') into persons from person p
    where not exists (select 1 from roster_entry e where e.person_id = p.id)
      and not exists (select 1 from item_teacher t where t.person_id = p.id)
      and not exists (select 1 from pre_assignment a where a.person_id = p.id)
@@ -346,30 +348,41 @@ begin
      and not exists (select 1 from attendance a where a.person_id = p.id)
      and not exists (select 1 from outbox_mail m where m.person_id = p.id)
      and not exists (select 1 from class_teacher t where t.person_id = p.id);
-  select coalesce(array_agg(u.id), '{}') into users from app_user u
-   where exists (select 1 from identity_binding b where b.tid = u.tid and b.oid = u.oid and b.person_id = any(persons))
-     and not exists (select 1 from identity_binding b where b.tid = u.tid and b.oid = u.oid and not (b.person_id = any(persons)))
-     and not exists (select 1 from role_grant g where g.user_id = u.id or g.granted_by = u.id or g.revoked_by = u.id)
-     and not exists (select 1 from app_user o where o.blocked_by = u.id)
-     and not exists (select 1 from job j where j.started_by = u.id)
-     and not exists (select 1 from import_batch b where b.triggered_by = u.id or b.decided_by = u.id)
-     and not exists (select 1 from roster_group g where g.updated_by = u.id)
-     and not exists (select 1 from identity_binding b where (b.bound_by = u.id or b.unbound_by = u.id) and not (b.person_id = any(persons)))
-     and not exists (select 1 from campaign c where c.created_by = u.id)
-     and not exists (select 1 from catalog_item i where i.proposed_by = u.id or i.approved_by = u.id or i.withdrawn_by = u.id)
-     and not exists (select 1 from class_teacher t where t.assigned_by = u.id or t.revoked_by = u.id)
-     and not exists (select 1 from pre_assignment a where a.exempted_by = u.id)
-     and not exists (select 1 from choice c where c.entered_by = u.id)
-     and not exists (select 1 from choice_revision c where c.entered_by = u.id)
-     and not exists (select 1 from mail_template t where t.updated_by = u.id)
-     and not exists (select 1 from allocation_run r where r.started_by = u.id or r.published_by = u.id)
-     and not exists (select 1 from assignment_change c where c.changed_by = u.id)
-     and not exists (select 1 from attendance a where a.recorded_by = u.id);
-  -- A person whose account stays (a remaining record names it) stays whole, binding included: a later purge finds the
-  -- account through the binding once the last reference is gone.
-  select coalesce(array_agg(id), '{}') into persons from unnest(persons) as id
-   where not exists (select 1 from identity_binding b where b.person_id = id
-                        and not exists (select 1 from app_user u where u.id = any(users) and u.tid = b.tid and u.oid = b.oid));
+  -- The accounts that go with them: bound to those persons alone, holding no role grant, named by no remaining record. A
+  -- person whose account stays (a remaining record names it) stays whole, binding included, so a later purge finds the
+  -- account through the binding once the last reference is gone; a binding without an account (a Graph import before
+  -- the first sign-in) keeps nobody. Persons and accounts are settled together, until neither set changes.
+  loop
+    select coalesce(array_agg(u.id), '{}') into users from app_user u
+     where exists (select 1 from identity_binding b where b.tid = u.tid and b.oid = u.oid and b.person_id = any(persons))
+       and not exists (select 1 from identity_binding b where b.tid = u.tid and b.oid = u.oid and not (b.person_id = any(persons)))
+       and not exists (select 1 from role_grant g where g.user_id = u.id or g.granted_by = u.id or g.revoked_by = u.id)
+       and not exists (select 1 from app_user o where o.blocked_by = u.id)
+       and not exists (select 1 from job j where j.started_by = u.id)
+       and not exists (select 1 from import_batch b where b.triggered_by = u.id or b.decided_by = u.id)
+       and not exists (select 1 from roster_group g where g.updated_by = u.id)
+       and not exists (select 1 from identity_binding b where (b.bound_by = u.id or b.unbound_by = u.id) and not (b.person_id = any(persons)))
+       and not exists (select 1 from campaign c where c.created_by = u.id)
+       and not exists (select 1 from catalog_item i where i.proposed_by = u.id or i.approved_by = u.id or i.withdrawn_by = u.id)
+       and not exists (select 1 from class_teacher t where t.assigned_by = u.id or t.revoked_by = u.id)
+       and not exists (select 1 from pre_assignment a where a.exempted_by = u.id)
+       and not exists (select 1 from choice c where c.entered_by = u.id)
+       and not exists (select 1 from choice_revision c where c.entered_by = u.id)
+       and not exists (select 1 from mail_template t where t.updated_by = u.id)
+       and not exists (select 1 from allocation_run r where r.started_by = u.id or r.published_by = u.id)
+       and not exists (select 1 from assignment_change c where c.changed_by = u.id)
+       and not exists (select 1 from attendance a where a.recorded_by = u.id);
+    select coalesce(array_agg(p.person_id order by p.person_id), '{}') into settled from unnest(persons) as p(person_id)
+     where not exists (select 1 from identity_binding b join app_user u on u.tid = b.tid and u.oid = b.oid
+                        where b.person_id = p.person_id and not (u.id = any(users)));
+    exit when settled = persons;
+    -- Every pass drops at least one person, so the loop ends; the bound is a belt.
+    rounds := rounds + 1;
+    if rounds > 100 then
+      raise exception 'the persons and accounts to purge did not settle' using errcode = '55000';
+    end if;
+    persons := settled;
+  end loop;
   with d as (delete from identity_binding where person_id = any(persons) returning 1) select count(*) into n from d;
   relation := 'identity_binding'; removed := n; return next;
   with d as (delete from app_user where id = any(users) returning 1) select count(*) into n from d;
