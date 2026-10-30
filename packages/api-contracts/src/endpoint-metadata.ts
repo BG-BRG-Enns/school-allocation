@@ -141,6 +141,10 @@ export const getSettingsPeriods = { method: 'GET', path: '/api/settings/periods'
 
 export const putAdminSettingsPeriods = { method: 'PUT', path: '/api/admin/settings/periods', transport: 'json' } as const satisfies EndpointMetadata
 
+export const getSettingsLanguage = { method: 'GET', path: '/api/settings/language', transport: 'json' } as const satisfies EndpointMetadata
+
+export const putAdminSettingsLanguage = { method: 'PUT', path: '/api/admin/settings/language', transport: 'json' } as const satisfies EndpointMetadata
+
 export const getAdminClasses = { method: 'GET', path: '/api/admin/classes', transport: 'json' } as const satisfies EndpointMetadata
 
 export const getAdminClassesTeachers = { method: 'GET', path: '/api/admin/classes/teachers', transport: 'json' } as const satisfies EndpointMetadata

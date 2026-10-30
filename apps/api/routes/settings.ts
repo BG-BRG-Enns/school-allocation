@@ -2,12 +2,14 @@
 //
 //   GET  /api/settings/periods                  the period grid, for everyone who places or reads a session
 //   PUT  /api/admin/settings/periods            replace it (administrators), audited
+//   GET  /api/settings/language                 the school's language, for everyone signed in
+//   PUT  /api/admin/settings/language           set it (administrators), audited
 //   GET  /api/admin/classes                     the roster's classes with their class teachers (administrators, organizers)
 //   GET  /api/admin/classes/teachers?q=         the roster's teachers, for assigning one (administrators, organizers)
 //   PUT  /api/admin/classes/:className/teachers set the class teachers assigned in the app, audited
 
 import { classDirectory, teacherDirectory } from '../services/class-teachers.ts'
-import { periodSettings } from '../services/settings.ts'
+import { languageSetting, periodSettings } from '../services/settings.ts'
 
 import * as endpoints from '@school-allocation/api-contracts/settings-endpoints'
 import { registerEndpoint } from '../lib/endpoint.ts'
@@ -18,7 +20,7 @@ import type { Guards } from '../lib/auth.ts'
 import { callerOf } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { replaceClassTeachers } from '../services/class-teachers.ts'
-import { replacePeriods } from '../services/settings.ts'
+import { replaceLanguage, replacePeriods } from '../services/settings.ts'
 
 export interface SettingsRoutesOptions {
   db: Database
@@ -36,6 +38,14 @@ export async function settingsRoutes(app: FastifyInstance, { db, guards }: Setti
 
   registerEndpoint(app, endpoints.putAdminSettingsPeriods, { ...admin }, async (request) => {
     return { periods: await replacePeriods(db, request.body.periods, actorOf(callerOf(request))) }
+  })
+
+  registerEndpoint(app, endpoints.getSettingsLanguage, { ...signedIn }, async () => {
+    return languageSetting(db)
+  })
+
+  registerEndpoint(app, endpoints.putAdminSettingsLanguage, { ...admin }, async (request) => {
+    return replaceLanguage(db, request.body.locale, actorOf(callerOf(request)))
   })
 
   registerEndpoint(app, endpoints.getAdminClasses, { ...organizer }, async () => {

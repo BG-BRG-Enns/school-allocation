@@ -342,6 +342,12 @@ export const de = {
       graph_failed: 'Microsoft Graph hat nicht geantwortet. Bitte später noch einmal versuchen.',
       import_failed: 'Der Import ist fehlgeschlagen.',
     },
+    /** The languages a school may speak (packages/messages LOCALES), as the administration chooses one. */
+    locale: {
+      'de': 'Deutsch (du)',
+      'de-formal': 'Deutsch (Sie zu Lehrkräften und Verwaltung)',
+      'en': 'English',
+    },
   },
 
   /** What a person is told when the API refuses, by its code; the validation message names a field, never a value. */
@@ -900,6 +906,13 @@ export const de = {
     periods: 'Die Unterrichtseinheiten der Schule, in denen Lehrkräfte ihre Termine angeben.',
     mailTemplates: 'Die Texte der Nachrichten, die eine Wahl verschickt: Einladungen, Erinnerungen, Listen an die Klassenvorstände.',
     retention: 'Welche Schuljahre Aufzeichnungen haben und wie lange sie bleiben; das Löschen eines Schuljahrs, ein Jahr nach seinem Ende.',
+    /** The school's language, chosen here for everyone; the page then loads again in it. */
+    language: {
+      title: 'Sprache',
+      intro: 'In dieser Sprache zeigt SchulWahl allen an der Schule die Seiten, die Excel-Dateien und die E-Mails. E-Mail-Vorlagen, die jemand geändert hat, bleiben, wie sie sind.',
+      label: 'Sprache der Schule',
+      saved: 'Sprache gespeichert. Die Seite lädt neu.',
+    },
   },
 
   /** Stammdaten.vue: the list in force, the Entra groups, a refresh from them, a CSV upload, the imports so far. */

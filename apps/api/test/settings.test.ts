@@ -1,17 +1,23 @@
 // The school's settings and the classes on a real database: the period
-// grid everyone reads and an administrator replaces; the class teachers,
+// grid everyone reads and an administrator replaces; the school's language,
+// which the page names; the class teachers,
 // assigned in the app or named by the roster, and what a class teacher
 // may see; the campaign's window settings with their order; the demand
 // per day and grade; whether students see who teaches.
 
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { SCHOOL_LOCALES } from '@school-allocation/api-contracts/settings'
+import { LOCALES } from '@school-allocation/messages'
 import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { createDatabase } from '../lib/db.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
 import type { ClassWithTeachers } from '../lib/models/class-teachers.ts'
 import type { Item } from '../lib/models/items.ts'
 import type { BatchDetail } from '../lib/models/roster.ts'
+import { SQLSTATE, sqlState } from '../lib/pg-errors.ts'
+import { fakeWebDist } from './helpers/app.ts'
+import { checkedValues } from './helpers/db.ts'
 import type { CookieJar } from './helpers/fake-entra.ts'
 import { DB, get, harness, send, signIn, type Harness } from './helpers/harness.ts'
 import { ANNA, BERND, CARLA, SARA, TIM } from './helpers/personas.ts'
@@ -72,6 +78,46 @@ test('the period grid starts with the Austrian default, is read by everyone sign
   const events = await readAudit(owner, SCHOOL_SCOPE)
   assert.deepEqual(events.at(-1)?.action, 'settings.periods-changed')
   assert.deepEqual(events.at(-1)?.metadata, { periods: 6, first: '08:00', last: '13:50' })
+})
+
+test('the school speaks German until an administrator sets another language, which everyone signed in reads and the page names; a change is audited with the one before', DB, async (t) => {
+  const h = await harness(t, { ...ADMIN, WEB_DIST_DIR: fakeWebDist() })
+  const anna = await signIn(h, ANNA)
+  const bernd = await signIn(h, BERND)
+  assert.deepEqual([...SCHOOL_LOCALES], [...LOCALES], 'the contract spells out the catalogue\'s languages')
+  assert.deepEqual(await checkedValues(h.ownerUrl, 'school_setting', 'locale'), [...LOCALES], 'and the database stores no other')
+  assert.deepEqual((await get(h, bernd, '/api/settings/language')).body, { locale: 'de' })
+  assert.equal((await get(h, undefined, '/api/settings/language')).status, 401)
+  assert.match((await h.app.inject({ method: 'GET', url: '/' })).body, /<meta name="locale" content="de">/)
+
+  assert.equal((await send(h, bernd, 'PUT', '/api/admin/settings/language', { locale: 'en' })).status, 403)
+  assert.equal((await send(h, anna, 'PUT', '/api/admin/settings/language', { locale: 'fr' })).status, 400)
+  const english = await send(h, anna, 'PUT', '/api/admin/settings/language', { locale: 'en' })
+  assert.equal(english.status, 200, JSON.stringify(english.body))
+  assert.deepEqual(english.body, { locale: 'en' })
+  assert.deepEqual((await get(h, bernd, '/api/settings/language')).body, { locale: 'en' })
+  const page = await h.app.inject({ method: 'GET', url: '/wahlen' })
+  assert.match(page.body, /<html lang="en">/)
+  assert.match(page.body, /<meta name="locale" content="en">/)
+
+  const owner = createDatabase(h.ownerUrl, () => {})
+  t.after(() => owner.close())
+  const events = await readAudit(owner, SCHOOL_SCOPE)
+  assert.deepEqual(events.at(-1)?.action, 'settings.language-changed')
+  assert.deepEqual(events.at(-1)?.metadata, { from: 'de', to: 'en' })
+  assert.deepEqual((await send(h, anna, 'PUT', '/api/admin/settings/language', { locale: 'en' })).body, { locale: 'en' })
+  assert.equal((await readAudit(owner, SCHOOL_SCOPE)).length, events.length, 'the language it has already: nothing changes, nothing is recorded')
+  await send(h, anna, 'PUT', '/api/admin/settings/language', { locale: 'de-formal' })
+  assert.deepEqual((await readAudit(owner, SCHOOL_SCOPE)).at(-1)?.metadata, { from: 'en', to: 'de-formal' })
+  assert.match((await h.app.inject({ method: 'GET', url: '/' })).body, /<html lang="de">/)
+  const { rows: [row] } = await owner.query<{ locale: string, updated_by: string | null }>('select locale, updated_by from school_setting')
+  assert.equal(row?.locale, 'de-formal')
+  assert.ok(row?.updated_by)
+
+  // The one row stays one row: the runtime role neither adds nor removes it.
+  for (const sql of ['delete from school_setting', 'insert into school_setting (id) values (false)', 'truncate school_setting']) {
+    await assert.rejects(h.db.query(sql), (err: unknown) => sqlState(err) === SQLSTATE.insufficientPrivilege, sql)
+  }
 })
 
 test('class teachers come from the roster\'s address column and from the app; a class teacher sees their class in a campaign, nobody else does', DB, async (t) => {

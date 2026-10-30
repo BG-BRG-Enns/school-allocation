@@ -45,9 +45,10 @@ export const AUDIT_ACTIONS = [
   'item.returned',
   'item.withdrawn',
   'item.changed',
-  // The school's settings (school scope): the period grid replaced; the
-  // class teachers of a class set.
+  // The school's settings (school scope): the period grid replaced, the
+  // language changed; the class teachers of a class set.
   'settings.periods-changed',
+  'settings.language-changed',
   'class.teachers-changed',
   // The window (campaign scope): an organizer exempts a student from a
   // class activity, or enters a ranking on a student's behalf. A

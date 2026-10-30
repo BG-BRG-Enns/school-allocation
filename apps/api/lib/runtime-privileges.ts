@@ -68,6 +68,8 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   item_session: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['location'] },
   // The period grid is replaced as a whole by an administrator, audited.
   period_grid: { table: ['SELECT', 'INSERT', 'DELETE'] },
+  // The school's one row of settings is changed by an administrator, audited; it is never added or removed.
+  school_setting: { table: ['SELECT'], updateColumns: ['locale', 'updated_at', 'updated_by'] },
   // A class teacher is assigned and revoked, never changed otherwise or
   // removed; a trigger keeps it so whoever writes.
   class_teacher: { table: ['SELECT', 'INSERT'], updateColumns: ['revoked_at', 'revoked_by'] },

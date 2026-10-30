@@ -826,6 +826,14 @@
   },
   {
     "method": "GET",
+    "url": "/api/settings/language",
+    "body": null,
+    "params": null,
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/settings/periods",
     "body": null,
     "params": null,
@@ -2266,6 +2274,29 @@
             "additionalProperties": false
           },
           "maxItems": 200
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": null,
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "PUT",
+    "url": "/api/admin/settings/language",
+    "body": {
+      "type": "object",
+      "required": [
+        "locale"
+      ],
+      "properties": {
+        "locale": {
+          "enum": [
+            "de",
+            "de-formal",
+            "en"
+          ]
         }
       },
       "additionalProperties": false
