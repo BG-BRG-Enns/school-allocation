@@ -75,16 +75,32 @@ lifecycle, and is tested with synthetic data only.
   placeholders.
 - Non-submitter list and export.
 
-**S4 · Allocation.**
+**S4 · Allocation**, in three steps, each its own pull request.
 
-- Model compiler in school-core: time groups, fee-free fallback options (D-06), two passes with the
-  first window fixed (D-20); solver service with CP-SAT and lexicographic levels.
-- Independent validator.
-- Run review screen: levels, rank distribution, deficits, fallback placements, unplaced students,
-  cancelled items (the organizer confirms them before publication), run comparison.
-- Publish; student result with explanation; class teachers' lists of unplaced students; participant
-  lists; exports.
-- A reproducibility test in CI.
+**S4a · The engine.**
+
+- Model compiler in school-core: the requirement left after fixed items, time groups and wish
+  numbers, fee-free fallback options (D-06), two passes with the first window fixed (D-20), the lot
+  from the seed; the independent validator and the explanation and summary of a result.
+- The solver service's `/v1/solve`: CP-SAT with the lexicographic levels, one worker, the seed, a
+  deterministic limit; its own tests (golden instances, reproducibility, the refusals) in CI.
+- The solver contract as shared schemas, pinned to school-core's types.
+
+**S4b · Runs and review.**
+
+- `allocation_run` and `assignment`; `SOLVER_URL`; the run as a job: snapshot → two passes → validate
+  → store; a failed run is stored with its reason.
+- Run API with the review's numbers and an xlsx export; the Zuteilung page: start a run (seed, limit),
+  the list, the review of a run (levels, rank distribution, deficits, fallbacks, cancelled items,
+  items, per class), the comparison of two runs, "Lauf wiederholen".
+- A reproducibility test against the real solver image in CI.
+
+**S4c · Publication.**
+
+- Publish with the confirmation of the cancelled items; the mails of the publication (students,
+  class teachers with unplaced students, teachers of cancelled items).
+- Student result with explanation; participant lists for teachers; the class teacher's list of
+  unplaced students; the assignments workbook with the fee per student.
 
 **S5 · After publication.**
 

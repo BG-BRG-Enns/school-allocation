@@ -134,26 +134,44 @@ interface with the SMTP implementation built in, so a school can substitute its 
 **Two passes** (D-20): the first pass allocates the students whose list was saved in the first
 window; the second pass allocates the late submitters and the non-submitters with every assignment
 of the first pass fixed. Late students therefore take what the first window left, which is the
-school's rule "Fenster 1 vor Fenster 2", and nothing else in the model changes.
+school's rule "Fenster 1 vor Fenster 2", and nothing else in the model changes. In the second pass a
+first-window student has exactly the options the first pass assigned them, all fixed; an item the
+first pass cancelled is not offered in the second (a course the first window could not fill is not
+revived by late lists). The second pass's level values are over every student, the first pass's
+constants included, so they describe the whole school.
 
-**Fallback placement** (D-06): for each day a student's wishes may leave uncovered, the compiler adds
-the eligible **fee-free** items with places as fallback options, at a cost worse than any wish. A
-non-submitter has fallback options only. L1 then fills the day if it can; a day that stays uncovered
-is a deficit, and the student is listed as unplaced for the class teacher and the organizer. A paid
-item is never assigned outside a student's wishes.
+**Fallback placement** (D-06): for each day a student still has to cover, the compiler adds every
+eligible **fee-free** item with places the student did not rank as a fallback option, at rank
+`cap + 1`, which costs more than any wish. Wish numbers are counted over the list as the student
+saved it, so when the first pass cancels a student's first wish, their second stays the second in the
+second pass. A non-submitter has fallback options only. L1 then fills the day if it can; a day that
+stays uncovered is a deficit, and the student is listed as unplaced for the class teacher and the
+organizer. A paid item is never assigned outside a student's wishes. Two class activities that take
+the same student at the same time are the catalogue's mistake: the run is refused before the solver
+(`fixed_items_overlap`), and the validator refuses such a result too.
 
 **Pre-assignments are resolved by the compiler, not the solver.** For each student, the credit of
 their fixed items is subtracted from each day's requirement (floored at zero), and items that overlap
 a fixed item are dropped from that student's options. An item reaches the solver with `max = places`,
-which for a class activity are its extra places; the pre-assigned students are not variables of it. A
-student with no remaining requirement gets no variables.
+which for a class activity are its extra places; the pre-assigned students are not variables of it,
+and its minimum is its classes' business, so it reaches the solver with `min = 0`. A student with no
+remaining requirement gets no variables.
+
+**A run needs a daily minimum for every grade of the roster.** The requirement per day and the cost's
+normalization come from it; without one the run is refused before the solver (`daily_minimum_missing`
+names the grades). Before solving, the compiler also names every non-cancellable item fewer students
+can take than its minimum asks (`minimum_out_of_reach`): the usual cause when a run comes back
+infeasible, with the remedies at hand (make it cancellable, lower the minimum, withdraw it).
 
 **Variables:**
 
 - `x[s,o]` ∈ {0,1}, only for choosable items `o` on student `s`'s ranked list, or among the
   student's fallback options, that are eligible and do not overlap the student's fixed items. Other
   items are never assigned.
-- `y[o]` ∈ {0,1}: the item runs. Fixed to 1 unless it may be cancelled below its minimum (D-08).
+- `y[o]` ∈ {0,1}: the item runs. Fixed to 1 unless it may be cancelled below its minimum (D-08): the
+  item says so, it is nobody's class activity, and it has a minimum to fall below. An item with no
+  minimum runs with its takers or with none, so a course nobody ranked in the first window is still
+  there for the late lists.
 
 **Hard constraints:**
 
@@ -172,15 +190,19 @@ as a bound for the next:
 
 1. **L1:** minimize the number of students with any uncovered day.
 2. **L2:** minimize the total uncovered minutes.
-3. **L3:** for thresholds *t* = 4, 3, 2 (configurable), minimize the number of students whose
+3. **L3:** for thresholds *t* = cap, cap − 1, …, 2, minimize the number of students whose
    minutes-weighted average rank exceeds *t*, one sub-level per threshold, the worst first. A
-   student's cost is `Σ_o x[s,o] · rank(s,o) · minutes(o) / required_minutes(s)`, scaled to integers,
-   where `required_minutes(s)` is the requirement left after fixed items and `rank` counts within the
-   item's time group; a fallback option ranks one past the cap. Students with nothing left to choose
-   have no cost and are not counted in L3.
+   student's cost is `Σ_o x[s,o] · rank(s,o) · minutes(o) / required_minutes(s)`, scaled to integers
+   (× 1000, rounded per option), where `required_minutes(s)` is the requirement left after fixed items
+   and `rank` counts within the item's time group; a fallback option ranks one past the cap. The
+   threshold is compared exactly, `Σ rank · minutes · 1000 > t · 1000 · required_minutes(s)`, so the
+   rounding of the costs never puts a student over a threshold they are on. Students with nothing
+   left to choose have no cost and are not counted in L3.
 4. **L4:** minimize the total cost over all students.
 5. **L5:** tie-break: minimize `Σ x[s,o] · ε(seed, s, o)`, with small deterministic pseudo-random
-   weights. Equal alternatives are therefore decided by the recorded seed, not by input order.
+   weights (an FNV-1a hash of the seed, the student and the item, in `[0, 1000)`), sent as their own
+   field so L4 stays exact. Equal alternatives are therefore decided by the recorded seed, not by
+   input order.
 
 **Reproducibility:**
 
@@ -189,8 +211,13 @@ as a bound for the next:
 - The OR-Tools version is pinned and stored with the run.
 - Same snapshot + seed + versions → same assignment. This is tested in CI.
 
-**Status per level:** `OPTIMAL` or `FEASIBLE` (not proven). `INFEASIBLE` or `UNKNOWN` stops the run,
-and the run cannot be published. The review screen shows each level's value and whether it was proven.
+**Status per level:** `OPTIMAL` or `FEASIBLE` (not proven); each level is held at the value found while
+the next is solved, and the solution found starts the next search. `INFEASIBLE` or `UNKNOWN` stops the
+run, and the run cannot be published; `MODEL_INVALID` says the request was no sound model (the API
+stores the reason). The run's status is `OPTIMAL` when every level was proven, else `FEASIBLE`. The
+review screen shows each level's value and whether it was proven. A deterministic second is not a
+wall-clock second (several of them, depending on the machine); the default limit per level is small
+and the organizer may raise it for another run.
 
 **Independent validation in school-core**, before a run is stored as reviewable:
 
@@ -200,8 +227,9 @@ and the run cannot be published. The review screen shows each level's value and 
 - only ranked items, or fee-free fallback items where the student's wishes left a day uncovered;
 - the first pass's assignments unchanged by the second;
 - every pre-assignment present and unchanged, and no assigned item overlapping a fixed one;
-- the recomputed coverage, deficits and costs (fixed items included) must equal the solver's
-  reported level values.
+- an item cancelled only if it may be, and nobody assigned to a cancelled item;
+- the recomputed coverage, deficits and costs must equal the solver's reported level values, level
+  by level, for each pass.
 
 Any mismatch rejects the run.
 
@@ -225,12 +253,12 @@ should quantify this.
   "runId": "…",
   "seed": 123456789,
   "limits": { "deterministicTimePerLevel": 30 },
-  "students": [{ "s": 17, "required": [{ "d": 0, "min": 300 }],
-                 "options": [{ "o": 4, "cost": 1200, "credit": [{ "d": 0, "min": 120 }] }] }],
+  "students": [{ "s": 17, "required": [{ "d": 0, "min": 300 }], "norm": 300,
+                 "options": [{ "o": 4, "cost": 1200, "weight": 360, "tie": 613, "credit": [{ "d": 0, "min": 120 }] }] }],
   "items": [{ "o": 4, "max": 20, "min": 8, "cancellable": true }],
   "conflicts": [[4, 9]],
   "fixed": [[23, 4]],
-  "levels": ["students_with_deficit", "deficit_minutes", "over:4000", "over:3000", "over:2000", "total_cost", "tiebreak"]
+  "levels": ["students_with_deficit", "deficit_minutes", "over:3000", "over:2000", "total_cost", "tiebreak"]
 }
 ```
 
@@ -240,19 +268,28 @@ Response:
 { "status": "OPTIMAL|FEASIBLE|INFEASIBLE|UNKNOWN|MODEL_INVALID",
   "levels": [{ "name": "…", "value": 0, "proven": true }],
   "assign": [[17, 4]], "cancelled": [9],
-  "versions": { "solver": "…", "ortools": "…" } }
+  "versions": { "solver": "…", "ortools": "…" },
+  "detail": "only when the run stopped: which level, or what made the model unsound" }
 ```
 
-- **IDs are small integers per run.** The mapping to persons and items stays in the api.
+- **IDs are small integers per run.** The mapping to persons and items stays in the api. An option's
+  `cost` is the rounded normalized rank the total (L4) sums; its `weight` is the exact `rank · minutes`
+  a threshold (L3) is compared against, over the student's `norm`.
 - **No names, e-mails or classes.** The solver has no database credentials and no egress.
-- **The tie-break weights are computed in the TypeScript core from the seed** and sent as part of
-  `cost`. This keeps the Python side free of domain randomness.
+- **The tie-break weights are computed in the TypeScript core from the seed** and sent as `tie` per
+  option, minimized as the last level. This keeps the Python side free of domain randomness and L4
+  exact.
+- **A well-shaped request that is no sound model** (an option on an item the request does not list, a
+  fixed pair that is not an option, an unknown level) is answered `200` with `MODEL_INVALID` and the
+  reason; a malformed body is `422`; a body over 16 MB is `413`.
 - **Pre-assignments never appear in the request.** Their effect is already in `required` and in the
   pruned `options`; a class activity with extra places appears like any other item, with those places
   as `max`, so the contract stays the same whether or not a campaign has fixed classes.
 - **`fixed` carries the first pass into the second** (D-20): assignments the solver must keep, which
-  consume capacity and count toward minimums. The first pass sends an empty list. Fallback options
-  (D-06) are ordinary `options` with a high `cost`; the solver does not know the difference.
+  consume capacity and count toward minimums. The first pass sends an empty list; in the second a
+  first-window student's options are exactly the fixed pairs, and an item the first pass cancelled is
+  not in the request. Fallback options (D-06) are ordinary `options` with a high `cost`; the solver
+  does not know the difference.
 
 ## 7. WPF
 

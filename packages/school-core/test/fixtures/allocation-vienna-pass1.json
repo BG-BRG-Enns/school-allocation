@@ -1,0 +1,345 @@
+{
+  "contract": "allocation/v1",
+  "runId": "run-1",
+  "seed": 4711,
+  "limits": {
+    "deterministicTimePerLevel": 5
+  },
+  "students": [
+    {
+      "s": 0,
+      "required": [
+        {
+          "d": 0,
+          "min": 300
+        },
+        {
+          "d": 1,
+          "min": 300
+        },
+        {
+          "d": 2,
+          "min": 300
+        }
+      ],
+      "norm": 900,
+      "options": [
+        {
+          "o": 0,
+          "cost": 133,
+          "weight": 120,
+          "tie": 40,
+          "credit": [
+            {
+              "d": 0,
+              "min": 120
+            }
+          ]
+        },
+        {
+          "o": 2,
+          "cost": 400,
+          "weight": 360,
+          "tie": 479,
+          "credit": [
+            {
+              "d": 0,
+              "min": 180
+            }
+          ]
+        },
+        {
+          "o": 3,
+          "cost": 333,
+          "weight": 300,
+          "tie": 999,
+          "credit": [
+            {
+              "d": 2,
+              "min": 300
+            }
+          ]
+        },
+        {
+          "o": 4,
+          "cost": 200,
+          "weight": 180,
+          "tie": 143,
+          "credit": [
+            {
+              "d": 0,
+              "min": 180
+            }
+          ]
+        },
+        {
+          "o": 5,
+          "cost": 333,
+          "weight": 300,
+          "tie": 772,
+          "credit": [
+            {
+              "d": 1,
+              "min": 300
+            }
+          ]
+        },
+        {
+          "o": 6,
+          "cost": 667,
+          "weight": 600,
+          "tie": 869,
+          "credit": [
+            {
+              "d": 2,
+              "min": 300
+            }
+          ]
+        },
+        {
+          "o": 7,
+          "cost": 267,
+          "weight": 240,
+          "tie": 923,
+          "credit": [
+            {
+              "d": 0,
+              "min": 120
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "s": 1,
+      "required": [
+        {
+          "d": 0,
+          "min": 300
+        }
+      ],
+      "norm": 300,
+      "options": [
+        {
+          "o": 0,
+          "cost": 1600,
+          "weight": 480,
+          "tie": 708,
+          "credit": [
+            {
+              "d": 0,
+              "min": 120
+            }
+          ]
+        },
+        {
+          "o": 1,
+          "cost": 600,
+          "weight": 180,
+          "tie": 559,
+          "credit": [
+            {
+              "d": 0,
+              "min": 180
+            }
+          ]
+        },
+        {
+          "o": 2,
+          "cost": 2400,
+          "weight": 720,
+          "tie": 331,
+          "credit": [
+            {
+              "d": 0,
+              "min": 180
+            }
+          ]
+        },
+        {
+          "o": 4,
+          "cost": 2400,
+          "weight": 720,
+          "tie": 531,
+          "credit": [
+            {
+              "d": 0,
+              "min": 180
+            }
+          ]
+        },
+        {
+          "o": 7,
+          "cost": 1600,
+          "weight": 480,
+          "tie": 471,
+          "credit": [
+            {
+              "d": 0,
+              "min": 120
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "s": 2,
+      "required": [
+        {
+          "d": 0,
+          "min": 300
+        }
+      ],
+      "norm": 300,
+      "options": [
+        {
+          "o": 0,
+          "cost": 1600,
+          "weight": 480,
+          "tie": 783,
+          "credit": [
+            {
+              "d": 0,
+              "min": 120
+            }
+          ]
+        },
+        {
+          "o": 2,
+          "cost": 600,
+          "weight": 180,
+          "tie": 900,
+          "credit": [
+            {
+              "d": 0,
+              "min": 180
+            }
+          ]
+        },
+        {
+          "o": 4,
+          "cost": 1200,
+          "weight": 360,
+          "tie": 110,
+          "credit": [
+            {
+              "d": 0,
+              "min": 180
+            }
+          ]
+        },
+        {
+          "o": 7,
+          "cost": 400,
+          "weight": 120,
+          "tie": 408,
+          "credit": [
+            {
+              "d": 0,
+              "min": 120
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "o": 0,
+      "max": 1,
+      "min": 0,
+      "cancellable": false
+    },
+    {
+      "o": 1,
+      "max": 20,
+      "min": 0,
+      "cancellable": false
+    },
+    {
+      "o": 2,
+      "max": 20,
+      "min": 0,
+      "cancellable": false
+    },
+    {
+      "o": 3,
+      "max": 20,
+      "min": 0,
+      "cancellable": false
+    },
+    {
+      "o": 4,
+      "max": 20,
+      "min": 0,
+      "cancellable": false
+    },
+    {
+      "o": 5,
+      "max": 20,
+      "min": 0,
+      "cancellable": false
+    },
+    {
+      "o": 6,
+      "max": 2,
+      "min": 2,
+      "cancellable": true
+    },
+    {
+      "o": 7,
+      "max": 20,
+      "min": 0,
+      "cancellable": false
+    },
+    {
+      "o": 8,
+      "max": 2,
+      "min": 0,
+      "cancellable": false
+    }
+  ],
+  "conflicts": [
+    [
+      0,
+      7
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      1,
+      4
+    ],
+    [
+      2,
+      4
+    ],
+    [
+      3,
+      6
+    ],
+    [
+      3,
+      8
+    ],
+    [
+      5,
+      8
+    ],
+    [
+      6,
+      8
+    ]
+  ],
+  "fixed": [],
+  "levels": [
+    "students_with_deficit",
+    "deficit_minutes",
+    "over:3000",
+    "over:2000",
+    "total_cost",
+    "tiebreak"
+  ]
+}

@@ -430,8 +430,37 @@ jobs:
             exit 1
           fi
 
-  # The solver image: it builds from pinned, hashed packages, runs as its
-  # own user on a read-only root without capabilities, and answers.
+  # The solver's own tests (apps/solver/tests): the model against instances
+  # with known optima, the contract's refusals, and that the same request
+  # gives the same answer. The environment is uv.lock as committed, the
+  # image's pins plus the dev group (pytest and the test client).
+  solver-tests:
+    name: Solver tests
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/solver
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: '0.12.7'
+          python-version: '3.13'
+          enable-cache: true
+          cache-dependency-glob: apps/solver/uv.lock
+
+      # --no-build: wheels only, so no package's setup script runs on the runner.
+      - run: uv sync --frozen --no-build
+
+      - run: uv run --frozen --no-build pytest -q
+
+  # The solver image: it builds from the lock's pins with their hashes, runs
+  # as its own user on a read-only root without capabilities, and answers.
   solver:
     name: Solver image
     needs: [lint-infra]
@@ -451,6 +480,10 @@ jobs:
           push: false
           load: true
           tags: school-allocation-solver:ci
+          # The smoke test below checks that the version reaches the running solver.
+          build-args: |
+            APP_VERSION=ci
+            GIT_SHA=${{ github.sha }}
           cache-from: type=gha,scope=school-allocation-solver
           cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max,scope=school-allocation-solver' || '' }}
 
@@ -476,8 +509,20 @@ jobs:
             '{"status":"ok","ortools":"'*'","contract":"allocation/v1"}') ;;
             *) echo "Expected the solver's health to name OR-Tools and the contract" >&2; exit 1 ;;
           esac
-          status="$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8000/v1/solve)"
-          if [ "$status" != 501 ]; then
-            echo "Expected /v1/solve to answer 501 until the model is implemented, got $status" >&2
-            exit 1
-          fi
+          # Two students, two single-place items, both want item 0 first:
+          # the lot (the tie weights) gives item 0 to student 0. The model
+          # solves inside the container, in one worker, and answers the
+          # contract.
+          answer="$(curl -fsS -X POST -H 'content-type: application/json' http://127.0.0.1:8000/v1/solve -d '{
+            "contract":"allocation/v1","runId":"ci","seed":7,"limits":{"deterministicTimePerLevel":5},
+            "students":[
+              {"s":0,"required":[{"d":0,"min":100}],"norm":100,"options":[{"o":0,"cost":1000,"weight":100,"tie":5,"credit":[{"d":0,"min":100}]},{"o":1,"cost":2000,"weight":200,"tie":9,"credit":[{"d":0,"min":100}]}]},
+              {"s":1,"required":[{"d":0,"min":100}],"norm":100,"options":[{"o":0,"cost":1000,"weight":100,"tie":10,"credit":[{"d":0,"min":100}]},{"o":1,"cost":2000,"weight":200,"tie":1,"credit":[{"d":0,"min":100}]}]}],
+            "items":[{"o":0,"max":1,"min":0,"cancellable":true},{"o":1,"max":1,"min":0,"cancellable":true}],
+            "conflicts":[[0,1]],"fixed":[],
+            "levels":["students_with_deficit","deficit_minutes","over:2000","total_cost","tiebreak"]}')"
+          echo "$answer"
+          case "$answer" in
+            '{"status":"OPTIMAL","levels":['*'],"assign":[[0,0],[1,1]],"cancelled":[],"versions":{"solver":"ci","ortools":"'*'"}}') ;;
+            *) echo "Expected /v1/solve to place student 0 on item 0 and student 1 on item 1, OPTIMAL" >&2; exit 1 ;;
+          esac

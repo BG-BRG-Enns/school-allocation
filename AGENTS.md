@@ -14,7 +14,7 @@ packages/school-core/     pure domain: lifecycle, eligibility, time arithmetic, 
 apps/api/                 Fastify on Node 26, raw TypeScript; serves apps/web/dist
 apps/api/migrations/      the v1 baseline and forward-only migrations on top of it, applied by apps/api/scripts/migrate.ts
 apps/web/                 Vue 3 + Vite SPA, German UI
-apps/solver/              Python, FastAPI, OR-Tools CP-SAT; stateless, internal network only, speaks the contract in docs/domain-and-api.md §6
+apps/solver/              Python, FastAPI, OR-Tools CP-SAT; stateless, internal network only, speaks the contract in docs/domain-and-api.md §6; its tests in apps/solver/tests (pytest)
 e2e/                      Playwright journeys against the real server: harness, support, specs (playwright.config.ts at the root)
 scripts/lint-deps.mjs     exact-pin check across all workspaces
 scripts/postgres.sh       PostgreSQL for development and CI, the image the deployment follows
@@ -22,7 +22,7 @@ deploy/                   the deployment: Quadlet units for the three containers
 docs/                     the design: decisions, domain, API, plan, risks; update them with the behaviour they describe
 ```
 
-npm workspaces share one root `package-lock.json`. Shared tooling (ESLint, TypeScript, markdownlint) lives in the root `package.json`; runtime dependencies live in the workspace that uses them. The solver pins its packages with hashes in `apps/solver/requirements.txt`, compiled from `requirements.in`.
+npm workspaces share one root `package-lock.json`. Shared tooling (ESLint, TypeScript, markdownlint) lives in the root `package.json`; runtime dependencies live in the workspace that uses them. The solver pins its packages exactly in `apps/solver/pyproject.toml` and locks them with hashes in `uv.lock`; the image installs from that lock alone.
 
 ## Commands
 
@@ -38,6 +38,7 @@ npm run dev:api     # API on :3000
 npm run dev:api:fake-entra  # the same API, signing in with a stand-in for Entra ID
 npm run dev:web     # Vite dev server, proxies /api to :3000
 npm run e2e         # Playwright journeys in Chromium; needs TEST_DATABASE_URL and `npm run e2e:install` once
+(cd apps/solver && uv run --frozen pytest -q)   # the solver's tests, from uv.lock (CONTRIBUTING.md)
 ```
 
 ## Invariants
