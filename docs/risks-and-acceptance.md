@@ -64,7 +64,7 @@ The evidence column states what has to be shown for sign-off.
 | G1 | A student is recognized by `(tid, oid)` after an e-mail or name change post-binding | API test |
 | G2 | A student missing from the newest roster batch loses choice rights on the next request; their records are kept and flagged | API test |
 | G3 | A Graph, Entra or SMTP outage never widens permissions; the age of the last roster batch is visible | API tests with failing doubles |
-| G4 | The previous release runs on the new schema (auto-update rollback) | CI job |
-| G5 | The app works under its own host and under a sub-path | e2e runs in both modes |
+| G4 | The previous release runs on the new schema (auto-update rollback) | CI job "Previous release on the new schema" (`scripts/compat-check.sh`); the migrator test of a database a newer release migrated |
+| G5 | The app works under its own host and under a sub-path | The browser journeys run under `/wahl` and at the root in CI |
 | G6 | The roster stores only the minimal fields even when Graph returns more; no school ID number, birth date or address exists anywhere in the schema | Schema review + importer test with an over-full Graph double |
 | G7 | Retention rules (D-15) are implemented as an admin-triggered, audited purge per school year | API test |

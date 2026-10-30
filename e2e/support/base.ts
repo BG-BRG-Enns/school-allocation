@@ -2,8 +2,8 @@
 // unless set (an empty value is the root of the host). The harness starts
 // the server with it (PUBLIC_URL), playwright.config.ts puts it into the
 // base URL, and the specs address the app through the helpers here, so no
-// journey writes it. The root is covered by the API tests and the image's
-// smoke test.
+// journey writes it. CI runs the journeys both ways, under /wahl and at
+// the root (E2E_BASE_PATH= ).
 
 export const BASE_PATH = process.env.E2E_BASE_PATH ?? '/wahl'
 

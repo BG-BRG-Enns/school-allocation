@@ -15,7 +15,12 @@ name: CI
     branches: [main]
   push:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      previous_release:
+        description: The ref whose API tests run on this run's migrations (the compatibility job); the newest release tag unless set
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -141,13 +146,25 @@ jobs:
 
   # The browser journeys (e2e/specs) against the real server with a fresh
   # database, the sign-in stand-in and Chromium: what the unit, API and
-  # web tests cannot see. Same launcher for PostgreSQL as the tests.
+  # web tests cannot see. Same launcher for PostgreSQL as the tests. Once
+  # under a path of the host and once at its root, the two ways a school
+  # exposes the app (deploy/README.md).
   e2e:
-    name: Browser journeys
+    name: Browser journeys (${{ matrix.mode }})
     if: github.event_name != 'push'
     needs: [lint, test]
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: under /wahl
+            slug: path
+            base_path: /wahl
+          - mode: at the root
+            slug: root
+            base_path: ''
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -178,16 +195,51 @@ jobs:
       - run: npm run e2e
         env:
           TEST_DATABASE_URL: postgres://postgres:ci-owner-password@127.0.0.1:5432/postgres
+          E2E_BASE_PATH: ${{ matrix.base_path }}
 
       # What a failed journey leaves behind: the report, traces and videos.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
-          name: browser-journeys
+          name: browser-journeys-${{ matrix.slug }}
           path: |
             playwright-report
             test-results
           retention-days: 7
+
+  # The previous release's API tests on this pull request's migrations
+  # (scripts/compat-check.sh): what a host runs after podman-auto-update
+  # rolls an update back, old code on the new schema (G4 in
+  # docs/risks-and-acceptance.md). Before the first release there is
+  # nothing to compare with, and the job says so in its summary; a manual
+  # run can name another ref.
+  compatibility:
+    name: Previous release on the new schema
+    if: github.event_name != 'push'
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The release tags, and the commits they name.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Start PostgreSQL
+        run: |
+          printf '%s' ci-owner-password > "$RUNNER_TEMP/pg-owner-password"
+          scripts/postgres.sh school-allocation-compat-db 5432 "$RUNNER_TEMP/pg-owner-password"
+
+      - run: scripts/compat-check.sh
+        env:
+          TEST_DATABASE_URL: postgres://postgres:ci-owner-password@127.0.0.1:5432/postgres
+          PREVIOUS_RELEASE: ${{ inputs.previous_release }}
 
   # The SonarQube Cloud analysis with the tests' coverage: of every pull
   # request from this repository and of main after every merge, so new code
