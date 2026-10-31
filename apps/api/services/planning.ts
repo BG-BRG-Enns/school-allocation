@@ -32,7 +32,7 @@ export async function myAvailability(db: Database, caller: Caller): Promise<MyAv
   const person = teacherOf(caller)
   return readSnapshot(db, async (client) => {
     const campaigns = await store.campaignsTakingProposals(client)
-    const days = [...new Set(campaigns.flatMap((c) => c.projectDays))].sort()
+    const days = [...new Set(campaigns.flatMap((c) => c.projectDays))].sort((a, b) => Number(a > b) - Number(a < b))
     const limited = new Map((await store.limitedDays(client, days, [person])).map((d) => [d.date, d.status]))
     return {
       days: days.map((date) => ({
@@ -53,7 +53,7 @@ export async function myAvailability(db: Database, caller: Caller): Promise<MyAv
 export async function setMyAvailability(db: Database, caller: Caller, date: string, status: AvailabilityStatus): Promise<MyAvailabilityResponse> {
   const person = teacherOf(caller)
   await db.tx(async (client) => {
-    const candidates = (await store.campaignsTakingProposals(client)).filter((c) => c.projectDays.includes(date)).map((c) => c.id).sort()
+    const candidates = (await store.campaignsTakingProposals(client)).filter((c) => c.projectDays.includes(date)).map((c) => c.id).sort((a, b) => Number(a > b) - Number(a < b))
     let open = false
     // In id order, so two teachers never wait on each other's locks.
     for (const id of candidates) {
@@ -101,6 +101,7 @@ async function planningOf(client: Queryable, campaign: Campaign): Promise<Planni
     }
   }
   return {
+    name: campaign.name,
     days: campaign.projectDays,
     teachers: teachers.map((teacher) => ({
       ...teacher,

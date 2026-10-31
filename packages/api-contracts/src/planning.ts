@@ -41,6 +41,8 @@ const PlannedItem = StrictObject({ id: Type.String(), number: Type.Union([Type.N
  * they lead and accompany there.
  */
 export const PlanningResponse = StrictObject({
+  /** The registration's name: the page reads no campaign view, which the read-only role does not get before the catalogue is out. */
+  name: Type.String(),
   days: Type.Array(Type.String()),
   teachers: Type.Array(StrictObject({
     personId: Type.String(),

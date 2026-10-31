@@ -8,29 +8,29 @@
 import { AVAILABILITY_STATUSES } from '@school-allocation/school-core'
 import { computed, onMounted, ref } from 'vue'
 import { withBase } from '../lib/base.ts'
-import { loadCampaign, loadPlanning, planningExportPath, setAvailabilityFor, type AvailabilityStatus, type CampaignView, type PlanningResponse } from '../lib/campaigns-api.ts'
+import { loadPlanning, planningExportPath, setAvailabilityFor, type AvailabilityStatus, type PlanningResponse } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
 import { AVAILABILITY_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
+import { session } from '../lib/session.ts'
 
 const props = defineProps<{ id: string }>()
 
 usePageTitle(() => t.common.page.planning)
-const view = ref<CampaignView | null>(null)
 const planning = ref<PlanningResponse | null>(null)
 const loading = useFeedback()
 const saving = useFeedback()
 
+// The planning alone: the read-only role reads it in every state, but not the registration's own view before the catalogue is out.
 onMounted(() => loading.run(async () => {
-  const [campaign, overview] = await Promise.all([loadCampaign(props.id), loadPlanning(props.id)])
-  view.value = campaign
-  planning.value = overview
+  planning.value = await loadPlanning(props.id)
 }))
 
 /** Whether the caller changes availability here: an organizer, until the archive. */
-const editable = computed(() => (view.value?.may.organize ?? false) && (planning.value?.editable ?? false))
+const mayOrganize = computed(() => (session.value?.roles ?? []).some((role) => role === 'campaign_organizer' || role === 'school_admin'))
+const editable = computed(() => mayOrganize.value && (planning.value?.editable ?? false))
 
 type Day = PlanningResponse['teachers'][number]['days'][number]
 
@@ -72,9 +72,9 @@ async function onChange(personId: string, date: string, status: AvailabilityStat
   >
     {{ loading.error.value }}
   </p>
-  <template v-if="view && planning">
+  <template v-if="planning">
     <p class="muted">
-      {{ view.campaign.name }}
+      {{ planning.name }}
     </p>
     <p>{{ t.planning.intro }}</p>
     <p

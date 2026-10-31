@@ -142,7 +142,7 @@ test('the lead is the creator when among the teachers, else the first named; the
 
   const overview = await get<PlanningResponse>(s, s.anna, `/api/admin/campaigns/${campaign.id}/planning`)
   assert.equal(overview.status, 200, JSON.stringify(overview.body))
-  assert.deepEqual(overview.body.days, DAYS)
+  assert.deepEqual([overview.body.name, overview.body.days], ['Projektwoche 2027', DAYS])
   assert.equal(overview.body.editable, true)
   const doingIn = (planning: PlanningResponse, personId: string) => planning.teachers.find((teacher) => teacher.personId === personId)?.days.map((d) => [d.date, d.leads.map((i) => i.title), d.accompanies.map((i) => i.title)])
   const doing = (personId: string) => doingIn(overview.body, personId)
