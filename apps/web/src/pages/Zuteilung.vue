@@ -365,7 +365,7 @@ const levelDelta = (name: string): number | null => {
                 :key="i.itemId"
                 :value="i.itemId"
               >
-                {{ i.number === null ? i.title : `${i.number}. ${i.title}` }} ({{ t.allocation.change.free(Math.max(0, i.places - i.assigned)) }})
+                {{ i.number === null ? i.title : `${i.number}. ${i.title}` }} ({{ i.assigned > i.places ? t.allocation.change.over(i.assigned - i.places) : t.allocation.change.free(i.places - i.assigned) }})
               </option>
             </select>
           </p>
