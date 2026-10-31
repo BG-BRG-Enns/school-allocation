@@ -20,7 +20,7 @@ Sobald die Anmeldung läuft, steht bei jeder Person, wie weit sie ist: keine Wü
 
 Mit der Veröffentlichung bekommst du eine E-Mail mit allen aus deiner Klasse, die noch nicht für alle Tage eingeteilt sind. Unter **Noch nicht für alle Tage eingeteilt** steht jede dieser Personen, mit den fehlenden Minuten und dem, was sie bisher hat.
 
-1. Wähle eine Aktivität mit freien Plätzen, die in die Lücke passt. Die Auswahl nennt nur solche, mit ihren freien Plätzen.
+1. Wähle eine Aktivität, die in die Lücke passt. Die Auswahl nennt bei jeder ihre freien Plätze; eine, die nicht geht, etwa weil sie voll ist, steht mit dem Grund dabei und lässt sich nicht wählen.
 2. Schreib eine **Begründung**.
 3. Klicke **Einteilen**.
 

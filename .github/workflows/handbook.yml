@@ -54,6 +54,11 @@ jobs:
 
       - run: npm ci --ignore-scripts
 
+      # The pages and pictures whole, as every pull request's tests check
+      # them: a page missing in one language fails here, which the build
+      # would not notice.
+      - run: node --throw-deprecation --test scripts/handbook.test.mjs
+
       - run: npm run handbook
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

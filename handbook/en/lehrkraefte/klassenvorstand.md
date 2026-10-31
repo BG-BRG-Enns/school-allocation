@@ -20,7 +20,7 @@ Once registration is open, each person's progress is shown: no choices, incomple
 
 On publication, you receive an email listing everyone in your class not yet placed for every day. Under **Not placed for every day**, each of these people is listed, with their missing minutes and what they have so far.
 
-1. Choose an activity with open places that fits the gap. The selection only lists those activities, with their open places.
+1. Choose an activity that fits the gap. The selection shows each one's open places; one that is not possible, for example because it is full, is listed with the reason and cannot be selected.
 2. Write a **Reason**.
 3. Click **Place**.
 
