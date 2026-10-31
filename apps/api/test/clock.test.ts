@@ -59,13 +59,13 @@ test('the outbox\'s due times follow the clock', DB, async (t) => {
   const clock = new ControlledClock(MONDAY)
   const db = createDatabase(testDb.runtimeUrl, () => {}, clock)
   t.after(() => db.close())
-  await db.tx((client) => enqueueMail(client, { kind: 'test', campaignId: null, personId: null, to: 'anna@schule.example.org', subject: 's', body: 'b', dedupeKey: 'clock-test' }))
-  const mail = await claimNextMail(db)
+  await db.tx((client) => enqueueMail(client, { kind: 'choice_invitation', campaignId: null, personId: null, to: 'anna@schule.example.org', subject: 's', body: 'b', dedupeKey: 'clock-test' }))
+  const { mail } = await claimNextMail(db, 0)
   assert.ok(mail)
   await recordRetry(db, mail.id, 'later', 60_000)
-  assert.equal(await claimNextMail(db), undefined, 'a minute later on the clock, not yet')
+  assert.equal((await claimNextMail(db, 0)).mail, undefined, 'a minute later on the clock, not yet')
   clock.advance(61_000)
-  assert.equal((await claimNextMail(db))?.id, mail.id)
+  assert.equal((await claimNextMail(db, 0)).mail?.id, mail.id)
 })
 
 test('signing in, the audit log and the session\'s lifetime follow the clock', DB, async (t) => {

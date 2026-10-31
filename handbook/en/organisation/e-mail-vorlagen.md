@@ -16,6 +16,14 @@ SchulWahl sends emails at set points in a registration. Their texts come from th
 | Swap confirmed | after a swap | the person who swapped |
 | Allocation changed (by the class teacher or the organisation) | after a placement by the class teacher or a change by hand | the person whose allocation changed |
 
+## Sending
+
+SchulWahl sends the emails one after the other, at most 200 an hour; the operator can set the server to a slower pace. The invitation to 600 students thus takes about three hours. Personal emails go first (a swap confirmation, a changed allocation, the test email), then those to teachers and class teachers, and those to students last: whoever can report a mistake sees it first. Under **Sending** you see how many emails are waiting and when the last one should be sent.
+
+If the emails contain a mistake, stop with **Pause sending**; **Resume sending** carries on where it stopped. An email gets its text when it starts waiting: a changed template applies only to emails after that, and what is already waiting goes out as it is.
+
+A reminder still waiting when its registration period or late registration ends is no longer sent; the registration's list shows it as “no longer sent”.
+
 ## Editing a template
 
 ![A template being edited: subject and body with placeholders, and the template's clickable placeholders alongside](/bilder/en/e-mail-vorlage.png)

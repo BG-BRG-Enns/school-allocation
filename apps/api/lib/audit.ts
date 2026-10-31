@@ -55,10 +55,12 @@ export const AUDIT_ACTIONS = [
   // student's own saving is not privileged and keeps its revisions instead.
   'preassignment.exempted',
   'choice.entered-on-behalf',
-  // Mail (school scope): a template changed, reset to the default, a test mail sent.
+  // Mail (school scope): a template changed, reset to the default, a test mail sent; sending paused and resumed.
   'mail.template-changed',
   'mail.template-reset',
   'mail.test-sent',
+  'mail.paused',
+  'mail.resumed',
   // The allocation (campaign scope): a run started by an organizer and
   // finished by the job on their behalf, with its status; a run left
   // running by a restart, marked interrupted at the next start.

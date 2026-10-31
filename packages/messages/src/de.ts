@@ -324,6 +324,8 @@ export const de = {
       sending: 'wird gesendet',
       sent: 'gesendet',
       failed: 'fehlgeschlagen',
+      /** A reminder whose window ended before it went out. */
+      expired: 'nicht mehr gesendet',
     },
     /** Why a template was refused (apps/api/lib/models/mail-templates.ts TemplateProblem). */
     templateProblem: {
@@ -1123,6 +1125,24 @@ export const de = {
     /** A saved text in a language other than the school's; the language as labels.locale names it. */
     otherLanguage: (language: string) => `Dieser Text wurde für „${language}“ geschrieben. Die Schule ist jetzt auf eine andere Sprache eingestellt: Übersetze ihn oder setze ihn zurück.`,
     placeholderHint: 'Ein Klick auf einen Platzhalter fügt ihn dort ein, wo der Cursor zuletzt stand: im Betreff oder im Text.',
+    /** The outbox's pace and queue (GET /api/admin/mail/status), and pausing it. */
+    sending: {
+      heading: 'Versand',
+      pace: (perHour: number) => `SchulWahl schickt höchstens ${perHour} ${byCount(perHour, 'E-Mail', 'E-Mails')} pro Stunde, eine nach der anderen: zuerst die persönlichen (eine Bestätigung, eine geänderte Einteilung, die Test-E-Mail), dann die an Lehrkräfte, zuletzt die an Schüler*innen.`,
+      pauseHint: 'Steckt ein Fehler in einer E-Mail, halte den Versand an: Was wartet, bleibt liegen, bis du ihn fortsetzt.',
+      paused: 'Der Versand ist angehalten. Die E-Mails warten, bis du ihn fortsetzt.',
+      none: 'Keine E-Mail wartet.',
+      waiting: (personal: number, staff: number, students: number) => {
+        const total = personal + staff + students
+        return `${byCount(total, 'Es wartet', 'Es warten')} ${total} ${byCount(total, 'E-Mail', 'E-Mails')}: ${personal} persönliche, ${staff} an Lehrkräfte, ${students} an Schüler*innen.`
+      },
+      /** The time as feedback.ts formatWhen writes it. */
+      expectedEnd: (when: string) => `Bei diesem Tempo ist die letzte voraussichtlich am ${when} verschickt.`,
+      pause: 'Versand anhalten',
+      resume: 'Versand fortsetzen',
+      pausedDone: 'Versand angehalten.',
+      resumedDone: 'Versand fortgesetzt.',
+    },
     /** What each placeholder stands for (apps/api/services/mail-templates.ts PLACEHOLDERS), listed beside it while editing. */
     placeholder: {
       first_name: 'Vorname der Person, die die E-Mail bekommt',

@@ -325,6 +325,8 @@ export const en: Messages = {
       sending: 'sending',
       sent: 'sent',
       failed: 'failed',
+      /** A reminder whose window ended before it went out. */
+      expired: 'no longer sent',
     },
     /** Why a template was refused (apps/api/lib/models/mail-templates.ts TemplateProblem). */
     templateProblem: {
@@ -1124,6 +1126,24 @@ export const en: Messages = {
     /** A saved text in a language other than the school's; the language as labels.locale names it. */
     otherLanguage: (language: string) => `This text was written for “${language}”. The school now uses another language: translate it or reset it.`,
     placeholderHint: 'Clicking a placeholder inserts it where the cursor last was: in the subject or body.',
+    /** The outbox's pace and queue (GET /api/admin/mail/status), and pausing it. */
+    sending: {
+      heading: 'Sending',
+      pace: (perHour: number) => `SchulWahl sends at most ${perHour} ${byCount(perHour, 'email', 'emails')} an hour, one after the other: personal ones first (a confirmation, a changed allocation, the test email), then those to teachers, and those to students last.`,
+      pauseHint: 'If an email has a mistake, pause sending: what is waiting stays until you resume it.',
+      paused: 'Sending is paused. Emails wait until you resume it.',
+      none: 'No email is waiting.',
+      waiting: (personal: number, staff: number, students: number) => {
+        const total = personal + staff + students
+        return `${total} ${byCount(total, 'email', 'emails')} waiting: ${personal} personal, ${staff} to teachers, ${students} to students.`
+      },
+      /** The time as feedback.ts formatWhen writes it. */
+      expectedEnd: (when: string) => `At this pace the last one should be sent by ${when}.`,
+      pause: 'Pause sending',
+      resume: 'Resume sending',
+      pausedDone: 'Sending paused.',
+      resumedDone: 'Sending resumed.',
+    },
     /** What each placeholder stands for (apps/api/services/mail-templates.ts PLACEHOLDERS), listed beside it while editing. */
     placeholder: {
       first_name: 'First name of the person receiving the email',

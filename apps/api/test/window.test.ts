@@ -9,6 +9,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readAudit } from '../lib/audit.ts'
 import { createDatabase } from '../lib/db.ts'
+import { expireMails, recordRetry } from '../lib/mail/outbox.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
 import type { Item } from '../lib/models/items.ts'
@@ -149,12 +150,21 @@ test('an organizer enters a ranking on behalf and exempts a student from a class
   const dayBefore = new Date('2027-03-07T21:00:00+01:00')
   assert.deepEqual(await tick(s.db, CONTEXT, dayBefore), { transitions: 0, reminders: 2 }, 'Sara (nothing) and Tim (incomplete) are reminded')
   assert.deepEqual(await tick(s.db, CONTEXT, dayBefore), { transitions: 0, reminders: 0 }, 'not twice')
+  // Sara's reminder is in a session with the mail server when the window ends.
+  await owner.query('update outbox_mail set state = \'sending\', attempts = 1 where kind = \'choice_reminder\' and to_address = $1', [SARA.email])
   const afterClose = new Date('2027-03-08T20:00:01+01:00')
   assert.deepEqual(await tick(s.db, CONTEXT, afterClose), { transitions: 1, reminders: 0 })
   const grace = await get<{ campaign: Campaign }>(s, s.anna, `/api/campaigns/${id}`)
   assert.equal(grace.body.campaign.state, 'grace')
   const mails = async () => (await owner.query<{ kind: string, to_address: string }>('select kind, to_address from outbox_mail where campaign_id = $1 order by created_at, kind, to_address', [id])).rows.map((r) => `${r.kind}:${r.to_address}`)
   assert.deepEqual((await mails()).slice(4), [`class_missing:${CARLA.email}`, `grace_invitation:${SARA.email}`, `grace_invitation:${TIM.email}`], 'the class teacher named by the roster gets her list')
+  const reminders = async () => (await owner.query<{ state: string }>('select state from outbox_mail where campaign_id = $1 and kind = \'choice_reminder\' order by to_address', [id])).rows.map((r) => r.state)
+  assert.deepEqual(await reminders(), ['sending', 'expired'], 'the reminders still queued end with the window they remind of')
+  // A transient failure puts Sara's back in the queue, where it expires instead of going out.
+  const [inFlight] = (await owner.query<{ id: string }>('select id from outbox_mail where kind = \'choice_reminder\' and to_address = $1', [SARA.email])).rows
+  await recordRetry(s.db, inFlight?.id ?? '', '451 busy', 0)
+  assert.equal(await expireMails(s.db), 1)
+  assert.deepEqual(await reminders(), ['expired', 'expired'])
 
   // A list saved in the grace week is late; the audit records the clock as actor.
   const [saraMonday, saraSwim, saraDarts] = exempted.body.groups.map((g) => g.key) as [string, string, string]

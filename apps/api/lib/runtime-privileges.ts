@@ -68,8 +68,9 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   item_session: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['location'] },
   // The period grid is replaced as a whole by an administrator, audited.
   period_grid: { table: ['SELECT', 'INSERT', 'DELETE'] },
-  // The school's one row of settings is changed by an administrator, audited; it is never added or removed.
-  school_setting: { table: ['SELECT'], updateColumns: ['locale', 'updated_at', 'updated_by'] },
+  // The school's one row of settings: its language changed by an administrator, sending paused and resumed by an
+  // organizer or administrator, audited; it is never added or removed.
+  school_setting: { table: ['SELECT'], updateColumns: ['locale', 'updated_at', 'updated_by', 'mail_paused'] },
   // A class teacher is assigned and revoked, never changed otherwise or
   // removed; a trigger keeps it so whoever writes.
   class_teacher: { table: ['SELECT', 'INSERT'], updateColumns: ['revoked_at', 'revoked_by'] },
@@ -85,7 +86,7 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   // reset removes it, and the catalogue's default applies again. Never truncated (the trigger refuses it).
   mail_template: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['subject', 'body', 'locale', 'updated_at', 'updated_by'] },
   // A mail is queued and moved through its states by the sender; never removed.
-  outbox_mail: { table: ['SELECT', 'INSERT'], updateColumns: ['state', 'attempts', 'detail', 'message_id', 'next_attempt_at', 'updated_at', 'sent_at'] },
+  outbox_mail: { table: ['SELECT', 'INSERT'], updateColumns: ['state', 'attempts', 'detail', 'message_id', 'next_attempt_at', 'updated_at', 'sent_at', 'claimed_at', 'expires_at'] },
   allocation_run: {
     table: ['SELECT', 'INSERT'],
     updateColumns: ['status', 'finished_at', 'solver_version', 'ortools_version', 'passes', 'cancelled_items', 'failure', 'detail', 'problems', 'published_at', 'published_by'],

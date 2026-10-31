@@ -4,7 +4,8 @@
 //   PUT  /api/admin/mail-templates/:kind       { subject, body }: checked against the subset and the kind's placeholders, stored in the school's language, audited
 //   DELETE /api/admin/mail-templates/:kind     the reset: the school's text removed, the default in the school's language again, audited
 //   POST /api/admin/mail-templates/:kind/test  the kind with sample values, to the caller's own address, audited
-//   GET  /api/admin/mail/status                whether mail is set up, and what waits in the outbox
+//   GET  /api/admin/mail/status                whether mail is set up, the pace, whether sending is paused, what waits and until when
+//   PUT  /api/admin/mail/paused                { paused }: pauses or resumes sending, audited; queued mails stay queued
 //
 // Organizers and administrators; the texts are the school's, not a campaign's.
 
@@ -19,7 +20,7 @@ import { actorOf } from '../lib/actor.ts'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { readTemplates, resetTemplate, saveTemplate } from '../services/mail-templates.ts'
-import { queueTestMail } from '../services/mail.ts'
+import { queueTestMail, setMailPaused } from '../services/mail.ts'
 
 export interface MailRoutesOptions {
   config: Config
@@ -53,6 +54,12 @@ export async function mailRoutes(app: FastifyInstance, { config, db, guards, wak
   })
 
   registerEndpoint(app, endpoints.getAdminMailStatus, { ...organizer }, async () => {
-    return mailStatus(db, config.mail !== null)
+    return mailStatus(db, config.mail?.perHour ?? null)
+  })
+
+  registerEndpoint(app, endpoints.putAdminMailPaused, { ...organizer }, async (request) => {
+    await setMailPaused(db, request.body.paused, actorOf(callerOf(request)))
+    if (!request.body.paused) wakeSender?.()
+    return mailStatus(db, config.mail?.perHour ?? null)
   })
 }

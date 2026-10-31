@@ -96,6 +96,10 @@ export const deFormal = {
     intro: 'Die E-Mails, die eine Anmeldung verschickt. Platzhalter wie {{first_name}} füllt SchulWahl beim Versand; klicken Sie einen an, um ihn einzufügen.',
     testQueued: 'Eine Test-E-Mail an Ihre Adresse wartet auf den Versand.',
     otherLanguage: (language: string) => `Dieser Text wurde für „${language}“ geschrieben. Die Schule ist jetzt auf eine andere Sprache eingestellt: Übersetzen Sie ihn oder setzen Sie ihn zurück.`,
+    sending: {
+      pauseHint: 'Steckt ein Fehler in einer E-Mail, halten Sie den Versand an: Was wartet, bleibt liegen, bis Sie ihn fortsetzen.',
+      paused: 'Der Versand ist angehalten. Die E-Mails warten, bis Sie ihn fortsetzen.',
+    },
   },
   retention: {
     intro: 'Die Daten einer Projektwoche bleiben bis ein Jahr nach dem Ende ihres Schuljahrs. Danach können Sie sie hier löschen, mit Begründung; von selbst wird nichts gelöscht. Sichern Sie vorher die Einteilung und die Kostenliste als Excel, falls die Buchhaltung sie braucht. Gelöscht ist gelöscht.',

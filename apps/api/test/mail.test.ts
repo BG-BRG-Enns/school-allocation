@@ -1,21 +1,23 @@
 // Mail: the templates an organizer edits, checked against the subset and
 // their kind's placeholders, the catalogue's defaults until then and again
 // after a reset; the test mail through the real outbox and an
-// SMTP stand-in with authentication; the sender's states: sent on the
-// server's acceptance, retried on a transient reply, failed on a permanent
-// one or after the last attempt, and interrupted work failed at start.
+// SMTP stand-in with authentication; the sender's states, on a clock the
+// test moves: sent on the server's acceptance, retried on a transient
+// reply, failed on a permanent one or after the last attempt, and
+// interrupted work failed at start. The pace is mail-pacing.test.ts's.
 
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { loadConfig } from '../config.ts'
 import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { createDatabase } from '../lib/db.ts'
-import { recoverInterruptedMails } from '../lib/mail/outbox.ts'
+import { recoverInterruptedMails, spacingOf } from '../lib/mail/outbox.ts'
 import { Sender } from '../lib/mail/sender.ts'
 import { createMailTransport } from '../lib/mail/transport.ts'
 import { MAIL_KINDS } from '@school-allocation/api-contracts/mail'
 import { LOCALES, messagesFor } from '@school-allocation/messages'
 import { checkTemplate, defaultTemplates, PLACEHOLDER_NAMES, PLACEHOLDERS, renderTemplate, sampleData } from '../services/mail-templates.ts'
+import { ControlledClock } from './helpers/clock.ts'
 import { ORIGIN, secretFile, SERVER_ENV } from './helpers/env.ts'
 import { bodyOf, decodeHeader, headerOf, startFakeSmtp, type FakeSmtp } from './helpers/fake-smtp.ts'
 import { DB, get, harness, send, signIn } from './helpers/harness.ts'
@@ -116,13 +118,16 @@ test('the test mail goes through the outbox to an authenticated SMTP server; tra
   const smtp = await startFakeSmtp({ dataReply: () => replies.shift() ?? '250 OK queued' })
   t.after(() => smtp.close())
   const env = { ...ADMIN, ...mailEnv(smtp) }
-  const h = await harness(t, env)
+  const clock = new ControlledClock(new Date('2034-03-06T07:00:00.000Z'))
+  const h = await harness(t, env, undefined, clock)
   const config = loadConfig({ ...SERVER_ENV, PUBLIC_URL: ORIGIN, ...env })
   assert.ok(config.mail)
-  const sender = new Sender({ db: h.db, transport: createMailTransport(config.mail), config: config.mail, log: h.app.log, retryDelayMs: 20, maxAttempts: 2 })
+  const spacing = spacingOf(config.mail.perHour)
+  const sender = new Sender({ db: h.db, transport: createMailTransport(config.mail), config: config.mail, log: h.app.log, retryDelayMs: 60_000, maxAttempts: 2 })
   t.after(() => sender.stop())
   const anna = await signIn(h, ANNA)
-  assert.deepEqual((await get<{ mailEnabled: boolean, queued: number }>(h, anna, '/api/admin/mail/status')).body, { mailEnabled: true, queued: 0 })
+  const idle = { mailEnabled: true, paused: false, perHour: 200, waiting: { personal: 0, staff: 0, students: 0 }, sending: 0, expectedEndAt: null }
+  assert.deepEqual((await get(h, anna, '/api/admin/mail/status')).body, idle)
 
   const queued = await send<{ queued: boolean }>(h, anna, 'POST', '/api/admin/mail-templates/choice_invitation/test')
   assert.equal(queued.status, 202, JSON.stringify(queued.body))
@@ -147,9 +152,14 @@ test('the test mail goes through the outbox to an authenticated SMTP server; tra
   // A transient reply: retried after the pause; after the last attempt, failed.
   replies.push('451 4.7.0 busy', '451 4.7.0 busy again')
   await send(h, anna, 'POST', '/api/admin/mail-templates/choice_reminder/test')
+  clock.advance(spacing)
   assert.equal(await sender.runOnce(), 0)
   assert.deepEqual((await rows()).at(-1)?.state, 'queued', 'back in the queue for the retry')
-  await new Promise((resolve) => setTimeout(resolve, 40))
+  const attempts = smtp.received.length
+  clock.advance(30_000)
+  assert.equal(await sender.runOnce(), 0)
+  assert.equal(smtp.received.length, attempts, 'not before the retry\'s pause')
+  clock.advance(30_000)
   assert.equal(await sender.runOnce(), 0)
   const failed = (await rows()).at(-1)
   assert.deepEqual([failed?.state, failed?.attempts], ['failed', 2])
@@ -158,6 +168,7 @@ test('the test mail goes through the outbox to an authenticated SMTP server; tra
   // A permanent reply fails at once.
   replies.push('550 5.1.1 no such user')
   await send(h, anna, 'POST', '/api/admin/mail-templates/missed_deadline/test')
+  clock.advance(spacing)
   await sender.runOnce()
   assert.deepEqual((await rows()).at(-1)?.state, 'failed')
   assert.equal((await rows()).at(-1)?.attempts, 1)
@@ -167,5 +178,5 @@ test('the test mail goes through the outbox to an authenticated SMTP server; tra
   await owner.query('update outbox_mail set state = \'sending\', attempts = 1 where state = \'queued\'')
   assert.equal(await recoverInterruptedMails(h.db), 1)
   assert.deepEqual((await rows()).at(-1), { kind: 'grace_reminder', state: 'failed', attempts: 1, detail: 'interrupted' })
-  assert.deepEqual((await get<{ queued: number }>(h, anna, '/api/admin/mail/status')).body.queued, 0)
+  assert.deepEqual((await get(h, anna, '/api/admin/mail/status')).body, idle)
 })
