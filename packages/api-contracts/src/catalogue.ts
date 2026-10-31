@@ -38,6 +38,8 @@ export const CampaignChangesBody = StrictObject({
   showTeachers: Type.Optional(Type.Boolean()),
   /** Days before a close the reminder goes out; 0 for none. */
   reminderDays: Type.Optional(Type.Integer({ minimum: 0, maximum: 14 })),
+  /** Places beyond the need the demand aims for, in percent. */
+  placeHeadroomPercent: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
 })
 
 export const PeriodBody = StrictObject({

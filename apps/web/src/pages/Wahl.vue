@@ -3,6 +3,7 @@
 // may see them, and what they may do: teachers propose and tend their own,
 // organizers review, move the campaign on and export the catalogue.
 
+import { placeTarget } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
 import { approveItem, catalogueExportPath, deleteItem, loadCampaign, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignView, type DayDemand, type Item, type MissingStudent } from '../lib/campaigns-api.ts'
 import { withBase } from '../lib/base.ts'
@@ -39,6 +40,7 @@ watch(() => props.id, load)
 
 const campaign = computed(() => view.value?.campaign)
 const organizes = computed(() => view.value?.may.organize ?? false)
+const teaches = computed(() => session.value?.person?.kind === 'teacher')
 const published = computed(() => campaign.value !== undefined && !['draft', 'catalogue'].includes(campaign.value.state))
 /** From the opening on: the window has a state worth showing. */
 const windowOpened = computed(() => campaign.value !== undefined && !['draft', 'catalogue', 'published'].includes(campaign.value.state))
@@ -86,10 +88,21 @@ function demandOf(day: DayDemand, grade: number): DayDemand['grades'][number] | 
   return day.grades.find((g) => g.grade === grade)
 }
 
-/** A cell of the demand table: who needs a place and what is offered; empty when the day has no entry for the grade. */
+/** The places a grade should be offered on a day: what it needs and the registration's headroom on top. */
+function targetOf(day: DayDemand, grade: number): number {
+  return placeTarget(demandOf(day, grade)?.needing ?? 0, campaign.value?.placeHeadroomPercent ?? 0)
+}
+
+/** A cell of the demand table: who needs a place, the target and what is offered; empty when the day has no entry for the grade. */
 function demandText(day: DayDemand, grade: number): string {
   const d = demandOf(day, grade)
-  return d ? t.campaign.demand.cell(d.needing, d.offered) : ''
+  return d ? t.campaign.demand.cell(d.needing, targetOf(day, grade), d.offered) : ''
+}
+
+/** How many places a grade lacks on a day to reach the target; 0 when it is reached. */
+function shortOf(day: DayDemand, grade: number): number {
+  const d = demandOf(day, grade)
+  return d ? Math.max(0, targetOf(day, grade) - d.offered) : 0
 }
 
 /** An instant as the datetime-local input takes it, in the school's zone; '' for none. */
@@ -123,6 +136,7 @@ const wishesPerGroup = ref(3)
 // Strings as typed, numbers once Vue casts a number input: both are read as text below.
 const dailyMinimum = ref<Record<string, string | number>>({})
 const showTeachers = ref(true)
+const placeHeadroomPercent = ref(20)
 function startEditing(): void {
   const c = campaign.value
   if (!c) return
@@ -139,6 +153,7 @@ function startEditing(): void {
   const minimumGrades = [...new Set([...Object.keys(c.dailyMinimum).map(Number), ...demandGrades.value])].sort((a, b) => a - b)
   dailyMinimum.value = Object.fromEntries(minimumGrades.map((grade) => [String(grade), c.dailyMinimum[String(grade)] === undefined ? '' : String(c.dailyMinimum[String(grade)])]))
   showTeachers.value = c.showTeachers
+  placeHeadroomPercent.value = c.placeHeadroomPercent
   editing.value = true
 }
 async function onSaveSettings(): Promise<void> {
@@ -150,6 +165,7 @@ async function onSaveSettings(): Promise<void> {
       changes.lateUntil = instantOrNull(lateUntil.value)
       changes.wishesPerGroup = Number(wishesPerGroup.value)
       changes.showTeachers = showTeachers.value
+      changes.placeHeadroomPercent = Number(placeHeadroomPercent.value)
     }
     if (swapEditable.value) {
       changes.swapFrom = instantOrNull(swapFrom.value)
@@ -323,6 +339,12 @@ function onSubmitPending(): void {
         >{{ t.campaign.organization.catalogueExport }}</a>
         <RouterLink
           class="button ghost-link"
+          :to="`/wahlen/${campaign.id}/lehrkraefte`"
+        >
+          {{ t.common.page.planning }}
+        </RouterLink>
+        <RouterLink
+          class="button ghost-link"
           to="/verwaltung/klassen"
         >
           {{ t.common.page.classTeachers }}
@@ -456,6 +478,18 @@ function onSubmitPending(): void {
                 type="number"
                 min="1"
                 max="10"
+                required
+              >
+            </p>
+            <p class="field">
+              <label for="edit-headroom">{{ t.campaign.settings.placeHeadroomPercent }}</label>
+              <input
+                id="edit-headroom"
+                v-model.number="placeHeadroomPercent"
+                :disabled="!windowEditable"
+                type="number"
+                min="0"
+                max="100"
                 required
               >
             </p>
@@ -597,7 +631,7 @@ function onSubmitPending(): void {
     <section v-if="view.may.seeDemand && demand.length > 0">
       <h2>{{ t.campaign.demand.heading }}</h2>
       <p class="muted">
-        {{ t.campaign.demand.intro }}
+        {{ t.campaign.demand.intro(campaign.placeHeadroomPercent) }}
       </p>
       <table class="table">
         <thead>
@@ -625,9 +659,13 @@ function onSubmitPending(): void {
             <td
               v-for="grade in demandGrades"
               :key="grade"
+              :class="{ short: shortOf(day, grade) > 0 }"
             >
               <template v-if="demandOf(day, grade)">
                 {{ demandText(day, grade) }}
+                <template v-if="shortOf(day, grade) > 0">
+                  <br>{{ t.campaign.demand.short(shortOf(day, grade)) }}
+                </template>
               </template>
             </td>
           </tr>
@@ -644,6 +682,13 @@ function onSubmitPending(): void {
           :to="`/wahlen/${campaign.id}/aktivitaet/neu`"
         >
           {{ t.common.page.newItem }}
+        </RouterLink>
+        <RouterLink
+          v-if="teaches && campaign.state === 'catalogue'"
+          class="button ghost-link"
+          to="/verfuegbarkeit"
+        >
+          {{ t.availability.link }}
         </RouterLink>
         <RouterLink
           v-if="published || organizes"

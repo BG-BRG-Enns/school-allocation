@@ -8,6 +8,10 @@ While a registration is **Collecting activities**, open it under **Registrations
 
 Enter the **Title**, **Description** and **Location or meeting point**. You are already listed under **Teachers**; add other teachers through the search. All teachers of an activity can edit it and later see its participants.
 
+Whoever created the activity is its **lead** as long as they are among its teachers; otherwise the first teacher named is. The others are **companions**. Below the teachers it says who leads and who accompanies. It changes nobody's rights.
+
+If one of the teachers is unavailable on a day of the sessions, or available only if needed ([Availability](./verfuegbarkeit)), it says so there too. You can still save and submit; the organisation decides.
+
 ## Sessions
 
 ![The sessions: one session in periods, from period 2, lasting 4 periods, with clock times and credited minutes on the project day](/bilder/en/aktivitaet-termine.png)
@@ -46,6 +50,6 @@ If the organisation returns your activity, it becomes a draft again, and the **F
 
 ## Places and demand
 
-![Places and demand: for each project day and year, how many students need a place and how many are offered](/bilder/en/bedarf.png)
+![Places and demand: for each project day and year, how many students need a place, the target and how many are offered](/bilder/en/bedarf.png)
 
-While activities are being collected, the registration page shows, for each project day and year, how many students need a place and how many places the submitted and approved activities offer. Another activity helps most where little is offered.
+While activities are being collected, the registration page shows, for each project day and year, how many students need a place, the **target** and how many places the submitted and approved activities offer. The target lies above the need by a share the organisation sets, usually 20%, so the choices have room. A year short of the target is marked; another activity helps most there.

@@ -14,12 +14,14 @@ import Import from './pages/Import.vue'
 import Katalog from './pages/Katalog.vue'
 import Klasse from './pages/Klasse.vue'
 import Klassen from './pages/Klassen.vue'
+import Lehrkraefte from './pages/Lehrkraefte.vue'
 import Mailvorlagen from './pages/Mailvorlagen.vue'
 import Aufbewahrung from './pages/Aufbewahrung.vue'
 import Personen from './pages/Personen.vue'
 import SignIn from './pages/SignIn.vue'
 import Stammdaten from './pages/Stammdaten.vue'
 import Start from './pages/Start.vue'
+import Verfuegbarkeit from './pages/Verfuegbarkeit.vue'
 import Verwaltung from './pages/Verwaltung.vue'
 import Wahl from './pages/Wahl.vue'
 import Wahlen from './pages/Wahlen.vue'
@@ -43,6 +45,8 @@ export const router = createRouter({
     { path: '/wahlen/:id/wuensche/:personId', component: Wuensche, props: true },
     { path: '/wahlen/:id/zuteilung', component: Zuteilung, props: true },
     { path: '/wahlen/:id/ergebnis', component: Ergebnis, props: true },
+    { path: '/wahlen/:id/lehrkraefte', component: Lehrkraefte, props: true },
+    { path: '/verfuegbarkeit', component: Verfuegbarkeit },
     { path: '/verwaltung', component: Verwaltung },
     { path: '/verwaltung/stammdaten', component: Stammdaten },
     { path: '/verwaltung/stammdaten/import/:id', component: Import, props: true },

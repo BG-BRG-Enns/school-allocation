@@ -39,7 +39,7 @@ export function maySeeDemand(caller: Caller, campaign: Pick<Campaign, 'state'>):
 
 /** The item as a student sees it when the campaign keeps the teachers out (D-13): no teachers, no proposer's name. */
 export function withoutTeachers(item: Item): Item {
-  return { ...item, teachers: [], proposedBy: { id: item.proposedBy.id, displayName: '' } }
+  return { ...item, teachers: [], proposedBy: { id: item.proposedBy.id, displayName: '', personId: null } }
 }
 
 /** Whether the caller is one of the item's people: its proposer or one of its teachers. */

@@ -57,7 +57,7 @@ export async function rosterTeachers(db: Queryable, q: string): Promise<RosterTe
 // local midnight, which is not what a project day is.
 const SELECT = `select c.id, c.kind, c.name, c.school_year, c.state, c.project_days::text[] as project_days,
   c.opens_at, c.closes_at, c.late_until, c.swap_from, c.swap_until, c.wishes_per_group, c.daily_minimum, c.show_teachers, c.reminder_days,
-  c.roster_batch_id, c.created_at, c.updated_at from campaign c`
+  c.place_headroom_percent, c.roster_batch_id, c.created_at, c.updated_at from campaign c`
 
 function toCampaign(row: CampaignRow): Campaign {
   const iso = (value: Date | null) => value?.toISOString() ?? null
@@ -77,6 +77,7 @@ function toCampaign(row: CampaignRow): Campaign {
     dailyMinimum: row.daily_minimum,
     showTeachers: row.show_teachers,
     reminderDays: row.reminder_days,
+    placeHeadroomPercent: row.place_headroom_percent,
     rosterBatchId: row.roster_batch_id,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -101,9 +102,9 @@ export async function listActiveSessions(db: Queryable, id: string) {
 export async function updateSettings(db: Queryable, id: string, changes: CampaignChanges, window: CampaignWindow) {
   await db.query(
     `update campaign set name = $2, school_year = $3, project_days = $4::date[], opens_at = $5, closes_at = $6, late_until = $7, swap_from = $8, swap_until = $9,
-              wishes_per_group = $10, daily_minimum = $11, show_teachers = $12, reminder_days = $13, updated_at = app_now() where id = $1`,
+              wishes_per_group = $10, daily_minimum = $11, show_teachers = $12, reminder_days = $13, place_headroom_percent = $14, updated_at = app_now() where id = $1`,
     [id, changes.name, changes.schoolYear, changes.projectDays, window.opensAt, window.closesAt, window.lateUntil, window.swapFrom, window.swapUntil,
-      window.wishesPerGroup, JSON.stringify(window.dailyMinimum), window.showTeachers, window.reminderDays],
+      window.wishesPerGroup, JSON.stringify(window.dailyMinimum), window.showTeachers, window.reminderDays, window.placeHeadroomPercent],
   )
 }
 

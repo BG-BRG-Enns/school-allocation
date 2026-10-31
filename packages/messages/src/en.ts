@@ -49,6 +49,8 @@ export const en: Messages = {
       result: 'My allocation',
       allocation: 'Allocation',
       newItem: 'New activity',
+      availability: 'My availability',
+      planning: 'Teachers by day',
     },
     backToCampaign: 'Back to registration',
     backToAdmin: 'Back to administration',
@@ -319,6 +321,12 @@ export const en: Messages = {
       absent: 'absent',
       excused: 'excused',
     },
+    /** A teacher on a project day (school-core AVAILABILITY_STATUSES). */
+    availability: {
+      available: 'available',
+      unavailable: 'unavailable',
+      if_needed: 'if needed',
+    },
     /** The state of a mail in the outbox (apps/api/lib/mail/outbox.ts MAIL_STATES). */
     mailState: {
       queued: 'queued',
@@ -522,6 +530,7 @@ export const en: Messages = {
       wishesPerGroup: 'Choices per time block',
       dailyMinimum: (grade: number) => `Minimum minutes per day, Year ${grade}`,
       showTeachers: 'The catalogue names the teachers of the activities',
+      placeHeadroomPercent: 'Places above the need, in percent',
     },
     student: {
       viewResult: 'View my allocation',
@@ -537,8 +546,9 @@ export const en: Messages = {
     },
     demand: {
       heading: 'Places and demand',
-      intro: 'For each project day and year: how many students need a place (excluding those in a class activity) and how many places the submitted and approved activities offer them.',
-      cell: (needing: number, offered: number) => `${needing} needed · ${offered} offered`,
+      intro: (percent: number) => `For each project day and year: how many students need a place (excluding those in a class activity), the target of ${percent}% more so the choices have room, and how many places the submitted and approved activities offer them. A year short of the target is marked.`,
+      cell: (needing: number, target: number, offered: number) => `${needing} needed · target ${target} · ${offered} offered`,
+      short: (missing: number) => `${missing} short of the target`,
     },
     items: {
       heading: 'Activities',
@@ -599,6 +609,10 @@ export const en: Messages = {
       remove: (name: string) => `Remove ${name}`,
       search: 'Add teacher',
       add: (name: string) => `Add ${name}`,
+      leadRule: 'The person who created the activity leads it when they are among its teachers; otherwise the first teacher named does.',
+      /** A teacher not plainly available on some of the activity's days, the days as format.ts formatDay writes them. */
+      unavailableOn: (name: string, days: string) => `${name} is unavailable on ${days}.`,
+      ifNeededOn: (name: string, days: string) => `${name} is available on ${days} only if needed.`,
     },
     sessions: {
       intro: 'A session is given in school periods or, for a trip for example, by clock time. The minutes you enter for each project day are credited; travel and breaks do not count.',
@@ -637,7 +651,36 @@ export const en: Messages = {
       heading: (count: number) => `${byCount(count, 'Participant', 'Participants')} (${count})`,
       cancelled: 'This activity is cancelled: too few students chose it to meet its minimum.',
       none: 'No one is placed in this activity.',
+      lead: (name: string) => `Lead: ${name}`,
+      companions: (names: string) => `Companions: ${names}`,
     },
+  },
+
+  /** Verfuegbarkeit.vue: a teacher's own availability on the project days of the registrations collecting activities. */
+  availability: {
+    intro: 'Enter the project days on which you are there for an activity. Without an entry you count as available. You need not give a reason.',
+    none: 'No registration is collecting activities at the moment. While one is, you enter here on which of its project days you are there; after that, the organisation changes it.',
+    teachersOnly: 'Teachers enter their availability.',
+    /** The label of a day's choice for a screen reader, the day as format.ts formatDay writes it. */
+    statusOn: (day: string) => `Availability on ${day}`,
+    saved: 'Saved.',
+    link: 'Enter my availability',
+  },
+
+  /** Lehrkraefte.vue: the organizer's overview of the teachers per project day. */
+  planning: {
+    intro: 'For each teacher and project day: whether they are available, what they lead and what they accompany. Teachers enter their availability while activities are being collected; here you change anyone\'s until the registration is closed.',
+    readOnly: 'The registration is closed: availability stays as it is.',
+    none: 'No teachers in the class lists yet.',
+    /** The activities as "3. Climbing, 7. Vienna". */
+    leads: (items: string) => `leads ${items}`,
+    accompanies: (items: string) => `accompanies ${items}`,
+    free: 'free',
+    leadsNothing: (names: string) => `Leads nothing on any day: ${names}.`,
+    everyoneLeads: 'Every teacher leads something on at least one day.',
+    statusOf: (name: string, day: string) => `Availability of ${name} on ${day}`,
+    saved: 'Availability saved.',
+    export: 'Teachers by day as Excel',
   },
 
   /** Wuensche.vue: a student's wishes, or an organizer's entry on a student's behalf. */
@@ -1219,6 +1262,7 @@ export const en: Messages = {
       participants: 'Participants',
       deficits: 'Missing minutes',
       changes: 'Changes',
+      planning: 'Teachers by day',
     },
     column: {
       window: 'Period',
@@ -1254,6 +1298,9 @@ export const en: Messages = {
       to: 'New',
       forced: 'Anyway',
       by: 'By',
+      availability: 'Availability',
+      leads: 'Leads',
+      accompanies: 'Accompanies',
     },
     yes: 'yes',
     no: 'no',
@@ -1281,6 +1328,7 @@ export const en: Messages = {
     run: (seq: number) => `allocation-calculation-${seq}.xlsx`,
     attendance: (schoolYear: string) => `attendance-${schoolYear}.xlsx`,
     classAttendance: (className: string, schoolYear: string) => `attendance-${className.toLowerCase()}-${schoolYear}.xlsx`,
+    planning: (schoolYear: string) => `teachers-${schoolYear}.xlsx`,
     rosterTemplate: 'schulwahl-class-lists.csv',
   },
 

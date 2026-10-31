@@ -33,7 +33,7 @@ There are also the [Excel files](./excel) provided at each step, and the [email 
 
 ![A registration page in preparation: name, school year and project days, followed by the Organisation section with the status and buttons](/bilder/en/anmeldung-in-vorbereitung.png)
 
-Open each registration under **Registrations**. At the top are the school year, project days and, once set, the registration period, late registration, swap period and number of choices per time block. The **Organisation** section shows the status and button for the next step, plus the settings, catalogue as an Excel file and links to class teachers and email templates. Below, depending on the status, are the registration status, places and demand, and activities.
+Open each registration under **Registrations**. At the top are the school year, project days and, once set, the registration period, late registration, swap period and number of choices per time block. The **Organisation** section shows the status and button for the next step, plus the settings, catalogue as an Excel file and links to teachers by day, class teachers and email templates. Below, depending on the status, are the registration status, places and demand, and activities.
 
 ## Who sees what
 

@@ -47,6 +47,8 @@ export const de = {
       result: 'Meine Einteilung',
       allocation: 'Zuteilung',
       newItem: 'Neue Aktivität',
+      availability: 'Meine Verfügbarkeit',
+      planning: 'Lehrkräfte je Tag',
     },
     backToCampaign: 'Zur Anmeldung',
     backToAdmin: 'Zur Verwaltung',
@@ -318,6 +320,12 @@ export const de = {
       absent: 'abwesend',
       excused: 'entschuldigt',
     },
+    /** A teacher on a project day (school-core AVAILABILITY_STATUSES). */
+    availability: {
+      available: 'verfügbar',
+      unavailable: 'nicht verfügbar',
+      if_needed: 'nur wenn nötig',
+    },
     /** The state of a mail in the outbox (apps/api/lib/mail/outbox.ts MAIL_STATES). */
     mailState: {
       queued: 'wartet auf den Versand',
@@ -521,6 +529,7 @@ export const de = {
       wishesPerGroup: 'Wünsche je Zeitblock',
       dailyMinimum: (grade: number) => `Mindestminuten je Tag, ${grade}. Schulstufe`,
       showTeachers: 'Der Katalog nennt die Lehrkräfte der Aktivitäten',
+      placeHeadroomPercent: 'Plätze über dem Bedarf, in Prozent',
     },
     student: {
       viewResult: 'Meine Einteilung ansehen',
@@ -536,8 +545,9 @@ export const de = {
     },
     demand: {
       heading: 'Plätze und Bedarf',
-      intro: 'Je Projekttag und Schulstufe: wie viele Schüler*innen einen Platz brauchen (ohne die in einer Klassenaktivität) und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten.',
-      cell: (needing: number, offered: number) => `${needing} brauchen · ${offered} angeboten`,
+      intro: (percent: number) => `Je Projekttag und Schulstufe: wie viele Schüler*innen einen Platz brauchen (ohne die in einer Klassenaktivität), das Ziel mit ${percent} % darüber, damit die Wünsche Platz haben, und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Eine Schulstufe unter dem Ziel ist markiert.`,
+      cell: (needing: number, target: number, offered: number) => `${needing} brauchen · Ziel ${target} · ${offered} angeboten`,
+      short: (missing: number) => `${missing} unter dem Ziel`,
     },
     items: {
       heading: 'Aktivitäten',
@@ -598,6 +608,10 @@ export const de = {
       remove: (name: string) => `${name} entfernen`,
       search: 'Lehrkraft hinzufügen',
       add: (name: string) => `${name} hinzufügen`,
+      leadRule: 'Die Leitung hat, wer die Aktivität angelegt hat, wenn diese Person unter den Lehrkräften ist; sonst die zuerst genannte Lehrkraft.',
+      /** A teacher not plainly available on some of the activity's days, the days as format.ts formatDay writes them. */
+      unavailableOn: (name: string, days: string) => `${name} ist am ${days} nicht verfügbar.`,
+      ifNeededOn: (name: string, days: string) => `${name} ist am ${days} nur verfügbar, wenn es nötig ist.`,
     },
     sessions: {
       intro: 'Ein Termin liegt in den Einheiten der Schule oder, etwa bei einem Ausflug, nach der Uhrzeit. Angerechnet werden die Minuten, die du je Projekttag angibst; Anreise und Pausen zählen nicht.',
@@ -636,7 +650,36 @@ export const de = {
       heading: (count: number) => `Teilnehmer*innen (${count})`,
       cancelled: 'Diese Aktivität fällt aus: Für ihre Mindestzahl kamen zu wenige Wünsche.',
       none: 'In diese Aktivität ist niemand eingeteilt.',
+      lead: (name: string) => `Leitung: ${name}`,
+      companions: (names: string) => `Begleitung: ${names}`,
     },
+  },
+
+  /** Verfuegbarkeit.vue: a teacher's own availability on the project days of the registrations collecting activities. */
+  availability: {
+    intro: 'Trag ein, an welchen Projekttagen du für eine Aktivität da bist. Ohne Eintrag giltst du als verfügbar. Einen Grund brauchst du nicht.',
+    none: 'Zurzeit sammelt keine Anmeldung Angebote. Solange eine sammelt, trägst du hier ein, an welchen ihrer Projekttage du da bist; danach ändert das die Organisation.',
+    teachersOnly: 'Die Verfügbarkeit tragen die Lehrkräfte ein.',
+    /** The label of a day's choice for a screen reader, the day as format.ts formatDay writes it. */
+    statusOn: (day: string) => `Verfügbarkeit am ${day}`,
+    saved: 'Gespeichert.',
+    link: 'Meine Verfügbarkeit eintragen',
+  },
+
+  /** Lehrkraefte.vue: the organizer's overview of the teachers per project day. */
+  planning: {
+    intro: 'Je Lehrkraft und Projekttag: ob sie verfügbar ist, was sie leitet und was sie begleitet. Die Lehrkräfte tragen ihre Verfügbarkeit ein, solange Angebote gesammelt werden; hier änderst du sie für alle, bis die Anmeldung abgeschlossen ist.',
+    readOnly: 'Die Anmeldung ist abgeschlossen: Die Verfügbarkeit bleibt, wie sie ist.',
+    none: 'Noch keine Lehrkräfte in den Klassenlisten.',
+    /** The activities as "3. Klettern, 7. Wien". */
+    leads: (items: string) => `leitet ${items}`,
+    accompanies: (items: string) => `begleitet ${items}`,
+    free: 'frei',
+    leadsNothing: (names: string) => `Leitet an keinem Tag etwas: ${names}.`,
+    everyoneLeads: 'Jede Lehrkraft leitet an mindestens einem Tag etwas.',
+    statusOf: (name: string, day: string) => `Verfügbarkeit von ${name} am ${day}`,
+    saved: 'Verfügbarkeit gespeichert.',
+    export: 'Lehrkräfte je Tag als Excel',
   },
 
   /** Wuensche.vue: a student's wishes, or an organizer's entry on a student's behalf. */
@@ -1219,6 +1262,7 @@ export const de = {
       participants: 'Teilnehmende',
       deficits: 'Fehlende Minuten',
       changes: 'Änderungen',
+      planning: 'Lehrkräfte je Tag',
     },
     column: {
       window: 'Zeitraum',
@@ -1254,6 +1298,9 @@ export const de = {
       to: 'Neu',
       forced: 'Trotzdem',
       by: 'Durch',
+      availability: 'Verfügbarkeit',
+      leads: 'Leitet',
+      accompanies: 'Begleitet',
     },
     yes: 'ja',
     no: 'nein',
@@ -1281,6 +1328,7 @@ export const de = {
     run: (seq: number) => `zuteilung-berechnung-${seq}.xlsx`,
     attendance: (schoolYear: string) => `anwesenheit-${schoolYear}.xlsx`,
     classAttendance: (className: string, schoolYear: string) => `anwesenheit-${className}-${schoolYear}.xlsx`,
+    planning: (schoolYear: string) => `lehrkraefte-${schoolYear}.xlsx`,
     rosterTemplate: 'schulwahl-klassenlisten.csv',
   },
 

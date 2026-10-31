@@ -17,6 +17,7 @@ export interface CampaignRow {
   daily_minimum: Record<string, number>
   show_teachers: boolean
   reminder_days: number
+  place_headroom_percent: number
   roster_batch_id: string | null
   created_at: Date
   updated_at: Date

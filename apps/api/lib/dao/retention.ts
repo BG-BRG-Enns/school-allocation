@@ -1,3 +1,4 @@
+import { yearsOf } from '@school-allocation/school-core'
 import type { Queryable } from '../db.ts'
 
 /** A school year as the records know it: its campaigns, how many roster batches and class-teacher rows it has. */
@@ -25,6 +26,13 @@ export async function schoolYearRecords(db: Queryable): Promise<SchoolYearRecord
 export async function campaignStatesOf(client: Queryable, schoolYear: string): Promise<string[]> {
   const { rows } = await client.query<{ state: string }>('select state from campaign where school_year = $1', [schoolYear])
   return rows.map((row) => row.state)
+}
+
+/** The teachers' availability on the dates of `schoolYear`, September to August; returns how many rows went. */
+export async function purgeAvailability(client: Queryable, schoolYear: string): Promise<number> {
+  const [first, second] = yearsOf(schoolYear)
+  const { rowCount } = await client.query('delete from teacher_availability where day between $1 and $2', [`${first}-09-01`, `${second}-08-31`])
+  return rowCount ?? 0
 }
 
 /** Runs the purge (0010) and returns what it removed, per relation, in order. */

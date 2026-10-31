@@ -101,3 +101,15 @@ function mayRank(c: ClassSize, item: OfferedItem): boolean {
   if (item.eligibleClasses.length > 0 && !item.eligibleClasses.includes(c.className)) return false
   return true
 }
+
+/** How many places more than the need a registration aims for, unless it says otherwise: a fifth. */
+export const DEFAULT_PLACE_HEADROOM_PERCENT = 20
+
+/**
+ * The places a day should offer a grade whose `needing` students need one:
+ * the need and `percent` more, rounded up, so the wishes have room. A grade
+ * offered fewer is short of the target, though not of places.
+ */
+export function placeTarget(needing: number, percent: number): number {
+  return Math.ceil((needing * (100 + percent)) / 100)
+}

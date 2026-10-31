@@ -1,6 +1,6 @@
 # Teilnehmer\*innen
 
-Ist die Einteilung veröffentlicht, steht in der Tabelle **Aktivitäten** bei jeder deiner Aktivitäten der Knopf **Teilnehmer\*innen**. Er öffnet die Aktivität mit der Liste derer, die eingeteilt sind.
+Ist die Einteilung veröffentlicht, steht in der Tabelle **Aktivitäten** bei jeder deiner Aktivitäten der Knopf **Teilnehmer\*innen**. Er öffnet die Aktivität mit der Liste derer, die eingeteilt sind. Über der Liste steht, wer die Aktivität leitet und wer sie begleitet.
 
 ![Die Teilnehmer\*innen einer Aktivität: jede Person mit ihrer Klasse und wie sie hineinkam, hier von Hand](/bilder/de/teilnehmerinnen.png)
 

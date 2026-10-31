@@ -5,6 +5,7 @@
 // are written as text in the school's time and that language.
 
 import type { AttendanceRow } from '@school-allocation/api-contracts/attendance'
+import type { PlanningResponse } from '@school-allocation/api-contracts/planning'
 import type { AssignmentChange } from '@school-allocation/api-contracts/publication'
 import writeXlsxFile from 'write-excel-file/node'
 import type { Words } from './i18n.ts'
@@ -55,6 +56,31 @@ export async function missingWorkbook({ t, intl }: WorkbookWords, rows: readonly
 
 function header(text: string) {
   return { value: text, fontWeight: 'bold' as const }
+}
+
+/**
+ * The organizer's overview of the teachers: one row per teacher and project
+ * day, with their availability and the activities they lead and accompany
+ * there, so a pivot table counts either way.
+ */
+export async function planningWorkbook({ t, intl }: WorkbookWords, planning: PlanningResponse): Promise<Buffer> {
+  const field = t.common.field
+  const column = t.workbook.column
+  const statusLabels: Readonly<Record<string, string>> = t.labels.availability
+  const day = new Intl.DateTimeFormat(intl, { timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+  const named = (items: PlanningResponse['teachers'][number]['days'][number]['leads']) => items.map((item) => (item.number === null ? item.title : `${item.number}. ${item.title}`)).join(', ')
+  const data = [
+    [field.name, field.day, column.availability, column.leads, column.accompanies].map(header),
+    ...planning.teachers.flatMap((teacher) => teacher.days.map((d) => [
+      { type: String, value: teacher.displayName },
+      { type: String, value: day.format(new Date(`${d.date}T00:00:00Z`)) },
+      { type: String, value: statusLabels[d.status] ?? d.status },
+      { type: String, value: named(d.leads) },
+      { type: String, value: named(d.accompanies) },
+    ])),
+  ]
+  const workbook = writeXlsxFile([{ sheet: t.workbook.sheet.planning, columns: [{ width: 30 }, { width: 18 }, { width: 18 }, { width: 40 }, { width: 40 }], data }])
+  return workbook.toBuffer()
 }
 
 /** The catalogue: one sheet of activities, one of sessions; nothing about students is in it. The workbook as bytes; the caller sets the headers. */

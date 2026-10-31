@@ -24,6 +24,10 @@ Ein **Zeitblock** sind die Aktivitäten eines Projekttags, die zur selben Zeit s
 
 Für jede Schulstufe: wie viele Minuten an Aktivitäten Schüler\*innen an einem Projekttag brauchen. Die Zuteilung füllt diese Minuten so gut wie möglich; was fehlt, zeigt sie als fehlende Minuten. Angerechnet werden die Minuten, die eine Aktivität je Tag angibt. Ohne Mindestminuten für jede Schulstufe der Anmeldung lässt sich keine Zuteilung berechnen; du kannst sie bis zur Veröffentlichung eintragen und ändern.
 
+## Plätze über dem Bedarf
+
+Um wie viel Prozent die Aktivitäten mehr Plätze anbieten sollen, als Schüler\*innen einen brauchen, 20, solange du nichts anderes einträgst. Daraus rechnet **Plätze und Bedarf** das Ziel je Projekttag und Schulstufe ([Anlegen und Katalog](./anlegen)). Mehr Plätze als nötig lassen den Wünschen Raum.
+
 ## Lehrkräfte im Katalog
 
 **Der Katalog nennt die Lehrkräfte der Aktivitäten**: Ist das Häkchen weg, sehen die Schüler\*innen keine Namen von Lehrkräften, weder im Katalog noch bei ihren Wünschen.
@@ -33,6 +37,6 @@ Für jede Schulstufe: wie viele Minuten an Aktivitäten Schüler\*innen an einem
 | Einstellung | Änderbar, bis |
 | ----------- | ------------- |
 | Bezeichnung, Schuljahr, Projekttage | der Katalog veröffentlicht ist |
-| Anmeldezeitraum, Nachfrist, Wünsche je Zeitblock, Lehrkräfte im Katalog | die Anmeldung öffnet |
+| Anmeldezeitraum, Nachfrist, Wünsche je Zeitblock, Plätze über dem Bedarf, Lehrkräfte im Katalog | die Anmeldung öffnet |
 | Mindestminuten je Tag | die Einteilung veröffentlicht ist |
 | Tauschzeit | die Tauschzeit beginnt |

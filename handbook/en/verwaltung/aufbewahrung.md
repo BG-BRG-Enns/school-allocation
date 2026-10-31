@@ -16,4 +16,4 @@ You can delete a school year once its retention period has passed and all its re
 2. Choose the **School year** and enter it again to confirm.
 3. Write a **Reason** and click **Delete permanently**.
 
-SchulWahl then deletes everything for that school year: the registrations with their choices, allocations and attendance, the class list imports and the class teachers. The page then shows what was deleted. Deletion is permanent; there is no way back.
+SchulWahl then deletes everything for that school year: the registrations with their choices, allocations and attendance, the class list imports, the class teachers and the teachers' availability on its days. The page then shows what was deleted. Deletion is permanent; there is no way back.

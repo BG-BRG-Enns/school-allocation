@@ -8,6 +8,10 @@ Solange bei einer Anmeldung **Angebote gesammelt** werden, öffnest du sie unter
 
 Gib **Titel**, **Beschreibung** und **Ort oder Treffpunkt** an. Unter **Lehrkräfte** stehst du schon; weitere Lehrkräfte fügst du über die Suche hinzu. Alle Lehrkräfte einer Aktivität können sie bearbeiten und sehen später ihre Teilnehmer\*innen.
 
+Wer die Aktivität angelegt hat, hat die **Leitung**, solange sie oder er unter ihren Lehrkräften ist; sonst die zuerst genannte Lehrkraft. Die anderen sind **Begleitung**. Unter den Lehrkräften steht, wer leitet und wer begleitet. An den Rechten ändert das nichts.
+
+Ist eine der Lehrkräfte an einem Tag der Termine nicht verfügbar oder nur, wenn es nötig ist ([Verfügbarkeit](./verfuegbarkeit)), steht das dort ebenfalls. Speichern und einreichen kannst du trotzdem; die Organisation entscheidet.
+
 ## Termine
 
 ![Die Termine: ein Termin in Einheiten, ab der 2. Einheit, 4 Einheiten lang, mit der Uhrzeit und den angerechneten Minuten am Projekttag](/bilder/de/aktivitaet-termine.png)
@@ -46,6 +50,6 @@ Gibt die Organisation deine Aktivität zurück, ist sie wieder ein Entwurf, und 
 
 ## Plätze und Bedarf
 
-![Plätze und Bedarf: je Projekttag und Schulstufe, wie viele Schüler\*innen einen Platz brauchen und wie viele angeboten sind](/bilder/de/bedarf.png)
+![Plätze und Bedarf: je Projekttag und Schulstufe, wie viele Schüler\*innen einen Platz brauchen, das Ziel und wie viele angeboten sind](/bilder/de/bedarf.png)
 
-Solange Angebote gesammelt werden, zeigt die Seite der Anmeldung je Projekttag und Schulstufe, wie viele Schüler\*innen einen Platz brauchen und wie viele Plätze die eingereichten und genehmigten Aktivitäten anbieten. Dort, wo wenig angeboten ist, hilft eine weitere Aktivität am meisten.
+Solange Angebote gesammelt werden, zeigt die Seite der Anmeldung je Projekttag und Schulstufe, wie viele Schüler\*innen einen Platz brauchen, das **Ziel** und wie viele Plätze die eingereichten und genehmigten Aktivitäten anbieten. Das Ziel liegt um einen Anteil über dem Bedarf, den die Organisation festlegt, meist 20 %: So haben die Wünsche Platz. Eine Schulstufe unter dem Ziel ist markiert; dort hilft eine weitere Aktivität am meisten.

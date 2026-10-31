@@ -1,6 +1,6 @@
 # Participants
 
-Once the allocation is published, the **Activities** table has a **Participants** button for each of your activities. It opens the activity with the list of those placed in it.
+Once the allocation is published, the **Activities** table has a **Participants** button for each of your activities. It opens the activity with the list of those placed in it. Above the list it says who leads the activity and who accompanies it.
 
 ![An activity's participants: each person with their class and how they joined, here by hand](/bilder/en/teilnehmerinnen.png)
 

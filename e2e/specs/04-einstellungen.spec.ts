@@ -104,7 +104,7 @@ test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
   await expect(page.getByRole('heading', { name: t.campaign.demand.heading })).toBeVisible()
-  await expect(page.getByRole('row', { name: new RegExp(literally(day('2034-07-03'))) })).toContainText(t.campaign.demand.cell(2, 12))
+  await expect(page.getByRole('row', { name: new RegExp(literally(day('2034-07-03'))) })).toContainText(t.campaign.demand.cell(2, 3, 12))
   await picture(page, 'bedarf', section(page, t.campaign.demand.heading))
   await page.getByRole('button', { name: t.campaign.organization.editSettings }).click()
   const form = page.getByRole('form', { name: t.campaign.settings.label })

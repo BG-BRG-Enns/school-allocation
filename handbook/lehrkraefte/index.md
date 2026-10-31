@@ -8,7 +8,7 @@ Du loggst dich mit deinem Microsoft-Konto der Schule ein. **Mein Konto** zeigt, 
 
 ## Der Ablauf
 
-1. **Angebote werden gesammelt**: Unter **Anmeldungen** steht die Anmeldung, und du [reichst Aktivitäten ein](./aktivitaet).
+1. **Angebote werden gesammelt**: Unter **Anmeldungen** steht die Anmeldung, du [reichst Aktivitäten ein](./aktivitaet) und trägst deine [Verfügbarkeit](./verfuegbarkeit) an den Projekttagen ein.
 2. **Katalog veröffentlicht**: Deine genehmigten Aktivitäten stehen mit Nummer im Katalog, den alle sehen.
 3. **Anmeldung läuft**: Die Schüler\*innen geben ihre Wünsche ab. Als Klassenvorstand siehst du, wer aus deiner Klasse schon fertig ist ([Als Klassenvorstand](./klassenvorstand)).
 4. **Einteilung veröffentlicht**: Du siehst die [Teilnehmer\*innen](./teilnehmerlisten) deiner Aktivitäten. Fällt eine aus, bekommst du eine E-Mail. Als Klassenvorstand teilst du ein, wem noch Zeit fehlt.

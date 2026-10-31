@@ -81,6 +81,9 @@ export const MOVE_PROBLEM_LABELS: Readonly<Record<string, string>> = t.labels.mo
 /** What was recorded for a student in a session (packages/api-contracts/src/attendance.ts ATTENDANCE_STATUSES). */
 export const ATTENDANCE_STATUS_LABELS: Readonly<Record<string, string>> = t.labels.attendanceStatus
 
+/** A teacher on a project day (school-core AVAILABILITY_STATUSES). */
+export const AVAILABILITY_LABELS: Readonly<Record<string, string>> = t.labels.availability
+
 /** The state of a mail in the outbox (apps/api/lib/mail/outbox.ts MAIL_STATES). */
 export const MAIL_STATE_LABELS: Readonly<Record<string, string>> = t.labels.mailState
 

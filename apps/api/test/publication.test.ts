@@ -8,7 +8,7 @@
 
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import type { AllocationRun, MyResultResponse, ParticipantsResponse, RunReviewResponse } from '@school-allocation/api-contracts'
+import type { AllocationRun, MyResultResponse, ParticipantsResponse, PlanningResponse, RunReviewResponse } from '@school-allocation/api-contracts'
 import { readAudit } from '../lib/audit.ts'
 import { createDatabase } from '../lib/db.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
@@ -88,6 +88,11 @@ test('a run is published with its cancellations confirmed: results, notices once
   assert.equal(participants.status, 200, JSON.stringify(participants.body))
   assert.deepEqual(participants.body.participants.map((p) => [p.displayName, p.source]), [[SARA.name, 'fixed'], [TIM.name, 'fixed']])
   assert.equal((await get<ParticipantsResponse>(s, s.anna, `/api/campaigns/${id}/items/${s.items.darts}/participants`)).body.item.cancelled, true)
+  // Teachers by day: the cancelled darts is nobody's work any more.
+  const planning = await get<PlanningResponse>(s, s.anna, `/api/admin/campaigns/${id}/planning`)
+  const named = planning.body.teachers.flatMap((teacher) => teacher.days.flatMap((d) => [...d.leads, ...d.accompanies].map((item) => item.id)))
+  assert.ok(named.includes(s.items.wien), 'the activities that run are there')
+  assert.ok(!named.includes(s.items.darts), 'the cancelled one is not')
   const carla = await (await import('./helpers/harness.ts')).signIn(s, CARLA)
   assert.equal((await get(s, carla, `/api/campaigns/${id}/items/${s.items.wien}/participants`)).status, 403)
   assert.equal((await get(s, s.sara, `/api/campaigns/${id}/items/${s.items.wien}/participants`)).status, 403)

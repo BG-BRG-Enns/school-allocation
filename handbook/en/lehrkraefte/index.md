@@ -8,7 +8,7 @@ Sign in with your school Microsoft account. **My account** shows what SchulWahl 
 
 ## The process
 
-1. **Collecting activities**: The registration appears under **Registrations**, and you [submit activities](./aktivitaet).
+1. **Collecting activities**: The registration appears under **Registrations**, you [submit activities](./aktivitaet) and enter your [availability](./verfuegbarkeit) on the project days.
 2. **Catalogue published**: Your approved activities appear with numbers in the catalogue everyone sees.
 3. **Registration open**: Students submit their choices. As a class teacher, you see who in your class has finished ([As class teacher](./klassenvorstand)).
 4. **Allocation published**: You see your activities' [participants](./teilnehmerlisten). If an activity is cancelled, you receive an email. As a class teacher, you place anyone still short of time.

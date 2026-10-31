@@ -29,6 +29,8 @@ export const CampaignWindowSchema = StrictObject({
   dailyMinimum: Type.Record(Type.String(), Type.Number()),
   showTeachers: Type.Boolean(),
   reminderDays: Type.Number(),
+  /** How many places beyond the need a day should offer a grade, in percent (school-core placeTarget). */
+  placeHeadroomPercent: Type.Number(),
 })
 export type CampaignWindow = Static<typeof CampaignWindowSchema>
 
@@ -97,10 +99,14 @@ export const ItemSchema = StrictObject({
   proposedBy: StrictObject({
     id: Type.String(),
     displayName: Type.String(),
+    /** Their person in the roster, by their account's binding: who leads when among the teachers. */
+    personId: Type.Union([Type.String(), Type.Null()]),
   }),
   teachers: Type.Array(StrictObject({
     personId: Type.String(),
     displayName: Type.String(),
+    /** Whether they lead the activity (school-core leadOf); the others accompany. */
+    lead: Type.Boolean(),
   })),
   sessions: Type.Array(StrictObject({
     id: Type.String(),
