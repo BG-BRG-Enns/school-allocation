@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test \"test/**/*.test.ts\"",
+    "test": "node --throw-deprecation --test \"test/**/*.test.ts\"",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p test/tsconfig.json"
   },
   "devDependencies": {

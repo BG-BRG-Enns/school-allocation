@@ -8,6 +8,7 @@ export const SQLSTATE = {
   objectNotInPrerequisiteState: '55000',
   /** A statement stopped by the pool's statement timeout, a lock wait included. */
   queryCanceled: '57014',
+  undefinedColumn: '42703',
   undefinedTable: '42P01',
   uniqueViolation: '23505',
 } as const

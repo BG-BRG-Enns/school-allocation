@@ -43,9 +43,11 @@ export default defineConfig({
   // database the harness creates, and whatever answers on the port before
   // the run is a harness left behind or another process altogether. A
   // busy port fails the run instead. At the end the harness gets SIGTERM,
-  // not the default SIGKILL, so that it drops its database.
+  // not the default SIGKILL, so that it drops its database. A deprecation
+  // in the server throws (--throw-deprecation), so a journey that reaches
+  // deprecated code fails instead of printing a warning past the report.
   webServer: {
-    command: 'npm run build && node e2e/harness/server.ts',
+    command: 'npm run build && node --throw-deprecation e2e/harness/server.ts',
     url: `${baseURL}api/health`,
     reuseExistingServer: false,
     gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },

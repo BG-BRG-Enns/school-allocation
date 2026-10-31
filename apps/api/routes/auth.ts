@@ -13,7 +13,10 @@
 // gets nowhere: the state must match the state cookie, the code is redeemed
 // only with the client secret, and the ID token must carry the nonce from
 // the sealed session; state and nonce are set in this browser by the login
-// that started this sign-in, and used once.
+// that started this sign-in, and used once. The login also binds the
+// session to this browser (SESSION_BIND_COOKIE in plugins/session.ts), so a
+// sign-in started elsewhere and planted here is refused, and so is a
+// session.
 
 import * as endpoints from '@school-allocation/api-contracts/auth-endpoints'
 import { registerEndpoint } from '../lib/endpoint.ts'
@@ -26,6 +29,7 @@ import { currentUser, loadCaller, withinSeconds } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { registerEntra, SIGN_IN_SECONDS, SignInError } from '../lib/entra.ts'
 import { safeReturnTo } from '../lib/return-to.ts'
+import { SESSION_BIND_COOKIE, SESSION_BIND_VALUE, SESSION_SECONDS, sessionBound, bindDigest } from '../plugins/session.ts'
 import { recordSignIn } from '../services/sign-in.ts'
 
 export interface AuthRoutesOptions {
@@ -53,6 +57,18 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
   // that retry asks for the interactive sign-in page once.
   registerEndpoint(app, endpoints.getAuthLogin, { exposeHeadRoute: false, config: { rateLimit: SIGN_IN_RATE_LIMIT } }, async (request, reply) => {
     const nonce = randomBytes(32).toString('base64url')
+    // The binding cookie this host set before is kept: a second instance of
+    // the app under another path of the host shares it, and a new one would
+    // sign that out. It lasts as long as a session started within the
+    // sign-in's time.
+    const existing = request.cookies[SESSION_BIND_COOKIE]
+    const bind = existing !== undefined && SESSION_BIND_VALUE.test(existing) ? existing : randomBytes(32).toString('base64url')
+    void reply.setCookie(SESSION_BIND_COOKIE, bind, { path: '/', httpOnly: true, secure: true, sameSite: 'lax', maxAge: SIGN_IN_SECONDS + SESSION_SECONDS })
+    // A session not started in this browser, planted from another host of
+    // the site, is emptied, not bound: bound here, its user would become
+    // this browser's.
+    if (!sessionBound(request)) request.userSession.regenerate()
+    request.userSession.set('bind', bindDigest(bind))
     request.userSession.set('signIn', { nonce, returnTo: safeReturnTo(request.query.returnTo, config.basePath), startedAt: Date.now() })
     const interactive = request.query.sso_reload === 'true'
     return reply.redirect(await entra.authorizationUrl(request, reply, nonce, interactive), 302)
@@ -68,6 +84,11 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
     }
     const session = request.userSession
     const pending = session.get('signIn')
+    // A sign-in started in another browser and planted in this one: refused,
+    // and left as it is, so nothing of it is written back as this browser's.
+    if (pending && !sessionBound(request)) {
+      return refuse(request, reply, new SignInError('session_not_bound'))
+    }
     if (pending) session.set('signIn', undefined)
     if (!pending || !withinSeconds(pending.startedAt, SIGN_IN_SECONDS)) {
       return refuse(request, reply, new SignInError('no_pending_sign_in'))

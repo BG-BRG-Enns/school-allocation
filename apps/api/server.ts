@@ -1,9 +1,10 @@
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from './app.ts'
 import { ConfigError, loadConfig, type Config } from './config.ts'
-import { checkRuntimeConnection, createDatabase, describeDatabase } from './lib/db.ts'
+import { checkRuntimeConnection, checkSchema, createDatabase, describeDatabase } from './lib/db.ts'
 import { interruptStaleJobs } from './lib/jobs.ts'
 import { sqlState } from './lib/pg-errors.ts'
+import { ownSchema } from './scripts/migrate.ts'
 import { recoverInterruptedRuns } from './services/allocation.ts'
 
 // An operator problem: name it and stop, without a stack trace to read past.
@@ -24,12 +25,15 @@ try {
 const started: { app?: FastifyInstance } = {}
 const db = createDatabase(config.databaseUrl, (err) => started.app?.log.error({ err }, 'database client failed'))
 
-// Fail fast: an unreachable database or a connection as the wrong role stops
-// the process, so a restart loop is visible instead of a server answering
-// 503s or running with rights the application never gets.
+// Fail fast: an unreachable database, a connection as the wrong role or a
+// schema this release was not built for stops the process, so a failed
+// update is visible instead of a server answering 503s, running with rights
+// the application never gets, or running on a schema a newer release
+// changed under it.
 let problems: string[]
 try {
   problems = await checkRuntimeConnection(db)
+  if (problems.length === 0) problems = await checkSchema(db, await ownSchema())
 } catch (err) {
   refuse(`cannot query ${describeDatabase(config.databaseUrl)} (${(err as Error).name} ${sqlState(err) ?? ''})`.trim())
 }

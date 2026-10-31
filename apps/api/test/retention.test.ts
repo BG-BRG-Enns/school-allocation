@@ -88,12 +88,11 @@ test('a school year past its retention is purged whole; the next year, its peopl
   assert.equal((await send(h, anna, 'PUT', '/api/admin/classes/5A/teachers', { teachers: [person(BERND.name)] })).status, 200)
 
   // Where the runtime role may delete at all (a draft, by the catalogue's guard), the switch is not its to set: a guard honours it inside
-  // the definer function alone. The refusal reaches the runtime role as a permission error on refuse(), which the grant list does not
-  // name (so since the baseline); the guard refused either way.
+  // the definer function alone, so the runtime role meets the guard's own refusal.
   await assert.rejects(h.db.tx(async (client) => {
     await client.query('set local schulwahl.purge = \'on\'')
     await client.query('delete from catalog_item where id = $1', [klettern])
-  }), /withdrawn, not removed|permission denied for function refuse/)
+  }), /withdrawn, not removed/)
 
   // 2026/27: a campaign being set up, which goes by the roster in force until its close; that roster is 2023/24's batch for now.
   const next = await send<Campaign>(h, anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'Projektwoche 2027', schoolYear: '2026/27', projectDays: ['2027-06-21'] })

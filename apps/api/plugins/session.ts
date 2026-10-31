@@ -11,9 +11,13 @@
 // Sign-out only drops the cookie in that browser; a copied cookie stays
 // valid until it expires. The lifetime is therefore short and absolute,
 // counted from sign-in.
+//
+// The session counts only beside the binding cookie of the browser it was
+// started in (SESSION_BIND_COOKIE below): under a base path its cookie is
+// __Secure-, which other hosts of the same site can plant.
 
-import { hkdfSync } from 'node:crypto'
-import type { FastifyInstance } from 'fastify'
+import { createHash, hkdfSync } from 'node:crypto'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import secureSession, { type Session } from '@fastify/secure-session'
 import type { Config } from '../config.ts'
 
@@ -30,6 +34,34 @@ export function sessionCookie(basePath: string): string {
 }
 /** A school day, however active the session is. */
 export const SESSION_SECONDS = 8 * 60 * 60
+
+/**
+ * The binding cookie: random, set at the start of a sign-in, and __Host-,
+ * so only this host can set it, at the path / that __Host- requires. The
+ * session carries its digest and counts only beside it. Under a base path
+ * the session cookie is __Secure-, and any host of the same site may set a
+ * __Secure- cookie for the whole domain, at a longer path the browser sends
+ * first: someone could plant their own session, or their own sign-in in
+ * progress, in another person's browser, who would then work as them. Its
+ * digest is not that browser's, so it reads as none. At the root the
+ * session cookie is __Host- already; the binding holds there too, so both
+ * run the same code.
+ */
+export const SESSION_BIND_COOKIE = '__Host-session-bind'
+/** 32 random bytes, base64url. */
+export const SESSION_BIND_VALUE = /^[\w-]{43}$/
+
+/** What the session carries of a binding cookie's value. */
+export function bindDigest(value: string): string {
+  return createHash('sha256').update(value).digest('base64url')
+}
+
+/** Whether the session was started in this browser: it carries the digest of this browser's binding cookie. */
+export function sessionBound(request: FastifyRequest): boolean {
+  const value = request.cookies[SESSION_BIND_COOKIE]
+  const bind = request.userSession.get('bind')
+  return typeof value === 'string' && SESSION_BIND_VALUE.test(value) && typeof bind === 'string' && bind === bindDigest(value)
+}
 
 /** Who signed in; set by the sign-in callback only. */
 export interface SessionUser {
@@ -64,6 +96,8 @@ export interface UserSessionData {
   graphRefresh: PendingGraphRefresh
   /** The handle of the Graph token the picker searches groups with; the token itself stays in the server's memory (routes/admin-roster.ts). */
   graphPicker: string
+  /** bindDigest() of the browser's binding cookie; set with the pending sign-in. */
+  bind: string
 }
 
 declare module 'fastify' {
