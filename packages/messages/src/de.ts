@@ -448,6 +448,8 @@ export const de = {
     unbound: 'Noch keiner Person der Schule zugeordnet. Wenn Sie an einer Wahl teilnehmen sollen, wenden Sie sich bitte an die Verwaltung.',
     roles: 'Rollen',
     noRoles: 'Keine besonderen Rollen.',
+    /** Followed by the link to the licences of the packages these pages bundle. */
+    licences: 'SchulWahl ist freie Software unter der MIT-Lizenz. Die Lizenzen der Programmbibliotheken, die diese Seiten enthalten:',
   },
 
   /** Wahlen.vue: the campaigns the person may see, and the organizer's form for a new one. */

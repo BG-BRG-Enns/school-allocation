@@ -3,12 +3,16 @@
 // account, with class and grade, and the roles they hold.
 
 import { computed } from 'vue'
+import { withBase } from '../lib/base.ts'
 import { t } from '../lib/i18n.ts'
 import { KIND_LABELS, ROLE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
 usePageTitle(() => t.common.page.account)
+
+/** The licences of the packages the web build bundles, which it writes next to the app (third-party-notices/README.md). */
+const LICENCES = 'third-party-licenses.txt'
 
 const personText = computed(() => {
   const person = session.value?.person
@@ -49,4 +53,8 @@ const personText = computed(() => {
       </ul>
     </dd>
   </dl>
+  <p>
+    {{ t.account.licences }}
+    <a :href="withBase(`/${LICENCES}`)">{{ LICENCES }}</a>
+  </p>
 </template>

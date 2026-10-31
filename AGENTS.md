@@ -20,6 +20,7 @@ e2e/                      Playwright journeys against the real server: harness, 
 scripts/lint-deps.mjs     pin check: exact versions in every workspace, digests for the Dockerfiles' frontend and the workflows' BuildKit
 scripts/postgres.sh       PostgreSQL for development and CI, the image the deployment follows
 deploy/                   the deployment: Quadlet units for the three containers, the PostgreSQL image, the nightly-update guard, the .env example, the proxy example (nginx) and the operator guide; generic, example.org placeholders only
+third-party-notices/      the app image's notices for what it carries beyond its packages' own licence files; apps/solver/third-party-notices/ the solver image's; kept true by scripts/third-party-notices.test.mjs
 docs/                     the design: decisions, domain, API, plan, risks; update them with the behaviour they describe
 ```
 

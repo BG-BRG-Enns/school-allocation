@@ -85,6 +85,10 @@ jobs:
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         id: build
         with:
+          # A software bill of materials as an attestation beside the image
+          # and its provenance: what the image contains, from its packages,
+          # for whoever runs it. Signed with the rest of the index below.
+          sbom: true
           context: .
           push: true
           tags: ${{ steps.app.outputs.tags }}
@@ -106,6 +110,10 @@ jobs:
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         id: build-postgres
         with:
+          # A software bill of materials as an attestation beside the image
+          # and its provenance: what the image contains, from its packages,
+          # for whoever runs it. Signed with the rest of the index below.
+          sbom: true
           context: deploy/postgres
           push: true
           tags: ${{ steps.postgres.outputs.tags }}
@@ -124,6 +132,10 @@ jobs:
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         id: build-solver
         with:
+          # A software bill of materials as an attestation beside the image
+          # and its provenance: what the image contains, from its packages,
+          # for whoever runs it. Signed with the rest of the index below.
+          sbom: true
           context: apps/solver
           push: true
           tags: ${{ steps.solver.outputs.tags }}
