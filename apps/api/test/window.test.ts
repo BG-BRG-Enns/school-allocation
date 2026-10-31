@@ -155,6 +155,8 @@ test('an organizer enters a ranking on behalf and exempts a student from a class
   assert.equal(grace.body.campaign.state, 'grace')
   const mails = async () => (await owner.query<{ kind: string, to_address: string }>('select kind, to_address from outbox_mail where campaign_id = $1 order by created_at, kind, to_address', [id])).rows.map((r) => `${r.kind}:${r.to_address}`)
   assert.deepEqual((await mails()).slice(4), [`class_missing:${CARLA.email}`, `grace_invitation:${SARA.email}`, `grace_invitation:${TIM.email}`], 'the class teacher named by the roster gets her list')
+  const reminders = await owner.query<{ state: string }>('select state from outbox_mail where campaign_id = $1 and kind = \'choice_reminder\'', [id])
+  assert.deepEqual(reminders.rows.map((r) => r.state), ['expired', 'expired'], 'the reminders still queued end with the window they remind of')
 
   // A list saved in the grace week is late; the audit records the clock as actor.
   const [saraMonday, saraSwim, saraDarts] = exempted.body.groups.map((g) => g.key) as [string, string, string]

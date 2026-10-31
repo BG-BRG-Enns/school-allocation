@@ -11,7 +11,7 @@ export type { Period } from '@school-allocation/school-core'
 import type { RosterGroup } from '@school-allocation/api-contracts'
 import { apiRequest } from './api.ts'
 
-export type { Account, Batch, BatchDetail, BatchState, ClassTeacher, ClassWithTeachers, Grant, GraphGroup, MailTemplate, RosterGroup, RosterOverview, RosterPerson, StoredEntry, TemplateInvalidBody, RetentionYear } from '@school-allocation/api-contracts'
+export type { Account, Batch, BatchDetail, BatchState, ClassTeacher, ClassWithTeachers, Grant, GraphGroup, MailTemplate, RosterGroup, RosterOverview, RosterPerson, StoredEntry, TemplateInvalidBody, RetentionYear, MailStatusResponse } from '@school-allocation/api-contracts'
 export const loadRoster = () => apiRequest(endpoints.getAdminRoster, { })
 export const saveGroups = (groups: RosterGroup[]) => apiRequest(endpoints.putAdminRosterGroups, { body: { groups } })
 export const uploadCsv = (csv: string, schoolYear: string) => apiRequest(endpoints.postAdminRosterCsv, { body: { csv, schoolYear } })
@@ -39,6 +39,7 @@ export const saveMailTemplate = (kind: MailKind, subject: string, body: string) 
 export const resetMailTemplate = (kind: MailKind) => apiRequest(endpoints.deleteAdminMailTemplatesByKind, { params: { kind: kind } })
 export const sendTestMail = (kind: MailKind) => apiRequest(endpoints.postAdminMailTemplatesByKindTest, { params: { kind: kind } })
 export const loadMailStatus = () => apiRequest(endpoints.getAdminMailStatus, { })
+export const setMailPaused = (paused: boolean) => apiRequest(endpoints.putAdminMailPaused, { body: { paused } })
 
 export const loadAccounts = (q: string, unboundOnly: boolean) => apiRequest(endpoints.getAdminUsers, { query: { q, ...(unboundOnly ? { unbound: 'true' as const } : {}) } })
 export const blockAccount = (id: string, reason: string) => apiRequest(endpoints.postAdminUsersByIdBlock, { params: { id: id }, body: { reason } })

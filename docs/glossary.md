@@ -91,6 +91,10 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | signing in | einloggen; Einloggen, Ausloggen | sign in; sign out | |
 | retention purge | Aufbewahrung; "Schuljahr löschen" | retention; "delete school year" | |
 | mail templates | E-Mail-Vorlagen | email templates | |
+| mail pace, `MAIL_PER_HOUR` | Versand; "höchstens 200 E-Mails pro Stunde" | sending; "at most 200 emails an hour" | |
+| pause sending | Versand anhalten, fortsetzen; angehalten | pause, resume sending; paused | |
+| mail priority | persönliche E-Mails · an Lehrkräfte · an Schüler\*innen | personal · to teachers · to students | the order they go out in |
+| expired mail | nicht mehr gesendet | no longer sent | a reminder whose window ended first |
 | attendance | Anwesenheit; anwesend / abwesend / entschuldigt | attendance; present / absent / excused | |
 | archive | Abschließen; Abgeschlossen | close; closed | |
 | students, participants | Schüler\*innen, Schüler\*in; Teilnehmer\*innen | students; participants | Q3 |

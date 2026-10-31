@@ -4,13 +4,14 @@
 // here by the organizer or the administration, with the placeholders each
 // kind may use listed with their meaning (a click puts one where the cursor
 // was), reset to the default, and tried out with a test mail to one's own
-// address.
+// address. Above them, the sending: its pace, what waits and until when,
+// and a button to pause it.
 
 import type { MailKind } from '@school-allocation/api-contracts'
 import { computed, nextTick, onMounted, ref } from 'vue'
-import { loadMailTemplates, resetMailTemplate, saveMailTemplate, sendTestMail, type MailTemplate, type TemplateInvalidBody } from '../lib/admin-api.ts'
+import { loadMailStatus, loadMailTemplates, resetMailTemplate, saveMailTemplate, sendTestMail, setMailPaused, type MailStatusResponse, type MailTemplate, type TemplateInvalidBody } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
-import { useFeedback } from '../lib/feedback.ts'
+import { formatWhen, useFeedback } from '../lib/feedback.ts'
 import { LOCALE, t } from '../lib/i18n.ts'
 import { MAIL_KIND_LABELS, TEMPLATE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
@@ -19,6 +20,7 @@ import { session } from '../lib/session.ts'
 usePageTitle(() => t.common.page.mailTemplates)
 const templates = ref<MailTemplate[]>([])
 const mailEnabled = ref(false)
+const status = ref<MailStatusResponse | null>(null)
 const loading = useFeedback()
 const saving = useFeedback()
 const problems = ref<string[]>([])
@@ -31,10 +33,24 @@ const MEANINGS: Readonly<Record<string, string>> = t.mailTemplates.placeholder
 const LOCALE_LABELS: Readonly<Record<string, string>> = t.labels.locale
 
 onMounted(() => loading.run(async () => {
-  const result = await loadMailTemplates()
+  const [result, sending] = await Promise.all([loadMailTemplates(), loadMailStatus()])
   templates.value = result.templates
   mailEnabled.value = result.mailEnabled
+  status.value = sending
 }))
+
+/** What waits, in a sentence; none when nothing does. */
+const waiting = computed(() => {
+  const w = status.value?.waiting
+  if (!w || w.personal + w.staff + w.students === 0) return t.mailTemplates.sending.none
+  return t.mailTemplates.sending.waiting(w.personal, w.staff, w.students)
+})
+
+async function onPause(paused: boolean): Promise<void> {
+  await saving.run(async () => {
+    status.value = await setMailPaused(paused)
+  }, paused ? t.mailTemplates.sending.pausedDone : t.mailTemplates.sending.resumedDone)
+}
 
 /** A placeholder as it is written in a template; built here since the braces would end a template expression. */
 function written(name: string): string {
@@ -109,6 +125,7 @@ async function onReset(kind: MailKind): Promise<void> {
 async function onTest(kind: MailKind): Promise<void> {
   await saving.run(async () => {
     await sendTestMail(kind)
+    status.value = await loadMailStatus()
   }, t.mailTemplates.testQueued)
 }
 </script>
@@ -155,6 +172,38 @@ async function onTest(kind: MailKind): Promise<void> {
     >
       {{ saving.notice.value }}
     </p>
+    <section
+      v-if="status?.perHour"
+      aria-labelledby="sending"
+    >
+      <h2 id="sending">
+        {{ t.mailTemplates.sending.heading }}
+      </h2>
+      <p>{{ t.mailTemplates.sending.pace(status.perHour) }}</p>
+      <p
+        v-if="status.paused"
+        class="notice"
+      >
+        {{ t.mailTemplates.sending.paused }}
+      </p>
+      <p v-else>
+        {{ t.mailTemplates.sending.pauseHint }}
+      </p>
+      <p>{{ waiting }}</p>
+      <p v-if="status.expectedEndAt">
+        {{ t.mailTemplates.sending.expectedEnd(formatWhen(status.expectedEndAt)) }}
+      </p>
+      <p class="actions">
+        <button
+          type="button"
+          :class="status.paused ? undefined : 'ghost'"
+          :disabled="saving.busy.value"
+          @click="onPause(!status.paused)"
+        >
+          {{ status.paused ? t.mailTemplates.sending.resume : t.mailTemplates.sending.pause }}
+        </button>
+      </p>
+    </section>
     <section
       v-for="template in templates"
       :key="template.kind"

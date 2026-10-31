@@ -74,6 +74,8 @@ export interface MailConfig {
   replyTo: string | null
   /** The envelope sender, where bounces go; the From address when unset. */
   envelopeFrom: string | null
+  /** At most this many mails an hour, one at a time and evenly spaced (MAIL_PER_HOUR, 1 to 200). */
+  perHour: number
 }
 
 /**
@@ -401,7 +403,7 @@ function parseMail(env: Env): MailConfig | null {
   const host = env.SMTP_HOST?.trim()
   if (!host) {
     // SMTP_PASSWORD_FILE may stay: the unit mounts the file on every host, empty where no mail is sent.
-    for (const name of ['SMTP_PORT', 'SMTP_USER', 'MAIL_FROM']) {
+    for (const name of ['SMTP_PORT', 'SMTP_USER', 'MAIL_FROM', 'MAIL_PER_HOUR']) {
       if (env[name]?.trim()) throw new ConfigError(`${name} is set but SMTP_HOST is not; set SMTP_HOST to send mail, or unset the rest`)
     }
     return null
@@ -420,6 +422,12 @@ function parseMail(env: Env): MailConfig | null {
   const envelope = envelopeFrom === null ? null : parseMailbox(envelopeFrom)
   // A bare address: parsed, and without a display name.
   if (envelopeFrom !== null && (envelope === null || envelope.name !== null)) throw new ConfigError('MAIL_ENVELOPE_FROM must be a bare address')
+  // 200 an hour at most: a bulk does not load the mail server, and there
+  // is time to stop a mistake before most of it has gone out. Slower is
+  // allowed.
+  const rawPerHour = env.MAIL_PER_HOUR?.trim()
+  const perHour = !rawPerHour ? MAX_MAIL_PER_HOUR : /^\d+$/.test(rawPerHour) ? Number(rawPerHour) : Number.NaN
+  if (!Number.isInteger(perHour) || perHour < 1 || perHour > MAX_MAIL_PER_HOUR) throw new ConfigError(`MAIL_PER_HOUR must be a whole number from 1 to ${MAX_MAIL_PER_HOUR}`)
   return {
     host,
     port,
@@ -430,8 +438,12 @@ function parseMail(env: Env): MailConfig | null {
     from,
     replyTo,
     envelopeFrom,
+    perHour,
   }
 }
+
+/** The fastest pace MAIL_PER_HOUR allows, and its default. */
+export const MAX_MAIL_PER_HOUR = 200
 
 /** The solver's address: an http or https URL with nothing but an origin and, under a shared host, a path; null when unset. */
 function parseSolverUrl(raw: string | undefined): string | null {

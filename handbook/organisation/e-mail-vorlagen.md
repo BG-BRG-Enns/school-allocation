@@ -16,6 +16,14 @@ SchulWahl schickt an festen Stellen einer Anmeldung E-Mails. Ihre Texte kommen a
 | Tausch bestätigt | nach einem Tausch | wer getauscht hat |
 | Einteilung geändert | nach einer Einteilung durch den Klassenvorstand oder einer Änderung von Hand | die Person, deren Einteilung sich geändert hat |
 
+## Der Versand
+
+SchulWahl schickt die E-Mails eine nach der anderen, höchstens 200 pro Stunde; der Betrieb kann den Server langsamer einstellen. Die Einladung an 600 Schüler\*innen braucht so etwa drei Stunden. Zuerst gehen die persönlichen E-Mails hinaus (eine Tauschbestätigung, eine geänderte Einteilung, die Test-E-Mail), dann die an Lehrkräfte und Klassenvorstände, zuletzt die an die Schüler\*innen: Wer einen Fehler melden kann, sieht ihn als Erster. Unter **Versand** steht, wie viele E-Mails warten und wann die letzte voraussichtlich verschickt ist.
+
+Steckt ein Fehler in den E-Mails, halte den Versand mit **Versand anhalten** an; **Versand fortsetzen** schickt weiter, wo er stand. Eine E-Mail bekommt ihren Text, wenn sie zu warten beginnt: Eine geänderte Vorlage gilt erst für die E-Mails danach, und was schon wartet, geht so hinaus, wie es ist.
+
+Eine Erinnerung, die beim Ende ihres Anmeldezeitraums oder ihrer Nachfrist noch wartet, wird nicht mehr gesendet; in der Liste der Anmeldung steht sie als „nicht mehr gesendet“.
+
 ## Eine Vorlage bearbeiten
 
 ![Eine Vorlage beim Bearbeiten: Betreff und Text mit Platzhaltern, daneben die Platzhalter der Vorlage zum Anklicken](/bilder/de/e-mail-vorlage.png)
