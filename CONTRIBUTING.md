@@ -72,6 +72,8 @@ npm test
 npm run build
 ```
 
+A deprecation warning fails the tests and the browser journeys (`--throw-deprecation`); change the call that causes it.
+
 Formatting is enforced by ESLint; there is no separate formatter. `npx eslint . --fix` fixes most style findings.
 
 ## Pull requests

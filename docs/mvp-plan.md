@@ -16,7 +16,7 @@ lifecycle, and is tested with synthetic data only.
 | S3 | Choice window + notifications | See below | S2; SMTP credentials of a test mailbox | M |
 | S4 | Allocation | See below | S3 | L |
 | S5 | After publication | See below | S4 | M |
-| S6 | Release and deploy readiness | See below | S0 (can run in parallel) | S |
+| S6 | Ready for version 1 | See below | S0–S5 | L |
 | P | Pilot | See below | S0–S6 | — |
 | W1 | WPF catalogue + rules | See below | S2 | M |
 | W2 | WPF campaign | See below | W1, S3 | M |
@@ -128,12 +128,15 @@ lifecycle, and is tested with synthetic data only.
   counts; the people nobody names any more go with their accounts. A definer function behind a guard
   switch; the runtime role deletes nothing itself.
 
-**S6 · Release and deploy readiness.**
+**S6 · Ready for version 1**, in seven steps, each its own pull request. In place since S0: the Quadlet units, signed images, auto-update with the `busy` gate, and the deploy README for both exposure modes, the nginx example, secret files, Entra setup, the Graph permission choice and SMTP.
 
-- Quadlet units, signed images, auto-update with the `busy` gate.
-- A previous-release-vs-new-schema compatibility job in CI.
-- Deploy README: both exposure modes (own host, sub-path), nginx example, secret files, Entra setup,
-  Graph permission choice, SMTP settings.
+- **S6a · Release safety.** The browser journeys under a path and at the root; deprecations fail the tests.
+- **S6b · Third-party notices** for what the images and the web app carry, and an SBOM per published image.
+- **S6c · One catalogue** of the interface's words, today's German unchanged.
+- **S6d · Languages:** natural German with du throughout after a glossary, formal German and English; the school's language; the mails' default texts from the catalogue.
+- **S6e · Handbooks** for administrators, organizers and teachers, in German and English, published from release tags.
+- **S6f · One baseline migration** for version 1.
+- **S6g · Version 1.0.0:** README, releasing, pinning a release, the supported versions.
 
 **P · Pilot.**
 
