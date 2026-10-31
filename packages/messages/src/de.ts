@@ -22,6 +22,13 @@ function byCount(count: number, one: string, other: string): string {
   return plural.select(count) === 'one' ? one : other
 }
 
+/** Grades as a phrase: "9. Schulstufe", "9. und 10. Schulstufe", "5., 6. und 7. Schulstufe". */
+function gradesPhrase(grades: readonly number[]): string {
+  const named = grades.map((grade) => `${grade}.`)
+  const last = named.pop()
+  return named.length === 0 ? `${last} Schulstufe` : `${named.join(', ')} und ${last} Schulstufe`
+}
+
 /** The classes an activity takes whole: "für die ganze 5A", or "für die ganzen Klassen 5A, 5B". */
 function wholeClasses(classes: string): string {
   return classes.includes(',') ? `für die ganzen Klassen ${classes}` : `für die ganze ${classes}`
@@ -49,6 +56,7 @@ export const de = {
       newItem: 'Neue Aktivität',
       availability: 'Meine Verfügbarkeit',
       planning: 'Lehrkräfte je Tag',
+      categories: 'Kategorien',
     },
     backToCampaign: 'Zur Anmeldung',
     backToAdmin: 'Zur Verwaltung',
@@ -86,6 +94,26 @@ export const de = {
     gradeOrdinal: (grade: number) => `${grade}. Schulstufe`,
     /** "240 min" */
     minutes: (minutes: number) => `${minutes} min`,
+  },
+
+  /** Categories and rules (school-core rules.ts), as every page and the workbooks name them. */
+  rules: {
+    category: 'Kategorie',
+    categories: 'Kategorien',
+    rule: 'Regel',
+    /** What a rule asks, in a line: "Sport: mindestens 1 Aktivität", "Berufsorientierung: mindestens 200 Minuten". */
+    asks: (category: string, minimum: number, unit: 'items' | 'minutes') => unit === 'items'
+      ? `${category}: mindestens ${minimum} ${byCount(minimum, 'Aktivität', 'Aktivitäten')}`
+      : `${category}: mindestens ${minimum} Minuten`,
+    /** Whom it asks: "9. und 10. Schulstufe", "9. Schulstufe, nur 5A, 5B". */
+    scope: (grades: readonly number[], classes: readonly string[]) => classes.length === 0 ? gradesPhrase(grades) : `${gradesPhrase(grades)}, nur ${classes.join(', ')}`,
+    /** How far someone is: "1 von 1", "100 von 200 Minuten". */
+    progress: (have: number, minimum: number, unit: 'items' | 'minutes') => unit === 'items' ? `${have} von ${minimum}` : `${have} von ${minimum} Minuten`,
+    met: 'erfüllt',
+    /** What is missing: "es fehlt 1 Aktivität", "es fehlen 100 Minuten". */
+    missing: (missing: number, unit: 'items' | 'minutes') => unit === 'items'
+      ? `es ${byCount(missing, 'fehlt', 'fehlen')} ${missing} ${byCount(missing, 'Aktivität', 'Aktivitäten')}`
+      : `es fehlen ${missing} Minuten`,
   },
 
   /** Values as the pages, the workbooks and the notices write them. */
@@ -263,6 +291,9 @@ export const de = {
       total_cost: 'Wünsche insgesamt (gewichtet, weniger ist besser)',
       tiebreak: 'Los',
       over: (threshold: number) => `Schüler*innen mit durchschnittlichem Wunsch über ${threshold}`,
+      students_missing_rule: 'Schüler*innen, denen eine Regel fehlt',
+      rule_missing_items: 'Fehlende Aktivitäten für Regeln insgesamt',
+      rule_missing_minutes: 'Fehlende Minuten für Regeln insgesamt',
     },
     /** Why the validator refused a result (school-core ALLOCATION_PROBLEM_CODES). */
     allocationProblem: {
@@ -312,7 +343,20 @@ export const de = {
       below_minimum: 'die bisherige Aktivität käme unter ihre Mindestzahl',
       overlap: 'überschneidet sich',
       coverage_lost: 'es würden Minuten fehlen',
+      rule_lost: 'eine Regel wäre nicht mehr erfüllt',
       fills_nothing: 'füllt keine Lücke',
+    },
+    /** Why a registration's rules were refused (school-core RULE_PROBLEM_CODES). */
+    ruleProblem: {
+      category_unknown: 'Diese Kategorie gibt es nicht (mehr)',
+      grades_missing: 'Eine Regel braucht mindestens eine Schulstufe',
+      minimum_out_of_range: 'Die Mindestzahl passt nicht: mindestens 1, höchstens 20 Aktivitäten oder 10000 Minuten',
+      too_many_rules: 'Höchstens 20 Regeln',
+    },
+    /** What a rule counts (school-core RULE_UNITS). */
+    ruleUnit: {
+      items: 'Aktivitäten',
+      minutes: 'Minuten',
     },
     /** What was recorded for a student in a session (packages/api-contracts/src/attendance.ts ATTENDANCE_STATUSES). */
     attendanceStatus: {
@@ -410,6 +454,12 @@ export const de = {
     window_order: 'Die Anmeldung muss enden, nachdem sie begonnen hat.',
     grace_order: 'Die Nachfrist endet frühestens mit der Anmeldung.',
     swap_order: 'Die Tauschzeit muss enden, nachdem sie begonnen hat.',
+    rules_invalid: 'Die Regeln passen noch nicht. Sieh dir bitte die Hinweise an.',
+    // Categories
+    category_exists: 'Eine Kategorie mit diesem Namen gibt es schon.',
+    category_in_use: 'Diese Kategorie verwendet eine Aktivität oder eine Regel. Du kannst sie nur umbenennen.',
+    category_unknown: 'Eine der Kategorien gibt es nicht mehr. Lade bitte die Seite neu.',
+    too_many_categories: 'Mehr als 50 Kategorien hat eine Schule nicht.',
     // Settings and classes
     period_grid_invalid: 'Das Stundenraster passt noch nicht. Sieh dir bitte die Hinweise an.',
     no_roster: 'Es gibt noch keine Klassenlisten.',
@@ -444,6 +494,7 @@ export const de = {
     below_minimum: 'Die bisherige Aktivität käme unter ihre Mindestzahl.',
     overlap: 'Die Aktivität überschneidet sich mit einer, die bleibt.',
     coverage_lost: 'Danach würden an einem Tag Minuten fehlen, die jetzt nicht fehlen.',
+    rule_lost: 'Danach wäre eine Regel der Anmeldung nicht mehr erfüllt, oder es fehlte mehr dafür als jetzt.',
     fills_nothing: 'Diese Aktivität füllt keine Lücke: An ihrem Tag ist das Programm schon voll.',
     fully_placed: 'Hier ist das Programm an jedem Tag schon voll; es gibt keine Lücke zu füllen.',
     no_change: 'Gib bitte eine Aktivität an, in die oder aus der die Person wechselt.',
@@ -514,6 +565,24 @@ export const de = {
       editMinimumAndSwap: 'Mindestminuten und Tauschzeit ändern',
       editSwap: 'Tauschzeit ändern',
       catalogueExport: 'Katalog als Excel',
+      /** Before the registration's rules, one per line. */
+      rules: 'Regeln',
+    },
+    /** The organizer's rules in the settings form. */
+    rulesEditor: {
+      heading: 'Regeln',
+      intro: 'Eine Regel verlangt von den Schüler*innen einer Schulstufe (oder nur einiger ihrer Klassen) mindestens so viele Aktivitäten oder Minuten aus einer Kategorie. Klassenaktivitäten zählen mit. Die Zuteilung erfüllt die Regeln, wo es geht: nach den Mindestminuten je Tag und vor den Wünschen, auch mit einem Restplatz ohne Kosten.',
+      fixed: 'Ab dem Beginn der Anmeldung stehen die Regeln fest: Die Schüler*innen wählen nach ihnen.',
+      none: 'Keine Regeln.',
+      noCategories: 'Für Regeln braucht die Schule zuerst Kategorien.',
+      rule: (number: number) => `Regel ${number}`,
+      grades: 'Schulstufen',
+      classes: 'Nur diese Klassen (leer: alle der Schulstufen)',
+      classesExample: 'z. B. 7A, 7B',
+      unit: 'Zählt',
+      minimum: 'Mindestens',
+      add: 'Regel hinzufügen',
+      remove: 'Regel entfernen',
     },
     /** The organizer's settings form; Wahlen.vue's form for a new campaign uses its name and day fields too. */
     settings: {
@@ -548,6 +617,10 @@ export const de = {
       intro: (percent: number) => `Je Projekttag und Schulstufe: wie viele Schüler*innen einen Platz brauchen (ohne die in einer Klassenaktivität), das Ziel mit ${percent} % darüber, damit die Wünsche Platz haben, und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Eine Schulstufe unter dem Ziel ist markiert.`,
       cell: (needing: number, target: number, offered: number) => `${needing} brauchen · Ziel ${target} · ${offered} angeboten`,
       short: (missing: number) => `${missing} unter dem Ziel`,
+      rulesIntro: 'Je Regel und Schulstufe: was die Schüler*innen nach ihren Klassenaktivitäten noch brauchen, und höchstens was die Plätze der Aktivitäten der Kategorie bringen, die sie wählen können. Eine Regel, für die das nicht reicht, ist markiert.',
+      needed: 'Brauchen',
+      offered: 'Bieten höchstens',
+      ruleShort: 'reicht nicht',
     },
     items: {
       heading: 'Aktivitäten',
@@ -591,6 +664,9 @@ export const de = {
     grades: (grades: readonly number[]) => `${grades.join('., ')}. Schulstufe`,
     allGrades: 'alle Schulstufen',
     fee: (amount: string) => `Kosten: ${amount}`,
+    /** The filter by category, above the activities. */
+    categoryFilter: 'Kategorie',
+    allCategories: 'alle',
   },
 
   /** Aktivitaet.vue: proposing or editing an activity. */
@@ -644,6 +720,11 @@ export const de = {
     fee: {
       amount: 'Kosten in Euro (leer: keine)',
       note: 'Wofür',
+    },
+    categories: {
+      heading: 'Kategorien',
+      intro: 'Für die Regeln der Anmeldung, etwa „mindestens eine Sport-Aktivität“. Eine Aktivität kann zu mehreren Kategorien gehören.',
+      none: 'Die Schule hat noch keine Kategorien.',
     },
     saveAndPropose: 'Speichern und einreichen',
     participants: {
@@ -703,10 +784,21 @@ export const de = {
     /** The select of an item's wish number. */
     wishFor: (title: string) => `Wunsch ${title}`,
     saveWishes: 'Wünsche speichern',
-    allGroupsComplete: 'Alle Zeitblöcke haben ihre Wünsche.',
+    allGroupsComplete: 'Alle Zeitblöcke haben ihre Wünsche, und die Regeln sind erfüllt.',
     wishesMissing: 'Es fehlen noch Wünsche.',
     /** Follows the two above for a student, whose changes need no button. */
     savedAtOnce: 'Jede Änderung wird sofort gespeichert.',
+    /** The registration's rules, above the time blocks. */
+    rules: {
+      heading: 'Regeln der Anmeldung',
+      intro: 'Deine Wünsche sollen diese Regeln erfüllen, so weit das Angebot es zulässt. Aktivitäten deiner Klasse zählen mit. Reichen deine Wünsche nicht, teilt dich die Zuteilung auf einen Restplatz ohne Kosten ein.',
+      /** How far the wishes go, after the rule: "mit deinen Wünschen 1 von 1". */
+      reach: (progress: string) => `mit deinen Wünschen ${progress}`,
+      done: 'passt',
+      notYet: 'dafür fehlen noch Wünsche',
+      /** When the offer cannot reach the minimum. */
+      limited: 'mehr bietet der Katalog nicht',
+    },
     exemptions: {
       title: 'Befreiungen',
       exempt: 'Befreien',
@@ -729,10 +821,12 @@ export const de = {
     classActivities: 'Klassenaktivitäten',
     noClassActivity: 'Keine Aktivität nimmt die ganze Klasse mit.',
     unplaced: {
-      heading: (count: number) => `Noch nicht für alle Tage eingeteilt (${count})`,
-      none: 'Alle Schüler*innen der Klasse haben an jedem Tag ihr Programm.',
+      heading: (count: number) => `Noch nicht vollständig eingeteilt (${count})`,
+      none: 'Alle Schüler*innen der Klasse haben an jedem Tag ihr Programm und erfüllen die Regeln.',
       /** After the student's name, in bold, and a colon. */
       minutesMissing: (minutes: number) => `${minutes} Minuten fehlen`,
+      /** A rule a student misses, after the student's name: "Sport: es fehlt 1 Aktivität". */
+      ruleMissing: (category: string, missing: string) => `${category}: ${missing}`,
       /** The places a student short of minutes already has, after a "·". */
       sofar: (items: string) => `bisher ${items}`,
       /** The placement form's label for a screen reader. */
@@ -741,7 +835,7 @@ export const de = {
       itemFor: (name: string) => `Aktivität für ${name}`,
       reasonFor: (name: string) => `Begründung für ${name}`,
       place: 'Einteilen',
-      note: 'Als Klassenvorstand teilst du hier ein, wem noch Zeit fehlt. Wer eingeteilt wird, bekommt Bescheid; die Organisation sieht jede Änderung mit deiner Begründung.',
+      note: 'Als Klassenvorstand teilst du hier ein, wem noch Zeit oder eine Regel fehlt. Wer eingeteilt wird, bekommt Bescheid; die Organisation sieht jede Änderung mit deiner Begründung.',
     },
     attendance: {
       heading: 'Anwesenheit',
@@ -792,12 +886,12 @@ export const de = {
     /** The organizer's change by hand after publication. */
     change: {
       title: 'Einteilung von Hand ändern',
-      rules: 'Es gelten dieselben Regeln wie beim Tausch: in eine Aktivität mit freien Plätzen, die zur Schulstufe passt und sich mit nichts überschneidet, das bleibt; eine Klassenaktivität bleibt immer. Eine volle Aktivität oder die Mindestzahl darfst du übergehen; das Häkchen dafür wird vermerkt.',
+      rules: 'Es gilt dasselbe wie beim Tausch: in eine Aktivität mit freien Plätzen, die zur Schulstufe passt und sich mit nichts überschneidet, das bleibt; eine Klassenaktivität bleibt immer. Eine volle Aktivität, die Mindestzahl oder eine Regel der Anmeldung darfst du übergehen; das Häkchen dafür wird vermerkt.',
       from: 'Abmelden von',
       to: 'Einteilen in',
       /** The free places of an item, in brackets after it. */
       free: (count: number) => `${count} frei`,
-      force: 'Auch wenn die Aktivität voll ist oder dann zu wenige bleiben (wird vermerkt)',
+      force: 'Auch wenn die Aktivität voll ist, dann zu wenige bleiben oder eine Regel nicht mehr erfüllt ist (wird vermerkt)',
       submit: 'Ändern',
     },
     start: {
@@ -842,6 +936,16 @@ export const de = {
       warningLead: 'Hinweis vor der Berechnung',
       warning: 'Für diese Aktivitäten kommen weniger Schüler*innen in Frage, als die Mindestzahl verlangt, und sie dürfen nicht ausfallen. Lässt sich keine Einteilung berechnen, liegt es meist daran: Ausfall erlauben, Mindestzahl senken oder die Aktivität zurückziehen.',
       possible: (possible: number, minimum: number) => `${possible} möglich, ${minimum} nötig`,
+      /** In bold, followed by a colon and `ruleWarning`. */
+      ruleWarningLead: 'Hinweis zu den Regeln',
+      ruleWarning: 'Für diese Regeln reichen die Plätze der Kategorie nicht für alle Schüler*innen der Schulstufe, selbst wenn alle Plätze an sie gingen. Die Zuteilung erfüllt sie, so weit es geht; den übrigen fehlt die Regel.',
+      /** A rule out of reach for a grade: "Sport: mindestens 1 Aktivität, 9. Schulstufe: 40 möglich, 60 nötig". */
+      ruleOutOfReach: (rule: string, grade: number, possible: number, needed: number) => `${rule}, ${grade}. Schulstufe: ${possible} möglich, ${needed} nötig`,
+      rules: 'Regeln',
+      ruleMet: (met: number, students: number) => `${met} von ${students} erfüllt`,
+      /** After the passes' sentence, when the registration has rules. */
+      passesRules: 'Die Regeln der Anmeldung kommen nach den fehlenden Minuten und vor den Wünschen.',
+      ruleGaps: (count: number) => `Fehlende Regeln (${count})`,
       meta: (seed: number, limit: number, solver: string, ortools: string, rules: number) => `Losnummer ${seed} · Rechenzeit ${limit} · Rechenmodul ${solver} (OR-Tools ${ortools}) · Regeln Version ${rules}`,
       runExport: 'Berechnung als Excel',
       levels: 'Ziele (in dieser Reihenfolge)',
@@ -872,6 +976,7 @@ export const de = {
       classes: 'Klassen',
       classWithDeficit: 'Mit fehlenden Minuten',
       classWithFallback: 'Mit Restplatz',
+      classMissingRule: 'Mit fehlender Regel',
       compare: 'Vergleich',
       compareWith: 'Mit Berechnung',
       compareOption: (seq: number, seed: number) => `Berechnung ${seq} (Losnummer ${seed})`,
@@ -905,6 +1010,7 @@ export const de = {
       covered: 'an allen Tagen eingeteilt',
       withDeficit: 'mit fehlenden Minuten',
       withFallback: 'mit Restplatz',
+      missingRule: 'mit fehlender Regel',
       cancelled: 'ausgefallen',
       late: 'aus der Nachfrist',
       nonSubmitters: 'ohne Wünsche',
@@ -932,6 +1038,9 @@ export const de = {
     fee: (amount: string) => `Kosten: ${amount}`,
     deficit: (minutes: number) => `Hier fehlen dir noch ${minutes} Minuten. Dein Klassenvorstand teilt dich in eine Aktivität mit freien Plätzen ein.`,
     noFee: 'Deine Aktivitäten kosten nichts.',
+    /** The registration's rules with what the student's activities bring. */
+    rules: 'Regeln der Anmeldung',
+    ruleMissing: 'Dein Klassenvorstand kann dich in eine passende Aktivität mit freien Plätzen einteilen.',
     feeTotal: (amount: string) => `Insgesamt ${amount}; wie und bis wann du zahlst, sagt dir die Schule.`,
     swap: {
       heading: 'Tauschen',
@@ -948,6 +1057,8 @@ export const de = {
       rule: (seed: number, seq: number) => `Zuerst sollte niemand ohne volle Woche bleiben, dann sollten so wenige Minuten wie möglich fehlen, dann sollten so wenige Schüler*innen wie möglich vor allem späte Wünsche bekommen, dann sollte das Ganze so gut wie möglich ausgehen. Wo zwei Einteilungen gleich gut waren, hat das Los entschieden, mit der Losnummer ${seed} (Berechnung ${seq}).`,
       late: 'Du hast dich in der Nachfrist angemeldet; deshalb kamen zuerst die anderen dran.',
       noWishes: 'Du hast keine Wünsche abgegeben und bist deshalb auf Restplätzen ohne Kosten.',
+      /** After `rule`, when the registration has rules. */
+      rules: 'Die Regeln der Anmeldung kamen nach den fehlenden Minuten und vor den Wünschen: Ein Restplatz ohne Kosten kann auch für eine Regel sein.',
     },
   },
 
@@ -960,6 +1071,7 @@ export const de = {
     periods: 'Die Einheiten der Schule, in denen Lehrkräfte ihre Termine angeben.',
     mailTemplates: 'Die E-Mails, die eine Anmeldung verschickt: Einladungen, Erinnerungen, Listen an die Klassenvorstände.',
     retention: 'Welche Schuljahre Daten haben und wie lange sie bleiben; ein Schuljahr löschen, ein Jahr nach seinem Ende.',
+    categories: 'Kategorien wie Sport oder Berufsorientierung, für die Regeln der Anmeldungen.',
     /** The school's language, chosen here for everyone; the page then loads again in it. */
     language: {
       title: 'Sprache',
@@ -1115,6 +1227,24 @@ export const de = {
   },
 
   /** Klassen.vue: the classes and their class teachers. */
+  /** Kategorien.vue: the school's categories. */
+  categories: {
+    editorsOnly: 'Die Kategorien pflegen die Administration und die Organisation.',
+    intro: 'Die Kategorien gelten für alle Anmeldungen der Schule. Eine Aktivität kann zu mehreren gehören; eine Regel einer Anmeldung verlangt mindestens so viele Aktivitäten oder Minuten aus einer Kategorie. Eine Kategorie, die verwendet wird, lässt sich nur umbenennen.',
+    none: 'Noch keine Kategorien.',
+    name: 'Name',
+    usedBy: 'Verwendet von',
+    usage: (items: number, rules: number) => `${items} ${byCount(items, 'Aktivität', 'Aktivitäten')} · ${rules} ${byCount(rules, 'Regel', 'Regeln')}`,
+    rename: 'Umbenennen',
+    renameOf: (name: string) => `${name} umbenennen`,
+    removeOf: (name: string) => `${name} entfernen`,
+    add: 'Kategorie hinzufügen',
+    newName: 'Neue Kategorie',
+    added: 'Kategorie hinzugefügt.',
+    renamed: 'Kategorie umbenannt.',
+    removed: 'Kategorie entfernt.',
+  },
+
   classTeachers: {
     saved: 'Klassenvorstände gespeichert.',
     /** A class teacher the roster names, in the table. */
@@ -1263,6 +1393,7 @@ export const de = {
       deficits: 'Fehlende Minuten',
       changes: 'Änderungen',
       planning: 'Lehrkräfte je Tag',
+      rules: 'Fehlende Regeln',
     },
     column: {
       window: 'Zeitraum',
@@ -1301,6 +1432,10 @@ export const de = {
       availability: 'Verfügbarkeit',
       leads: 'Leitet',
       accompanies: 'Begleitet',
+      rule: 'Regel',
+      reached: 'Erreicht',
+      missing: 'Fehlt',
+      categories: 'Kategorien',
     },
     yes: 'ja',
     no: 'nein',

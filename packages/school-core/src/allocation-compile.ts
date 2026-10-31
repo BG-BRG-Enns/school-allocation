@@ -1,15 +1,18 @@
 // The model compiler (docs/domain-and-api.md §5–§6, D-05, D-06, D-20,
 // D-24): from a run's frozen input to the request the solver gets, for
 // each of the two passes. Pre-assignments are resolved here: a student's
-// fixed credit is taken off each day's requirement, items overlapping a
-// fixed item are not options, and a student with nothing left to cover
-// has no variables. Fallback options (fee-free items on a day still
-// uncovered, at rank cap + 1) are ordinary options with a higher cost;
-// the solver does not know the difference. Pure, and deterministic down
-// to the order of every list, so the same input gives the same request.
+// fixed credit is taken off each day's requirement and each rule's
+// minimum, items overlapping a fixed item are not options, and a student
+// with nothing left to cover and no rule left to meet has no variables.
+// Fallback options (fee-free items on a day still uncovered or in the
+// category of a rule still open, at rank cap + 1) are ordinary options
+// with a higher cost; the solver does not know the difference. Pure, and
+// deterministic down to the order of every list, so the same input gives
+// the same request.
 
 import { creditedMinutesByDate, overlaps, type ItemRules, type Span } from './catalogue.ts'
 import { offeredTo, timeGroupsOf, type OfferableItem } from './choices.ts'
+import { ruleAmount, ruleApplies, ruleProgress, type CampaignRule } from './rules.ts'
 import {
   ALLOCATION_CONTRACT,
   COST_SCALE,
@@ -22,6 +25,7 @@ import {
   type Pass,
   type PassResult,
   type SolveRequest,
+  type SolveRule,
   type SolveStudent,
 } from './allocation-model.ts'
 
@@ -41,6 +45,14 @@ export interface CompiledOption {
   tie: number
   /** Date → the minutes the item credits that day. */
   credit: Map<string, number>
+  /** Rule id → what the item brings to it, for the student's open rules; rules it brings nothing to are left out. */
+  amounts: Map<string, number>
+}
+
+/** A rule a student still has to meet: what is left of its minimum after their class activities. */
+export interface PreparedRule {
+  rule: CampaignRule
+  need: number
 }
 
 export interface PreparedStudent {
@@ -50,6 +62,8 @@ export interface PreparedStudent {
   requiredTotal: number
   fixedSpans: Pick<Span, 'startMs' | 'endMs'>[]
   options: CompiledOption[]
+  /** The rules applying to the student with something left to meet, in the campaign's order. */
+  rules: PreparedRule[]
 }
 
 export interface CompiledPass {
@@ -101,6 +115,10 @@ export function prepareStudent(input: AllocationInput, student: AllocationStuden
     if (left > 0) required.set(date, left)
   }
   const requiredTotal = [...required.values()].reduce((sum, minutes) => sum + minutes, 0)
+  // A class activity counts toward a rule like any other: what it brings is off the minimum.
+  const rules = input.rules.filter((rule) => ruleApplies(rule, student))
+    .map((rule) => ({ rule, need: Math.max(0, rule.minimum - ruleProgress(rule, fixed, input.projectDays)) }))
+    .filter((r) => r.need > 0)
   const fixedIds = new Set(student.fixedItemIds)
   const offerable: OfferableItem[] = items.filter((item) => !fixedIds.has(item.id)).map((item) => ({ id: item.id, sessions: item.sessions, rules: item.rules }))
   const offered = offeredTo({ className: student.className, grade: student.grade }, offerable, fixedSpans)
@@ -112,22 +130,22 @@ export function prepareStudent(input: AllocationInput, student: AllocationStuden
     const ids = (student.ranking?.[group.key] ?? []).filter((id) => group.itemIds.includes(id))
     ids.forEach((id, index) => {
       ranked.add(id)
-      options.push(option(input, student, offeredById.get(id) as AllocationItem, 'wish', index + 1, requiredTotal))
+      options.push(option(input, student, offeredById.get(id) as AllocationItem, 'wish', index + 1, requiredTotal, rules))
     })
   }
   for (const item of offered) {
     if (ranked.has(item.id)) continue
     const full = offeredById.get(item.id) as AllocationItem
     if (full.feeCents !== 0) continue
-    const credit = creditedMinutesByDate(full.sessions)
-    // A fallback is for a day the student still has to cover.
-    if (![...credit.keys()].some((date) => required.has(date))) continue
-    options.push(option(input, student, full, 'fallback', cap + 1, requiredTotal))
+    const fallback = option(input, student, full, 'fallback', cap + 1, requiredTotal, rules)
+    // A fallback is for a day the student still has to cover, or for a rule still open: the rules come before the wishes.
+    if (![...fallback.credit.keys()].some((date) => required.has(date)) && fallback.amounts.size === 0) continue
+    options.push(fallback)
   }
-  return { student, required, requiredTotal, fixedSpans, options: options.filter((o) => !cancelled.has(o.itemId)).sort((a, b) => byText(a.itemId, b.itemId)) }
+  return { student, required, requiredTotal, fixedSpans, options: options.filter((o) => !cancelled.has(o.itemId)).sort((a, b) => byText(a.itemId, b.itemId)), rules }
 }
 
-function option(input: AllocationInput, student: AllocationStudent, item: AllocationItem, kind: OptionKind, rank: number, requiredTotal: number): CompiledOption {
+function option(input: AllocationInput, student: AllocationStudent, item: AllocationItem, kind: OptionKind, rank: number, requiredTotal: number, rules: readonly PreparedRule[]): CompiledOption {
   const credit = creditedMinutesByDate(item.sessions)
   const days = new Set(input.projectDays)
   const minutes = [...credit].filter(([date]) => days.has(date)).reduce((sum, [, m]) => sum + m, 0)
@@ -140,6 +158,7 @@ function option(input: AllocationInput, student: AllocationStudent, item: Alloca
     weight: rank * minutes,
     tie: tieWeight(input.seed, student.personId, item.id),
     credit,
+    amounts: new Map(rules.map((r) => [r.rule.id, ruleAmount(r.rule, item, input.projectDays)] as const).filter(([, n]) => n > 0)),
   }
 }
 
@@ -149,9 +168,9 @@ export function prepareStudents(input: AllocationInput, cancelled: ReadonlySet<s
   return [...input.students].sort((a, b) => byText(a.personId, b.personId)).map((student) => prepareStudent(input, student, items, cancelled))
 }
 
-/** The students of a pass: the first takes the first window's lists, the second everyone (D-20); nobody without a requirement left. */
+/** The students of a pass: the first takes the first window's lists, the second everyone (D-20); nobody with neither a requirement nor a rule left. */
 export function inPass(prepared: PreparedStudent, pass: Pass): boolean {
-  return prepared.requiredTotal > 0 && (pass === 2 || prepared.student.savedIn === 'first')
+  return (prepared.requiredTotal > 0 || prepared.rules.length > 0) && (pass === 2 || prepared.student.savedIn === 'first')
 }
 
 /**
@@ -184,13 +203,23 @@ export function compilePass(input: AllocationInput, pass: Pass, runId: string, p
     return p
   })
   const personIds = students.map((p) => p.student.personId)
+  const ruleIndex = new Map(input.rules.map((rule, r) => [rule.id, r]))
   const fixed: [number, number][] = []
   const requestStudents: SolveStudent[] = students.map((p, s) => {
     const options = p.options.map((o) => ({ o: itemIndex.get(o.itemId) as number, cost: o.cost, weight: o.weight, tie: o.tie, credit: dayMinutes(o.credit, dayIndex) })).sort((a, b) => a.o - b.o)
     if (pass === 2 && p.student.savedIn === 'first') {
       for (const o of options) fixed.push([s, o.o])
     }
-    return { s, required: dayMinutes(p.required, dayIndex), norm: p.requiredTotal, options }
+    const rules: SolveRule[] = p.rules.map((r) => ({
+      r: ruleIndex.get(r.rule.id) as number,
+      unit: r.rule.unit,
+      need: r.need,
+      amounts: p.options.flatMap((o) => {
+        const n = o.amounts.get(r.rule.id) ?? 0
+        return n > 0 ? [{ o: itemIndex.get(o.itemId) as number, n }] : []
+      }).sort((a, b) => a.o - b.o),
+    }))
+    return { s, required: dayMinutes(p.required, dayIndex), norm: p.requiredTotal, options, rules }
   })
   const conflicts: [number, number][] = []
   for (let a = 0; a < items.length; a++) {
@@ -207,7 +236,7 @@ export function compilePass(input: AllocationInput, pass: Pass, runId: string, p
     items: items.map((item, o) => ({ o, max: item.rules.places, min: solverMinimum(item.rules), cancellable: mayBeCancelled(item.rules) })),
     conflicts,
     fixed,
-    levels: levelNames(input.wishesPerGroup),
+    levels: levelNames(input.wishesPerGroup, input.rules.length > 0),
   }
   return { pass, request, personIds, itemIds, students, dropped }
 }
@@ -232,13 +261,16 @@ export interface AllocationInputProblem {
   itemIds?: string[]
 }
 
-/** A non-cancellable item fewer students can take than its minimum asks: the usual cause of an infeasible run (D-08). */
-export interface AllocationWarning {
-  code: 'minimum_out_of_reach'
-  itemId: string
-  possible: number
-  minimum: number
-}
+/**
+ * What the organizer should know before a run: a non-cancellable item fewer
+ * students can take than its minimum asks, the usual cause of an infeasible
+ * run (D-08); a rule the places of its category cannot meet for a grade,
+ * even if every place went to its students (never infeasible: a rule is
+ * met where it can be).
+ */
+export type AllocationWarning
+  = | { code: 'minimum_out_of_reach', itemId: string, possible: number, minimum: number }
+    | { code: 'rule_out_of_reach', ruleId: string, grade: number, possible: number, needed: number }
 
 export interface AllocationInputCheck {
   problems: AllocationInputProblem[]
@@ -261,11 +293,32 @@ export function checkAllocationInput(input: AllocationInput): AllocationInputChe
     for (const item of solverItems(input, new Set())) {
       const minimum = solverMinimum(item.rules)
       if (mayBeCancelled(item.rules) || minimum === 0) continue
-      const possible = prepared.filter((p) => p.requiredTotal > 0 && p.options.some((o) => o.itemId === item.id)).length
+      const possible = prepared.filter((p) => inPass(p, 2) && p.options.some((o) => o.itemId === item.id)).length
       if (possible < minimum) warnings.push({ code: 'minimum_out_of_reach', itemId: item.id, possible, minimum })
     }
+    warnings.push(...rulesOutOfReach(input, prepared))
   }
   return { problems, warnings }
+}
+
+/** Per rule and grade: what its students still need against everything the places of the items they could take could bring. */
+function rulesOutOfReach(input: AllocationInput, prepared: readonly PreparedStudent[]): AllocationWarning[] {
+  const items = new Map(input.items.map((item) => [item.id, item]))
+  const warnings: AllocationWarning[] = []
+  for (const rule of input.rules) {
+    const grades = [...new Set(prepared.filter((p) => p.rules.some((r) => r.rule.id === rule.id)).map((p) => p.student.grade))].sort((a, b) => a - b)
+    for (const grade of grades) {
+      const open = prepared.filter((p) => p.student.grade === grade).flatMap((p) => p.rules.filter((r) => r.rule.id === rule.id).map((r) => ({ p, need: r.need })))
+      const needed = open.reduce((sum, { need }) => sum + need, 0)
+      const reachable = new Set(open.flatMap(({ p }) => p.options.filter((o) => o.amounts.has(rule.id)).map((o) => o.itemId)))
+      const possible = [...reachable].reduce((sum, id) => {
+        const item = items.get(id) as AllocationItem
+        return sum + item.rules.places * ruleAmount(rule, item, input.projectDays)
+      }, 0)
+      if (possible < needed) warnings.push({ code: 'rule_out_of_reach', ruleId: rule.id, grade, possible, needed })
+    }
+  }
+  return warnings
 }
 
 /** The pairs of a student's fixed items whose sessions overlap, in id order. */

@@ -8,7 +8,7 @@
 // the run's current rows: what the changes after publication
 // (assignment-changes.ts) left standing.
 
-import { explainStudent, moveOffers, type Assignment, type StudentExplanation } from '@school-allocation/school-core'
+import { explainStudent, moveOffers, type Assignment, type RuleStanding, type StudentExplanation } from '@school-allocation/school-core'
 import type { AssignmentChange } from '@school-allocation/api-contracts/publication'
 import type { Actor, Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
@@ -253,11 +253,13 @@ export async function participants(db: Database, campaign: Campaign, caller: Cal
 export interface ClassPlacement {
   items: { itemId: string, title: string, source: string }[]
   deficit: number
-  /** For a student short of minutes: the items a class teacher could place them into, full ones included so the page can say so. */
+  /** For a student short of minutes or of a rule: the items a class teacher could place them into, full ones included so the page can say so. */
   offers: { itemId: string, title: string, number: number | null, free: number, problems: string[] }[]
+  /** The registration's rules for the student, with what their items bring. */
+  rules: RuleStanding[]
 }
 
-/** Per student of a class: their items, the minutes they miss and what would fill the gap, from the published run's current rows; empty when nothing is published. */
+/** Per student of a class: their items, the minutes and rules they miss and what would fill the gap, from the published run's current rows; empty when nothing is published. */
 export async function classPlacements(db: Queryable, campaign: Campaign, className: string): Promise<Map<string, ClassPlacement>> {
   const run = await store.readPublishedRun(db, campaign.id)
   if (!run) return new Map()
@@ -269,12 +271,12 @@ export async function classPlacements(db: Queryable, campaign: Campaign, classNa
     const explanation = explainStudent(run.snapshot, rows, student.personId) as StudentExplanation
     const deficit = explanation.days.reduce((sum, d) => sum + d.deficit, 0)
     // What fits the gap as the rows stand; a full item is shown as full, one that overlaps or does not help is not shown.
-    const offers = deficit === 0
+    const offers = deficit === 0 && explanation.rules.every((r) => r.met)
       ? []
       : moveOffers(run.snapshot, rows, student.personId, 'place', unavailable)
           .filter((o) => o.problems.every((p) => p.code === 'item_full'))
           .map((o) => ({ itemId: o.itemId, title: byId.get(o.itemId)?.title ?? '', number: byId.get(o.itemId)?.number ?? null, free: o.free, problems: o.problems.map((p) => p.code) }))
-    result.set(student.personId, { items: explanation.items.map((e) => ({ itemId: e.itemId, title: byId.get(e.itemId)?.title ?? '', source: e.source })), deficit, offers })
+    result.set(student.personId, { items: explanation.items.map((e) => ({ itemId: e.itemId, title: byId.get(e.itemId)?.title ?? '', source: e.source })), deficit, offers, rules: explanation.rules })
   }
   return result
 }

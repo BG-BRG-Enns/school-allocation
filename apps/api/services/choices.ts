@@ -7,7 +7,7 @@
 
 import { requireCampaign } from './campaigns.ts'
 
-import { acceptsChoices, checkRanking, isComplete, offeredTo, timeGroupsOf, wishesRequired, type Ranking } from '@school-allocation/school-core'
+import { acceptsChoices, checkRanking, isComplete, offeredTo, ruleReaches, timeGroupsOf, wishesRequired, type Ranking } from '@school-allocation/school-core'
 import { type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
 import * as store from '../lib/dao/choices.ts'
@@ -60,6 +60,8 @@ export async function choiceView(db: Queryable, campaign: Campaign, student: Cam
     const ids = (saved?.ranking[group.key] ?? []).filter((id) => group.itemIds.includes(id))
     if (ids.length > 0) ranking[group.key] = ids
   }
+  // A rule asks the list to reach it as far as the offer can; a class activity of the category counts.
+  const rules = ruleReaches(campaign.rules, student, fixed, ranking, groups, byId, campaign.projectDays)
   return {
     fixed,
     groups,
@@ -67,7 +69,8 @@ export async function choiceView(db: Queryable, campaign: Campaign, student: Cam
     window: saved?.savedIn ?? null,
     version: saved?.version ?? 0,
     cap: campaign.wishesPerGroup,
-    complete: isComplete(ranking, groups, campaign.wishesPerGroup),
+    complete: isComplete(ranking, groups, campaign.wishesPerGroup) && rules.every((r) => r.done),
+    rules,
     acceptsChoices: acceptsChoices(campaign.state),
     student: { personId: student.personId, displayName: student.displayName, className: student.className, grade: student.grade },
   }

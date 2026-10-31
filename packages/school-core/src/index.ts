@@ -96,6 +96,31 @@ export { DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, placeTarget, type ClassSiz
 export { AVAILABILITY_STATUSES, leadOf, mayTakePlace, type AvailabilityStatus } from './planning.ts'
 
 export {
+  MAX_CATEGORIES,
+  MAX_RULES,
+  RULE_LIMITS,
+  RULE_PROBLEM_CODES,
+  RULE_UNITS,
+  checkRules,
+  rankingReach,
+  ruleAmount,
+  ruleApplies,
+  ruleDemand,
+  ruleProgress,
+  ruleReaches,
+  ruleStandings,
+  type CampaignRule,
+  type RuleDemand,
+  type RuledItem,
+  type RuledOffer,
+  type RuleProblem,
+  type RuleProblemCode,
+  type RuleReach,
+  type RuleStanding,
+  type RuleUnit,
+} from './rules.ts'
+
+export {
   RANKING_PROBLEM_CODES,
   checkRanking,
   groupKeyOf,
@@ -119,6 +144,7 @@ export {
   TIE_RANGE,
   fnv1a32,
   levelNames,
+  RULE_LEVELS,
   tieWeight,
   type AllocationInput,
   type AllocationItem,
@@ -136,6 +162,8 @@ export {
   type SolveRequest,
   type SolveResponse,
   type SolveStatus,
+  type RuleAmount,
+  type SolveRule,
   type SolveStudent,
   type SubmissionWindow,
 } from './allocation-model.ts'
@@ -159,6 +187,7 @@ export {
   type CompiledOption,
   type CompiledPass,
   type OptionKind,
+  type PreparedRule,
   type PreparedStudent,
 } from './allocation-compile.ts'
 
@@ -192,6 +221,7 @@ export {
   summarizeAllocation,
   type AllocationSummary,
   type ClassSummary,
+  type RuleSummary,
   type ExplainedDay,
   type ExplainedItem,
   type ItemSummary,
@@ -203,4 +233,4 @@ export {
  * whenever a change here would give a different allocation or validation
  * for the same input; an allocation run records it (docs/domain-and-api.md).
  */
-export const CORE_VERSION = 1
+export const CORE_VERSION = 2

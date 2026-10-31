@@ -12,7 +12,7 @@ import { leadOf, spanOfPeriods, type Period } from '@school-allocation/school-co
 import { loadPeriods } from '../lib/admin-api.ts'
 import { loadParticipants, type ParticipantsResponse } from '../lib/allocation-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
-import { createItem, loadCampaign, loadCampaignAvailability, loadClasses, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
+import { createItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Category, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodsOnGrid, touchedDates } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
@@ -45,6 +45,9 @@ const cancellableBelowMin = ref(true)
 const fixedClasses = ref<string[]>([])
 const eligibleGrades = ref<number[]>([])
 const eligibleClasses = ref<string[]>([])
+/** The school's categories, and the ones the activity belongs to. */
+const categories = ref<Category[]>([])
+const categoryIds = ref<string[]>([])
 const teachers = ref<{ personId: string, displayName: string }[]>([])
 const teacherQuery = ref('')
 const teacherResults = ref<{ personId: string, displayName: string }[]>([])
@@ -78,10 +81,11 @@ async function load(): Promise<void> {
   problems.value = []
   sessions.value = []
   await loading.run(async () => {
-    const [view, found, periods] = await Promise.all([loadCampaign(props.id), loadClasses(props.id), loadPeriods()])
+    const [view, found, periods, school] = await Promise.all([loadCampaign(props.id), loadClasses(props.id), loadPeriods(), loadCategories()])
     campaign.value = view.campaign
     classes.value = found.classes
     grid.value = periods.periods
+    categories.value = school.categories
     // An organizer edits activities after the catalogue too, when nobody proposes any more.
     limited.value = view.may.propose || view.may.organize ? (await loadCampaignAvailability(props.id)).limited : []
     if (props.itemId) {
@@ -99,10 +103,12 @@ async function load(): Promise<void> {
       fixedClasses.value = [...item.fixedClasses]
       eligibleGrades.value = [...item.eligibleGrades]
       eligibleClasses.value = [...item.eligibleClasses]
+      categoryIds.value = [...item.categoryIds]
       teachers.value = [...item.teachers]
       sessions.value = item.sessions.map(fromStored)
     } else {
       existing.value = null
+      categoryIds.value = []
       const me = session.value
       if (me?.person?.kind === 'teacher') teachers.value = [{ personId: me.person.id, displayName: me.displayName }]
       addSession()
@@ -268,6 +274,7 @@ function input(): ItemInput {
     fixedClasses: fixedClasses.value,
     eligibleGrades: eligibleGrades.value,
     eligibleClasses: eligibleClasses.value,
+    categories: categoryIds.value,
     teachers: teachers.value.map((t) => t.personId),
     sessions: sessions.value.map((s) => {
       syncPeriods(s)
@@ -671,6 +678,33 @@ async function save(propose: boolean): Promise<void> {
             @change="eligibleClasses = toggle(eligibleClasses, c.className)"
           >
           {{ c.className }}
+        </label>
+      </div>
+    </fieldset>
+
+    <h2>{{ t.item.categories.heading }}</h2>
+    <p
+      v-if="categories.length === 0"
+      class="muted"
+    >
+      {{ t.item.categories.none }}
+    </p>
+    <fieldset
+      v-else
+      class="field"
+    >
+      <legend>{{ t.item.categories.intro }}</legend>
+      <div class="checks">
+        <label
+          v-for="c in categories"
+          :key="c.id"
+        >
+          <input
+            type="checkbox"
+            :checked="categoryIds.includes(c.id)"
+            @change="categoryIds = toggle(categoryIds, c.id)"
+          >
+          {{ c.name }}
         </label>
       </div>
     </fieldset>

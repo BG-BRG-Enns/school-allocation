@@ -39,12 +39,16 @@ If you select one or more classes under **Whole classes taking part (they make n
 
 **Cost in euros (blank: none)** and **What for** appear in the catalogue. Anyone placed pays, so for a class activity its whole classes do. Otherwise the calculation places students in an activity with a cost only if they chose it, and never on a remaining place. After publication, a swap, the class teacher or the organisation can also bring someone into an activity with a cost.
 
+## Categories
+
+Under **Categories** you choose what the activity belongs to, such as sport or careers guidance; several or none are fine too. The organisation creates the categories for the whole school. A registration can have rules with them, such as “at least one sport activity”; students see the categories in the catalogue and with their choices.
+
 ## Saving and submitting
 
 - **Save** keeps the activity as a draft. Only you, the activity's other teachers and the organisation see it.
 - **Save and submit** submits it to the organisation.
 
-In the **Activities** table, a draft has the **Edit**, **Submit** and **Delete** buttons. You can take a submitted activity **Back to draft** while activities are being collected. If something is wrong, the form names the rule, such as “A session is outside the project days” or “The minimum is greater than the number of places”.
+In the **Activities** table, a draft has the **Edit**, **Submit** and **Delete** buttons. You can take a submitted activity **Back to draft** while activities are being collected. If something is wrong, the form says what, such as “A session is outside the project days” or “The minimum is greater than the number of places”.
 
 If the organisation returns your activity, it becomes a draft again, and the **Feedback from the organisation** appears at the top. Change what it mentions and submit it again. Approved activities enter the catalogue when it is published.
 

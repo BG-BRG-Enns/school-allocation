@@ -33,10 +33,16 @@ test('die Anmeldung öffnet sich zu ihrer Zeit; eine Schülerin gibt ihre Wünsc
   await page.getByRole('link', { name: t.campaign.student.giveWishes }).click()
   await expect(page.getByRole('heading', { name: t.common.page.wishes })).toBeVisible()
   await expect(page.getByText(t.wishes.groupCount(0, 1))).toBeVisible()
+  // The registration's rule (04-einstellungen): one sport activity, which climbing is.
+  const rules = section(page, t.wishes.rules.heading)
+  await expect(rules).toContainText(t.rules.asks(sample.sport, 1, 'items'))
+  await expect(rules).toContainText(t.wishes.rules.notYet)
   await page.getByLabel(t.wishes.wishFor(sample.climbing)).selectOption('1')
   // A student's change is saved at once, without a button.
   await expect(page.getByRole('status')).toHaveText(t.common.saved)
   await expect(page.getByText(t.wishes.groupCount(1, 1))).toBeVisible()
+  await expect(rules).toContainText(t.wishes.rules.reach(t.rules.progress(1, 1, 'items')))
+  await expect(rules).toContainText(t.wishes.rules.done)
   await shot(page, '25-wuensche')
   await picture(page, 'wuensche', page.locator('main'))
   await expect(page.getByText(t.labels.choiceState.complete, { exact: true })).toBeVisible()

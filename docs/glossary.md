@@ -80,11 +80,15 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | pass (D-20) | Runde ("1. Runde: Anmeldezeitraum, 2. Runde: Nachfrist") | round | |
 | fallback place (D-06) | Restplatz | remaining place | "auf einen Restplatz ohne Kosten" |
 | deficit | fehlende Minuten | missing minutes | |
-| unplaced students | "Noch nicht für alle Tage eingeteilt" | "Not placed for every day" | |
+| category | Kategorie, Kategorien | category, categories | the school's, one list for every registration; an activity belongs to none, one or several |
+| rule (of a registration) | Regel; "Sport: mindestens 1 Aktivität"; "9. Schulstufe, nur 7A" | rule; "Sport: at least 1 activity"; "year 9, only 7A" | only for these; the allocation's hard constraints are Bedingungen (conditions) |
+| rule standing | erfüllt; "es fehlt 1 Aktivität"; "1 von 2" | met; "1 activity missing"; "1 of 2" | |
+| rule levels | "Schüler\*innen, denen eine Regel fehlt"; "Fehlende Aktivitäten (Minuten) für Regeln insgesamt" | "students missing a rule"; "total activities (minutes) missing for rules" | after the missing minutes, before the wishes |
+| unplaced students | "Noch nicht vollständig eingeteilt" | "Not fully placed" | Short of minutes on a day or of a rule. |
 | the solver | Berechnung (organizers); Rechenmodul (administrators) | calculation service | "Solver" stays in the deploy guide |
 | change by hand | von Hand; "Einteilung von Hand ändern" | by hand | |
 | change kinds | Tausch · Einteilung durch den Klassenvorstand · Wechsel · Abmeldung | swap · placed by the class teacher · moved · removed | |
-| override | "trotzdem"; "Auch wenn die Aktivität voll ist oder dann zu wenige bleiben (wird vermerkt)" | "anyway" | |
+| override | "trotzdem"; "Auch wenn die Aktivität voll ist, dann zu wenige bleiben oder eine Regel nicht mehr erfüllt ist (wird vermerkt)" | "anyway" | |
 | class teacher | Klassenvorstand (KV), Klassenvorstände | class teacher | |
 | grade | Schulstufe | year | |
 | roster | Klassenlisten | class lists | Q7 |

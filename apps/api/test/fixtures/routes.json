@@ -1,6 +1,26 @@
 [
   {
     "method": "DELETE",
+    "url": "/api/admin/categories/:id",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "DELETE",
     "url": "/api/admin/mail-templates/:kind",
     "body": null,
     "params": {
@@ -330,6 +350,14 @@
       },
       "additionalProperties": false
     },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
+    "url": "/api/admin/categories",
+    "body": null,
+    "params": null,
     "querystring": null,
     "bodyLimit": null
   },
@@ -909,6 +937,14 @@
   },
   {
     "method": "GET",
+    "url": "/api/categories",
+    "body": null,
+    "params": null,
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/health",
     "body": null,
     "params": null,
@@ -1053,6 +1089,91 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 100
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "categoryId",
+              "grades",
+              "classes",
+              "unit",
+              "minimum"
+            ],
+            "properties": {
+              "categoryId": {
+                "type": "string",
+                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+              },
+              "grades": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 13
+                },
+                "minItems": 1,
+                "maxItems": 13
+              },
+              "classes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._/-]{0,15}$",
+                  "maxLength": 16
+                },
+                "maxItems": 40
+              },
+              "unit": {
+                "enum": [
+                  "items",
+                  "minutes"
+                ]
+              },
+              "minimum": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 20
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "PATCH",
+    "url": "/api/admin/categories/:id",
+    "body": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "pattern": "^(?=.*\\S)[^\\p{Cc}\\p{Cs}\\p{Zl}\\p{Zp}]+$"
         }
       },
       "additionalProperties": false
@@ -1212,6 +1333,14 @@
               }
             },
             "additionalProperties": false
+          },
+          "maxItems": 10
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
           },
           "maxItems": 10
         }
@@ -1527,6 +1656,28 @@
       },
       "additionalProperties": false
     },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "POST",
+    "url": "/api/admin/categories",
+    "body": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "pattern": "^(?=.*\\S)[^\\p{Cc}\\p{Cs}\\p{Zl}\\p{Zp}]+$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": null,
     "querystring": null,
     "bodyLimit": null
   },
@@ -2085,6 +2236,14 @@
               }
             },
             "additionalProperties": false
+          },
+          "maxItems": 10
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
           },
           "maxItems": 10
         }

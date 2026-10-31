@@ -11,9 +11,17 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-CONTRACT = "allocation/v1"
+CONTRACT = "allocation/v2"
 
-LEVEL_NAMES = ("students_with_deficit", "deficit_minutes", "total_cost", "tiebreak")
+LEVEL_NAMES = (
+    "students_with_deficit",
+    "deficit_minutes",
+    "students_missing_rule",
+    "rule_missing_items",
+    "rule_missing_minutes",
+    "total_cost",
+    "tiebreak",
+)
 
 Status = Literal["OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN", "MODEL_INVALID"]
 
@@ -45,12 +53,27 @@ class Option(Strict):
     credit: list[DayMinutes]
 
 
+class RuleAmount(Strict):
+    o: int = Field(ge=0)
+    n: int = Field(ge=1)
+
+
+class Rule(Strict):
+    """A campaign rule as one student still has to meet it: so many activities, or minutes, of what `amounts` lists."""
+
+    r: int = Field(ge=0)
+    unit: Literal["items", "minutes"]
+    need: int = Field(ge=1)
+    amounts: list[RuleAmount]
+
+
 class Student(Strict):
     s: int = Field(ge=0)
     required: list[DayMinutes]
     # The minutes the student still needs over the week, the costs' denominator.
     norm: int = Field(ge=0)
     options: list[Option]
+    rules: list[Rule]
 
 
 class Item(Strict):
@@ -67,7 +90,7 @@ class Limits(Strict):
 
 
 class SolveRequest(Strict):
-    contract: Literal["allocation/v1"]
+    contract: Literal["allocation/v2"]
     runId: str = Field(min_length=1, max_length=100)
     seed: int = Field(ge=0, le=2**53)
     limits: Limits
@@ -126,6 +149,15 @@ def check_model(request: SolveRequest) -> str | None:
             options.add((student.s, option.o))
             if len({c.d for c in option.credit}) != len(option.credit):
                 return f"student {student.s}, item {option.o}: a day is credited twice"
+        if len({rule.r for rule in student.rules}) != len(student.rules):
+            return f"student {student.s} names a rule twice"
+        mine = {option.o for option in student.options}
+        for rule in student.rules:
+            if len({a.o for a in rule.amounts}) != len(rule.amounts):
+                return f"student {student.s}, rule {rule.r}: an item is counted twice"
+            for amount in rule.amounts:
+                if amount.o not in mine:
+                    return f"student {student.s}, rule {rule.r}: item {amount.o} is not an option of the student"
     for a, b in request.conflicts:
         if a not in items or b not in items or a == b:
             return f"conflict {a}/{b} does not name two listed items"

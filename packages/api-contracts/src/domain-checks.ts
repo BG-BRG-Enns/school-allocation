@@ -3,10 +3,10 @@
 import type * as Core from '@school-allocation/school-core'
 import type { Static } from 'typebox'
 import type { GrantBody } from './administration.ts'
-import type { AllocationInputProblemSchema, AllocationProblemSchema, AllocationSummarySchema, AllocationWarningSchema, ExplainedDaySchema, ExplainedItemSchema, LevelValueSchema, SolveRequestSchema, SolveResponseSchema, SolveStatusSchema, StudentExplanationSchema } from './allocation.ts'
-import type { CatalogueProblemCodeSchema, CatalogueProblemSchema, CreditSchema, DayDemandSchema, ItemStateSchema } from './campaigns.ts'
-import type { CreditBody, PeriodBody } from './catalogue.ts'
-import type { RankingProblemCodeSchema, RankingProblemSchema } from './choices.ts'
+import type { AllocationInputProblemSchema, AllocationProblemSchema, AllocationSummarySchema, AllocationWarningSchema, ExplainedDaySchema, ExplainedItemSchema, LevelValueSchema, RuleStandingSchema, SolveRequestSchema, SolveResponseSchema, SolveStatusSchema, StudentExplanationSchema } from './allocation.ts'
+import type { CatalogueProblemCodeSchema, CatalogueProblemSchema, CreditSchema, DayDemandSchema, ItemStateSchema, RuleDemandSchema, RuleSchema } from './campaigns.ts'
+import type { CreditBody, PeriodBody, RuleBody, RuleProblemSchema } from './catalogue.ts'
+import type { RankingProblemCodeSchema, RankingProblemSchema, RuleReachSchema } from './choices.ts'
 import type { PersonKindSchema, Role } from './common.ts'
 import type { BatchDetailSchema, ChangedFieldSchema, RosterDiffSummarySchema, RosterEntrySchema, RosterProblemCodeSchema, RosterProblemSchema, StoredEntry } from './roster.ts'
 import type { PeriodSchema } from './settings.ts'
@@ -46,6 +46,12 @@ export type DomainSchemaChecks = [
   Assert<Equal<Static<typeof ExplainedDaySchema>, Core.ExplainedDay>>,
   Assert<Equal<Static<typeof StudentExplanationSchema>, Core.StudentExplanation>>,
   Assert<Equal<Static<typeof AllocationSummarySchema>, Core.AllocationSummary>>,
+  Assert<Equal<Static<typeof RuleSchema>, Core.CampaignRule>>,
+  Assert<Equal<Static<typeof RuleBody>, Omit<Core.CampaignRule, 'id'>>>,
+  Assert<Equal<Static<typeof RuleProblemSchema>, Core.RuleProblem>>,
+  Assert<Equal<Static<typeof RuleStandingSchema>, Core.RuleStanding>>,
+  Assert<Equal<Static<typeof RuleReachSchema>, Core.RuleReach>>,
+  Assert<Equal<Static<typeof RuleDemandSchema>, Core.RuleDemand>>,
 ]
 
 // Guard against weakening this check to one-way structural assignability.

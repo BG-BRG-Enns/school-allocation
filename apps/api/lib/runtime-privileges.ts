@@ -67,8 +67,15 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   // session keeps its id (the attendance refers to it) and only its location is written.
   item_teacher: { table: ['SELECT', 'INSERT', 'DELETE'] },
   item_session: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['location'] },
+  // An activity's categories are replaced as a whole when it is edited.
+  item_category: { table: ['SELECT', 'INSERT', 'DELETE'] },
   // The period grid is replaced as a whole by an administrator, audited.
   period_grid: { table: ['SELECT', 'INSERT', 'DELETE'] },
+  // The school's categories: added, renamed and removed (while nothing names one) by an organizer or administrator,
+  // audited.
+  category: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['name', 'updated_at'] },
+  // A registration's rules are replaced as a whole with its settings, audited.
+  campaign_rule: { table: ['SELECT', 'INSERT', 'DELETE'] },
   // A teacher's availability on a day: set by the teacher or an organizer (audited), removed when available again or
   // with the school year's records.
   teacher_availability: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['status', 'updated_at'] },

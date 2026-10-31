@@ -1,4 +1,4 @@
-import type { CampaignState } from '@school-allocation/school-core'
+import type { CampaignRule, CampaignState } from '@school-allocation/school-core'
 import type { CampaignKind } from '../models/campaigns.ts'
 
 export interface CampaignRow {
@@ -18,6 +18,7 @@ export interface CampaignRow {
   show_teachers: boolean
   reminder_days: number
   place_headroom_percent: number
+  rules: CampaignRule[]
   roster_batch_id: string | null
   created_at: Date
   updated_at: Date

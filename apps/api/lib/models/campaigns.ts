@@ -1,7 +1,7 @@
-import type { CampaignWindow } from '@school-allocation/api-contracts'
+import type { CampaignWindow, RuleInput } from '@school-allocation/api-contracts'
 
 export type CampaignKind = typeof CAMPAIGN_KINDS[number]
-export type { CampaignWindow } from '@school-allocation/api-contracts'
+export type { CampaignWindow, RuleInput } from '@school-allocation/api-contracts'
 
 export type { Campaign } from '@school-allocation/api-contracts'
 
@@ -14,8 +14,8 @@ export interface NewCampaign {
   projectDays: string[]
 }
 
-/** What an organizer changes: the set-up (while it is being set up or taking proposals) and the window settings (until the window opens). */
-export type CampaignChanges = Omit<NewCampaign, 'kind'> & Partial<CampaignWindow>
+/** What an organizer changes: the set-up (while it is being set up or taking proposals), the window settings and the rules (until the window opens). */
+export type CampaignChanges = Omit<NewCampaign, 'kind'> & Partial<Omit<CampaignWindow, 'rules'>> & { rules?: RuleInput[] }
 
 /** A class of the roster in force, for the pickers: its name and grade. */
 export interface RosterClass {

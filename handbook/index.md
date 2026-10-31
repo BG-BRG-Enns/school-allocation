@@ -24,7 +24,7 @@ features:
 
 ## Welches Handbuch?
 
-SchulWahl teilt die Schüler\*innen einer Schule auf die Aktivitäten ihrer Projektwoche ein: Lehrkräfte reichen Aktivitäten ein, Schüler\*innen melden sich mit ihren Wünschen an, und die Organisation berechnet daraus eine Einteilung, die jede Regel einhält.
+SchulWahl teilt die Schüler\*innen einer Schule auf die Aktivitäten ihrer Projektwoche ein: Lehrkräfte reichen Aktivitäten ein, Schüler\*innen melden sich mit ihren Wünschen an, und die Organisation berechnet daraus eine Einteilung, die alle Bedingungen einhält.
 
 - Wer an der Schule die **Administration** hat, liest das Handbuch [Verwaltung](/verwaltung/).
 - Wer Anmeldungen **organisiert**, liest das Handbuch [Organisation](/organisation/).

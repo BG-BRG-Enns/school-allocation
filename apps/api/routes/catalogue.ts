@@ -61,9 +61,9 @@ export async function catalogueRoutes(app: FastifyInstance, { db, guards, baseUr
   })
 
   registerEndpoint(app, endpoints.getAdminCampaignsByIdExportCatalogueXlsx, { preHandler: guards.requireRole('campaign_organizer', 'school_admin', 'read_only_auditor'), exposeHeadRoute: false }, async (request, reply) => {
-    const { campaign, items } = await catalogueExport(db, request.params.id)
+    const { campaign, items, categories } = await catalogueExport(db, request.params.id)
     const words = await schoolWords(db)
-    const bytes = await catalogueWorkbook(words, items)
+    const bytes = await catalogueWorkbook(words, items, categories)
     return reply
       .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
       .header('content-disposition', `attachment; filename="${words.t.files.catalogue(campaign.schoolYear.replace('/', '-'))}"`)

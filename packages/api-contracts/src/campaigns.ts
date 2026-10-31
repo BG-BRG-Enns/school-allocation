@@ -1,6 +1,6 @@
 // Shared HTTP shapes. Types are derived from the schemas used by Fastify.
 
-import { CAMPAIGN_STATES, CATALOGUE_PROBLEM_CODES, ITEM_STATES } from '@school-allocation/school-core'
+import { CAMPAIGN_STATES, CATALOGUE_PROBLEM_CODES, ITEM_STATES, RULE_UNITS } from '@school-allocation/school-core'
 import { Type, type Static } from 'typebox'
 import { Literals, StrictObject } from './common.ts'
 
@@ -19,6 +19,16 @@ export const CatalogueProblemSchema = StrictObject({
   session: Type.Optional(Type.Number()),
 })
 
+/** What a registration asks of whom per category (school-core CampaignRule). */
+export const RuleSchema = StrictObject({
+  id: Type.String(),
+  categoryId: Type.String(),
+  grades: Type.Array(Type.Number()),
+  classes: Type.Array(Type.String()),
+  unit: Literals(RULE_UNITS),
+  minimum: Type.Number(),
+})
+
 export const CampaignWindowSchema = StrictObject({
   opensAt: Type.Union([Type.String(), Type.Null()]),
   closesAt: Type.Union([Type.String(), Type.Null()]),
@@ -31,6 +41,8 @@ export const CampaignWindowSchema = StrictObject({
   reminderDays: Type.Number(),
   /** How many places beyond the need a day should offer a grade, in percent (school-core placeTarget). */
   placeHeadroomPercent: Type.Number(),
+  /** The rules per category, in the order the organizer set them. */
+  rules: Type.Array(RuleSchema),
 })
 export type CampaignWindow = Static<typeof CampaignWindowSchema>
 
@@ -115,6 +127,8 @@ export const ItemSchema = StrictObject({
     location: Type.String(),
     credits: Type.Array(CreditSchema),
   })),
+  /** The school's categories it belongs to, by id. */
+  categoryIds: Type.Array(Type.String()),
   createdAt: Type.String(),
   updatedAt: Type.String(),
   approvedAt: Type.Union([Type.String(), Type.Null()]),
@@ -132,7 +146,10 @@ export type ItemsResponse = Static<typeof ItemsResponse>
 export const CatalogueResponse = StrictObject({ campaign: CampaignSchema, items: Type.Array(ItemSchema) })
 export type CatalogueResponse = Static<typeof CatalogueResponse>
 
-export const DemandResponse = StrictObject({ demand: Type.Array(DayDemandSchema) })
+/** A rule for one grade before any list (school-core ruleDemand): the need left after class activities against the category's places. */
+export const RuleDemandSchema = StrictObject({ ruleId: Type.String(), grade: Type.Number(), students: Type.Number(), needed: Type.Number(), offered: Type.Number() })
+
+export const DemandResponse = StrictObject({ demand: Type.Array(DayDemandSchema), rules: Type.Array(RuleDemandSchema) })
 export type DemandResponse = Static<typeof DemandResponse>
 
 export const RosterClassesResponse = StrictObject({ classes: Type.Array(StrictObject({ className: Type.String(), grade: Type.Number() })) })

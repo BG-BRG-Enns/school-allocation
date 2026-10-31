@@ -11,6 +11,7 @@ import writeXlsxFile from 'write-excel-file/node'
 import type { Words } from './i18n.ts'
 import type { RunReviewResponse } from './models/allocation.ts'
 import type { StudentChoiceState } from './models/choices.ts'
+import type { Category } from './models/categories.ts'
 import type { Item } from './models/items.ts'
 import { SCHOOL_TIME_ZONE } from './time.ts'
 
@@ -84,12 +85,13 @@ export async function planningWorkbook({ t, intl }: WorkbookWords, planning: Pla
 }
 
 /** The catalogue: one sheet of activities, one of sessions; nothing about students is in it. The workbook as bytes; the caller sets the headers. */
-export async function catalogueWorkbook({ t, intl }: WorkbookWords, items: readonly Item[]): Promise<Buffer> {
+export async function catalogueWorkbook({ t, intl }: WorkbookWords, items: readonly Item[], categories: readonly Category[]): Promise<Buffer> {
   const field = t.common.field
   const column = t.workbook.column
   const { when } = dateFormats(intl)
+  const categoryNames = new Map(categories.map((c) => [c.id, c.name]))
   const activities = [
-    [field.number, column.title, field.teachers, column.description, column.location, field.places, column.minParticipants, column.cancellableBelowMinimum, column.fixedClasses, column.grades, column.classes, column.fee, column.feeNote, field.sessions, column.minutes].map(header),
+    [field.number, column.title, field.teachers, column.description, column.location, field.places, column.minParticipants, column.cancellableBelowMinimum, column.fixedClasses, column.grades, column.classes, column.fee, column.feeNote, field.sessions, column.minutes, column.categories].map(header),
     ...items.map((item) => [
       { type: Number, value: item.number ?? undefined },
       { type: String, value: item.title },
@@ -106,6 +108,7 @@ export async function catalogueWorkbook({ t, intl }: WorkbookWords, items: reado
       { type: String, value: item.feeNote },
       { type: Number, value: item.sessions.length },
       { type: Number, value: item.sessions.flatMap((s) => s.credits).reduce((sum, c) => sum + c.minutes, 0) },
+      { type: String, value: item.categoryIds.map((id) => categoryNames.get(id) ?? '').filter(Boolean).sort((a, b) => a.localeCompare(b, intl)).join(', ') },
     ]),
   ]
   const sessions = [
@@ -120,7 +123,7 @@ export async function catalogueWorkbook({ t, intl }: WorkbookWords, items: reado
     ])),
   ]
   const workbook = writeXlsxFile([
-    { sheet: t.workbook.sheet.items, columns: [{ width: 6 }, { width: 40 }, { width: 30 }, { width: 60 }, { width: 24 }, { width: 8 }, { width: 10 }, { width: 10 }, { width: 16 }, { width: 12 }, { width: 16 }, { width: 10 }, { width: 30 }, { width: 8 }, { width: 8 }], data: activities },
+    { sheet: t.workbook.sheet.items, columns: [{ width: 6 }, { width: 40 }, { width: 30 }, { width: 60 }, { width: 24 }, { width: 8 }, { width: 10 }, { width: 10 }, { width: 16 }, { width: 12 }, { width: 16 }, { width: 10 }, { width: 30 }, { width: 8 }, { width: 8 }, { width: 24 }], data: activities },
     { sheet: t.workbook.sheet.sessions, columns: [{ width: 6 }, { width: 40 }, { width: 22 }, { width: 22 }, { width: 24 }, { width: 40 }], data: sessions },
   ])
   return workbook.toBuffer()
@@ -153,8 +156,9 @@ export async function attendanceWorkbook({ t, intl }: WorkbookWords, rows: reado
 
 /**
  * A run as a workbook for the organizer's review and the school's lists:
- * every student with their items per day and the fee, the participants per
- * item, the items with their counts, and the missing minutes. The same
+ * every student with their items per day, the fee and what they reach of
+ * each rule, the participants per item, the items with their counts, the
+ * missing minutes and the missing rules. The same
  * builder serves a published run, then with the sheet of the changes made
  * since publication (the reason included: the sheet is the organizer's).
  */
@@ -170,8 +174,11 @@ export async function runWorkbook({ t, intl }: WorkbookWords, review: RunReviewR
     return item === undefined ? itemId : item.number === null ? item.title : `${item.number}. ${item.title}`
   }
   const dayHeaders = review.projectDays.flatMap((date) => [`${dayShort.format(new Date(`${date}T12:00:00Z`))}`, column.minutes])
+  // A rule by its category, what it asks and of whom: "Sport: mindestens 1 Aktivität (9. und 10. Schulstufe)".
+  const categoryNames = new Map(review.categories.map((c) => [c.id, c.name]))
+  const ruleLabels = new Map(review.rules.map((rule) => [rule.id, `${t.rules.asks(categoryNames.get(rule.categoryId) ?? '?', rule.minimum, rule.unit)} (${t.rules.scope(rule.grades, rule.classes)})`]))
   const students = [
-    [field.className, field.grade, field.name, column.window, ...dayHeaders, column.deficit, column.fee].map(header),
+    [field.className, field.grade, field.name, column.window, ...dayHeaders, column.deficit, column.fee, ...review.rules.map((rule) => ruleLabels.get(rule.id) ?? '')].map(header),
     ...review.students.map((s) => {
       const perDay = review.projectDays.flatMap((date) => {
         const onDay = s.items.filter((e) => (e.minutesByDate[date] ?? 0) > 0)
@@ -187,6 +194,8 @@ export async function runWorkbook({ t, intl }: WorkbookWords, review: RunReviewR
         ...perDay,
         { type: Number, value: s.days.reduce((sum, d) => sum + d.deficit, 0) },
         { type: Number, value: fee / 100, format: '#,##0.00' },
+        // What the student's items bring to each rule; empty where a rule does not apply to them.
+        ...review.rules.map((rule) => ({ type: Number, value: s.rules.find((r) => r.ruleId === rule.id)?.have })),
       ]
     }),
   ]
@@ -223,6 +232,22 @@ export async function runWorkbook({ t, intl }: WorkbookWords, review: RunReviewR
       { type: Number, value: d.deficit },
     ])),
   ]
+  const ruleGaps = review.rules.length === 0
+    ? []
+    : [{
+        sheet: t.workbook.sheet.rules,
+        columns: [{ width: 8 }, { width: 30 }, { width: 50 }, { width: 10 }, { width: 10 }],
+        data: [
+          [field.className, field.name, column.rule, column.reached, column.missing].map(header),
+          ...review.students.flatMap((s) => s.rules.filter((r) => !r.met).map((r) => [
+            { type: String, value: s.className },
+            { type: String, value: s.displayName },
+            { type: String, value: ruleLabels.get(r.ruleId) ?? '' },
+            { type: Number, value: r.have },
+            { type: Number, value: r.minimum - r.have },
+          ])),
+        ],
+      }]
   const changed = changes === undefined
     ? []
     : [{
@@ -246,10 +271,11 @@ export async function runWorkbook({ t, intl }: WorkbookWords, review: RunReviewR
         ],
       }]
   const workbook = writeXlsxFile([
-    { sheet: t.workbook.sheet.students, columns: [{ width: 8 }, { width: 10 }, { width: 30 }, { width: 16 }, ...review.projectDays.flatMap(() => [{ width: 40 }, { width: 9 }]), { width: 16 }, { width: 12 }], data: students },
+    { sheet: t.workbook.sheet.students, columns: [{ width: 8 }, { width: 10 }, { width: 30 }, { width: 16 }, ...review.projectDays.flatMap(() => [{ width: 40 }, { width: 9 }]), { width: 16 }, { width: 12 }, ...review.rules.map(() => ({ width: 24 }))], data: students },
     { sheet: t.workbook.sheet.participants, columns: [{ width: 6 }, { width: 36 }, { width: 8 }, { width: 30 }, { width: 16 }, { width: 8 }], data: participants },
     { sheet: t.workbook.sheet.items, columns: [{ width: 6 }, { width: 36 }, { width: 8 }, { width: 10 }, { width: 12 }, { width: 9 }, { width: 9 }, { width: 12 }], data: activities },
     { sheet: t.workbook.sheet.deficits, columns: [{ width: 8 }, { width: 30 }, { width: 16 }, { width: 16 }], data: deficits },
+    ...ruleGaps,
     ...changed,
   ])
   return workbook.toBuffer()

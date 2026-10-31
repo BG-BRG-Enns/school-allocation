@@ -173,6 +173,24 @@ const placeLabel = (review: RunReviewResponse, student: ReviewStudent, date: str
   .filter((e) => (e.minutesByDate[date] ?? 0) > 0)
   .map((e) => `${itemTitle(review, e.itemId)}${e.source === 'wish' ? ` (${t.allocation.place.wish(e.rank)})` : e.source === 'fallback' ? ` (${t.allocation.place.fallback})` : e.source === 'fixed' ? ` (${t.allocation.place.fixed})` : ''}`)
   .join(', ')
+type Warning = AllocationRun['warnings'][number]
+const itemWarnings = computed(() => (selected.value?.run.warnings ?? []).filter((w): w is Extract<Warning, { code: 'minimum_out_of_reach' }> => w.code === 'minimum_out_of_reach'))
+const ruleWarnings = computed(() => (selected.value?.run.warnings ?? []).filter((w): w is Extract<Warning, { code: 'rule_out_of_reach' }> => w.code === 'rule_out_of_reach'))
+/** A rule of the run, by its snapshot: "Sport: mindestens 1 Aktivität"; with whom it asks when `scoped`. */
+const ruleText = (review: RunReviewResponse, ruleId: string, scoped = false): string => {
+  const rule = review.rules.find((r) => r.id === ruleId)
+  if (!rule) return '?'
+  const asks = t.rules.asks(review.categories.find((c) => c.id === rule.categoryId)?.name ?? '?', rule.minimum, rule.unit)
+  return scoped ? `${asks} · ${t.rules.scope(rule.grades, rule.classes)}` : asks
+}
+/** An amount of a rule: minutes for a minutes rule, a count otherwise. */
+const ruleAmount = (review: RunReviewResponse, ruleId: string, amount: number): string => review.rules.find((r) => r.id === ruleId)?.unit === 'minutes' ? t.common.minutes(amount) : String(amount)
+/** A student's rules in a cell: met, or each one missed with how far the student is. */
+const studentRules = (review: RunReviewResponse, student: ReviewStudent): string => {
+  if (student.rules.length === 0) return '–'
+  const missed = student.rules.filter((r) => !r.met)
+  return missed.length === 0 ? t.rules.met : missed.map((r) => `${ruleText(review, r.ruleId)} (${t.rules.progress(r.have, r.minimum, r.unit)})`).join('; ')
+}
 const levelsOf = (review: RunReviewResponse) => review.run.passes.at(-1)?.levels ?? []
 const passSummary = (review: RunReviewResponse): string => review.run.passes.map((p) => `${p.pass}. ${SOLVE_STATUS_LABELS[p.status] ?? p.status}`).join(' · ')
 const rankKeys = computed(() => {
@@ -565,16 +583,30 @@ const levelDelta = (name: string): number | null => {
         </ul>
       </div>
       <div
-        v-if="selected.run.warnings.length > 0"
+        v-if="itemWarnings.length > 0"
         class="panel"
       >
         <p><strong>{{ t.allocation.review.warningLead }}:</strong> {{ t.allocation.review.warning }}</p>
         <ul>
           <li
-            v-for="w in selected.run.warnings"
+            v-for="w in itemWarnings"
             :key="w.itemId"
           >
             {{ itemTitle(selected, w.itemId) }}: {{ t.allocation.review.possible(w.possible, w.minimum) }}
+          </li>
+        </ul>
+      </div>
+      <div
+        v-if="ruleWarnings.length > 0"
+        class="panel"
+      >
+        <p><strong>{{ t.allocation.review.ruleWarningLead }}:</strong> {{ t.allocation.review.ruleWarning }}</p>
+        <ul>
+          <li
+            v-for="w in ruleWarnings"
+            :key="`${w.ruleId}-${w.grade}`"
+          >
+            {{ t.allocation.review.ruleOutOfReach(ruleText(selected, w.ruleId), w.grade, w.possible, w.needed) }}
           </li>
         </ul>
       </div>
@@ -657,6 +689,9 @@ const levelDelta = (name: string): number | null => {
           <li><strong>{{ selected.summary.students.covered }}</strong> {{ t.allocation.counts.covered }}</li>
           <li><strong>{{ selected.summary.students.withDeficit }}</strong> {{ t.allocation.counts.withDeficit }}</li>
           <li><strong>{{ selected.summary.students.withFallback }}</strong> {{ t.allocation.counts.withFallback }}</li>
+          <li v-if="selected.rules.length > 0">
+            <strong>{{ selected.summary.students.missingRule }}</strong> {{ t.allocation.counts.missingRule }}
+          </li>
           <li><strong>{{ selected.run.cancelledItemIds.length }}</strong> {{ t.allocation.counts.cancelled }}</li>
           <li><strong>{{ selected.summary.students.late }}</strong> {{ t.allocation.counts.late }}, <strong>{{ selected.summary.students.nonSubmitters }}</strong> {{ t.allocation.counts.nonSubmitters }}</li>
         </ul>
@@ -691,6 +726,9 @@ const levelDelta = (name: string): number | null => {
         </table>
         <p class="muted">
           {{ t.allocation.review.passes(passSummary(selected), selected.run.seed) }}
+          <template v-if="selected.rules.length > 0">
+            {{ t.allocation.review.passesRules }}
+          </template>
         </p>
 
         <h3>{{ t.allocation.review.wishes }}</h3>
@@ -775,6 +813,43 @@ const levelDelta = (name: string): number | null => {
           </li>
         </ul>
 
+        <template v-if="selected.rules.length > 0">
+          <h3>{{ t.allocation.review.rules }}</h3>
+          <ul>
+            <li
+              v-for="r in selected.summary.rules"
+              :key="r.ruleId"
+            >
+              {{ ruleText(selected, r.ruleId, true) }}: {{ t.allocation.review.ruleMet(r.met, r.students) }}
+            </li>
+          </ul>
+          <h3>{{ t.allocation.review.ruleGaps(selected.summary.ruleGaps.length) }}</h3>
+          <table
+            v-if="selected.summary.ruleGaps.length > 0"
+            class="table"
+          >
+            <thead>
+              <tr>
+                <th>{{ t.common.field.student }}</th>
+                <th>{{ t.common.field.className }}</th>
+                <th>{{ t.rules.rule }}</th>
+                <th>{{ t.allocation.review.missing }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(g, index) in selected.summary.ruleGaps"
+                :key="index"
+              >
+                <td>{{ studentName(selected, g.personId) }}</td>
+                <td>{{ selected.students.find((s) => s.personId === g.personId)?.className }}</td>
+                <td>{{ ruleText(selected, g.ruleId) }}</td>
+                <td>{{ ruleAmount(selected, g.ruleId, g.missing) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+
         <h3>{{ t.allocation.review.items }}</h3>
         <table class="table">
           <thead>
@@ -821,6 +896,9 @@ const levelDelta = (name: string): number | null => {
               <th>{{ t.common.field.students }}</th>
               <th>{{ t.allocation.review.classWithDeficit }}</th>
               <th>{{ t.allocation.review.classWithFallback }}</th>
+              <th v-if="selected.rules.length > 0">
+                {{ t.allocation.review.classMissingRule }}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -832,6 +910,9 @@ const levelDelta = (name: string): number | null => {
               <td>{{ c.students }}</td>
               <td>{{ c.withDeficit }}</td>
               <td>{{ c.withFallback }}</td>
+              <td v-if="selected.rules.length > 0">
+                {{ c.missingRule }}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -886,6 +967,9 @@ const levelDelta = (name: string): number | null => {
                 {{ formatDay(date) }}
               </th>
               <th>{{ t.allocation.review.averageRank }}</th>
+              <th v-if="selected.rules.length > 0">
+                {{ t.allocation.review.rules }}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -908,6 +992,12 @@ const levelDelta = (name: string): number | null => {
                 >({{ t.allocation.review.minutesMissing(s.days.find((d) => d.date === date)?.deficit ?? 0) }})</span>
               </td>
               <td>{{ s.averageRank === null ? '–' : s.averageRank.toFixed(2) }}</td>
+              <td
+                v-if="selected.rules.length > 0"
+                :class="{ alert: s.rules.some((r) => !r.met) }"
+              >
+                {{ studentRules(selected, s) }}
+              </td>
             </tr>
           </tbody>
         </table>

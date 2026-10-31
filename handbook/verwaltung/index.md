@@ -8,9 +8,9 @@ Wer die erste Administration bekommt, legt der Betrieb beim Einrichten fest: Er 
 
 ## Die Seite Verwaltung
 
-![Die Seite Verwaltung mit den Links zu Klassenlisten, Konten und Rollen, Klassenvorständen, Stundenraster, E-Mail-Vorlagen und Aufbewahrung, darunter die Sprache der Schule](/bilder/de/verwaltung.png)
+![Die Seite Verwaltung mit den Links zu Klassenlisten, Konten und Rollen, Klassenvorständen, Stundenraster, Kategorien, E-Mail-Vorlagen und Aufbewahrung, darunter die Sprache der Schule](/bilder/de/verwaltung.png)
 
-Von hier erreichst du alles, was die Administration pflegt. Die E-Mail-Vorlagen teilst du dir mit der Organisation; sie stehen im Handbuch [Organisation](/organisation/e-mail-vorlagen).
+Von hier erreichst du alles, was die Administration pflegt. Die E-Mail-Vorlagen und die Kategorien teilst du dir mit der Organisation; sie stehen im Handbuch Organisation, unter [E-Mail-Vorlagen](/organisation/e-mail-vorlagen) und [Kategorien und Regeln](/organisation/kategorien-und-regeln).
 
 ## Vor der ersten Anmeldung
 

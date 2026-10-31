@@ -1,4 +1,4 @@
-import type { CatalogueProblem, MoveProblemCode, PeriodProblemCode, RankingProblem } from '@school-allocation/school-core'
+import type { CatalogueProblem, MoveProblemCode, PeriodProblemCode, RankingProblem, RuleProblem } from '@school-allocation/school-core'
 import type { TemplateProblem } from './models/mail-templates.ts'
 
 /** Stable refusal codes shared by application operations. HTTP status mapping belongs to the adapter. */
@@ -7,6 +7,7 @@ export type ApplicationErrorCode = 'no_groups' | 'validation_failed' | 'duplicat
   | 'run_not_publishable' | 'run_stale' | 'cancelled_mismatch' | 'not_published'
   | 'swap_closed' | 'fully_placed' | 'no_change' | MoveProblemCode
   | 'not_assigned' | 'retention_not_reached'
+  | 'category_exists' | 'category_in_use' | 'category_unknown' | 'too_many_categories'
 
 /** A change the current state refuses; `code` is the answer's error code. */
 export class ApplicationError extends Error {
@@ -29,6 +30,16 @@ export class ItemInvalid extends Error {
     super('item_invalid')
     this.problems = problems
     this.unknownTeachers = unknownTeachers
+  }
+}
+
+/** A registration's rules break school-core's checkRules; the problems name the rule by its position. */
+export class RulesInvalid extends Error {
+  override name = 'RulesInvalid'
+  readonly problems: RuleProblem[]
+  constructor(problems: RuleProblem[]) {
+    super('rules_invalid')
+    this.problems = problems
   }
 }
 

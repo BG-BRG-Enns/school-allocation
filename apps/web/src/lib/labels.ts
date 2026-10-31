@@ -60,6 +60,9 @@ export function levelLabel(name: string): string {
   const level = t.labels.level
   if (name === 'students_with_deficit') return level.students_with_deficit
   if (name === 'deficit_minutes') return level.deficit_minutes
+  if (name === 'students_missing_rule') return level.students_missing_rule
+  if (name === 'rule_missing_items') return level.rule_missing_items
+  if (name === 'rule_missing_minutes') return level.rule_missing_minutes
   if (name === 'total_cost') return level.total_cost
   if (name === 'tiebreak') return level.tiebreak
   if (name.startsWith('over:')) return level.over(Number(name.slice(5)) / 1000)
@@ -89,6 +92,12 @@ export const MAIL_STATE_LABELS: Readonly<Record<string, string>> = t.labels.mail
 
 /** Why a template was refused (apps/api/lib/models/mail-templates.ts TemplateProblem). */
 export const TEMPLATE_PROBLEM_LABELS: Readonly<Record<string, string>> = t.labels.templateProblem
+
+/** Why a registration's rules were refused (school-core RULE_PROBLEM_CODES). */
+export const RULE_PROBLEM_LABELS: Readonly<Record<string, string>> = t.labels.ruleProblem
+
+/** What a rule counts (school-core RULE_UNITS). */
+export const RULE_UNIT_LABELS: Readonly<Record<string, string>> = t.labels.ruleUnit
 
 /** Why a period grid was refused (school-core PERIOD_PROBLEM_CODES). */
 export const PERIOD_PROBLEM_LABELS: Readonly<Record<string, string>> = t.labels.periodProblem

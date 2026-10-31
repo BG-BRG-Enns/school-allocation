@@ -4,11 +4,12 @@ level by level.
 Variables: x[s, o] whether student s takes item o (only for the options
 the request lists), y[o] whether item o runs (free only for a cancellable
 item), u[s, d] the minutes student s misses on day d, z[s] whether the
-student misses anything, and per threshold b[s] whether the student's cost
-is over it. Capacity and minimum go through y; coverage is soft through u
-and never hidden; conflicting items exclude each other per student, as
-cliques (at most one of a set) rather than pairs; the fixed pairs of a
-second pass are forced.
+student misses anything, v[s, r] what student s misses of rule r (items or
+minutes), w[s] whether they miss any rule, and per threshold b[s] whether
+the student's cost is over it. Capacity and minimum go through y; coverage
+and the rules are soft through u and v and never hidden; conflicting items
+exclude each other per student, as cliques (at most one of a set) rather
+than pairs; the fixed pairs of a second pass are forced.
 
 Each level is minimized in turn and then held at the value found while the
 next is solved, the solution found starting the next search; a greedy
@@ -89,6 +90,8 @@ class Model:
         self.y: dict[int, cp_model.IntVar] = {}
         self.u: dict[tuple[int, int], cp_model.IntVar] = {}
         self.z: dict[int, cp_model.IntVar] = {}
+        self.v: dict[tuple[int, int], cp_model.IntVar] = {}
+        self.w: dict[int, cp_model.IntVar] = {}
         self.cost: dict[int, cp_model.LinearExpr] = {}
         self.weight: dict[int, cp_model.LinearExpr] = {}
         self.weight_bound: dict[int, int] = {}
@@ -117,6 +120,14 @@ class Model:
                     covered = sum(credit.get((op.o, day.d), 0) * self.x[(s, op.o)] for op in options)
                     m.add(covered + u >= day.min)
                     m.add(u <= day.min * z)
+            if student.rules:
+                w = m.new_bool_var(f"w{s}")
+                self.w[s] = w
+                for rule in sorted(student.rules, key=lambda r: r.r):
+                    v = m.new_int_var(0, rule.need, f"v{s}_{rule.r}")
+                    self.v[(s, rule.r)] = v
+                    m.add(sum(a.n * self.x[(s, a.o)] for a in rule.amounts) + v >= rule.need)
+                    m.add(v <= rule.need * w)
             self.cost[s] = sum(op.cost * self.x[(s, op.o)] for op in options)
             self.weight[s] = sum(op.weight * self.x[(s, op.o)] for op in options)
             self.weight_bound[s] = sum(op.weight for op in options)
@@ -132,6 +143,12 @@ class Model:
                 m.add(total >= item.min * self.y[o])
         for s, o in request.fixed:
             m.add(self.x[(s, o)] == 1)
+        # Only a student with days to cover has an average rank to be over; one who is here for a rule alone has none.
+        self.ranked = [s for s in sorted(self.students) if self.students[s].norm > 0]
+
+    def rule_missing(self, unit: str) -> list[tuple[int, int]]:
+        """The (student, rule) keys of v for rules counting `unit`, in order."""
+        return [(s, rule.r) for s in sorted(self.students) for rule in sorted(self.students[s].rules, key=lambda r: r.r) if rule.unit == unit]
 
     def objective(self, name: str) -> cp_model.LinearExpr:
         m = self.model
@@ -139,6 +156,12 @@ class Model:
             return sum(self.z[s] for s in sorted(self.z))
         if name == "deficit_minutes":
             return sum(self.u[key] for key in sorted(self.u))
+        if name == "students_missing_rule":
+            return sum(self.w[s] for s in sorted(self.w))
+        if name == "rule_missing_items":
+            return sum(self.v[key] for key in self.rule_missing("items"))
+        if name == "rule_missing_minutes":
+            return sum(self.v[key] for key in self.rule_missing("minutes"))
         if name == "total_cost":
             return sum(self.cost[s] for s in sorted(self.cost))
         if name == "tiebreak":
@@ -148,7 +171,7 @@ class Model:
             raise ValueError(f"unknown level {name}")
         if threshold not in self.over:
             flags: list[cp_model.IntVar] = []
-            for s in sorted(self.cost):
+            for s in self.ranked:
                 b = m.new_bool_var(f"b{threshold}_{s}")
                 # Over the threshold only if b is set: Σ rank · minutes · COST_SCALE > threshold · norm, in whole numbers.
                 # The bound is the most the student's options can weigh.
@@ -164,6 +187,11 @@ class Model:
             return sum(1 for s in self.students if any(self.deficits(s, assign)))
         if name == "deficit_minutes":
             return sum(sum(self.deficits(s, assign)) for s in self.students)
+        if name == "students_missing_rule":
+            return sum(1 for s in self.students if any(missing for _, missing in self.shortfalls(s, assign)))
+        if name in ("rule_missing_items", "rule_missing_minutes"):
+            unit = name.removeprefix("rule_missing_")
+            return sum(missing for s in self.students for u, missing in self.shortfalls(s, assign) if u == unit)
         if name == "total_cost":
             return sum(self.student_cost(s, assign) for s in self.students)
         if name == "tiebreak":
@@ -171,7 +199,7 @@ class Model:
         threshold = level_threshold(name)
         if threshold is None:
             raise ValueError(f"unknown level {name}")
-        return sum(1 for s in self.students if self.over_threshold(s, threshold, assign))
+        return sum(1 for s in self.ranked if self.over_threshold(s, threshold, assign))
 
     def student_cost(self, s: int, assign: set[tuple[int, int]]) -> int:
         return sum(op.cost for op in self.students[s].options if (s, op.o) in assign)
@@ -189,6 +217,11 @@ class Model:
                     credit[c.d] = credit.get(c.d, 0) + c.min
         return [max(0, day.min - credit.get(day.d, 0)) for day in student.required]
 
+    def shortfalls(self, s: int, assign: set[tuple[int, int]]) -> list[tuple[str, int]]:
+        """Per rule of the student, in order: its unit and what the assignment leaves missing."""
+        rules = sorted(self.students[s].rules, key=lambda r: r.r)
+        return [(rule.unit, max(0, rule.need - sum(a.n for a in rule.amounts if (s, a.o) in assign))) for rule in rules]
+
 
 @dataclass
 class Incumbent:
@@ -200,8 +233,9 @@ def greedy_assign(request: SolveRequest) -> set[tuple[int, int]]:
     """A first solution to start the search from: the fixed pairs, then for
     each student, day by day, the options that still have a place, credit
     the day and clash with nothing taken, by wish number (the cost per
-    minute) and the longer first, until the day is covered. A hint, not an
-    answer: it may break a minimum, and the solver repairs it."""
+    minute) and the longer first, until the day is covered; then rule by
+    rule the cheapest options that count toward it, until it is met. A
+    hint, not an answer: it may break a minimum, and the solver repairs it."""
     remaining = {item.o: item.max for item in request.items}
     conflicts = {(min(a, b), max(a, b)) for a, b in request.conflicts}
     fixed: dict[int, list[int]] = {}
@@ -233,6 +267,17 @@ def greedy_assign(request: SolveRequest) -> set[tuple[int, int]]:
                 remaining[op.o] -= 1
                 for c in op.credit:
                     covered[c.d] = covered.get(c.d, 0) + c.min
+        for rule in sorted(student.rules, key=lambda r: r.r):
+            amounts = {a.o: a.n for a in rule.amounts}
+            have = sum(amounts.get(o, 0) for o in taken)
+            for o in sorted(amounts, key=lambda o: (options[o].cost, o)):
+                if have >= rule.need:
+                    break
+                if o in taken or remaining[o] <= 0 or any((min(o, t), max(o, t)) in conflicts for t in taken):
+                    continue
+                taken.append(o)
+                remaining[o] -= 1
+                have += amounts[o]
         assign.update((student.s, o) for o in taken)
     return assign
 
@@ -254,8 +299,13 @@ def hint_from(model: Model, assign: set[tuple[int, int]]) -> None:
             model.model.add_hint(model.z[s], 1 if any(gaps) else 0)
         for day, gap in zip(sorted(model.students[s].required, key=lambda r: r.d), gaps, strict=True):
             model.model.add_hint(model.u[(s, day.d)], gap)
+        shortfalls = model.shortfalls(s, assign)
+        if s in model.w:
+            model.model.add_hint(model.w[s], 1 if any(missing for _, missing in shortfalls) else 0)
+        for rule, (_, missing) in zip(sorted(model.students[s].rules, key=lambda r: r.r), shortfalls, strict=True):
+            model.model.add_hint(model.v[(s, rule.r)], missing)
     for threshold, flags in model.over.items():
-        for s, b in zip(sorted(model.cost), flags, strict=True):
+        for s, b in zip(model.ranked, flags, strict=True):
             model.model.add_hint(b, 1 if model.over_threshold(s, threshold, assign) else 0)
 
 

@@ -34,6 +34,7 @@ export function itemInput(body: Static<typeof ItemBody>, caller: Caller, creatin
     eligibleClasses: uniqueSorted(body.eligibleClasses ?? []),
     teachers,
     sessions: body.sessions.map((session) => ({ startsAt: session.startsAt, endsAt: session.endsAt, location: session.location ?? '', credits: session.credits })),
+    ...(body.categories === undefined ? {} : { categories: uniqueSorted(body.categories.map((id) => id.toLowerCase())) }),
   }
 }
 

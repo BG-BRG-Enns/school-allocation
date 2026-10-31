@@ -20,6 +20,8 @@ const de = {
   woodwork: 'Werken',
   dance: 'Tanz',
   chess: 'Schach',
+  /** The school's category the project week's rule asks for. */
+  sport: 'Sport',
   teachersGroup: 'Lehrkräfte',
   reason: {
     otherAccount: 'Anderes Konto als in der Liste',
@@ -44,6 +46,7 @@ const en: typeof de = {
   woodwork: 'Woodwork',
   dance: 'Dance',
   chess: 'Chess',
+  sport: 'Sport',
   teachersGroup: 'Teachers',
   reason: {
     otherAccount: 'Signs in with another account than the list has',

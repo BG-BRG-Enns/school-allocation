@@ -66,7 +66,7 @@ test('a run on a closed campaign: compiled, solved, validated, stored and review
   const id = s.campaign.id
 
   const status = await get<{ configured: boolean, reachable: boolean, ortools: string | null }>(s, s.anna, '/api/admin/solver')
-  assert.deepEqual(status.body, { configured: true, reachable: true, ortools: '0.0.0-fake', contract: 'allocation/v1' })
+  assert.deepEqual(status.body, { configured: true, reachable: true, ortools: '0.0.0-fake', contract: 'allocation/v2' })
 
   const started = await startRun(s, { seed: 42 })
   assert.equal(started.status, 202, JSON.stringify(started.body))
@@ -94,7 +94,7 @@ test('a run on a closed campaign: compiled, solved, validated, stored and review
   assert.deepEqual(sara?.days.map((d) => d.deficit), [0, 0], 'Tanz covers Monday, the trip Tuesday')
   assert.equal(tim?.window, null)
   assert.deepEqual(tim?.items.map((i) => i.source).sort(), ['fallback', 'fixed'], 'a non-submitter gets a fee-free Monday place and his trip')
-  assert.deepEqual(review.summary?.students, { total: 2, choosing: 2, covered: 2, withDeficit: 0, withFallback: 1, late: 0, nonSubmitters: 1 })
+  assert.deepEqual(review.summary?.students, { total: 2, choosing: 2, covered: 2, withDeficit: 0, withFallback: 1, missingRule: 0, late: 0, nonSubmitters: 1 })
   assert.equal(review.items.find((i) => i.itemId === s.items.wien)?.fixed, 2)
   assert.ok((review.items.find((i) => i.itemId === s.items.tanz)?.assigned ?? 0) >= 1)
   const timItems = tim?.items.map((i) => named(i.itemId)).sort() ?? []

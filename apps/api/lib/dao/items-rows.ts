@@ -28,4 +28,5 @@ export interface ItemRow {
   /** The proposer's person, by their account's binding; null for an account bound to nobody. */
   proposer_person: string | null
   sessions: { id: string, startsAt: string, endsAt: string, location: string, credits: Credit[] }[]
+  category_ids: string[]
 }

@@ -20,7 +20,7 @@ const session = (day: number, from: number, to: number, minutes: number, extra: 
   credits: [{ date: DAYS[day] as string, minutes }, ...extra.map((e) => ({ date: DAYS[e.day] as string, minutes: e.minutes }))],
 })
 const open: ItemRules = { fixedClasses: [], eligibleGrades: [], eligibleClasses: [], places: 20, minParticipants: 0, cancellableBelowMin: true }
-const item = (id: string, sessions: SessionInput[], rules: Partial<ItemRules> = {}, feeCents = 0): AllocationItem => ({ id, feeCents, rules: { ...open, ...rules }, sessions })
+const item = (id: string, sessions: SessionInput[], rules: Partial<ItemRules> = {}, feeCents = 0, categoryIds: string[] = []): AllocationItem => ({ id, feeCents, rules: { ...open, ...rules }, sessions, categoryIds })
 
 const morning = (id: string, fee = 0, rules: Partial<ItemRules> = {}) => item(id, [session(0, 8, 11, 180)], rules, fee)
 const afternoon = (id: string, rules: Partial<ItemRules> = {}) => item(id, [session(0, 11, 13, 120)], rules)
@@ -51,6 +51,7 @@ const INPUT: AllocationInput = {
   projectDays: DAYS,
   dailyMinimum: { 9: 300, 10: 300 },
   wishesPerGroup: 3,
+  rules: [],
   seed: 4711,
   limits: { deterministicTimePerLevel: 5 },
   students: [
@@ -240,12 +241,12 @@ test('the rows of a result carry the pre-assignments, the pass and the wish numb
   assert.equal(explainStudent(INPUT, rows, 'nobody'), undefined)
 
   const summary = summarizeAllocation(INPUT, rows, cancelledOf(result))
-  assert.deepEqual(summary.students, { total: 6, choosing: 5, covered: 5, withDeficit: 0, withFallback: 3, late: 1, nonSubmitters: 1 })
+  assert.deepEqual(summary.students, { total: 6, choosing: 5, covered: 5, withDeficit: 0, withFallback: 3, missingRule: 0, late: 1, nonSubmitters: 1 })
   assert.deepEqual(summary.ranks, { 1: 9, 2: 1, 3: 0, fallback: 6, fixed: 4, swap: 0, manual: 0 })
   assert.deepEqual(summary.classes, [
-    { className: '5A', students: 2, withDeficit: 0, withFallback: 1 },
-    { className: '5B', students: 1, withDeficit: 0, withFallback: 0 },
-    { className: '6A', students: 3, withDeficit: 0, withFallback: 2 },
+    { className: '5A', students: 2, withDeficit: 0, withFallback: 1, missingRule: 0 },
+    { className: '5B', students: 1, withDeficit: 0, withFallback: 0, missingRule: 0 },
+    { className: '6A', students: 3, withDeficit: 0, withFallback: 2, missingRule: 0 },
   ])
   assert.deepEqual(summary.items.find((i) => i.itemId === 'pottery'), { itemId: 'pottery', fixed: 0, assigned: 0, places: 2, minimum: 2, cancelled: true })
   assert.deepEqual(summary.items.find((i) => i.itemId === 'trip'), { itemId: 'trip', fixed: 3, assigned: 0, places: 2, minimum: 0, cancelled: false })

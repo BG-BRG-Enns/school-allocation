@@ -2,14 +2,14 @@
 // A class as its class teacher sees it in a campaign: the students, and
 // the class activities that take the class on which days; who has chosen,
 // once the window is open; from publication on each one's places and the
-// minutes they miss, and for those short of minutes the placement into an
-// activity with free places that fits the gap (D-06), with a reason; and
+// minutes and rules they miss, and for those short of either the placement
+// into an activity with free places that fits the gap (D-06), with a reason; and
 // the attendance per project day and session (D-16), recorded here.
 
 import { computed, onMounted, ref, watch } from 'vue'
 import { classAttendanceExportPath, loadClassAttendance, placeStudent, recordAttendance, type AttendanceStatus, type ClassAttendanceResponse } from '../lib/allocation-api.ts'
 import { withBase } from '../lib/base.ts'
-import { loadCampaign, loadClassStatus, type Campaign, type ClassStatus } from '../lib/campaigns-api.ts'
+import { loadCampaign, loadCategories, loadClassStatus, type Campaign, type Category, type ClassStatus } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatSpan } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
@@ -19,11 +19,21 @@ import { usePageTitle } from '../lib/page-title.ts'
 const props = defineProps<{ id: string, className: string }>()
 const campaign = ref<Campaign | null>(null)
 const status = ref<ClassStatus | null>(null)
+const categories = ref<Category[]>([])
 const loading = useFeedback()
 const action = useFeedback()
 usePageTitle(() => t.schoolClass.title(props.className))
 const published = computed(() => status.value?.students.some((s) => s.placement !== null && s.placement !== undefined) ?? false)
-const unplaced = computed(() => status.value?.students.filter((s) => (s.placement?.deficit ?? 0) > 0) ?? [])
+const unplaced = computed(() => status.value?.students.filter((s) => (s.placement?.deficit ?? 0) > 0 || (s.placement?.rules ?? []).some((r) => !r.met)) ?? [])
+/** What a student short of minutes or of a rule misses, in a line: "120 Minuten fehlen · Sport: es fehlt 1 Aktivität". */
+const gapText = (s: ClassStatus['students'][number]): string => {
+  const parts: string[] = []
+  if ((s.placement?.deficit ?? 0) > 0) parts.push(t.schoolClass.unplaced.minutesMissing(s.placement?.deficit ?? 0))
+  for (const r of s.placement?.rules ?? []) {
+    if (!r.met) parts.push(t.schoolClass.unplaced.ruleMissing(categories.value.find((c) => c.id === r.categoryId)?.name ?? '–', t.rules.missing(r.minimum - r.have, r.unit)))
+  }
+  return parts.join(' · ')
+}
 const placementText = (s: ClassStatus['students'][number]): string => s.placement?.items.map((i) => `${i.title} (${ASSIGNMENT_SOURCE_LABELS[i.source] ?? i.source})`).join(', ') || t.schoolClass.noPlace
 /** The placement form's choice and reason, per student. */
 const chosen = ref<Record<string, string>>({})
@@ -101,9 +111,10 @@ async function onSaveAttendance(date: string): Promise<void> {
 
 async function load(): Promise<void> {
   await loading.run(async () => {
-    const [view, s] = await Promise.all([loadCampaign(props.id), loadClassStatus(props.id, props.className)])
+    const [view, s, school] = await Promise.all([loadCampaign(props.id), loadClassStatus(props.id, props.className), loadCategories()])
     campaign.value = view.campaign
     status.value = s
+    categories.value = school.categories
     await loadAttendance()
   })
 }
@@ -178,7 +189,7 @@ watch(() => [props.id, props.className], load)
           v-for="s in unplaced"
           :key="s.personId"
         >
-          <strong>{{ s.displayName }}</strong>: {{ t.schoolClass.unplaced.minutesMissing(s.placement?.deficit ?? 0) }}<template v-if="s.placement && s.placement.items.length > 0">
+          <strong>{{ s.displayName }}</strong>: {{ gapText(s) }}<template v-if="s.placement && s.placement.items.length > 0">
             · {{ t.schoolClass.unplaced.sofar(s.placement.items.map((i) => i.title).join(', ')) }}
           </template>
           <form

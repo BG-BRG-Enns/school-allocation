@@ -2,14 +2,16 @@
 // A student's wishes (D-05): the activities they are placed into, and per
 // project day the time groups offered, each ranked up to the campaign's
 // cap. The same page serves an organizer entering on a student's behalf,
-// with a reason, and exempting the student from a class activity. The
-// rules are the server's; completeness is shown as the server computes it.
+// with a reason, and exempting the student from a class activity. Above
+// the days, the registration's rules and how far the wishes reach them.
+// The rules are the server's; completeness is shown as the server computes
+// it.
 
 import { computed, onMounted, ref, watch } from 'vue'
 import type { Period } from '@school-allocation/school-core'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
-import { exemptStudent, loadChoiceOf, loadMyChoice, saveChoiceOf, saveMyChoice, type ChoiceView, type GroupView, type Item, type RankingInvalidBody } from '../lib/campaigns-api.ts'
+import { exemptStudent, loadCategories, loadChoiceOf, loadMyChoice, saveChoiceOf, saveMyChoice, type Category, type ChoiceView, type GroupView, type Item, type RankingInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatFee, formatSpanOnGrid, formatWhenShort, localDateOf } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
@@ -22,6 +24,7 @@ usePageTitle(() => onBehalf.value ? t.wishes.titleOnBehalf : t.common.page.wishe
 
 const view = ref<ChoiceView | null>(null)
 const grid = ref<Period[]>([])
+const categories = ref<Category[]>([])
 const loading = useFeedback()
 const saving = useFeedback()
 const problems = ref<string[]>([])
@@ -34,9 +37,10 @@ const exemptReason = ref('')
 async function load(): Promise<void> {
   problems.value = []
   await loading.run(async () => {
-    const [v, periods] = await Promise.all([onBehalf.value ? loadChoiceOf(props.id, props.personId as string) : loadMyChoice(props.id), loadPeriods()])
+    const [v, periods, school] = await Promise.all([onBehalf.value ? loadChoiceOf(props.id, props.personId as string) : loadMyChoice(props.id), loadPeriods(), loadCategories()])
     view.value = v
     grid.value = periods.periods
+    categories.value = school.categories
     ranking.value = Object.fromEntries(Object.entries(v.ranking).map(([key, ids]) => [key, [...ids]]))
   })
 }
@@ -84,8 +88,11 @@ function wishesOf(group: GroupView): number {
   return ranking.value[group.key]?.length ?? 0
 }
 
-/** The local completeness as the student edits; the server's verdict comes with the save. */
-const complete = computed(() => (view.value?.groups ?? []).every((group) => wishesOf(group) >= group.required))
+/** The local completeness as the student edits, with the rules as the last save left them; the server's verdict comes with the save. */
+const complete = computed(() => (view.value?.groups ?? []).every((group) => wishesOf(group) >= group.required) && (view.value?.rules ?? []).every((rule) => rule.done))
+
+const categoryName = (id: string): string => categories.value.find((c) => c.id === id)?.name ?? '–'
+const categoryNames = (item: Item): string => categories.value.filter((c) => item.categoryIds.includes(c.id)).map((c) => c.name).join(', ')
 
 /** Edits since the page loaded, and the one the last save carried: an answer to an older save never replaces a newer edit. */
 let edits = 0
@@ -182,6 +189,25 @@ async function exempt(): Promise<void> {
     <p v-if="view.groups.length === 0 && view.fixed.length === 0">
       {{ t.wishes.nothingOffered }}
     </p>
+    <section v-if="view.rules.length > 0">
+      <h2>{{ t.wishes.rules.heading }}</h2>
+      <p class="muted">
+        {{ t.wishes.rules.intro }}
+      </p>
+      <ul class="plain">
+        <li
+          v-for="r in view.rules"
+          :key="r.ruleId"
+        >
+          <span :class="['badge', r.done ? 'badge-approved' : 'badge-proposed']">{{ r.done ? t.wishes.rules.done : t.wishes.rules.notYet }}</span>
+          {{ t.rules.asks(categoryName(r.categoryId), r.minimum, r.unit) }}
+          · {{ t.wishes.rules.reach(t.rules.progress(r.fixed + r.ranked, r.minimum, r.unit)) }}
+          <template v-if="r.fixed + r.offered < r.minimum">
+            · {{ t.wishes.rules.limited }}
+          </template>
+        </li>
+      </ul>
+    </section>
     <form @submit.prevent="save">
       <section
         v-for="d in days"
@@ -252,6 +278,9 @@ async function exempt(): Promise<void> {
                 </td>
                 <td>
                   <strong>{{ item.title }}</strong>
+                  <template v-if="item.categoryIds.length > 0">
+                    · <span class="muted">{{ categoryNames(item) }}</span>
+                  </template>
                   <p
                     v-if="item.description"
                     class="muted"

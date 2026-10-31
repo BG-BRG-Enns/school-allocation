@@ -176,3 +176,13 @@ export const getAdminCampaignsByIdExportPlanningXlsx = { method: 'GET', path: '/
 
 export const getAdminRetention = { method: 'GET', path: '/api/admin/retention', transport: 'json' } as const satisfies EndpointMetadata
 export const postAdminPurge = { method: 'POST', path: '/api/admin/purge', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getCategories = { method: 'GET', path: '/api/categories', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getAdminCategories = { method: 'GET', path: '/api/admin/categories', transport: 'json' } as const satisfies EndpointMetadata
+
+export const postAdminCategories = { method: 'POST', path: '/api/admin/categories', transport: 'json' } as const satisfies EndpointMetadata
+
+export const patchAdminCategoriesById = { method: 'PATCH', path: '/api/admin/categories/:id', transport: 'json' } as const satisfies EndpointMetadata
+
+export const deleteAdminCategoriesById = { method: 'DELETE', path: '/api/admin/categories/:id', transport: 'json' } as const satisfies EndpointMetadata

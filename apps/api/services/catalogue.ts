@@ -1,5 +1,6 @@
 import type { Caller } from '../lib/actor.ts'
 import { campaignCounts, readCampaign, rosterClasses, rosterTeachers } from '../lib/dao/campaigns.ts'
+import { listCategories } from '../lib/dao/categories.ts'
 import { campaignStudents } from '../lib/dao/choices.ts'
 import type { Database } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
@@ -34,7 +35,7 @@ export async function campaignView(db: Database, campaign: Campaign, caller: Cal
 
 export async function demandView(db: Database, campaign: Campaign, caller: Caller) {
   if (!maySeeDemand(caller, campaign)) throw new ApplicationError('forbidden')
-  return { demand: await campaignDemand(db, campaign) }
+  return campaignDemand(db, campaign)
 }
 
 export async function classStatus(db: Database, campaign: Campaign, caller: Caller, className: string) {
@@ -57,7 +58,7 @@ export async function classStatus(db: Database, campaign: Campaign, caller: Call
       ...s,
       choice: windowOpened ? (states.get(s.personId)?.state ?? 'none') : null,
       window: states.get(s.personId)?.window ?? null,
-      placement: published ? (placements.get(s.personId) ?? { items: [], deficit: 0, offers: [] }) : null,
+      placement: published ? (placements.get(s.personId) ?? { items: [], deficit: 0, offers: [], rules: [] }) : null,
     })),
     classActivities: items,
   }
@@ -87,8 +88,8 @@ export async function teacherOptions(db: Database, campaign: Campaign, caller: C
   return { teachers: await rosterTeachers(db, q) }
 }
 
-/** The organizer/auditor export includes the complete approved catalogue. */
+/** The organizer/auditor export includes the complete approved catalogue, with the names of the categories it names. */
 export async function catalogueExport(db: Database, id: string) {
   const campaign = await requireCampaign(db, id)
-  return { campaign, items: await catalogueItems(db, campaign.id) }
+  return { campaign, items: await catalogueItems(db, campaign.id), categories: await listCategories(db) }
 }

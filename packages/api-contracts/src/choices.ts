@@ -1,7 +1,8 @@
 // Shared HTTP shapes. Types are derived from the schemas used by Fastify.
 
-import { RANKING_PROBLEM_CODES } from '@school-allocation/school-core'
+import { RANKING_PROBLEM_CODES, RULE_UNITS } from '@school-allocation/school-core'
 import { Type, type Static } from 'typebox'
+import { RuleStandingSchema } from './allocation.ts'
 import { CampaignSchema, ItemSchema, ItemStateSchema } from './campaigns.ts'
 import { Literals, StrictObject } from './common.ts'
 
@@ -33,11 +34,13 @@ export const ClassStatusSchema = StrictObject({
     displayName: Type.String(),
     choice: Type.Union([ChoiceStateSchema, Type.Null()]),
     window: Type.Union([Type.Literal('first'), Type.Literal('late'), Type.Null()]),
-    /** After publication: the student's items and the minutes they miss, and for one short of minutes the items a class teacher could place them into; null before. */
+    /** After publication: the student's items, the minutes they miss and their rules, and for one short of minutes or of a rule the items a class teacher could place them into; null before. */
     placement: Type.Optional(Type.Union([StrictObject({
       items: Type.Array(StrictObject({ itemId: Type.String(), title: Type.String(), source: Type.String() })),
       deficit: Type.Integer(),
       offers: Type.Array(StrictObject({ itemId: Type.String(), title: Type.String(), number: Type.Union([Type.Integer(), Type.Null()]), free: Type.Integer(), problems: Type.Array(Type.String()) })),
+      /** The registration's rules for the student, with what their items bring. */
+      rules: Type.Array(RuleStandingSchema),
     }), Type.Null()])),
   })),
   classActivities: Type.Array(StrictObject({
@@ -65,6 +68,18 @@ export const GroupViewSchema = StrictObject({
 })
 export type GroupView = Static<typeof GroupViewSchema>
 
+/** A rule on the choice page (school-core RuleReach): what the class activities bring, what the wishes can, whether the list does what it can. */
+export const RuleReachSchema = StrictObject({
+  ruleId: Type.String(),
+  categoryId: Type.String(),
+  unit: Literals(RULE_UNITS),
+  minimum: Type.Number(),
+  fixed: Type.Number(),
+  ranked: Type.Number(),
+  offered: Type.Number(),
+  done: Type.Boolean(),
+})
+
 export const ChoiceViewSchema = StrictObject({
   campaign: CampaignSchema,
   fixed: Type.Array(ItemSchema),
@@ -73,7 +88,9 @@ export const ChoiceViewSchema = StrictObject({
   window: Type.Union([Type.Literal('first'), Type.Literal('late'), Type.Null()]),
   version: Type.Number(),
   cap: Type.Number(),
+  /** Every group ranked as far as it must be and every rule reached as far as the offer allows. */
   complete: Type.Boolean(),
+  rules: Type.Array(RuleReachSchema),
   acceptsChoices: Type.Boolean(),
   student: StrictObject({
     personId: Type.String(),

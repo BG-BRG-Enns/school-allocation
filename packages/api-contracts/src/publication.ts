@@ -77,7 +77,7 @@ export type MyResultResponse = Static<typeof MyResultResponse>
 
 export const SwapBody = StrictObject({ itemId: Uuid })
 export const PlaceBody = StrictObject({ personId: Uuid, itemId: Uuid, reason: Reason })
-/** The organizer's change: into an item, out of one, or both (a move); `force` overrides a full item and an item's minimum, never the other rules. */
+/** The organizer's change: into an item, out of one, or both (a move); `force` overrides a full item, an item's minimum and a rule falling short, never the other rules. */
 export const ManualChangeBody = StrictObject({ personId: Uuid, itemId: Type.Optional(Uuid), removeItemId: Type.Optional(Uuid), reason: Reason, force: Type.Optional(Type.Boolean()) })
 export const ChangedResponse = StrictObject({ change: AssignmentChangeSchema })
 export type ChangedResponse = Static<typeof ChangedResponse>

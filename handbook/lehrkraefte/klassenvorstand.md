@@ -14,13 +14,13 @@ Die Seite zeigt die Schüler\*innen deiner Klasse und die Klassenaktivitäten, d
 
 Sobald die Anmeldung läuft, steht bei jeder Person, wie weit sie ist: keine Wünsche, unvollständig oder vollständig. Am Ende des Anmeldezeitraums bekommst du eine E-Mail mit allen aus deiner Klasse, deren Wünsche noch fehlen, und am Ende der Anmeldung noch einmal. Sprich sie darauf an; die Organisation kann auch für jemanden eintragen.
 
-## Nach der Veröffentlichung: einteilen, wem Zeit fehlt
+## Nach der Veröffentlichung: einteilen, wem Zeit oder eine Regel fehlt
 
-![Noch nicht für alle Tage eingeteilt: eine Person mit den fehlenden Minuten, eine Aktivität mit freien Plätzen zur Auswahl, eine Begründung und der Knopf Einteilen](/bilder/de/klasse-einteilen.png)
+![Noch nicht vollständig eingeteilt: eine Person mit den fehlenden Minuten, eine Aktivität mit freien Plätzen zur Auswahl, eine Begründung und der Knopf Einteilen](/bilder/de/klasse-einteilen.png)
 
-Mit der Veröffentlichung bekommst du eine E-Mail mit allen aus deiner Klasse, die noch nicht für alle Tage eingeteilt sind. Unter **Noch nicht für alle Tage eingeteilt** steht jede dieser Personen, mit den fehlenden Minuten und dem, was sie bisher hat.
+Mit der Veröffentlichung bekommst du eine E-Mail mit allen aus deiner Klasse, die noch nicht für alle Tage eingeteilt sind. Unter **Noch nicht vollständig eingeteilt** steht jede dieser Personen, mit den fehlenden Minuten und dem, was sie bisher hat. Hat die Anmeldung [Regeln](../organisation/kategorien-und-regeln), steht dort auch, wem eine Regel fehlt und wie viel, etwa „Sport: es fehlt 1 Aktivität“.
 
-1. Wähle eine Aktivität, die in die Lücke passt. Die Auswahl nennt bei jeder ihre freien Plätze; eine, die nicht geht, etwa weil sie voll ist, steht mit dem Grund dabei und lässt sich nicht wählen.
+1. Wähle eine Aktivität, die in die Lücke passt oder der Regel hilft. Die Auswahl nennt bei jeder ihre freien Plätze; eine, die nicht geht, etwa weil sie voll ist, steht mit dem Grund dabei und lässt sich nicht wählen.
 2. Schreib eine **Begründung**.
 3. Klicke **Einteilen**.
 

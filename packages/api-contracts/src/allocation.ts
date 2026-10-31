@@ -4,8 +4,10 @@
 // drifts from the contract is refused, not trusted. The shapes are
 // school-core's; domain-checks.ts pins them.
 
-import { ALLOCATION_CONTRACT, ALLOCATION_INPUT_PROBLEM_CODES, ALLOCATION_PROBLEM_CODES, ASSIGNMENT_SOURCES, SOLVE_STATUSES, TIE_RANGE } from '@school-allocation/school-core'
+import { ALLOCATION_CONTRACT, ALLOCATION_INPUT_PROBLEM_CODES, ALLOCATION_PROBLEM_CODES, ASSIGNMENT_SOURCES, RULE_UNITS, SOLVE_STATUSES, TIE_RANGE } from '@school-allocation/school-core'
 import { Type, type Static } from 'typebox'
+import { RuleSchema } from './campaigns.ts'
+import { CategorySchema } from './categories.ts'
 import { Literals, StrictObject, Uuid } from './common.ts'
 
 // The bounds here are the solver's (apps/solver/app/contract.py), so a request the API builds is one the solver takes.
@@ -14,7 +16,9 @@ const Pair = Type.Tuple([Count, Count])
 
 export const DayMinutesSchema = StrictObject({ d: Count, min: Count })
 export const SolveOptionSchema = StrictObject({ o: Count, cost: Count, weight: Count, tie: Type.Integer({ minimum: 0, maximum: TIE_RANGE - 1 }), credit: Type.Array(DayMinutesSchema) })
-export const SolveStudentSchema = StrictObject({ s: Count, required: Type.Array(DayMinutesSchema), norm: Count, options: Type.Array(SolveOptionSchema) })
+export const RuleAmountSchema = StrictObject({ o: Count, n: Type.Integer({ minimum: 1 }) })
+export const SolveRuleSchema = StrictObject({ r: Count, unit: Literals(RULE_UNITS), need: Type.Integer({ minimum: 1 }), amounts: Type.Array(RuleAmountSchema) })
+export const SolveStudentSchema = StrictObject({ s: Count, required: Type.Array(DayMinutesSchema), norm: Count, options: Type.Array(SolveOptionSchema), rules: Type.Array(SolveRuleSchema) })
 export const SolveItemSchema = StrictObject({ o: Count, max: Count, min: Count, cancellable: Type.Boolean() })
 /** The solver's limit per level, deterministic seconds; the solver refuses more than 600. */
 export const AllocationLimitsSchema = StrictObject({ deterministicTimePerLevel: Type.Number({ exclusiveMinimum: 0, maximum: 600 }) })
@@ -64,12 +68,10 @@ export const AllocationInputProblemSchema = StrictObject({
   personId: Type.Optional(Type.String()),
   itemIds: Type.Optional(Type.Array(Type.String())),
 })
-export const AllocationWarningSchema = StrictObject({
-  code: Type.Literal('minimum_out_of_reach'),
-  itemId: Type.String(),
-  possible: Count,
-  minimum: Count,
-})
+export const AllocationWarningSchema = Type.Union([
+  StrictObject({ code: Type.Literal('minimum_out_of_reach'), itemId: Type.String(), possible: Count, minimum: Count }),
+  StrictObject({ code: Type.Literal('rule_out_of_reach'), ruleId: Type.String(), grade: Type.Integer(), possible: Count, needed: Count }),
+])
 
 // --- Runs (docs/domain-and-api.md §1 AllocationRun, §8): what the organizer starts, lists and reviews.
 
@@ -141,6 +143,7 @@ export const ExplainedItemSchema = StrictObject({
   rank: Type.Union([Type.Integer(), Type.Null()]),
   minutesByDate: Type.Record(Type.String(), Type.Integer()),
 })
+export const RuleStandingSchema = StrictObject({ ruleId: Type.String(), categoryId: Type.String(), unit: Literals(RULE_UNITS), minimum: Type.Integer(), have: Type.Integer(), met: Type.Boolean() })
 export const ExplainedDaySchema = StrictObject({ date: Type.String(), required: Type.Integer(), covered: Type.Integer(), deficit: Type.Integer() })
 export const StudentExplanationSchema = StrictObject({
   personId: Type.String(),
@@ -148,17 +151,20 @@ export const StudentExplanationSchema = StrictObject({
   items: Type.Array(ExplainedItemSchema),
   days: Type.Array(ExplainedDaySchema),
   averageRank: Type.Union([Type.Number(), Type.Null()]),
+  rules: Type.Array(RuleStandingSchema),
 })
 
-export const ClassSummarySchema = StrictObject({ className: Type.String(), students: Type.Integer(), withDeficit: Type.Integer(), withFallback: Type.Integer() })
+export const ClassSummarySchema = StrictObject({ className: Type.String(), students: Type.Integer(), withDeficit: Type.Integer(), withFallback: Type.Integer(), missingRule: Type.Integer() })
 export const ItemSummarySchema = StrictObject({ itemId: Type.String(), fixed: Type.Integer(), assigned: Type.Integer(), places: Type.Integer(), minimum: Type.Integer(), cancelled: Type.Boolean() })
 export const AllocationSummarySchema = StrictObject({
-  students: StrictObject({ total: Type.Integer(), choosing: Type.Integer(), covered: Type.Integer(), withDeficit: Type.Integer(), withFallback: Type.Integer(), late: Type.Integer(), nonSubmitters: Type.Integer() }),
+  students: StrictObject({ total: Type.Integer(), choosing: Type.Integer(), covered: Type.Integer(), withDeficit: Type.Integer(), withFallback: Type.Integer(), missingRule: Type.Integer(), late: Type.Integer(), nonSubmitters: Type.Integer() }),
   ranks: Type.Record(Type.String(), Type.Integer()),
   classes: Type.Array(ClassSummarySchema),
   items: Type.Array(ItemSummarySchema),
   deficits: Type.Array(StrictObject({ personId: Type.String(), date: Type.String(), minutes: Type.Integer() })),
   fallbacks: Type.Array(StrictObject({ personId: Type.String(), itemId: Type.String() })),
+  rules: Type.Array(StrictObject({ ruleId: Type.String(), students: Type.Integer(), met: Type.Integer() })),
+  ruleGaps: Type.Array(StrictObject({ personId: Type.String(), ruleId: Type.String(), missing: Type.Integer() })),
 })
 
 export const RunReviewResponse = StrictObject({
@@ -175,6 +181,10 @@ export const RunReviewResponse = StrictObject({
   items: Type.Array(StrictObject({ ...ItemSummarySchema.properties, title: Type.String(), number: Type.Union([Type.Integer(), Type.Null()]), feeCents: Type.Integer() })),
   /** The campaign's project days, for the columns. */
   projectDays: Type.Array(Type.String()),
+  /** The rules the run computed with, as its snapshot holds them. */
+  rules: Type.Array(RuleSchema),
+  /** The school's categories, to name the rules by. */
+  categories: Type.Array(CategorySchema),
 })
 export type RunReviewResponse = Static<typeof RunReviewResponse>
 export type ReviewStudent = RunReviewResponse['students'][number]

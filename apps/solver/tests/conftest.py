@@ -11,7 +11,7 @@ LEVELS = ["students_with_deficit", "deficit_minutes", "over:3000", "over:2000", 
 
 def request(students: list[dict[str, Any]], items: list[dict[str, Any]], *, conflicts: list[list[int]] | None = None, fixed: list[list[int]] | None = None, seed: int = 7, levels: list[str] | None = None) -> dict[str, Any]:
     return {
-        "contract": "allocation/v1",
+        "contract": "allocation/v2",
         "runId": "test",
         "seed": seed,
         "limits": {"deterministicTimePerLevel": 5},
@@ -28,8 +28,12 @@ def option(o: int, cost: int, minutes: int = 100, tie: int = 0, d: int = 0, weig
     return {"o": o, "cost": cost, "weight": weight if weight is not None else cost * minutes // 1000, "tie": tie, "credit": [{"d": d, "min": minutes}]}
 
 
-def student(s: int, options: list[dict[str, Any]], required: int = 100, days: int = 1) -> dict[str, Any]:
-    return {"s": s, "required": [{"d": d, "min": required} for d in range(days)], "norm": required * days, "options": options}
+def student(s: int, options: list[dict[str, Any]], required: int = 100, days: int = 1, rules: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    return {"s": s, "required": [{"d": d, "min": required} for d in range(days)], "norm": required * days, "options": options, "rules": rules or []}
+
+
+def rule(r: int, need: int, amounts: list[tuple[int, int]], unit: str = "items") -> dict[str, Any]:
+    return {"r": r, "unit": unit, "need": need, "amounts": [{"o": o, "n": n} for o, n in amounts]}
 
 
 def item(o: int, places: int, minimum: int = 0, cancellable: bool = True) -> dict[str, Any]:

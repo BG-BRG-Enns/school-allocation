@@ -66,7 +66,8 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
             coalesce((select json_agg(json_build_object('id', s.id, 'startsAt', to_char(s.starts_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
                                                         'endsAt', to_char(s.ends_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
                                                         'location', s.location, 'credits', s.credits) order by s.position)
-                        from item_session s where s.item_id = i.id), '[]') as sessions
+                        from item_session s where s.item_id = i.id), '[]') as sessions,
+            array(select c.category_id::text from item_category c where c.item_id = i.id order by c.category_id) as category_ids
        from catalog_item i join app_user u on u.id = i.proposed_by
        ${where}
       order by i.number nulls last, i.created_at`,
@@ -92,6 +93,7 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
     proposedBy: { id: row.proposed_by, displayName: row.proposer_name, personId: row.proposer_person },
     teachers: withLead(row.teachers, row.proposer_person),
     sessions: row.sessions,
+    categoryIds: row.category_ids,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     approvedAt: row.approved_at?.toISOString() ?? null,
@@ -152,6 +154,12 @@ export async function updateContent(db: Queryable, id: string, input: ItemInput)
     [id, input.title, input.description, input.location, input.feeCents, input.feeNote, input.places, input.minParticipants, input.cancellableBelowMin,
       input.fixedClasses, input.eligibleGrades, input.eligibleClasses],
   )
+}
+
+/** Replaces an item's categories with `categoryIds`. */
+export async function replaceCategories(db: Queryable, id: string, categoryIds: readonly string[]) {
+  await db.query('delete from item_category where item_id = $1', [id])
+  await db.query('insert into item_category (item_id, category_id) select $1, unnest($2::uuid[])', [id, categoryIds])
 }
 
 export async function deleteTeachers(db: Queryable, id: string) {
