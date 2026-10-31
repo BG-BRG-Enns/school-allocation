@@ -137,18 +137,21 @@ export async function expireMails(db: Queryable): Promise<number> {
  * A campaign's queued mails of `kinds` expire now: the window they remind
  * of has ended, perhaps early; returns how many. One in a session gets the
  * same end: sent, it stays sent, but a transient failure that puts it back
- * in the queue lets it expire there instead of going out later.
+ * in the queue lets it expire there instead of going out later. One
+ * statement for both states: a retry committed while it runs is read again
+ * as queued and expires, and none slips between the two.
  */
 export async function expireCampaignMails(db: Queryable, campaignId: string, kinds: readonly MailKind[]): Promise<number> {
-  const { rowCount } = await db.query(
-    'update outbox_mail set state = \'expired\', updated_at = app_now() where state = \'queued\' and campaign_id = $1 and kind = any($2::text[])',
+  const { rows } = await db.query<{ state: MailState }>(
+    `update outbox_mail
+        set state = case when state = 'queued' then 'expired' else state end,
+            expires_at = case when expires_at is null or expires_at > app_now() then app_now() else expires_at end,
+            updated_at = app_now()
+      where state in ('queued', 'sending') and campaign_id = $1 and kind = any($2::text[])
+      returning state`,
     [campaignId, kinds],
   )
-  await db.query(
-    'update outbox_mail set expires_at = app_now(), updated_at = app_now() where state = \'sending\' and campaign_id = $1 and kind = any($2::text[]) and (expires_at is null or expires_at > app_now())',
-    [campaignId, kinds],
-  )
-  return rowCount ?? 0
+  return rows.filter((row) => row.state === 'expired').length
 }
 
 export async function recordSent(db: Queryable, id: string, messageId: string, detail: string): Promise<void> {

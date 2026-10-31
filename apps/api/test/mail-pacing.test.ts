@@ -3,15 +3,17 @@
 // started anew keeps it; the mails someone waits for first, then the
 // staff's, then the students'; nothing while sending is paused, which an
 // organizer sets and the school's audit chain records; a reminder still
-// queued at the end of its window is never sent.
+// queued at the end of its window is never sent, nor one a transient
+// failure puts back while the window ends.
 
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { setTimeout as sleep } from 'node:timers/promises'
 import type { MailKind } from '@school-allocation/api-contracts/mail'
 import { loadConfig } from '../config.ts'
 import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { createDatabase, type Database } from '../lib/db.ts'
-import { claimNextMail, enqueueMail, expireMails, spacingOf, type NewMail } from '../lib/mail/outbox.ts'
+import { claimNextMail, enqueueMail, expireCampaignMails, expireMails, recordRetry, spacingOf, type NewMail } from '../lib/mail/outbox.ts'
 import { Sender } from '../lib/mail/sender.ts'
 import type { MailTransport } from '../lib/mail/transport.ts'
 import { ControlledClock } from './helpers/clock.ts'
@@ -21,6 +23,7 @@ import { DB, get, harness, send, signIn } from './helpers/harness.ts'
 import { ANNA, BERND } from './helpers/personas.ts'
 
 const MONDAY = new Date('2034-03-06T07:00:00.000Z') // 08:00 in Vienna
+const TID = '3f2b8c1d-6e4a-4b7f-9c2d-8a1e5f6b7c90'
 /** 200 an hour, the default: 18 seconds. */
 const SPACING = spacingOf(200)
 
@@ -87,6 +90,44 @@ test('a reminder still queued at the end of its window expires and is never sent
   t.after(() => owner.close())
   const { rows } = await owner.query<{ kind: string, state: string, attempts: number }>('select kind, state, attempts from outbox_mail order by to_address')
   assert.deepEqual(rows, [{ kind: 'choice_reminder', state: 'expired', attempts: 0 }, { kind: 'choice_invitation', state: 'sending', attempts: 1 }])
+})
+
+test('a reminder failing transiently while its window ends early expires all the same: the end waits for the retry and reads it again', DB, async (t) => {
+  const testDb = await createTestDatabase(t)
+  const clock = new ControlledClock(MONDAY)
+  const db = createDatabase(testDb.runtimeUrl, () => {}, clock)
+  t.after(() => db.close())
+  const owner = createDatabase(testDb.ownerUrl, () => {})
+  t.after(() => owner.close())
+  const { rows: [user] } = await owner.query<{ id: string }>('insert into app_user (tid, oid, display_name) values ($1, $2, $3) returning id', [TID, ANNA.oid, ANNA.name])
+  const { rows: [campaign] } = await owner.query<{ id: string }>(
+    `insert into campaign (kind, name, school_year, project_days, created_by) values ('project_week', 'PW', '2033/34', '{2034-07-03}', $1) returning id`, [user?.id],
+  )
+  const campaignId = campaign?.id ?? assert.fail('no campaign')
+  await queue(db, mail('choice_reminder', 1, { campaignId, expiresAt: new Date(MONDAY.getTime() + 7 * 86_400_000).toISOString() }))
+  const id = (await claimNextMail(db, SPACING)).mail?.id ?? assert.fail('no mail')
+
+  // The mail server's 451 is being recorded when the window ends a week early.
+  let pid: number | undefined
+  let expiry: Promise<number> | undefined
+  await db.tx(async (client) => {
+    await recordRetry(client, id, '451 busy', 0)
+    expiry = db.tx(async (other) => {
+      pid = (await other.query<{ pid: number }>('select pg_backend_pid() as pid')).rows[0]?.pid
+      return expireCampaignMails(other, campaignId, ['choice_reminder'])
+    })
+    expiry.catch(() => {}) // awaited below; a failure meanwhile must not end the process
+    for (let i = 0; ; i++) {
+      if (pid !== undefined && (await owner.query('select 1 from pg_locks where pid = $1 and not granted', [pid])).rows.length > 0) break
+      if (i === 500) assert.fail('the end of the window never waited for the retry')
+      await sleep(10)
+    }
+  })
+  assert.equal(await expiry, 1)
+  const { rows } = await owner.query<{ state: string, expired: boolean }>('select state, expires_at <= $1 as expired from outbox_mail', [clock.peek()])
+  assert.deepEqual(rows, [{ state: 'expired', expired: true }])
+  clock.advance(SPACING)
+  assert.equal(await waitOf(db), null)
 })
 
 test('a sender started anew keeps the spacing; an organizer pauses sending and resumes it, audited, and the status says what waits and until when', DB, async (t) => {
