@@ -90,8 +90,9 @@ transition that was missed during a restart is applied on start.
    (default 3) per group**, fewer when fewer are eligible. Groups covered by the student's fixed items
    are not shown. A list is **complete** when every shown group has its wishes and, for every rule
    of the campaign applying to the student, the class activities and the best ranked item per group
-   reach the minimum, or everything the offer could bring when it cannot (school-core
-   `ruleReaches`); school-core computes it and the page shows it live. Nobody ranks a weekly list, and nobody names combinations: the
+   reach the minimum, or everything the offer could bring when it cannot, or as far as the cap leaves room next to the
+   other rules: no wish added to a group or put in place of another brings the rule closer without taking another rule
+   further from its own (school-core `ruleReaches`); school-core computes it and the page shows it live. Nobody ranks a weekly list, and nobody names combinations: the
    allocation composes across groups by real session times (§5).
 5. Editing is allowed until `late_until` by server time. A list last saved after `closes_at` is
    marked `late` and allocated in the second pass (§5). Every save replaces the whole list

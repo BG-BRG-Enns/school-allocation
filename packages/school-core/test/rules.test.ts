@@ -83,15 +83,45 @@ test('the choice page: a list does what it can for each rule, per time group its
   const groups = timeGroupsOf(ITEMS.filter((i) => i.rules.places > 0 && i.id !== 'climbing'))
   const ranking = { [MON_AM]: ['dance', 'football'], [MON_PM]: ['handball'] }
   assert.equal(rankingReach(RULES[0] as CampaignRule, ranking, groups, byId, DAYS), 2, 'one per group: football and handball')
-  const ben = ruleReaches(RULES, { className: '6A', grade: 10 }, [], { [MON_AM]: ['dance'] }, groups, byId, DAYS)
+  const ben = ruleReaches(RULES, { className: '6A', grade: 10 }, [], { [MON_AM]: ['dance'] }, groups, byId, DAYS, 2)
   assert.deepEqual(ben.map((r) => [r.ruleId, r.fixed, r.ranked, r.offered, r.done]), [['r-sport', 0, 0, 2, false], ['r-ibobb', 0, 0, 180, false]])
-  const better = ruleReaches(RULES, { className: '6A', grade: 10 }, [], { [MON_AM]: ['football'], [TUE_AM]: ['careers'] }, groups, byId, DAYS)
+  const better = ruleReaches(RULES, { className: '6A', grade: 10 }, [], { [MON_AM]: ['football'], [TUE_AM]: ['careers'] }, groups, byId, DAYS, 2)
   assert.deepEqual(better.map((r) => r.done), [true, true])
-  const ann = ruleReaches(RULES, { className: '5A', grade: 9 }, [byId.get('sportsday') as AllocationItem], {}, groups, byId, DAYS)
+  const ann = ruleReaches(RULES, { className: '5A', grade: 9 }, [byId.get('sportsday') as AllocationItem], {}, groups, byId, DAYS, 2)
   assert.deepEqual(ann.map((r) => [r.ruleId, r.fixed, r.done]), [['r-sport', 1, true]], 'the class activity meets it')
   // Nothing of the category offered: a rule cannot ask the impossible of a list.
   const noSport = timeGroupsOf(ITEMS.filter((i) => ['dance', 'crafts', 'museum', 'careers'].includes(i.id)))
-  assert.deepEqual(ruleReaches(RULES, { className: '6A', grade: 10 }, [], {}, noSport, byId, DAYS).map((r) => [r.ruleId, r.offered, r.done]), [['r-sport', 0, true], ['r-ibobb', 180, false]])
+  assert.deepEqual(ruleReaches(RULES, { className: '6A', grade: 10 }, [], {}, noSport, byId, DAYS, 2).map((r) => [r.ruleId, r.offered, r.done]), [['r-sport', 0, true], ['r-ibobb', 180, false]])
+})
+
+test('the choice page: where the cap leaves a time group no room for every rule, a list is done when no single wish brings one closer without costing another', () => {
+  const CREATIVE = 'creative'
+  const tight = [
+    item('football', [session(0, 8, 11, 180)], [SPORT]),
+    item('dance', [session(0, 8, 11, 180)], [CREATIVE]),
+    item('museum', [session(0, 8, 11, 180)]),
+    item('handball', [session(0, 11, 13, 120)], [SPORT]),
+    item('crafts', [session(0, 11, 13, 120)], [CREATIVE]),
+  ]
+  const tightById = new Map(tight.map((i) => [i.id, i]))
+  const both = (minimum: number): CampaignRule[] => [
+    { id: 'r-sport', categoryId: SPORT, grades: [10], classes: [], unit: 'items', minimum },
+    { id: 'r-creative', categoryId: CREATIVE, grades: [10], classes: [], unit: 'items', minimum },
+  ]
+  const done = (rules: CampaignRule[], items: AllocationItem[], ranking: Record<string, string[]>, cap: number) =>
+    ruleReaches(rules, { className: '6A', grade: 10 }, [], ranking, timeGroupsOf(items), tightById, DAYS, cap).map((r) => r.done)
+  const morning = tight.slice(0, 3)
+  // One morning group and one wish: sport or creative, never both. Either is the most a list can do.
+  assert.deepEqual(done(both(1), morning, { [MON_AM]: ['football'] }, 1), [true, true])
+  assert.deepEqual(done(both(1), morning, { [MON_AM]: ['dance'] }, 1), [true, true])
+  // A wish that serves no rule could make room for either.
+  assert.deepEqual(done(both(1), morning, { [MON_AM]: ['museum'] }, 1), [false, false])
+  // With two wishes there is room for dance as well.
+  assert.deepEqual(done(both(1), morning, { [MON_AM]: ['football'] }, 2), [true, false])
+  // Football and handball meet sport twice over: dance in the morning would cost it nothing.
+  assert.deepEqual(done(both(1), tight, { [MON_AM]: ['football'], [MON_PM]: ['handball'] }, 1), [true, false])
+  // Two of each asked and one wish per group: one of each goes as far as a list can, a trade gains nothing.
+  assert.deepEqual(done(both(2), tight, { [MON_AM]: ['football'], [MON_PM]: ['crafts'] }, 1), [true, true])
 })
 
 test('the compiler: a class activity counts toward a rule, open rules bring fee-free fallbacks on covered days, and the request carries each rule with its amounts', () => {

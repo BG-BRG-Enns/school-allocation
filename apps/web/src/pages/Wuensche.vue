@@ -205,6 +205,9 @@ async function exempt(): Promise<void> {
           <template v-if="r.fixed + r.offered < r.minimum">
             · {{ t.wishes.rules.limited }}
           </template>
+          <template v-else-if="r.done && r.fixed + r.ranked < r.minimum">
+            · {{ t.wishes.rules.crowded }}
+          </template>
         </li>
       </ul>
     </section>

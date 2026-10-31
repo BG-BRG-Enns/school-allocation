@@ -124,7 +124,11 @@ export interface RuleReach {
   ranked: number
   /** The most every offered activity could add, ranked or not: the offer's own limit. */
   offered: number
-  /** Whether the list does what it can: fixed + ranked reaches the minimum, or everything the offer allows. */
+  /**
+   * Whether the list does what it can: fixed + ranked reaches the minimum,
+   * or everything the offer allows, or the cap leaves no room for more next
+   * to the other rules.
+   */
   done: boolean
 }
 
@@ -132,17 +136,42 @@ export interface RuleReach {
  * The rules applying to a student on the choice page. A list is complete
  * only when, rule by rule, its wishes reach the minimum, or as far as the
  * offer can: a rule the offer cannot meet asks every activity of the
- * category the student may rank, not the impossible.
+ * category the student may rank, not the impossible. Nor does a rule ask
+ * what the cap leaves no room for: two rules may want the same time
+ * group's few wishes. A rule short of its goal is done, too, when no wish
+ * added to a group or put in place of another would bring it closer
+ * without taking another rule further from its own. That is a list no
+ * single change improves, not the best of all lists; finding that is the
+ * allocation's work.
  */
-export function ruleReaches(rules: readonly CampaignRule[], student: StudentOf, fixed: readonly RuledItem[], ranking: Ranking, groups: readonly Pick<TimeGroup, 'key' | 'itemIds'>[], items: ReadonlyMap<string, RuledItem>, projectDays: readonly string[]): RuleReach[] {
+export function ruleReaches(rules: readonly CampaignRule[], student: StudentOf, fixed: readonly RuledItem[], ranking: Ranking, groups: readonly Pick<TimeGroup, 'key' | 'itemIds'>[], items: ReadonlyMap<string, RuledItem>, projectDays: readonly string[], cap: number): RuleReach[] {
   const everything: Ranking = Object.fromEntries(groups.map((group) => [group.key, group.itemIds]))
-  return rules.filter((rule) => ruleApplies(rule, student)).map((rule) => {
+  const amount = (rule: CampaignRule, id: string): number => {
+    const item = items.get(id)
+    return item ? ruleAmount(rule, item, projectDays) : 0
+  }
+  const best = (rule: CampaignRule, ids: readonly string[]): number => Math.max(0, ...ids.map((id) => amount(rule, id)))
+  const wishesIn = (group: Pick<TimeGroup, 'key' | 'itemIds'>): string[] => (ranking[group.key] ?? []).filter((id) => group.itemIds.includes(id))
+  const standings = rules.filter((rule) => ruleApplies(rule, student)).map((rule) => {
     const fromFixed = ruleProgress(rule, fixed, projectDays)
     const ranked = rankingReach(rule, ranking, groups, items, projectDays)
     const offered = rankingReach(rule, everything, groups, items, projectDays)
-    const goal = Math.min(rule.minimum, fromFixed + offered)
-    return { ruleId: rule.id, categoryId: rule.categoryId, unit: rule.unit, minimum: rule.minimum, fixed: fromFixed, ranked, offered, done: fromFixed + ranked >= goal }
+    return { rule, fromFixed, ranked, offered, goal: Math.min(rule.minimum, fromFixed + offered) }
   })
+  type Standing = typeof standings[number]
+  // How far a rule gets, up to its goal, when the group's wishes are `ids` instead.
+  const toward = (s: Standing, wishes: readonly string[], ids: readonly string[]): number => Math.min(s.goal, s.fromFixed + s.ranked - best(s.rule, wishes) + best(s.rule, ids))
+  const crowded = (s: Standing): boolean => groups.every((group) => {
+    const wishes = wishesIn(group)
+    const better = group.itemIds.filter((id) => amount(s.rule, id) > best(s.rule, wishes))
+    if (better.length === 0) return true
+    if (wishes.length < cap) return false
+    return better.every((id) => wishes.every((wish) => {
+      const swapped = wishes.map((w) => (w === wish ? id : w))
+      return standings.some((other) => other !== s && toward(other, wishes, swapped) < toward(other, wishes, wishes))
+    }))
+  })
+  return standings.map((s) => ({ ruleId: s.rule.id, categoryId: s.rule.categoryId, unit: s.rule.unit, minimum: s.rule.minimum, fixed: s.fromFixed, ranked: s.ranked, offered: s.offered, done: s.fromFixed + s.ranked >= s.goal || crowded(s) }))
 }
 
 /** An activity as the rule demand sees it: its categories and credit, and who may take it. */

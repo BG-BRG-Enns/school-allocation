@@ -60,8 +60,8 @@ export async function choiceView(db: Queryable, campaign: Campaign, student: Cam
     const ids = (saved?.ranking[group.key] ?? []).filter((id) => group.itemIds.includes(id))
     if (ids.length > 0) ranking[group.key] = ids
   }
-  // A rule asks the list to reach it as far as the offer can; a class activity of the category counts.
-  const rules = ruleReaches(campaign.rules, student, fixed, ranking, groups, byId, campaign.projectDays)
+  // A rule asks the list to reach it as far as the offer and the cap can; a class activity of the category counts.
+  const rules = ruleReaches(campaign.rules, student, fixed, ranking, groups, byId, campaign.projectDays, campaign.wishesPerGroup)
   return {
     fixed,
     groups,

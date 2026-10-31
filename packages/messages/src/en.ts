@@ -789,6 +789,7 @@ export const en: Messages = {
       done: 'fine',
       notYet: 'more choices needed',
       limited: 'the catalogue offers no more',
+      crowded: 'the other rules leave no room for more',
     },
     exemptions: {
       title: 'Exemptions',

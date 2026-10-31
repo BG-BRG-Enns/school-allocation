@@ -798,6 +798,8 @@ export const de = {
       notYet: 'dafür fehlen noch Wünsche',
       /** When the offer cannot reach the minimum. */
       limited: 'mehr bietet der Katalog nicht',
+      /** When the wishes per time block leave no room for more next to the other rules. */
+      crowded: 'mehr geht neben den anderen Regeln nicht',
     },
     exemptions: {
       title: 'Befreiungen',
