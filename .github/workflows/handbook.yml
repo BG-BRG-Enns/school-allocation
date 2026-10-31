@@ -4,8 +4,9 @@ name: Handbook
 # release: a v<major>.<minor>.<patch> tag, or by hand on such a tag. So
 # they describe what schools run, not main. The site builds from the
 # pictures committed in handbook/public/bilder, which `npm run
-# handbook:shots` renews in a pull request; no database, browser or
-# journey runs here. A dead link or a missing picture fails the build,
+# handbook:shots` renews in a pull request (none are committed yet, so
+# until they are, this build fails); no database, browser or journey
+# runs here. A dead link or a missing picture fails the build,
 # which then publishes nothing and leaves the previous handbook online.
 # Pull requests build nothing: `npm run handbook` runs before a handbook
 # change, and scripts/handbook.test.mjs, part of the tests, keeps the

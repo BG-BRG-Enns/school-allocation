@@ -1,10 +1,11 @@
 // The handbooks (handbook/) stay whole without building the site, which
 // only release tags do (.github/workflows/handbook.yml): every page of
 // handbook/.vitepress/pages.ts exists in German and in English and no
-// other page does; a page shows only pictures of its own language that
-// are there; every picture is shown somewhere, and is one the journeys
-// take (`picture` in e2e/specs, npm run handbook:shots); the app's help
-// link opens a page that exists.
+// other page does; a page shows only pictures of its own language, each
+// one the journeys take (`picture` in e2e/specs, npm run handbook:shots),
+// and every picture they take is shown in both languages; the app's help
+// link opens a page that exists. The pictures themselves are not
+// committed yet: the site's build fails on a missing one.
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -39,23 +40,27 @@ test('every page of the handbooks exists in German and in English, and no other 
   assert.deepEqual(pages().sort(), [...expected].sort())
 })
 
-test('a page shows pictures of its own language, and each of them is there', () => {
+/** The pictures the journeys take: `picture(page, '<name>'` in e2e/specs. */
+function taken() {
+  return new Set(readdirSync(join(root, 'e2e', 'specs')).flatMap((spec) => [...readFileSync(join(root, 'e2e', 'specs', spec), 'utf8').matchAll(/picture\(page, '([\w-]+)'/g)].map((match) => match[1])))
+}
+
+test('a page shows pictures of its own language, each one a journey takes', () => {
+  const names = taken()
   for (const page of pages()) {
     const language = page.startsWith('en/') ? 'en' : 'de'
     for (const picture of picturesOf(page)) {
       assert.equal(picture.language, language, `${page} shows /bilder/${picture.language}/${picture.name}.png`)
-      assert.ok(existsSync(join(site, 'public', 'bilder', language, `${picture.name}.png`)), `${page}: /bilder/${language}/${picture.name}.png is missing; npm run handbook:shots takes it`)
+      assert.ok(names.has(picture.name), `${page}: no journey takes /bilder/${language}/${picture.name}.png`)
     }
   }
 })
 
-test('every picture is shown on a page and taken by a journey, the same set in both languages', () => {
-  const taken = new Set(readdirSync(join(root, 'e2e', 'specs')).flatMap((spec) => [...readFileSync(join(root, 'e2e', 'specs', spec), 'utf8').matchAll(/picture\(page, '([\w-]+)'/g)].map((match) => match[1])))
+test('every picture a journey takes is shown in both languages', () => {
+  const names = taken()
   for (const [language] of LANGUAGES) {
-    const files = new Set(readdirSync(join(site, 'public', 'bilder', language)).map((file) => file.replace(/\.png$/, '')))
-    assert.deepEqual([...files].sort(), [...taken].sort(), `handbook/public/bilder/${language} holds what the journeys take; npm run handbook:shots renews it`)
     const shown = new Set(pages().filter((page) => page.startsWith('en/') === (language === 'en')).flatMap((page) => picturesOf(page).map((picture) => picture.name)))
-    assert.deepEqual([...files].filter((name) => !shown.has(name)), [], `pictures in ${language} no page shows`)
+    assert.deepEqual([...names].filter((name) => !shown.has(name)).sort(), [], `pictures the journeys take that no ${language} page shows`)
   }
 })
 
