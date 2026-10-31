@@ -101,6 +101,7 @@ export const en: Messages = {
   /** The shell around every page (App.vue). */
   shell: {
     navigation: 'Account',
+    help: 'Help',
     signOut: 'Sign out',
     serverDown: 'The server is not responding at the moment.',
     retry: 'Try again',

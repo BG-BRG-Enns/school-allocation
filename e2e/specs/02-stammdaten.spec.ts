@@ -52,6 +52,8 @@ test('die Administratorin importiert eine CSV-Datei, sieht die Ã„nderungen und Ã
 test('wer in der Liste steht, ist nach der Anmeldung zugeordnet; wer nicht, wird von der Administratorin zugeordnet', async ({ page }) => {
   await openAs(page, SARA, '/konto')
   await expect(page.getByText(t.account.student(t.labels.kind.student, '5A', 9))).toBeVisible()
+  // A student's pages explain themselves: no help link.
+  await expect(page.getByRole('link', { name: t.shell.help })).toHaveCount(0)
   await shot(page, '07-konto-zugeordnet')
   await signOut(page)
 

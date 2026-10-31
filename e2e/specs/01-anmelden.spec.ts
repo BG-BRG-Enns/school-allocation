@@ -5,7 +5,8 @@ import { expect, test } from '../support/test.ts'
 import { ANNA, SARA } from '../support/personas.ts'
 import { at, encodedPath, urlOf } from '../support/base.ts'
 import { apiGet } from '../support/api.ts'
-import { t } from '../support/messages.ts'
+import { LOCALE, t } from '../support/messages.ts'
+import { handbookLink } from '../../apps/web/src/lib/handbook.ts'
 import { shot } from '../support/screenshot.ts'
 import { openAs, signInAs, signOut } from '../support/sign-in.ts'
 
@@ -21,6 +22,10 @@ test('wer nicht eingeloggt ist, landet auf der Login-Seite und kommt eingeloggt 
   await expect(page.getByRole('heading', { name: t.common.page.start })).toBeVisible()
   await expect(page).toHaveTitle(`${t.common.page.start} – ${t.common.appName}`)
   await expect(page.getByText(`${t.start.signedInAs} ${ANNA.name}`)).toBeVisible()
+  // Help is the handbook of the person's role, in a tab of its own: Anna administers the school.
+  const help = page.getByRole('link', { name: t.shell.help })
+  await expect(help).toHaveAttribute('href', handbookLink({ roles: ['school_admin'], person: null }, LOCALE) ?? '')
+  await expect(help).toHaveAttribute('target', '_blank')
   await shot(page, '02-startseite')
   await signOut(page)
   await expect(page.getByRole('navigation', { name: t.shell.navigation })).toHaveCount(0)

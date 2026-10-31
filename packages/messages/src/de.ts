@@ -99,6 +99,8 @@ export const de = {
   /** The shell around every page (App.vue). */
   shell: {
     navigation: 'Konto',
+    /** The link to the handbook of the person's role (apps/web/src/lib/handbook.ts). */
+    help: 'Hilfe',
     signOut: 'Ausloggen',
     serverDown: 'Der Server antwortet gerade nicht.',
     retry: 'Noch einmal versuchen',
