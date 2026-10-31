@@ -10,6 +10,8 @@ Unter **Anmeldungen** trägst du bei **Neue Anmeldung** die **Bezeichnung** (Pro
 
 **Angebote sammeln** öffnet die Anmeldung für die Lehrkräfte: Sie sehen sie und reichen mit **Neue Aktivität** ihre Aktivitäten ein. Wie das Formular funktioniert, beschreibt das Handbuch [Lehrkräfte](/lehrkraefte/aktivitaet). Du kannst selbst Aktivitäten anlegen, auch für eine Lehrkraft, die du im Formular einträgst.
 
+Die **Leitung** einer Aktivität hat, wer sie angelegt hat, solange sie oder er unter ihren Lehrkräften ist; sonst die zuerst genannte Lehrkraft. Bist du selbst Lehrkraft, stehst du in einer neuen Aktivität schon darin: Legst du sie für jemand anderen an, nimm dich heraus, dann leitet die zuerst genannte Lehrkraft.
+
 ## Aktivitäten prüfen
 
 ![Die Aktivitäten einer Anmeldung: eine eingereichte Aktivität mit Lehrkraft, Termin, Plätzen und Kosten und den Knöpfen Bearbeiten, Genehmigen, Zurückgeben und Zurückziehen](/bilder/de/aktivitaeten-pruefen.png)
@@ -24,9 +26,15 @@ Die Tabelle zeigt jede Aktivität mit Lehrkräften, Terminen, Plätzen, Kosten u
 
 ## Plätze und Bedarf
 
-![Plätze und Bedarf: je Projekttag und Schulstufe, wie viele Schüler\*innen einen Platz brauchen und wie viele die Aktivitäten anbieten](/bilder/de/bedarf.png)
+![Plätze und Bedarf: je Projekttag und Schulstufe, wie viele Schüler\*innen einen Platz brauchen, das Ziel und wie viele die Aktivitäten anbieten](/bilder/de/bedarf.png)
 
-Je Projekttag und Schulstufe steht hier, wie viele Schüler\*innen einen Platz brauchen und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Wer schon mit der ganzen Klasse in einer Klassenaktivität ist, zählt nicht mit. So siehst du, wo noch Aktivitäten fehlen. Die Lehrkräfte sehen diese Tabelle auch, solange Angebote gesammelt werden.
+Je Projekttag und Schulstufe steht hier, wie viele Schüler\*innen einen Platz brauchen, das **Ziel** und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Wer schon mit der ganzen Klasse in einer Klassenaktivität ist, zählt nicht mit. Das Ziel liegt um die **Plätze über dem Bedarf** darüber, 20 %, wenn du in den [Einstellungen](./einstellungen) nichts anderes einträgst: So haben die Wünsche Platz. Eine Schulstufe unter dem Ziel ist markiert; dort fehlen noch Aktivitäten. Die Lehrkräfte sehen diese Tabelle auch, solange Angebote gesammelt werden.
+
+## Lehrkräfte je Tag
+
+**Lehrkräfte je Tag** im Abschnitt Organisation zeigt für jede Lehrkraft und jeden Projekttag, ob sie verfügbar ist, was sie leitet und was sie begleitet, oder dass sie frei ist. Ein Tag, an dem jemand nicht oder nur wenn nötig verfügbar ist, ist markiert. Darüber steht, wer an keinem Tag etwas leitet.
+
+Ihre Verfügbarkeit tragen die Lehrkräfte selbst ein, solange Angebote gesammelt werden ([Verfügbarkeit](/lehrkraefte/verfuegbarkeit)). Hier änderst du sie für jede Lehrkraft, bis die Anmeldung abgeschlossen ist; jede Änderung wird festgehalten. **Lehrkräfte je Tag als Excel** liefert die Übersicht als Tabelle ([Excel-Dateien](./excel)).
 
 ## Den Katalog veröffentlichen
 

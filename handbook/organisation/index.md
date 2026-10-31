@@ -33,7 +33,7 @@ Dazu die [Excel-Dateien](./excel), die jeder Schritt liefert, und die [E-Mail-Vo
 
 ![Die Seite einer Anmeldung in Vorbereitung: Name, Schuljahr und Projekttage, darunter der Abschnitt Organisation mit dem Stand und den Knöpfen](/bilder/de/anmeldung-in-vorbereitung.png)
 
-Unter **Anmeldungen** öffnest du jede Anmeldung. Oben stehen das Schuljahr, die Projekttage und, sobald sie eingestellt sind, Anmeldezeitraum, Nachfrist, Tauschzeit und die Zahl der Wünsche je Zeitblock. Der Abschnitt **Organisation** zeigt den Stand und den Knopf für den nächsten Schritt, dazu die Einstellungen, den Katalog als Excel-Datei und die Links zu den Klassenvorständen und den E-Mail-Vorlagen. Darunter folgen, je nach Stand, der Stand der Anmeldung, Plätze und Bedarf und die Aktivitäten.
+Unter **Anmeldungen** öffnest du jede Anmeldung. Oben stehen das Schuljahr, die Projekttage und, sobald sie eingestellt sind, Anmeldezeitraum, Nachfrist, Tauschzeit und die Zahl der Wünsche je Zeitblock. Der Abschnitt **Organisation** zeigt den Stand und den Knopf für den nächsten Schritt, dazu die Einstellungen, den Katalog als Excel-Datei und die Links zu den Lehrkräften je Tag, den Klassenvorständen und den E-Mail-Vorlagen. Darunter folgen, je nach Stand, der Stand der Anmeldung, Plätze und Bedarf und die Aktivitäten.
 
 ## Wer was sieht
 

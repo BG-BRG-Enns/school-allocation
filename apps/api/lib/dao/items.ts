@@ -1,4 +1,4 @@
-import { type CampaignState } from '@school-allocation/school-core'
+import { leadOf, type CampaignState } from '@school-allocation/school-core'
 import { type Caller } from '../actor.ts'
 import type { Queryable } from '../db.ts'
 import type { Item, ItemInput } from '../models/items.ts'
@@ -45,11 +45,19 @@ export async function writeParts(client: Queryable, itemId: string, input: ItemI
   }
 }
 
+/** The teachers, in order, each marked whether they lead (school-core leadOf). */
+function withLead(teachers: ItemRow['teachers'], proposer: string | null): Item['teachers'] {
+  const lead = leadOf(teachers.map((teacher) => teacher.personId), proposer)
+  return teachers.map((teacher) => ({ ...teacher, lead: teacher.personId === lead }))
+}
+
 async function readItems(db: Queryable, where: string, values: unknown[]): Promise<Item[]> {
   const { rows } = await db.query<ItemRow>(
     `select i.id, i.campaign_id, i.number, i.title, i.description, i.location, i.fee_cents, i.fee_note, i.places, i.min_participants,
             i.cancellable_below_min, i.fixed_classes, i.eligible_grades, i.eligible_classes, i.state, i.review_note, i.proposed_by,
-            u.display_name as proposer_name, i.created_at, i.updated_at, i.approved_at, i.withdrawn_at, i.withdraw_reason,
+            u.display_name as proposer_name,
+            (select b.person_id from identity_binding b where b.tid = u.tid and b.oid = u.oid and b.unbound_at is null) as proposer_person,
+            i.created_at, i.updated_at, i.approved_at, i.withdrawn_at, i.withdraw_reason,
             coalesce((select json_agg(json_build_object('personId', t.person_id, 'displayName', coalesce(e.display_name, '?')) order by t.position)
                         from item_teacher t
                         left join roster_entry e on e.person_id = t.person_id
@@ -81,8 +89,8 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
     eligibleClasses: row.eligible_classes,
     state: row.state,
     reviewNote: row.review_note,
-    proposedBy: { id: row.proposed_by, displayName: row.proposer_name },
-    teachers: row.teachers,
+    proposedBy: { id: row.proposed_by, displayName: row.proposer_name, personId: row.proposer_person },
+    teachers: withLead(row.teachers, row.proposer_person),
     sessions: row.sessions,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),

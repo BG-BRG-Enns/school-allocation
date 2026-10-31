@@ -162,5 +162,17 @@ export const getCampaignsByIdClassesByClassNameAttendance = { method: 'GET', pat
 export const getCampaignsByIdClassesByClassNameAttendanceXlsx = { method: 'GET', path: '/api/campaigns/:id/classes/:className/attendance.xlsx', transport: 'download' } as const satisfies EndpointMetadata
 export const putSessionsByIdAttendance = { method: 'PUT', path: '/api/sessions/:id/attendance', transport: 'json' } as const satisfies EndpointMetadata
 export const getAdminCampaignsByIdExportAttendanceXlsx = { method: 'GET', path: '/api/admin/campaigns/:id/export/attendance.xlsx', transport: 'download' } as const satisfies EndpointMetadata
+export const getMyAvailability = { method: 'GET', path: '/api/my-availability', transport: 'json' } as const satisfies EndpointMetadata
+
+export const putMyAvailabilityByDate = { method: 'PUT', path: '/api/my-availability/:date', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getCampaignsByIdAvailability = { method: 'GET', path: '/api/campaigns/:id/availability', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getAdminCampaignsByIdPlanning = { method: 'GET', path: '/api/admin/campaigns/:id/planning', transport: 'json' } as const satisfies EndpointMetadata
+
+export const putAdminCampaignsByIdAvailabilityByPersonIdByDate = { method: 'PUT', path: '/api/admin/campaigns/:id/availability/:personId/:date', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getAdminCampaignsByIdExportPlanningXlsx = { method: 'GET', path: '/api/admin/campaigns/:id/export/planning.xlsx', transport: 'download' } as const satisfies EndpointMetadata
+
 export const getAdminRetention = { method: 'GET', path: '/api/admin/retention', transport: 'json' } as const satisfies EndpointMetadata
 export const postAdminPurge = { method: 'POST', path: '/api/admin/purge', transport: 'json' } as const satisfies EndpointMetadata

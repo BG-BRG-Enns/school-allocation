@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { demandByDay, type ClassSize, type OfferedItem } from '../src/demand.ts'
+import { DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, placeTarget, type ClassSize, type OfferedItem } from '../src/demand.ts'
 
 const DAYS = ['2027-06-21', '2027-06-22']
 const classes: ClassSize[] = [
@@ -51,4 +51,12 @@ test('eligibility by class narrows the split, an item nobody can rank offers not
   const noPlaces = open(0, ['2027-06-22'])
   assert.deepEqual(demandByDay(['2027-06-22'], classes, [noPlaces])[0]?.grades.map((g) => g.offered), [0, 0])
   assert.deepEqual(demandByDay(['2027-06-23'], classes, [only1B])[0]?.grades.map((g) => g.offered), [0, 0])
+})
+
+test('the target is the need and the headroom on top, rounded up to a whole place', () => {
+  assert.equal(DEFAULT_PLACE_HEADROOM_PERCENT, 20)
+  assert.equal(placeTarget(100, 20), 120)
+  assert.equal(placeTarget(41, 20), 50, '49.2 places are 50')
+  assert.equal(placeTarget(0, 20), 0)
+  assert.equal(placeTarget(37, 0), 37)
 })

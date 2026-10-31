@@ -1,6 +1,7 @@
 // Der Katalog: die Organisation legt eine Anmeldung an und sammelt Aktivitäten,
-// eine Lehrkraft reicht eine ein, die Organisation genehmigt und
-// veröffentlicht, und Schüler*innen lesen den nummerierten Katalog. Baut
+// eine Lehrkraft trägt ihre Verfügbarkeit ein und reicht eine Aktivität ein,
+// die Organisation sieht die Lehrkräfte je Tag, genehmigt und veröffentlicht,
+// und Schüler*innen lesen den nummerierten Katalog. Baut
 // auf den Klassenlisten aus 02-stammdaten auf (Anna organisiert als
 // Administratorin, Bernd ist Lehrkraft, Sara Schülerin der 5A).
 
@@ -35,6 +36,19 @@ test('die Organisation legt die Anmeldung an und öffnet sie für Aktivitäten',
   await signOut(page)
 })
 
+test('eine Lehrkraft trägt ein, an welchen Projekttagen sie da ist', async ({ page }) => {
+  await openAs(page, BERND, '/wahlen')
+  await page.getByRole('link', { name: sample.projectWeek }).click()
+  await page.getByRole('link', { name: t.availability.link }).click()
+  await expect(page.getByRole('heading', { name: t.common.page.availability })).toBeVisible()
+  await expect(page.getByLabel(t.availability.statusOn(day('2034-07-03')))).toHaveValue('available')
+  await page.getByLabel(t.availability.statusOn(day('2034-07-04'))).selectOption('unavailable')
+  await expect(page.getByText(t.availability.saved)).toBeVisible()
+  await page.reload()
+  await expect(page.getByLabel(t.availability.statusOn(day('2034-07-04')))).toHaveValue('unavailable')
+  await signOut(page)
+})
+
 test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme ganze Klassen mit; die Organisation genehmigt und veröffentlicht', async ({ page }) => {
   await openAs(page, BERND, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
@@ -52,6 +66,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.item.participation.minParticipants).fill('6')
   await page.getByLabel(t.item.fee.amount).fill(sample.climbingFee)
   await page.getByLabel(t.item.fee.note).fill(sample.climbingFeeNote)
+  await expect(page.getByText(t.item.participants.lead(BERND.name))).toBeVisible()
   await shot(page, '15-neue-aktivitaet')
   await picture(page, 'aktivitaet-beschreibung', [page.getByRole('heading', { name: t.common.page.newItem }), page.getByLabel(t.item.teachers.search)])
   await picture(page, 'aktivitaet-termine', [page.getByRole('heading', { name: t.common.field.sessions, exact: true }), page.getByRole('button', { name: t.item.sessions.add })])
@@ -70,6 +85,9 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByRole('group', { name: t.item.participation.fixedClasses }).getByLabel('5A').check()
   await expect(page.getByLabel(t.item.participation.extraPlaces)).toBeVisible()
   await expect(page.getByLabel(t.item.participation.minParticipants)).toHaveCount(0)
+  // On a day Bernd is not there, the form says so and still lets him save.
+  await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-04')
+  await expect(page.getByText(t.item.teachers.unavailableOn(BERND.name, day('2034-07-04')))).toBeVisible()
   await picture(page, 'klassenaktivitaet', [page.getByRole('heading', { name: t.item.participation.heading }), page.getByRole('group', { name: t.item.participation.eligibleClasses })])
   // Left unsaved: the journeys after this one go by a catalogue without it.
   await page.getByRole('link', { name: `← ${t.common.backToCampaign}` }).click()
@@ -82,6 +100,19 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await picture(page, 'aktivitaeten-pruefen', section(page, t.campaign.items.heading))
   await page.getByRole('row', { name: climbing }).getByRole('button', { name: t.campaign.items.approve }).click()
   await expect(page.getByRole('row', { name: climbing })).toContainText(t.labels.itemState.approved)
+
+  // Teachers by day: Bernd leads climbing on Monday and is not there on Tuesday; the organization changes that.
+  await page.getByRole('link', { name: t.common.page.planning }).click()
+  await expect(page.getByRole('heading', { name: t.common.page.planning })).toBeVisible()
+  const bernd = page.getByRole('row', { name: new RegExp(literally(BERND.name)) })
+  await expect(bernd).toContainText(t.planning.leads(sample.climbing))
+  const tuesday = page.getByLabel(t.planning.statusOf(BERND.name, day('2034-07-04')))
+  await expect(tuesday).toHaveValue('unavailable')
+  await tuesday.selectOption('if_needed')
+  await expect(page.getByText(t.planning.saved)).toBeVisible()
+  await expect(tuesday).toHaveValue('if_needed')
+  await expect(page.getByRole('link', { name: t.planning.export })).toBeVisible()
+  await page.getByRole('link', { name: `← ${t.common.backToCampaign}` }).click()
   await page.getByRole('button', { name: t.campaign.organization.publish }).click()
   await expect(page.getByText(t.labels.campaignState.published)).toBeVisible()
   await expect(page.getByRole('row', { name: climbing })).toContainText('1')

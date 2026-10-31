@@ -24,6 +24,10 @@ A **time block** is the activities on a project day that take place at the same 
 
 For each year: how many minutes of activities students need on a project day. The allocation fills these minutes as well as possible; any shortfall is shown as missing minutes. The minutes an activity specifies for each day are credited. You cannot calculate an allocation without minimum minutes for every year in the registration; you can enter and change them until publication.
 
+## Places above the need
+
+By what percentage the activities should offer more places than students need, 20 unless you enter otherwise. **Places and demand** computes the target for each project day and year from it ([Setting up and the catalogue](./anlegen)). More places than needed leave room for the choices.
+
 ## Teachers in the catalogue
 
 **The catalogue names the teachers of the activities**: If unticked, students see no teacher names, either in the catalogue or when making their choices.
@@ -33,6 +37,6 @@ For each year: how many minutes of activities students need on a project day. Th
 | Setting | Can be changed until |
 | ------- | -------------------- |
 | Name, school year, project days | the catalogue is published |
-| Registration period, late registration, choices per time block, teachers in the catalogue | registration opens |
+| Registration period, late registration, choices per time block, places above the need, teachers in the catalogue | registration opens |
 | Minimum minutes per day | the allocation is published |
 | Swap period | the swap period starts |

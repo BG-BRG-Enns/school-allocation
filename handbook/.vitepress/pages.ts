@@ -49,6 +49,7 @@ export const HANDBOOKS: readonly Handbook[] = [
     pages: [
       ['', 'Überblick', 'Overview'],
       ['aktivitaet', 'Eine Aktivität einreichen', 'Proposing an activity'],
+      ['verfuegbarkeit', 'Verfügbarkeit', 'Availability'],
       ['teilnehmerlisten', 'Teilnehmer*innen', 'Participants'],
       ['klassenvorstand', 'Als Klassenvorstand', 'As class teacher'],
     ],

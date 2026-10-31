@@ -5,7 +5,7 @@ import { endpointPath } from '@school-allocation/api-contracts/client-endpoint'
 import * as endpoints from '@school-allocation/api-contracts/endpoint-metadata'
 export type { DayDemand } from '@school-allocation/school-core'
 
-import type { CampaignChanges, ItemInput } from '@school-allocation/api-contracts'
+import type { AvailabilityStatus, CampaignChanges, ItemInput } from '@school-allocation/api-contracts'
 import { apiRequest } from './api.ts'
 
 export type { Campaign, CampaignChanges, CampaignCounts, CampaignView, CampaignWindow, ChoiceState, ChoiceView, ClassStatus, GroupView, Item, ItemInput, ItemInvalidBody, MissingStudent, RankingInvalidBody, SessionInput } from '@school-allocation/api-contracts'
@@ -39,3 +39,11 @@ export const approveItem = (id: string) => apiRequest(endpoints.postAdminItemsBy
 export const returnItem = (id: string, note: string) => apiRequest(endpoints.postAdminItemsByIdReturn, { params: { id: id }, body: { note } })
 export const withdrawItem = (id: string, reason: string) => apiRequest(endpoints.postAdminItemsByIdWithdraw, { params: { id: id }, body: { reason } })
 export const catalogueExportPath = (id: string) => endpointPath(endpoints.getAdminCampaignsByIdExportCatalogueXlsx, { params: { id } })
+
+export type { AvailabilityStatus, PlanningResponse } from '@school-allocation/api-contracts'
+export const loadMyAvailability = () => apiRequest(endpoints.getMyAvailability, { })
+export const setMyAvailability = (date: string, status: AvailabilityStatus) => apiRequest(endpoints.putMyAvailabilityByDate, { params: { date }, body: { status } })
+export const loadCampaignAvailability = (id: string) => apiRequest(endpoints.getCampaignsByIdAvailability, { params: { id } })
+export const loadPlanning = (id: string) => apiRequest(endpoints.getAdminCampaignsByIdPlanning, { params: { id } })
+export const setAvailabilityFor = (id: string, personId: string, date: string, status: AvailabilityStatus) => apiRequest(endpoints.putAdminCampaignsByIdAvailabilityByPersonIdByDate, { params: { id, personId, date }, body: { status } })
+export const planningExportPath = (id: string) => endpointPath(endpoints.getAdminCampaignsByIdExportPlanningXlsx, { params: { id } })

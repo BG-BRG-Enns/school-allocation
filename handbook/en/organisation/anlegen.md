@@ -10,6 +10,8 @@ Under **Registrations**, use **New registration** to enter the **Name** (Project
 
 **Collect activities** opens the registration to teachers: they see it and submit their activities with **New activity**. The [Teachers](/en/lehrkraefte/aktivitaet) handbook explains the form. You can also create activities yourself, including for a teacher you enter in the form.
 
+An activity's **lead** is whoever created it, as long as they are among its teachers; otherwise the first teacher named. If you are a teacher yourself, a new activity already lists you: when you create it for someone else, take yourself off, and the first teacher named leads.
+
 ## Reviewing activities
 
 ![A registration's activities: a submitted activity with teacher, session, places and cost and the Edit, Approve, Return and Withdraw buttons](/bilder/en/aktivitaeten-pruefen.png)
@@ -24,9 +26,15 @@ The table shows each activity with its teachers, sessions, places, cost and stat
 
 ## Places and demand
 
-![Places and demand: for each project day and year, how many students need a place and how many the activities offer](/bilder/en/bedarf.png)
+![Places and demand: for each project day and year, how many students need a place, the target and how many the activities offer](/bilder/en/bedarf.png)
 
-For each project day and year, this shows how many students need a place and how many places the submitted and approved activities offer them. Anyone already in a class activity with their whole class is not counted. This shows you where more activities are needed. Teachers also see this table while activities are being collected.
+For each project day and year, this shows how many students need a place, the **target** and how many places the submitted and approved activities offer them. Anyone already in a class activity with their whole class is not counted. The target lies above the need by the **places above the need**, 20% unless you enter otherwise in the [settings](./einstellungen), so the choices have room. A year short of the target is marked; more activities are needed there. Teachers also see this table while activities are being collected.
+
+## Teachers by day
+
+**Teachers by day** in the Organisation section shows, for each teacher and project day, whether they are available, what they lead and what they accompany, or that they are free. A day on which someone is unavailable or available only if needed is marked. Above it, it names who leads nothing on any day.
+
+Teachers enter their own availability while activities are being collected ([Availability](/en/lehrkraefte/verfuegbarkeit)). Here you change it for any teacher until the registration is closed; every change is recorded. **Teachers by day as Excel** gives the overview as a spreadsheet ([Excel files](./excel)).
 
 ## Publishing the catalogue
 

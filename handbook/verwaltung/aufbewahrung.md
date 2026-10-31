@@ -16,4 +16,4 @@ Ein Schuljahr lässt sich löschen, wenn seine Aufbewahrung abgelaufen ist und j
 2. Wähle das **Schuljahr** und trag es zur Bestätigung noch einmal ein.
 3. Schreib eine **Begründung** und klicke **Endgültig löschen**.
 
-SchulWahl löscht dann alles dieses Schuljahrs: die Anmeldungen mit ihren Wünschen, Einteilungen und Anwesenheiten, die Importe der Klassenlisten und die Klassenvorstände. Die Seite zeigt danach, was gelöscht wurde. Gelöscht ist gelöscht; es gibt kein Zurück.
+SchulWahl löscht dann alles dieses Schuljahrs: die Anmeldungen mit ihren Wünschen, Einteilungen und Anwesenheiten, die Importe der Klassenlisten, die Klassenvorstände und die Verfügbarkeit der Lehrkräfte an seinen Tagen. Die Seite zeigt danach, was gelöscht wurde. Gelöscht ist gelöscht; es gibt kein Zurück.

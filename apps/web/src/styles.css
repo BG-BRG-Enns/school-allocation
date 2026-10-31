@@ -272,6 +272,11 @@ textarea {
   color: var(--muted);
 }
 
+/* A cell that falls short: a grade below the demand's target, a teacher not plainly available. */
+td.short {
+  background: #fff4d6;
+}
+
 ul.plain {
   list-style: none;
   margin: 0;

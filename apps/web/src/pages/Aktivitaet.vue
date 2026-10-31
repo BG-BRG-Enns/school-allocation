@@ -8,11 +8,11 @@
 
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { spanOfPeriods, type Period } from '@school-allocation/school-core'
+import { leadOf, spanOfPeriods, type Period } from '@school-allocation/school-core'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { loadParticipants, type ParticipantsResponse } from '../lib/allocation-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
-import { createItem, loadCampaign, loadClasses, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
+import { createItem, loadCampaign, loadCampaignAvailability, loadClasses, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodsOnGrid, touchedDates } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
@@ -48,6 +48,8 @@ const eligibleClasses = ref<string[]>([])
 const teachers = ref<{ personId: string, displayName: string }[]>([])
 const teacherQuery = ref('')
 const teacherResults = ref<{ personId: string, displayName: string }[]>([])
+/** The teachers not plainly available on the registration's days, for the warnings beside the chosen ones. */
+const limited = ref<{ personId: string, date: string, status: 'unavailable' | 'if_needed' }[]>([])
 
 /** The default a session starts from: the 2nd period, two periods long. */
 const DEFAULT_FROM = 2
@@ -80,6 +82,7 @@ async function load(): Promise<void> {
     campaign.value = view.campaign
     classes.value = found.classes
     grid.value = periods.periods
+    limited.value = view.may.propose ? (await loadCampaignAvailability(props.id)).limited : []
     if (props.itemId) {
       const item = (await loadItems(props.id)).items.find((i) => i.id === props.itemId)
       if (!item) throw new ApiError(404, 'not_found')
@@ -210,6 +213,35 @@ function removeTeacher(personId: string): void {
   teachers.value = teachers.value.filter((t) => t.personId !== personId)
 }
 
+/** Who leads as the form stands: the activity's creator, or the caller for a new one, when among the teachers; else the first named. */
+const lead = computed(() => {
+  const proposer = existing.value ? existing.value.proposedBy.personId : (session.value?.person?.id ?? null)
+  const id = leadOf(teachers.value.map((teacher) => teacher.personId), proposer)
+  return teachers.value.find((teacher) => teacher.personId === id) ?? null
+})
+const companions = computed(() => teachers.value.filter((teacher) => teacher.personId !== lead.value?.personId))
+
+/** A warning per chosen teacher and status for the days the sessions touch that the teacher is not plainly available on. */
+const availabilityWarnings = computed(() => {
+  const dates = new Set(sessions.value.flatMap(touched))
+  return teachers.value.flatMap((teacher) => {
+    const on = (status: 'unavailable' | 'if_needed') => limited.value
+      .filter((d) => d.personId === teacher.personId && d.status === status && dates.has(d.date))
+      .map((d) => formatDay(d.date))
+      .join(', ')
+    const unavailable = on('unavailable')
+    const ifNeeded = on('if_needed')
+    return [
+      ...(unavailable === '' ? [] : [t.item.teachers.unavailableOn(teacher.displayName, unavailable)]),
+      ...(ifNeeded === '' ? [] : [t.item.teachers.ifNeededOn(teacher.displayName, ifNeeded)]),
+    ]
+  })
+})
+
+/** The lead and the companions the activity was saved with, for the participants. */
+const savedLead = computed(() => existing.value?.teachers.find((teacher) => teacher.lead)?.displayName ?? null)
+const savedCompanions = computed(() => (existing.value?.teachers ?? []).filter((teacher) => !teacher.lead).map((teacher) => teacher.displayName))
+
 function toggle(list: string[], value: string): string[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
 }
@@ -336,6 +368,22 @@ async function save(propose: boolean): Promise<void> {
         {{ teacher.displayName }} ✕
       </button>
     </div>
+    <p
+      v-if="lead"
+      class="muted"
+    >
+      {{ t.item.participants.lead(lead.displayName) }}<template v-if="companions.length > 0">
+        · {{ t.item.participants.companions(companions.map((teacher) => teacher.displayName).join(', ')) }}
+      </template>
+      <br>{{ t.item.teachers.leadRule }}
+    </p>
+    <p
+      v-for="warning in availabilityWarnings"
+      :key="warning"
+      class="notice"
+    >
+      {{ warning }}
+    </p>
     <p class="field">
       <label for="teacher-search">{{ t.item.teachers.search }}</label>
       <input
@@ -684,6 +732,11 @@ async function save(propose: boolean): Promise<void> {
   </form>
   <section v-if="participantsView">
     <h2>{{ t.item.participants.heading(participantsView.participants.length) }}</h2>
+    <p v-if="savedLead">
+      {{ t.item.participants.lead(savedLead) }}<template v-if="savedCompanions.length > 0">
+        · {{ t.item.participants.companions(savedCompanions.join(', ')) }}
+      </template>
+    </p>
     <p
       v-if="participantsView.item.cancelled"
       class="alert"

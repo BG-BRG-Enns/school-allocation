@@ -50,6 +50,7 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
     updateColumns: [
       'name', 'school_year', 'project_days', 'config', 'state', 'roster_batch_id', 'updated_at',
       'opens_at', 'closes_at', 'late_until', 'swap_from', 'swap_until', 'wishes_per_group', 'daily_minimum', 'show_teachers', 'reminder_days',
+      'place_headroom_percent',
     ],
   },
   // An activity is edited while it is a draft or by an organizer, reviewed,
@@ -68,6 +69,9 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   item_session: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['location'] },
   // The period grid is replaced as a whole by an administrator, audited.
   period_grid: { table: ['SELECT', 'INSERT', 'DELETE'] },
+  // A teacher's availability on a day: set by the teacher or an organizer (audited), removed when available again or
+  // with the school year's records.
+  teacher_availability: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['status', 'updated_at'] },
   // The school's one row of settings: its language changed by an administrator, sending paused and resumed by an
   // organizer or administrator, audited; it is never added or removed.
   school_setting: { table: ['SELECT'], updateColumns: ['locale', 'updated_at', 'updated_by', 'mail_paused'] },

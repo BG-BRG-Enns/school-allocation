@@ -30,7 +30,7 @@ const SWAP_FIELDS: ReadonlySet<string> = new Set(['swapFrom', 'swapUntil'])
 /** The daily minimum is the allocation's input, not the window's: it may change until a run is published, so a grade forgotten or imported late does not block the campaign. A run already made notices through its stale mark. */
 const LATE_FIELDS: ReadonlySet<string> = new Set(['dailyMinimum', ...SWAP_FIELDS])
 
-const WINDOW_FIELDS = ['opensAt', 'closesAt', 'lateUntil', 'swapFrom', 'swapUntil', 'wishesPerGroup', 'dailyMinimum', 'showTeachers', 'reminderDays'] as const
+const WINDOW_FIELDS = ['opensAt', 'closesAt', 'lateUntil', 'swapFrom', 'swapUntil', 'wishesPerGroup', 'dailyMinimum', 'showTeachers', 'reminderDays', 'placeHeadroomPercent'] as const
 
 /**
  * The window as it would be after `changes`, or the rule it breaks: the

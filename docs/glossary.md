@@ -64,6 +64,10 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | grace week | Nachfrist | late registration | |
 | swap window | Tauschzeit | swap period | |
 | demand view | Plätze und Bedarf | places and demand | |
+| place headroom (`placeHeadroomPercent`) | Ziel; "Plätze über dem Bedarf, in Prozent"; "unter dem Ziel" | target; "places above the need, in percent"; "short of the target" | the need and 20 % on top by default |
+| availability | Verfügbarkeit; verfügbar · nicht verfügbar · nur wenn nötig | availability; available · unavailable · if needed | no reason is ever asked |
+| lead, companions | Leitung, leitet; Begleitung, begleitet | lead, leads; companions, accompanies | the one who created the activity, else the first named |
+| planning overview | Lehrkräfte je Tag; "leitet an keinem Tag etwas" | teachers by day; "leads nothing on any day" | |
 | progress during the window | Stand der Anmeldung; "wer sich schon angemeldet hat" | registration status | |
 | on-behalf entry | "Für jemanden eintragen" | "Enter for someone" | |
 | exemption | Befreiung, befreien | exemption, exempt | |

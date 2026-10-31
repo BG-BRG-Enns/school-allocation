@@ -60,6 +60,7 @@ test('a school year past its retention is purged whole; the next year, its peopl
     return item.body.id
   }
   const klettern = await propose('Klettern')
+  assert.equal((await send(h, bernd, 'PUT', '/api/my-availability/2024-06-24', { status: 'if_needed' })).status, 200, 'Bernd\'s availability, a record of the year')
   const tanz = await propose('Tanz')
   const windowed = await send<{ error?: string }>(h, anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: 'Projektwoche 2024', schoolYear: '2023/24', projectDays: ['2024-06-24'], opensAt: new Date(Date.now() - 86_400_000).toISOString(), closesAt: new Date(Date.now() + 86_400_000).toISOString(), lateUntil: new Date(Date.now() + 2 * 86_400_000).toISOString(), dailyMinimum: { 9: 200 }, swapFrom: new Date(Date.now() - 3_600_000).toISOString(), swapUntil: new Date(Date.now() + 86_400_000).toISOString() })
   assert.equal(windowed.status, 200, JSON.stringify(windowed.body))
@@ -84,6 +85,7 @@ test('a school year past its retention is purged whole; the next year, its peopl
   const sessionId = (await get<{ days: { rows: { sessionId: string, title: string }[] }[] }>(h, carla, `/api/campaigns/${id}/classes/5A/attendance`)).body.days[0]?.rows.find((r) => r.title === 'Klettern')?.sessionId ?? ''
   assert.equal((await send(h, carla, 'PUT', `/api/sessions/${sessionId}/attendance`, { entries: [{ personId: person(SARA.name), status: 'present' }] })).status, 200)
   assert.equal((await send(h, anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'archived' })).status, 200)
+  assert.equal((await send<{ error?: string }>(h, anna, 'PUT', `/api/admin/campaigns/${id}/availability/${person(BERND.name)}/2024-06-24`, { status: 'unavailable' })).body.error, 'campaign_state', 'archived, the availability changes no more')
   // Bernd leads 5A by the app's assignment for the roster's year too.
   assert.equal((await send(h, anna, 'PUT', '/api/admin/classes/5A/teachers', { teachers: [person(BERND.name)] })).status, 200)
 
@@ -97,6 +99,7 @@ test('a school year past its retention is purged whole; the next year, its peopl
   // 2026/27: a campaign being set up, which goes by the roster in force until its close; that roster is 2023/24's batch for now.
   const next = await send<Campaign>(h, anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'Projektwoche 2027', schoolYear: '2026/27', projectDays: ['2027-06-21'] })
   assert.equal(next.status, 201)
+  assert.equal((await send(h, anna, 'PUT', `/api/admin/campaigns/${next.body.id}/availability/${person(BERND.name)}/2027-06-21`, { status: 'unavailable' })).status, 200)
   const inForce = await get<{ years: { schoolYear: string, reached: boolean, campaigns: { state: string }[], batches: number, classTeachers: number }[] }>(h, anna, '/api/admin/retention')
   assert.deepEqual(inForce.body.years.map((y) => [y.schoolYear, y.batches, y.classTeachers]), [['2026/27', 0, 0], ['2023/24', 1, 1]])
   // Purging 2023/24 now keeps its batch: it is the roster in force, and the 2026/27 campaign reads it. Then a 2026/27 roster without Tim and Max.
@@ -148,6 +151,9 @@ test('a school year past its retention is purged whole; the next year, its peopl
   assert.equal(first.assignment_change, 1)
   assert.ok((first.assignment ?? 0) >= 3, 'the run\'s rows and the swap\'s')
   assert.equal(first.attendance, 1)
+  assert.equal(first.teacher_availability, 1, 'Bernd\'s day of 2023/24')
+  assert.equal(removed.teacher_availability, 0)
+  assert.deepEqual((await owner.query<{ day: string }>('select day::text as day from teacher_availability')).rows.map((r) => r.day), ['2027-06-21'], 'the next year\'s stays')
   assert.ok((first.outbox_mail ?? 0) >= 3, 'the invitations, the results, the swap')
   assert.ok((first.audit_event ?? 0) >= 5)
   assert.equal((await get(h, anna, `/api/campaigns/${next.body.id}`)).status, 200)

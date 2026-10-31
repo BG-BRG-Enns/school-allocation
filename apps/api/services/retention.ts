@@ -2,7 +2,9 @@
 // administrator removes the records of a school year once a year has
 // passed since its end, every campaign of it archived, with a reason;
 // audited in the school scope with the counts. The deletion itself is the
-// database's definer function (0010), the one path through the guards.
+// database's definer function (0010), the one path through the guards; the
+// teachers' availability on the year's dates, which no guard keeps, goes
+// first, in the same transaction.
 // Nothing is deleted automatically.
 
 import { isSchoolYear, retentionEndsAt } from '@school-allocation/school-core'
@@ -38,7 +40,8 @@ export async function purgeSchoolYear(db: Database, schoolYear: string, reason: 
     if (states.some((state) => state !== 'archived')) throw new ApplicationError('campaign_state')
     const records = (await store.schoolYearRecords(client)).find((year) => year.schoolYear === schoolYear)
     if (!records) throw new ApplicationError('not_found')
-    const removed = await store.purgeSchoolYear(client, schoolYear)
+    const availability = await store.purgeAvailability(client, schoolYear)
+    const removed = [{ relation: 'teacher_availability', count: availability }, ...await store.purgeSchoolYear(client, schoolYear)]
     await appendAudit(client, {
       scopeId: SCHOOL_SCOPE, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: 'retention.purged',
       metadata: { schoolYear, reason, removed: Object.fromEntries(removed.map((r) => [r.relation, r.count])) },
