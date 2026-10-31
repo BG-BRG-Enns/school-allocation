@@ -112,7 +112,10 @@ export async function appendAudit(client: Queryable, input: AuditInput): Promise
     'select seq::text, hash from audit_event where scope_id = $1 order by audit_event.seq desc limit 1',
     [scopeId],
   )
-  const at = new Date().toISOString()
+  // The transaction's time, which every row it writes carries as well (app_now(), migration 0012): one change, one time.
+  const { rows: [clock] } = await client.query<{ at: Date }>('select app_now() as at')
+  if (!clock) throw new Error('app_now() returned no row')
+  const at = clock.at.toISOString()
   const prevHash = previous?.hash ?? null
   const hash = auditEventHash({ scopeId, at, actor, action, metadata, prevHash })
   const { rows: [row] } = await client.query<{ seq: string }>(

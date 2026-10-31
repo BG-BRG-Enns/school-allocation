@@ -12,7 +12,7 @@ export function startScheduler(db: Database, context: WindowContext, log: Fastif
     if (running) return
     running = true
     try {
-      const outcome = await tick(db, context, new Date(), log)
+      const outcome = await tick(db, context, db.now(), log)
       if (outcome.transitions > 0 || outcome.reminders > 0) {
         log.info(outcome, 'the scheduler moved campaigns or queued reminders')
         onWork?.()

@@ -170,7 +170,7 @@ test('0011: the seeded mail templates go, a saved one stays in German with its p
       user?.id,
     ])
   })
-  assert.deepEqual(await migrateTestDatabase(db), ['0011_language_and_mail_defaults.sql'])
+  assert.deepEqual(await migrateTestDatabase(db, '0011_language_and_mail_defaults.sql'), ['0011_language_and_mail_defaults.sql'])
   await withClient(db.ownerUrl, async (c) => {
     assert.deepEqual((await c.query('select kind, subject, body, locale from mail_template')).rows, [{
       kind: 'class_missing',

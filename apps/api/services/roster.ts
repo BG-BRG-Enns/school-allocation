@@ -219,7 +219,7 @@ export async function discardBatch(db: Database, batchId: string, actor: Actor):
 }
 
 /** Roster configuration and import history, with the school-local suggested year. */
-export async function rosterOverview(db: Database, graphScopes: string[], now = new Date()) {
+export async function rosterOverview(db: Database, graphScopes: string[], now = db.now()) {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Vienna', year: 'numeric', month: 'numeric' }).formatToParts(now)
   const part = (type: string) => Number(parts.find((p) => p.type === type)?.value)
   const [current, groups, batches] = await Promise.all([currentBatch(db), readGroups(db), store.listBatches(db)])

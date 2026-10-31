@@ -68,7 +68,7 @@ export async function findAdminGrant(db: Queryable, userId: string) {
 }
 
 export async function blockUser(db: Queryable, userId: string, actor: Actor) {
-  const { rowCount } = await db.query('update app_user set blocked_at = now(), blocked_by = $2 where id = $1 and blocked_at is null', [userId, actor.id])
+  const { rowCount } = await db.query('update app_user set blocked_at = app_now(), blocked_by = $2 where id = $1 and blocked_at is null', [userId, actor.id])
   return rowCount ?? 0
 }
 
@@ -108,5 +108,5 @@ export async function lockGrant(db: Queryable, grantId: string) {
 }
 
 export async function revokeGrant(db: Queryable, grantId: string, actor: Actor) {
-  await db.query('update role_grant set revoked_at = now(), revoked_by = $2 where id = $1', [grantId, actor.id])
+  await db.query('update role_grant set revoked_at = app_now(), revoked_by = $2 where id = $1', [grantId, actor.id])
 }

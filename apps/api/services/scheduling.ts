@@ -25,7 +25,7 @@ export interface TickOutcome {
 }
 
 /** What is due at `now`: transitions and reminders. Each campaign under its own lock, one after another. */
-export async function tick(db: Database, context: WindowContext, now = new Date(), log?: SchedulingLog): Promise<TickOutcome> {
+export async function tick(db: Database, context: WindowContext, now = db.now(), log?: SchedulingLog): Promise<TickOutcome> {
   const outcome: TickOutcome = { transitions: 0, reminders: 0 }
   const ids = await scheduledCampaignIds(db)
   for (const id of ids) {

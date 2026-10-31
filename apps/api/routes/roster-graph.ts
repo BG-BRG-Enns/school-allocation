@@ -28,13 +28,13 @@ export interface RosterGraphOptions {
 export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guards, entraAuthority, graphBaseUrl = GRAPH_BASE_URL }: RosterGraphOptions): Promise<void> {
   const admin = { preHandler: guards.requireRole('school_admin') }
 
-  const graph = await registerGraphAuthorization(app, config.entra, `${config.publicUrl}/api/admin/roster/graph/callback`, config.basePath, config.graphScopes, entraAuthority)
+  const graph = await registerGraphAuthorization(app, config.entra, `${config.publicUrl}/api/admin/roster/graph/callback`, db, config.basePath, config.graphScopes, entraAuthority)
 
   const rosterPage = `${config.basePath}/verwaltung/stammdaten`
 
   // The picker's tokens, by the handle the session carries. Per server
   // instance: a restart forgets them, and the administrator authorizes again.
-  const pickerTokens = new GraphPickerTokens()
+  const pickerTokens = new GraphPickerTokens(() => db.now().getTime())
 
   // Sets the state cookie and the pending refresh; changes nothing on the
   // server. The callback, with the token the administrator just consented
@@ -44,7 +44,7 @@ export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guar
     const schoolYear = request.query.schoolYear ?? ''
     if (purpose === 'refresh') await prepareGraphImport(db, schoolYear)
     const nonce = randomBytes(32).toString('base64url')
-    request.userSession.set('graphRefresh', { nonce, schoolYear, purpose, startedAt: Date.now() })
+    request.userSession.set('graphRefresh', { nonce, schoolYear, purpose, startedAt: db.now().getTime() })
     return reply.redirect(await graph.authorizationUrl(request, reply, nonce), 302)
   })
 
@@ -63,7 +63,7 @@ export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guar
     const session = request.userSession
     const pending = session.get('graphRefresh')
     if (pending) session.set('graphRefresh', undefined)
-    if (!pending || !withinSeconds(pending.startedAt, SIGN_IN_SECONDS)) return failed('no_pending_refresh')
+    if (!pending || !withinSeconds(pending.startedAt, SIGN_IN_SECONDS, db.now().getTime())) return failed('no_pending_refresh')
     const caller = callerOf(request)
     let accessToken: string
     try {

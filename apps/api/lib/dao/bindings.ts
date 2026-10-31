@@ -48,7 +48,7 @@ export async function findOpenBindings(db: Queryable, input: AdminBinding, user:
 
 export async function closeBinding(db: Queryable, binding: { id: string, personId: string, tid: string, oid: string }, actor: Actor, input: AdminBinding) {
   await db.query(
-    'update identity_binding set unbound_at = now(), unbound_by = $2, unbind_reason = $3 where id = $1',
+    'update identity_binding set unbound_at = app_now(), unbound_by = $2, unbind_reason = $3 where id = $1',
     [binding.id, actor.id, input.reason],
   )
 }

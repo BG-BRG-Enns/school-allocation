@@ -25,7 +25,7 @@ export async function startJob(db: Queryable, kind: string, startedBy: string | 
 }
 
 export async function finishJob(db: Queryable, id: string, outcome: Exclude<JobOutcome, 'interrupted'>): Promise<void> {
-  await db.query('update job set finished_at = now(), outcome = $2 where id = $1 and finished_at is null', [id, outcome])
+  await db.query('update job set finished_at = app_now(), outcome = $2 where id = $1 and finished_at is null', [id, outcome])
 }
 
 /** Runs `fn` as a job: started before, finished after, failed when it throws. */
@@ -43,6 +43,6 @@ export async function runJob<T>(db: Queryable, kind: string, startedBy: string |
 
 /** At startup: every job left unfinished by a previous process is marked interrupted. Returns how many. */
 export async function interruptStaleJobs(db: Queryable): Promise<number> {
-  const { rowCount } = await db.query('update job set finished_at = now(), outcome = \'interrupted\' where finished_at is null')
+  const { rowCount } = await db.query('update job set finished_at = app_now(), outcome = \'interrupted\' where finished_at is null')
   return rowCount ?? 0
 }

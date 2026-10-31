@@ -50,7 +50,7 @@ export async function lockChoiceWindow(db: Queryable, campaign: Campaign) {
 export async function upsertRanking(db: Queryable, campaign: Campaign, student: CampaignStudent, canonical: Ranking, window: string, by: SaveBy) {
   const { rows: [row] } = await db.query<{ version: number }>(
     `insert into choice (campaign_id, person_id, ranking, saved_in, version, entered_by) values ($1, $2, $3, $4, 1, $5)
-       on conflict (campaign_id, person_id) do update set ranking = excluded.ranking, saved_in = excluded.saved_in, version = choice.version + 1, updated_at = now(), entered_by = excluded.entered_by
+       on conflict (campaign_id, person_id) do update set ranking = excluded.ranking, saved_in = excluded.saved_in, version = choice.version + 1, updated_at = app_now(), entered_by = excluded.entered_by
        returning version`,
     [campaign.id, student.personId, JSON.stringify(canonical), window, by.caller.id],
   )
@@ -78,7 +78,7 @@ export async function lockPreAssignment(db: Queryable, campaign: Campaign, perso
 
 export async function exemptPreAssignment(db: Queryable, campaign: Campaign, personId: string, itemId: string, caller: Caller, reason: string) {
   await db.query(
-    'update pre_assignment set exempted_at = now(), exempted_by = $4, exempt_reason = $5 where campaign_id = $1 and person_id = $2 and item_id = $3',
+    'update pre_assignment set exempted_at = app_now(), exempted_by = $4, exempt_reason = $5 where campaign_id = $1 and person_id = $2 and item_id = $3',
     [campaign.id, personId, itemId, caller.id, reason],
   )
 }

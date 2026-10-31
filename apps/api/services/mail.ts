@@ -15,7 +15,7 @@ import { sampleMail } from './mail-templates.ts'
 export async function queueTestMail(db: Database, kind: MailKind, caller: Caller, enabled: boolean): Promise<void> {
   if (!enabled) throw new ApplicationError('mail_off')
   if (caller.email === null) throw new ApplicationError('no_address')
-  const dedupeKey = `test:${kind}:${caller.id}:${Date.now()}`
+  const dedupeKey = `test:${kind}:${caller.id}:${db.now().getTime()}`
   const to = caller.email
   await db.tx(async (client) => {
     const { subject, body } = await sampleMail(client, kind)

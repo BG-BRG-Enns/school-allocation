@@ -52,32 +52,32 @@ export async function enqueueMail(client: Queryable, mail: NewMail): Promise<boo
 /** Takes the oldest queued mail whose time has come as `sending`, counting the attempt; undefined when none is due. */
 export async function claimNextMail(db: Queryable): Promise<OutboxMail | undefined> {
   const { rows } = await db.query<MailRow>(
-    `update outbox_mail set state = 'sending', attempts = attempts + 1, updated_at = now()
-      where id = (select id from outbox_mail where state = 'queued' and next_attempt_at <= now() order by created_at limit 1 for update skip locked)
+    `update outbox_mail set state = 'sending', attempts = attempts + 1, updated_at = app_now()
+      where id = (select id from outbox_mail where state = 'queued' and next_attempt_at <= app_now() order by created_at limit 1 for update skip locked)
       returning ${COLUMNS}`,
   )
   return rows[0] === undefined ? undefined : toMail(rows[0])
 }
 
 export async function recordSent(db: Queryable, id: string, messageId: string, detail: string): Promise<void> {
-  await db.query('update outbox_mail set state = \'sent\', message_id = $2, detail = $3, sent_at = now(), updated_at = now() where id = $1 and state = \'sending\'', [id, messageId, truncateDetail(detail)])
+  await db.query('update outbox_mail set state = \'sent\', message_id = $2, detail = $3, sent_at = app_now(), updated_at = app_now() where id = $1 and state = \'sending\'', [id, messageId, truncateDetail(detail)])
 }
 
 /** A transient failure: back to the queue, tried again after `delayMs`. */
 export async function recordRetry(db: Queryable, id: string, detail: string, delayMs: number): Promise<void> {
   await db.query(
-    'update outbox_mail set state = \'queued\', detail = $2, next_attempt_at = now() + ($3::text || \' milliseconds\')::interval, updated_at = now() where id = $1 and state = \'sending\'',
+    'update outbox_mail set state = \'queued\', detail = $2, next_attempt_at = app_now() + ($3::text || \' milliseconds\')::interval, updated_at = app_now() where id = $1 and state = \'sending\'',
     [id, truncateDetail(detail), String(Math.max(0, Math.round(delayMs)))],
   )
 }
 
 export async function recordFailed(db: Queryable, id: string, detail: string): Promise<void> {
-  await db.query('update outbox_mail set state = \'failed\', detail = $2, updated_at = now() where id = $1 and state = \'sending\'', [id, truncateDetail(detail)])
+  await db.query('update outbox_mail set state = \'failed\', detail = $2, updated_at = app_now() where id = $1 and state = \'sending\'', [id, truncateDetail(detail)])
 }
 
 /** At start: mails left in `sending` by the previous process may or may not have left; they are failed with the detail `interrupted`. Returns how many. */
 export async function recoverInterruptedMails(db: Queryable): Promise<number> {
-  const { rowCount } = await db.query('update outbox_mail set state = \'failed\', detail = \'interrupted\', updated_at = now() where state = \'sending\'')
+  const { rowCount } = await db.query('update outbox_mail set state = \'failed\', detail = \'interrupted\', updated_at = app_now() where state = \'sending\'')
   return rowCount ?? 0
 }
 

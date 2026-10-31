@@ -19,7 +19,7 @@ export function retentionReached(schoolYear: string, now: Date): boolean {
 }
 
 /** Every school year with records, newest first, and whether its retention has passed at `now`. */
-export async function retentionOverview(db: Database, now = new Date()): Promise<RetentionYear[]> {
+export async function retentionOverview(db: Database, now = db.now()): Promise<RetentionYear[]> {
   return (await store.schoolYearRecords(db)).map((year) => ({ ...year, retentionEndsAt: retentionEndsAt(year.schoolYear), reached: retentionReached(year.schoolYear, now) }))
 }
 
@@ -29,7 +29,7 @@ export async function retentionOverview(db: Database, now = new Date()): Promise
  * no import or grant runs alongside; the audit event names the year, the
  * reason and what went.
  */
-export async function purgeSchoolYear(db: Database, schoolYear: string, reason: string, actor: Actor, now = new Date()): Promise<{ relation: string, count: number }[]> {
+export async function purgeSchoolYear(db: Database, schoolYear: string, reason: string, actor: Actor, now = db.now()): Promise<{ relation: string, count: number }[]> {
   if (!isSchoolYear(schoolYear)) throw new ApplicationError('invalid_school_year')
   if (!retentionReached(schoolYear, now)) throw new ApplicationError('retention_not_reached')
   return db.tx(async (client) => {

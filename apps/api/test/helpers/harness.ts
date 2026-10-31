@@ -5,6 +5,7 @@
 import type { TestContext } from 'node:test'
 import assert from 'node:assert/strict'
 import type { FastifyInstance, InjectOptions } from 'fastify'
+import type { Clock } from '../../lib/clock.ts'
 import { createDatabase, type Database } from '../../lib/db.ts'
 import { buildTestApp } from './app.ts'
 import { createTestDatabase, DB } from './db.ts'
@@ -25,13 +26,14 @@ export interface Harness {
   logs: () => string
 }
 
-export async function harness(t: TestContext, env: Record<string, string> = {}, groups?: Map<string, FakeMember[]>): Promise<Harness> {
+/** `clock`, when a test controls the time (helpers/clock.ts), is the database's and the stand-in for Entra's; the system's otherwise. */
+export async function harness(t: TestContext, env: Record<string, string> = {}, groups?: Map<string, FakeMember[]>, clock?: Clock): Promise<Harness> {
   const testDb = await createTestDatabase(t)
-  const entra = await startFakeEntra()
+  const entra = await startFakeEntra({ clock })
   t.after(() => entra.close())
   const graph = await startFakeGraph(entra.issued, groups)
   t.after(() => graph.close())
-  const db = createDatabase(testDb.runtimeUrl, () => {})
+  const db = createDatabase(testDb.runtimeUrl, () => {}, clock)
   t.after(() => db.close())
   const { app, logs } = await buildTestApp(env, db, { entraAuthority: entra.authority, graphBaseUrl: graph.baseUrl })
   t.after(() => app.close())

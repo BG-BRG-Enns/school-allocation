@@ -14,7 +14,7 @@ export async function listTemplates(db: Queryable) {
 export async function saveTemplate(db: Queryable, kind: MailKind, subject: string, body: string, locale: string, actor: Actor) {
   await db.query(
     `insert into mail_template (kind, subject, body, locale, updated_by) values ($1, $2, $3, $4, $5)
-     on conflict (kind) do update set subject = excluded.subject, body = excluded.body, locale = excluded.locale, updated_at = now(), updated_by = excluded.updated_by`,
+     on conflict (kind) do update set subject = excluded.subject, body = excluded.body, locale = excluded.locale, updated_at = app_now(), updated_by = excluded.updated_by`,
     [kind, subject, body, locale, actor.id],
   )
 }

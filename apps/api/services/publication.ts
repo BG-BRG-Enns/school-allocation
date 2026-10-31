@@ -189,7 +189,7 @@ export async function requirePublished(db: Queryable, campaignId: string): Promi
 }
 
 /** Whether `now` is inside the campaign's swap window (D-06). */
-export function swapWindowOpen(campaign: Pick<Campaign, 'state' | 'swapFrom' | 'swapUntil'>, now = Date.now()): boolean {
+export function swapWindowOpen(campaign: Pick<Campaign, 'state' | 'swapFrom' | 'swapUntil'>, now: number): boolean {
   return campaign.state === 'results' && campaign.swapFrom !== null && campaign.swapUntil !== null && Date.parse(campaign.swapFrom) <= now && now <= Date.parse(campaign.swapUntil)
 }
 
@@ -215,7 +215,7 @@ export async function myResult(db: Database, campaign: Campaign, caller: Caller)
   const mine = rows.filter((r) => r.personId === personId)
   const explanation = explainStudent(run.snapshot, mine, personId)
   if (!explanation) throw new ApplicationError('not_found')
-  const offers = swapWindowOpen(campaign) ? moveOffers(run.snapshot, rows, personId, 'swap', unavailableItems(run, all)) : null
+  const offers = swapWindowOpen(campaign, db.now().getTime()) ? moveOffers(run.snapshot, rows, personId, 'swap', unavailableItems(run, all)) : null
   const changes = log.filter((c) => c.personId === personId).map((c) => ({ kind: c.kind, toItemId: c.toItemId, leftItemIds: c.leftItemIds, changedAt: c.changedAt }))
   // Every item the page names: the places given (one withdrawn since publication still names a place given), the items
   // on offer, the items left. The fee is the run's, as the student saw it when ranking and as the workbook sums it.
