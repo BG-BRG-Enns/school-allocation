@@ -9,6 +9,7 @@ import type { CampaignAvailabilityResponse, MyAvailabilityResponse, PlanningResp
 import type { AvailabilityStatus } from '@school-allocation/school-core'
 import type { Actor, Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
+import { readPublishedRun } from '../lib/dao/allocation.ts'
 import { lockedCampaign } from '../lib/dao/campaigns.ts'
 import { listCampaignItems } from '../lib/dao/items.ts'
 import * as store from '../lib/dao/planning.ts'
@@ -42,12 +43,27 @@ export async function myAvailability(db: Database, caller: Caller): Promise<MyAv
   })
 }
 
-/** A teacher sets their own status on a day of a registration taking proposals; on any other day it is the organizer's to set. */
+/**
+ * A teacher sets their own status on a day of a registration taking
+ * proposals; on any other day it is the organizer's to set. The day is
+ * asked again under the registration's lock: a publication or a change of
+ * the days while the request waited counts.
+ */
 export async function setMyAvailability(db: Database, caller: Caller, date: string, status: AvailabilityStatus): Promise<MyAvailabilityResponse> {
   const person = teacherOf(caller)
   await db.tx(async (client) => {
-    const campaigns = await store.campaignsTakingProposals(client)
-    if (!campaigns.some((c) => c.projectDays.includes(date))) throw new ApplicationError('campaign_state')
+    const candidates = (await store.campaignsTakingProposals(client)).filter((c) => c.projectDays.includes(date)).map((c) => c.id).sort()
+    let open = false
+    // In id order, so two teachers never wait on each other's locks.
+    for (const id of candidates) {
+      await lockScope(client, id)
+      const campaign = await lockedCampaign(client, id)
+      if (campaign?.state === 'catalogue' && campaign.projectDays.includes(date)) {
+        open = true
+        break
+      }
+    }
+    if (!open) throw new ApplicationError('campaign_state')
     await store.writeAvailability(client, person, date, status)
   })
   return myAvailability(db, caller)
@@ -63,7 +79,9 @@ type PlannedItem = PlanningResponse['teachers'][number]['days'][number]['leads']
 
 async function planningOf(client: Queryable, campaign: Campaign): Promise<PlanningResponse> {
   const teachers = await store.planningTeachers(client, campaign.id)
-  const items = (await listCampaignItems(client, campaign.id)).filter((item) => item.state !== 'withdrawn')
+  // An activity the published run cancelled is nobody's work, though it stays approved in the catalogue.
+  const cancelled = new Set((await readPublishedRun(client, campaign.id))?.cancelledItemIds ?? [])
+  const items = (await listCampaignItems(client, campaign.id)).filter((item) => item.state !== 'withdrawn' && !cancelled.has(item.id))
   const key = (personId: string, date: string) => `${personId} ${date}`
   const status = new Map((await store.limitedDays(client, campaign.projectDays)).map((d) => [key(d.personId, d.date), d.status]))
   const planned = new Map<string, { leads: PlannedItem[], accompanies: PlannedItem[] }>()

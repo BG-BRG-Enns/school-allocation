@@ -82,7 +82,8 @@ async function load(): Promise<void> {
     campaign.value = view.campaign
     classes.value = found.classes
     grid.value = periods.periods
-    limited.value = view.may.propose ? (await loadCampaignAvailability(props.id)).limited : []
+    // An organizer edits activities after the catalogue too, when nobody proposes any more.
+    limited.value = view.may.propose || view.may.organize ? (await loadCampaignAvailability(props.id)).limited : []
     if (props.itemId) {
       const item = (await loadItems(props.id)).items.find((i) => i.id === props.itemId)
       if (!item) throw new ApiError(404, 'not_found')
