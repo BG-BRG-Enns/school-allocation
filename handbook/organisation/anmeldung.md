@@ -32,7 +32,7 @@ Gibt es eine Nachfrist, beginnt sie mit dem Ende des Anmeldezeitraums von selbst
 
 ## Beenden
 
-Die Anmeldung endet mit dem Ende des Anmeldezeitraums oder der Nachfrist von selbst. **Anmeldung beenden** beendet sie sofort, auch ohne die Nachfrist. Mit dem Ende hält SchulWahl die Klassenlisten für diese Anmeldung fest. Wer dann keine vollständigen Wünsche hat, bekommt eine E-Mail, die Klassenvorstände eine Liste ihrer Klasse. Wer gar keine Wünsche abgegeben hat, kommt bei der Zuteilung auf Restplätze ohne Kosten.
+Die Anmeldung endet mit dem Ende des Anmeldezeitraums oder der Nachfrist von selbst. **Anmeldung beenden** beendet sie sofort; eine Nachfrist gibt es dann nicht. Mit dem Ende hält SchulWahl die Klassenlisten für diese Anmeldung fest. Wer dann keine vollständigen Wünsche hat, bekommt eine E-Mail, die Klassenvorstände eine Liste ihrer Klasse. Wer gar keine Wünsche abgegeben hat, kommt bei der Zuteilung auf Restplätze ohne Kosten.
 
 ## Die E-Mails während der Anmeldung
 
