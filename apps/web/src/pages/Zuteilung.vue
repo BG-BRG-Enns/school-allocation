@@ -14,11 +14,14 @@ import { withBase } from '../lib/base.ts'
 import { loadCampaign, loadItems, type Campaign, type Item } from '../lib/campaigns-api.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
 import { formatDay } from '../lib/format.ts'
+import { t } from '../lib/i18n.ts'
 import { ALLOCATION_PROBLEM_LABELS, ASSIGNMENT_SOURCE_LABELS, CAMPAIGN_STATE_LABELS, CHANGE_KIND_LABELS, levelLabel, RUN_FAILURE_LABELS, RUN_STATUS_LABELS, SOLVE_STATUS_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string }>()
-usePageTitle(() => 'Zuteilung')
+usePageTitle(() => t.common.page.allocation)
+/** The server's setting for the solver, named where it is missing. */
+const SOLVER_SETTING = 'SOLVER_URL'
 
 const campaign = ref<Campaign | null>(null)
 const runs = ref<AllocationRun[]>([])
@@ -48,7 +51,7 @@ async function onPublish(): Promise<void> {
     publishing.value = false
     cancellationsConfirmed.value = false
     await load()
-  }, 'Das Ergebnis ist veröffentlicht; die Benachrichtigungen sind unterwegs.')
+  }, t.allocation.published)
 }
 const running = computed(() => runs.value.some((r) => r.status === 'running'))
 
@@ -80,7 +83,7 @@ async function onChange(): Promise<void> {
     changeReason.value = ''
     changeForce.value = false
     await load()
-  }, 'Die Zuteilung ist geändert; die Schülerin oder der Schüler wird benachrichtigt.')
+  }, t.allocation.changed)
 }
 watch(changePerson, () => {
   changeFrom.value = ''
@@ -136,7 +139,7 @@ async function onStart(seedValue?: number, limitValue?: number): Promise<void> {
     await load()
     selected.value = await loadRun(props.id, run.id)
     schedule()
-  }, 'Die Zuteilung wird berechnet.')
+  }, t.allocation.started)
 }
 
 async function select(run: AllocationRun): Promise<void> {
@@ -168,7 +171,7 @@ const itemTitle = (review: RunReviewResponse, itemId: string): string => {
 const studentName = (review: RunReviewResponse, personId: string): string => review.students.find((s) => s.personId === personId)?.displayName ?? '?'
 const placeLabel = (review: RunReviewResponse, student: ReviewStudent, date: string): string => student.items
   .filter((e) => (e.minutesByDate[date] ?? 0) > 0)
-  .map((e) => `${itemTitle(review, e.itemId)}${e.source === 'wish' ? ` (${e.rank}. Wunsch)` : e.source === 'fallback' ? ' (Ersatz)' : e.source === 'fixed' ? ' (Klasse)' : ''}`)
+  .map((e) => `${itemTitle(review, e.itemId)}${e.source === 'wish' ? ` (${t.allocation.place.wish(e.rank)})` : e.source === 'fallback' ? ` (${t.allocation.place.fallback})` : e.source === 'fixed' ? ` (${t.allocation.place.fixed})` : ''}`)
   .join(', ')
 const levelsOf = (review: RunReviewResponse) => review.run.passes.at(-1)?.levels ?? []
 const passSummary = (review: RunReviewResponse): string => review.run.passes.map((p) => `${p.pass}. ${SOLVE_STATUS_LABELS[p.status] ?? p.status}`).join(' · ')
@@ -183,8 +186,8 @@ const differences = computed(() => {
   const key = (s: ReviewStudent) => s.items.map((e) => e.itemId).sort().join(',')
   const theirs = new Map(other.value.students.map((s) => [s.personId, s]))
   return selected.value.students.filter((s) => {
-    const t = theirs.get(s.personId)
-    return t === undefined || key(t) !== key(s)
+    const their = theirs.get(s.personId)
+    return their === undefined || key(their) !== key(s)
   })
 })
 const levelDelta = (name: string): number | null => {
@@ -198,10 +201,10 @@ const levelDelta = (name: string): number | null => {
 <template>
   <p>
     <RouterLink :to="`/wahlen/${props.id}`">
-      ← Zur Wahl
+      ← {{ t.common.backToCampaign }}
     </RouterLink>
   </p>
-  <h1>Zuteilung</h1>
+  <h1>{{ t.common.page.allocation }}</h1>
   <p
     v-if="loading.error.value"
     role="alert"
@@ -228,38 +231,38 @@ const levelDelta = (name: string): number | null => {
       {{ campaign.name }} · <span class="badge">{{ CAMPAIGN_STATE_LABELS[campaign.state] ?? campaign.state }}</span>
     </p>
     <section v-if="publishedRun">
-      <h2>Veröffentlicht</h2>
+      <h2>{{ t.allocation.publication.heading }}</h2>
       <p>
-        Lauf {{ publishedRun.seq }} ist das Ergebnis dieser Wahl (veröffentlicht {{ formatWhen(publishedRun.publishedAt) }}). Die Schüler/innen sehen ihr Programm, die Lehrkräfte ihre Teilnehmer/innen, die Klassenvorstände die Plätze ihrer Klasse.
+        {{ t.allocation.publication.text(publishedRun.seq, formatWhen(publishedRun.publishedAt)) }}
       </p>
       <p class="actions">
         <a
           class="button ghost-link"
           :href="withBase(assignmentsExportPath(props.id))"
-        >Zuteilung als Excel</a>
+        >{{ t.allocation.publication.assignmentsExport }}</a>
         <a
           class="button ghost-link"
           :href="withBase(attendanceExportPath(props.id))"
-        >Anwesenheit als Excel</a>
+        >{{ t.allocation.publication.attendanceExport }}</a>
       </p>
-      <h3>Änderungen seit der Veröffentlichung ({{ changes.length }})</h3>
+      <h3>{{ t.allocation.publication.changes(changes.length) }}</h3>
       <p
         v-if="changes.length === 0"
         class="muted"
       >
-        Noch keine: kein Tausch, keine Zuteilung durch einen Klassenvorstand, keine Änderung von Hand.
+        {{ t.allocation.publication.noChanges }}
       </p>
       <table v-else>
         <thead>
           <tr>
-            <th>Nr.</th>
-            <th>Wann</th>
-            <th>Art</th>
-            <th>Schüler/in</th>
-            <th>Nicht mehr</th>
-            <th>Neu</th>
-            <th>Begründung</th>
-            <th>Durch</th>
+            <th>{{ t.common.field.number }}</th>
+            <th>{{ t.allocation.publication.when }}</th>
+            <th>{{ t.allocation.publication.kind }}</th>
+            <th>{{ t.common.field.student }}</th>
+            <th>{{ t.allocation.publication.left }}</th>
+            <th>{{ t.allocation.publication.to }}</th>
+            <th>{{ t.common.field.reason }}</th>
+            <th>{{ t.allocation.publication.by }}</th>
           </tr>
         </thead>
         <tbody>
@@ -271,7 +274,7 @@ const levelDelta = (name: string): number | null => {
             <td>{{ formatWhen(c.changedAt) }}</td>
             <td>
               {{ CHANGE_KIND_LABELS[c.kind] ?? c.kind }}<template v-if="c.forced">
-                · erzwungen
+                · {{ t.allocation.publication.forced }}
               </template>
             </td>
             <td>{{ c.displayName }} ({{ c.className }})</td>
@@ -284,23 +287,23 @@ const levelDelta = (name: string): number | null => {
       </table>
       <form
         v-if="campaign.state === 'results' && published"
-        aria-label="Zuteilung von Hand ändern"
+        :aria-label="t.allocation.change.title"
         @submit.prevent="onChange"
       >
-        <h3>Zuteilung von Hand ändern</h3>
+        <h3>{{ t.allocation.change.title }}</h3>
         <p class="muted">
-          Dieselben Regeln wie beim Tausch: in eine Aktivität mit freien Plätzen, die zur Schulstufe passt und sich mit nichts überschneidet, das bleibt; eine Klassenaktivität bleibt immer. Eine volle Aktivität oder ein Minimum darf die Organisation übergehen, mit Häkchen; das wird festgehalten.
+          {{ t.allocation.change.rules }}
         </p>
         <div class="row">
           <p class="field">
-            <label for="change-person">Schüler/in</label>
+            <label for="change-person">{{ t.common.field.student }}</label>
             <select
               id="change-person"
               v-model="changePerson"
               required
             >
               <option value="">
-                Bitte wählen
+                {{ t.common.pleaseChoose }}
               </option>
               <option
                 v-for="st in publishedStudents"
@@ -312,7 +315,7 @@ const levelDelta = (name: string): number | null => {
             </select>
           </p>
           <p class="field">
-            <label for="change-from">Herausnehmen aus</label>
+            <label for="change-from">{{ t.allocation.change.from }}</label>
             <select
               id="change-from"
               v-model="changeFrom"
@@ -331,7 +334,7 @@ const levelDelta = (name: string): number | null => {
             </select>
           </p>
           <p class="field">
-            <label for="change-to">Einteilen in</label>
+            <label for="change-to">{{ t.allocation.change.to }}</label>
             <select
               id="change-to"
               v-model="changeTo"
@@ -344,13 +347,13 @@ const levelDelta = (name: string): number | null => {
                 :key="i.itemId"
                 :value="i.itemId"
               >
-                {{ i.number === null ? i.title : `${i.number}. ${i.title}` }} ({{ Math.max(0, i.places - i.assigned) }} frei)
+                {{ i.number === null ? i.title : `${i.number}. ${i.title}` }} ({{ t.allocation.change.free(Math.max(0, i.places - i.assigned)) }})
               </option>
             </select>
           </p>
         </div>
         <p class="field">
-          <label for="change-reason">Begründung</label>
+          <label for="change-reason">{{ t.common.field.reason }}</label>
           <input
             id="change-reason"
             v-model="changeReason"
@@ -365,7 +368,7 @@ const levelDelta = (name: string): number | null => {
               v-model="changeForce"
               type="checkbox"
             >
-            Volle Aktivität oder Minimum übergehen (wird festgehalten)
+            {{ t.allocation.change.force }}
           </label>
         </p>
         <p class="actions">
@@ -373,58 +376,58 @@ const levelDelta = (name: string): number | null => {
             type="submit"
             :disabled="!canChange || action.busy.value"
           >
-            Ändern
+            {{ t.allocation.change.submit }}
           </button>
         </p>
       </form>
     </section>
 
     <section>
-      <h2>Lauf starten</h2>
+      <h2>{{ t.allocation.start.heading }}</h2>
       <p
         v-if="!solverConfigured"
         class="muted"
       >
-        Auf diesem Server ist kein Solver eingerichtet (<code>SOLVER_URL</code>); eine Zuteilung kann nicht berechnet werden.
+        {{ t.allocation.start.noSolver.before }} (<code>{{ SOLVER_SETTING }}</code>); {{ t.allocation.start.noSolver.after }}
       </p>
       <p
         v-else-if="solver && !solver.reachable"
         class="alert"
         role="alert"
       >
-        Der Solver antwortet nicht. Ein Lauf würde fehlschlagen.
+        {{ t.allocation.start.unreachable }}
       </p>
       <p
         v-else-if="solver"
         class="muted"
       >
-        Solver bereit (OR-Tools {{ solver.ortools }}, Vertrag {{ solver.contract }}).
+        {{ t.allocation.start.ready(solver.ortools ?? '', solver.contract ?? '') }}
       </p>
       <p
         v-if="campaign.state !== 'closed' && campaign.state !== 'review' && campaign.state !== 'allocating'"
         class="muted"
       >
-        Eine Zuteilung wird berechnet, sobald die Wahl beendet ist.
+        {{ t.allocation.start.notClosed }}
       </p>
       <form
         v-else
         class="panel"
-        aria-label="Lauf starten"
+        :aria-label="t.allocation.start.heading"
         @submit.prevent="onStart()"
       >
         <div class="field">
-          <label for="seed">Seed (leer: wird gezogen)</label>
+          <label for="seed">{{ t.allocation.start.seed }}</label>
           <input
             id="seed"
             v-model="seed"
             type="number"
             min="0"
             step="1"
-            placeholder="z. B. 4711"
+            :placeholder="t.allocation.start.seedExample"
           >
         </div>
         <div class="field">
-          <label for="limit">Zeitlimit pro Stufe (deterministische Sekunden, 1–60)</label>
+          <label for="limit">{{ t.allocation.start.limit }}</label>
           <input
             id="limit"
             v-model.number="limit"
@@ -434,7 +437,7 @@ const levelDelta = (name: string): number | null => {
             step="1"
           >
           <p class="muted">
-            Eine deterministische Sekunde dauert auf dem Server mehrere Sekunden; derselbe Seed mit demselben Limit ergibt dieselbe Zuteilung.
+            {{ t.allocation.start.limitHint }}
           </p>
         </div>
         <p class="actions">
@@ -442,23 +445,23 @@ const levelDelta = (name: string): number | null => {
             type="submit"
             :disabled="!canStart || action.busy.value"
           >
-            Zuteilung berechnen
+            {{ t.allocation.start.submit }}
           </button>
           <span
             v-if="running"
             class="muted"
-          >Ein Lauf wird gerade berechnet …</span>
+          >{{ t.allocation.start.running }}</span>
         </p>
       </form>
     </section>
 
     <section>
-      <h2>Läufe ({{ runs.length }})</h2>
+      <h2>{{ t.allocation.runs.heading(runs.length) }}</h2>
       <p
         v-if="runs.length === 0"
         class="muted"
       >
-        Noch kein Lauf.
+        {{ t.allocation.runs.none }}
       </p>
       <table
         v-else
@@ -466,13 +469,13 @@ const levelDelta = (name: string): number | null => {
       >
         <thead>
           <tr>
-            <th>Lauf</th>
-            <th>Gestartet</th>
-            <th>Status</th>
-            <th>Seed</th>
-            <th>Limit</th>
-            <th>Fehlende Minuten</th>
-            <th>Ohne alle Tage</th>
+            <th>{{ t.allocation.runs.run }}</th>
+            <th>{{ t.allocation.runs.started }}</th>
+            <th>{{ t.allocation.runs.status }}</th>
+            <th>{{ t.allocation.runs.seed }}</th>
+            <th>{{ t.allocation.runs.limit }}</th>
+            <th>{{ t.allocation.runs.deficit }}</th>
+            <th>{{ t.allocation.runs.notCovered }}</th>
             <th />
           </tr>
         </thead>
@@ -489,7 +492,7 @@ const levelDelta = (name: string): number | null => {
               <span
                 v-if="run.publishedAt"
                 class="badge badge-committed"
-              >veröffentlicht</span>
+              >{{ t.allocation.runs.published }}</span>
             </td>
             <td>{{ run.seed }}</td>
             <td>{{ run.limits.deterministicTimePerLevel }}</td>
@@ -502,16 +505,16 @@ const levelDelta = (name: string): number | null => {
                 :disabled="action.busy.value"
                 @click="select(run)"
               >
-                Ansehen
+                {{ t.common.view }}
               </button>
               <button
                 type="button"
                 class="ghost"
                 :disabled="!canStart || action.busy.value"
-                :title="`Noch einmal mit Seed ${run.seed} und Limit ${run.limits.deterministicTimePerLevel}: dieselbe Zuteilung, wenn sich nichts geändert hat`"
+                :title="t.allocation.runs.repeatHint(run.seed, run.limits.deterministicTimePerLevel)"
                 @click="onStart(run.seed, run.limits.deterministicTimePerLevel)"
               >
-                Wiederholen
+                {{ t.allocation.runs.repeat }}
               </button>
             </td>
           </tr>
@@ -520,19 +523,19 @@ const levelDelta = (name: string): number | null => {
     </section>
 
     <section v-if="selected">
-      <h2>Lauf {{ selected.run.seq }}</h2>
+      <h2>{{ t.allocation.review.heading(selected.run.seq) }}</h2>
       <p
         v-if="selected.stale"
         class="alert"
         role="alert"
       >
-        Seit diesem Lauf hat sich der Katalog, die Personenliste oder eine Klassenzuteilung geändert; das Ergebnis passt nicht mehr zur Wahl, wie sie jetzt steht. Für die Veröffentlichung ist ein neuer Lauf nötig.
+        {{ t.allocation.review.stale }}
       </p>
       <p
         v-if="selected.run.status === 'running'"
         class="muted"
       >
-        Wird berechnet …
+        {{ t.allocation.review.computing }}
       </p>
       <div
         v-else-if="selected.run.status !== 'succeeded'"
@@ -556,7 +559,7 @@ const levelDelta = (name: string): number | null => {
             </template><template v-if="p.personId">
               · {{ studentName(selected, p.personId) }}
             </template><template v-if="p.level">
-              · {{ levelLabel(p.level) }}: gemeldet {{ p.reported }}, nachgerechnet {{ p.recomputed }}
+              · {{ levelLabel(p.level) }}: {{ t.allocation.review.levelMismatch(p.reported ?? '', p.recomputed ?? '') }}
             </template>
           </li>
         </ul>
@@ -565,13 +568,13 @@ const levelDelta = (name: string): number | null => {
         v-if="selected.run.warnings.length > 0"
         class="panel"
       >
-        <p><strong>Hinweis vor dem Lösen:</strong> Für diese nicht absagbaren Aktivitäten kommen weniger Schüler/innen in Frage, als das Minimum verlangt. Schlägt der Lauf als unlösbar fehl, liegt es meist daran: absagbar machen, das Minimum senken oder die Aktivität zurückziehen.</p>
+        <p><strong>{{ t.allocation.review.warningLead }}:</strong> {{ t.allocation.review.warning }}</p>
         <ul>
           <li
             v-for="w in selected.run.warnings"
             :key="w.itemId"
           >
-            {{ itemTitle(selected, w.itemId) }}: {{ w.possible }} möglich, {{ w.minimum }} nötig
+            {{ itemTitle(selected, w.itemId) }}: {{ t.allocation.review.possible(w.possible, w.minimum) }}
           </li>
         </ul>
       </div>
@@ -581,9 +584,9 @@ const levelDelta = (name: string): number | null => {
           v-if="canPublish"
           class="panel"
         >
-          <h3>Veröffentlichen</h3>
+          <h3>{{ t.allocation.publish.heading }}</h3>
           <p v-if="!publishing">
-            Dieser Lauf wird das Ergebnis der Wahl: die Schüler/innen erhalten ihr Programm, die Klassenvorstände die Liste der nicht vollständig Zugeteilten, die Lehrkräfte abgesagter Aktivitäten die Absage. Danach ist kein weiterer Lauf möglich.
+            {{ t.allocation.publish.text }}
           </p>
           <p
             v-if="!publishing"
@@ -594,19 +597,19 @@ const levelDelta = (name: string): number | null => {
               :disabled="action.busy.value"
               @click="publishing = true"
             >
-              Lauf {{ selected.run.seq }} veröffentlichen …
+              {{ t.allocation.publish.start(selected.run.seq) }}
             </button>
           </p>
           <form
             v-else
-            aria-label="Veröffentlichung bestätigen"
+            :aria-label="t.allocation.publish.confirm"
             @submit.prevent="onPublish"
           >
             <p v-if="selected.run.cancelledItemIds.length === 0">
-              Keine Aktivität wird abgesagt.
+              {{ t.allocation.publish.noCancellations }}
             </p>
             <template v-else>
-              <p>Diese Aktivitäten finden nicht statt, weil zu wenige sie gewünscht haben:</p>
+              <p>{{ t.allocation.publish.cancellations }}</p>
               <ul>
                 <li
                   v-for="itemId in selected.run.cancelledItemIds"
@@ -620,7 +623,7 @@ const levelDelta = (name: string): number | null => {
                   v-model="cancellationsConfirmed"
                   type="checkbox"
                 >
-                Ich bestätige diese Absagen.
+                {{ t.allocation.publish.confirmCancellations }}
               </label>
             </template>
             <p class="actions">
@@ -628,45 +631,45 @@ const levelDelta = (name: string): number | null => {
                 type="submit"
                 :disabled="action.busy.value || (selected.run.cancelledItemIds.length > 0 && !cancellationsConfirmed)"
               >
-                Jetzt veröffentlichen
+                {{ t.allocation.publish.submit }}
               </button>
               <button
                 type="button"
                 class="ghost"
                 @click="publishing = false"
               >
-                Abbrechen
+                {{ t.common.cancel }}
               </button>
             </p>
           </form>
         </div>
         <p class="muted">
-          Seed {{ selected.run.seed }} · Limit {{ selected.run.limits.deterministicTimePerLevel }} · Solver {{ selected.run.versions?.solver }} (OR-Tools {{ selected.run.versions?.ortools }}) · Regeln Version {{ selected.run.coreVersion }}
+          {{ t.allocation.review.meta(selected.run.seed, selected.run.limits.deterministicTimePerLevel, selected.run.versions?.solver ?? '', selected.run.versions?.ortools ?? '', selected.run.coreVersion) }}
         </p>
         <p class="actions">
           <a
             class="button ghost-link"
             :href="withBase(runExportPath(props.id, selected.run.id))"
-          >Lauf als Excel</a>
+          >{{ t.allocation.review.runExport }}</a>
         </p>
         <ul class="cards">
-          <li><strong>{{ selected.summary.students.total }}</strong> Schüler/innen, {{ selected.summary.students.choosing }} mit Wahl</li>
-          <li><strong>{{ selected.summary.students.covered }}</strong> mit allen Tagen</li>
-          <li><strong>{{ selected.summary.students.withDeficit }}</strong> mit fehlenden Minuten</li>
-          <li><strong>{{ selected.summary.students.withFallback }}</strong> mit Ersatzplatz</li>
-          <li><strong>{{ selected.run.cancelledItemIds.length }}</strong> abgesagt</li>
-          <li><strong>{{ selected.summary.students.late }}</strong> aus der Nachfrist, <strong>{{ selected.summary.students.nonSubmitters }}</strong> ohne Wünsche</li>
+          <li><strong>{{ selected.summary.students.total }}</strong> {{ t.allocation.counts.students(selected.summary.students.choosing) }}</li>
+          <li><strong>{{ selected.summary.students.covered }}</strong> {{ t.allocation.counts.covered }}</li>
+          <li><strong>{{ selected.summary.students.withDeficit }}</strong> {{ t.allocation.counts.withDeficit }}</li>
+          <li><strong>{{ selected.summary.students.withFallback }}</strong> {{ t.allocation.counts.withFallback }}</li>
+          <li><strong>{{ selected.run.cancelledItemIds.length }}</strong> {{ t.allocation.counts.cancelled }}</li>
+          <li><strong>{{ selected.summary.students.late }}</strong> {{ t.allocation.counts.late }}, <strong>{{ selected.summary.students.nonSubmitters }}</strong> {{ t.allocation.counts.nonSubmitters }}</li>
         </ul>
 
-        <h3>Stufen</h3>
+        <h3>{{ t.allocation.review.levels }}</h3>
         <table class="table">
           <thead>
             <tr>
-              <th>Stufe</th>
-              <th>Wert (1. Durchgang)</th>
-              <th>Wert (2. Durchgang)</th>
+              <th>{{ t.allocation.review.level }}</th>
+              <th>{{ t.allocation.review.firstPass }}</th>
+              <th>{{ t.allocation.review.secondPass }}</th>
               <th v-if="other">
-                Vergleich
+                {{ t.allocation.review.comparison }}
               </th>
             </tr>
           </thead>
@@ -677,20 +680,20 @@ const levelDelta = (name: string): number | null => {
             >
               <td>{{ levelLabel(level.name) }}</td>
               <td>{{ selected.run.passes[0]?.levels.find((l) => l.name === level.name)?.value ?? '–' }} <span class="muted">{{ selected.run.passes[0]?.levels.find((l) => l.name === level.name)?.proven ? '✓' : '≈' }}</span></td>
-              <td>{{ level.value }} <span class="muted">{{ level.proven ? '✓ bewiesen' : '≈ nicht bewiesen' }}</span></td>
+              <td>{{ level.value }} <span class="muted">{{ level.proven ? t.allocation.review.proven : t.allocation.review.notProven }}</span></td>
               <td v-if="other">
                 <template v-if="levelDelta(level.name) !== null">
-                  {{ levelDelta(level.name) === 0 ? 'gleich' : (levelDelta(level.name) as number) > 0 ? `+${levelDelta(level.name)}` : levelDelta(level.name) }}
+                  {{ levelDelta(level.name) === 0 ? t.allocation.review.equal : (levelDelta(level.name) as number) > 0 ? `+${levelDelta(level.name)}` : levelDelta(level.name) }}
                 </template>
               </td>
             </tr>
           </tbody>
         </table>
         <p class="muted">
-          Durchgänge: {{ passSummary(selected) }}. Zuerst niemand ohne volle Woche, dann so wenige fehlende Minuten wie möglich, dann so wenige wie möglich mit hohem Durchschnittswunsch, dann das beste Gesamtergebnis; Gleichstand entscheidet das Los mit Seed {{ selected.run.seed }}.
+          {{ t.allocation.review.passes(passSummary(selected), selected.run.seed) }}
         </p>
 
-        <h3>Wünsche</h3>
+        <h3>{{ t.allocation.review.wishes }}</h3>
         <table class="table">
           <thead>
             <tr>
@@ -698,10 +701,10 @@ const levelDelta = (name: string): number | null => {
                 v-for="k in rankKeys"
                 :key="k"
               >
-                {{ k }}. Wunsch
+                {{ t.allocation.review.rank(k) }}
               </th>
-              <th>Ersatzplatz</th>
-              <th>Klassenaktivität</th>
+              <th>{{ t.allocation.review.fallback }}</th>
+              <th>{{ t.allocation.review.fixed }}</th>
             </tr>
           </thead>
           <tbody>
@@ -719,7 +722,7 @@ const levelDelta = (name: string): number | null => {
         </table>
 
         <h3 v-if="selected.run.cancelledItemIds.length > 0">
-          Abgesagt
+          {{ t.allocation.review.cancelled }}
         </h3>
         <ul v-if="selected.run.cancelledItemIds.length > 0">
           <li
@@ -730,12 +733,12 @@ const levelDelta = (name: string): number | null => {
           </li>
         </ul>
 
-        <h3>Fehlende Minuten ({{ selected.summary.deficits.length }})</h3>
+        <h3>{{ t.allocation.review.deficits(selected.summary.deficits.length) }}</h3>
         <p
           v-if="selected.summary.deficits.length === 0"
           class="muted"
         >
-          Niemandem fehlen Minuten.
+          {{ t.allocation.review.noDeficits }}
         </p>
         <table
           v-else
@@ -743,10 +746,10 @@ const levelDelta = (name: string): number | null => {
         >
           <thead>
             <tr>
-              <th>Schüler/in</th>
-              <th>Klasse</th>
-              <th>Tag</th>
-              <th>Fehlend</th>
+              <th>{{ t.common.field.student }}</th>
+              <th>{{ t.common.field.className }}</th>
+              <th>{{ t.common.field.day }}</th>
+              <th>{{ t.allocation.review.missing }}</th>
             </tr>
           </thead>
           <tbody>
@@ -757,12 +760,12 @@ const levelDelta = (name: string): number | null => {
               <td>{{ studentName(selected, d.personId) }}</td>
               <td>{{ selected.students.find((s) => s.personId === d.personId)?.className }}</td>
               <td>{{ formatDay(d.date) }}</td>
-              <td>{{ d.minutes }} min</td>
+              <td>{{ t.common.minutes(d.minutes) }}</td>
             </tr>
           </tbody>
         </table>
 
-        <h3>Ersatzplätze ({{ selected.summary.fallbacks.length }})</h3>
+        <h3>{{ t.allocation.review.fallbacks(selected.summary.fallbacks.length) }}</h3>
         <ul v-if="selected.summary.fallbacks.length > 0">
           <li
             v-for="(f, index) in selected.summary.fallbacks"
@@ -772,17 +775,17 @@ const levelDelta = (name: string): number | null => {
           </li>
         </ul>
 
-        <h3>Aktivitäten</h3>
+        <h3>{{ t.allocation.review.items }}</h3>
         <table class="table">
           <thead>
             <tr>
-              <th>Nr.</th>
-              <th>Aktivität</th>
-              <th>Plätze</th>
-              <th>Zugeteilt</th>
-              <th>Fix (Klassen)</th>
-              <th>Minimum</th>
-              <th>Stand</th>
+              <th>{{ t.common.field.number }}</th>
+              <th>{{ t.common.field.item }}</th>
+              <th>{{ t.common.field.places }}</th>
+              <th>{{ t.allocation.review.assigned }}</th>
+              <th>{{ t.allocation.review.fixedClasses }}</th>
+              <th>{{ t.allocation.review.minimum }}</th>
+              <th>{{ t.common.field.state }}</th>
             </tr>
           </thead>
           <tbody>
@@ -800,24 +803,24 @@ const levelDelta = (name: string): number | null => {
                 <span
                   v-if="item.cancelled"
                   class="badge badge-withdrawn"
-                >abgesagt</span>
+                >{{ t.allocation.review.itemCancelled }}</span>
                 <span
                   v-else-if="item.assigned + item.fixed === 0"
                   class="badge"
-                >leer</span>
+                >{{ t.allocation.review.itemEmpty }}</span>
               </td>
             </tr>
           </tbody>
         </table>
 
-        <h3>Klassen</h3>
+        <h3>{{ t.allocation.review.classes }}</h3>
         <table class="table">
           <thead>
             <tr>
-              <th>Klasse</th>
-              <th>Schüler/innen</th>
-              <th>Mit fehlenden Minuten</th>
-              <th>Mit Ersatzplatz</th>
+              <th>{{ t.common.field.className }}</th>
+              <th>{{ t.common.field.students }}</th>
+              <th>{{ t.allocation.review.classWithDeficit }}</th>
+              <th>{{ t.allocation.review.classWithFallback }}</th>
             </tr>
           </thead>
           <tbody>
@@ -833,9 +836,9 @@ const levelDelta = (name: string): number | null => {
           </tbody>
         </table>
 
-        <h3>Vergleich</h3>
+        <h3>{{ t.allocation.review.compare }}</h3>
         <div class="field">
-          <label for="compare">Mit Lauf</label>
+          <label for="compare">{{ t.allocation.review.compareWith }}</label>
           <select
             id="compare"
             v-model="compareId"
@@ -849,14 +852,14 @@ const levelDelta = (name: string): number | null => {
               :key="run.id"
               :value="run.id"
             >
-              Lauf {{ run.seq }} (Seed {{ run.seed }})
+              {{ t.allocation.review.compareOption(run.seq, run.seed) }}
             </option>
           </select>
         </div>
         <template v-if="other">
           <p>
-            <strong>{{ differences.length }}</strong> Schüler/innen sind in Lauf {{ selected.run.seq }} anders zugeteilt als in Lauf {{ other.run.seq }}<template v-if="differences.length === 0">
-              : dieselbe Zuteilung
+            <strong>{{ differences.length }}</strong> {{ t.allocation.review.differences(selected.run.seq, other.run.seq) }}<template v-if="differences.length === 0">
+              : {{ t.allocation.review.noDifferences }}
             </template>.
           </p>
           <ul v-if="differences.length > 0">
@@ -864,25 +867,25 @@ const levelDelta = (name: string): number | null => {
               v-for="s in differences.slice(0, 50)"
               :key="s.personId"
             >
-              {{ s.displayName }} ({{ s.className }}): {{ s.items.map((e) => itemTitle(selected as RunReviewResponse, e.itemId)).join(', ') }} <span class="muted">statt {{ (other.students.find((o) => o.personId === s.personId)?.items ?? []).map((e) => itemTitle(other as RunReviewResponse, e.itemId)).join(', ') || '–' }}</span>
+              {{ s.displayName }} ({{ s.className }}): {{ s.items.map((e) => itemTitle(selected as RunReviewResponse, e.itemId)).join(', ') }} <span class="muted">{{ t.allocation.review.instead }} {{ (other.students.find((o) => o.personId === s.personId)?.items ?? []).map((e) => itemTitle(other as RunReviewResponse, e.itemId)).join(', ') || '–' }}</span>
             </li>
           </ul>
         </template>
 
-        <h3>Schüler/innen ({{ selected.students.length }})</h3>
+        <h3>{{ t.allocation.review.studentList(selected.students.length) }}</h3>
         <table class="table">
           <thead>
             <tr>
-              <th>Klasse</th>
-              <th>Name</th>
-              <th>Fenster</th>
+              <th>{{ t.common.field.className }}</th>
+              <th>{{ t.common.field.name }}</th>
+              <th>{{ t.allocation.review.window }}</th>
               <th
                 v-for="date in selected.projectDays"
                 :key="date"
               >
                 {{ formatDay(date) }}
               </th>
-              <th>Ø Wunsch</th>
+              <th>{{ t.allocation.review.averageRank }}</th>
             </tr>
           </thead>
           <tbody>
@@ -892,7 +895,7 @@ const levelDelta = (name: string): number | null => {
             >
               <td>{{ s.className }}</td>
               <td>{{ s.displayName }}</td>
-              <td>{{ s.window === null ? 'keine Wünsche' : WINDOW_LABELS[s.window] ?? s.window }}</td>
+              <td>{{ s.window === null ? t.allocation.review.noWishes : WINDOW_LABELS[s.window] ?? s.window }}</td>
               <td
                 v-for="date in selected.projectDays"
                 :key="date"
@@ -902,14 +905,14 @@ const levelDelta = (name: string): number | null => {
                 <span
                   v-if="(s.days.find((d) => d.date === date)?.deficit ?? 0) > 0"
                   class="muted"
-                >({{ s.days.find((d) => d.date === date)?.deficit }} min fehlen)</span>
+                >({{ t.allocation.review.minutesMissing(s.days.find((d) => d.date === date)?.deficit ?? 0) }})</span>
               </td>
               <td>{{ s.averageRank === null ? '–' : s.averageRank.toFixed(2) }}</td>
             </tr>
           </tbody>
         </table>
         <p class="muted">
-          Quellen: {{ Object.values(ASSIGNMENT_SOURCE_LABELS).join(', ') }}.
+          {{ t.allocation.review.sources(Object.values(ASSIGNMENT_SOURCE_LABELS).join(', ')) }}
         </p>
       </template>
     </section>

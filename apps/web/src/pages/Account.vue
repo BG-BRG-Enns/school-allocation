@@ -3,39 +3,40 @@
 // account, with class and grade, and the roles they hold.
 
 import { computed } from 'vue'
+import { t } from '../lib/i18n.ts'
 import { KIND_LABELS, ROLE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
-usePageTitle(() => 'Mein Konto')
+usePageTitle(() => t.common.page.account)
 
 const personText = computed(() => {
   const person = session.value?.person
   if (!person) return null
-  if (person.kind === null) return 'In der aktuellen Personenliste der Schule nicht (mehr) enthalten.'
+  if (person.kind === null) return t.account.notInRoster
   const kind = KIND_LABELS[person.kind] ?? person.kind
   if (person.kind === 'student' && person.className !== null) {
-    return `${kind}, Klasse ${person.className}${person.grade === null ? '' : ` (${person.grade}. Schulstufe)`}`
+    return t.account.student(kind, person.className, person.grade)
   }
   return kind
 })
 </script>
 
 <template>
-  <h1>Mein Konto</h1>
+  <h1>{{ t.common.page.account }}</h1>
   <dl v-if="session">
-    <dt>Name</dt>
+    <dt>{{ t.common.field.name }}</dt>
     <dd>{{ session.displayName }}</dd>
-    <dt>An der Schule</dt>
+    <dt>{{ t.account.atSchool }}</dt>
     <dd v-if="personText">
       {{ personText }}
     </dd>
     <dd v-else>
-      Noch keiner Person der Schule zugeordnet. Wenn Sie an einer Wahl teilnehmen sollen, wenden Sie sich bitte an die Verwaltung.
+      {{ t.account.unbound }}
     </dd>
-    <dt>Rollen</dt>
+    <dt>{{ t.account.roles }}</dt>
     <dd v-if="session.roles.length === 0">
-      Keine besonderen Rollen.
+      {{ t.account.noRoles }}
     </dd>
     <dd v-else>
       <ul>

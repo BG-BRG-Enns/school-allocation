@@ -14,14 +14,15 @@ import { loadParticipants, type ParticipantsResponse } from '../lib/allocation-a
 import { ApiError } from '../lib/api-rules.ts'
 import { createItem, loadCampaign, loadClasses, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodLabel, touchedDates } from '../lib/format.ts'
+import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodsOnGrid, touchedDates } from '../lib/format.ts'
+import { t } from '../lib/i18n.ts'
 import { ASSIGNMENT_SOURCE_LABELS, CATALOGUE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
 const props = defineProps<{ id: string, itemId?: string }>()
 const router = useRouter()
-usePageTitle(() => props.itemId ? 'Aktivität bearbeiten' : 'Neue Aktivität')
+usePageTitle(() => props.itemId ? t.item.editTitle : t.common.page.newItem)
 
 const campaign = ref<Campaign | null>(null)
 const classes = ref<{ className: string, grade: number }[]>([])
@@ -128,12 +129,11 @@ function fromStored(s: Item['sessions'][number]): SessionForm {
     location: s.location,
     credits: Object.fromEntries(s.credits.map((c) => [c.date, c.minutes])),
   }
-  const label = periodLabel(grid.value, s.startsAt, s.endsAt)
-  if (label !== null) {
-    const [from, to] = label.replace(' EH', '').split('.–').map((part) => Number.parseInt(part, 10))
+  const span = periodsOnGrid(grid.value, s.startsAt, s.endsAt)
+  if (span !== null) {
     form.mode = 'periods'
-    form.fromPeriod = from ?? DEFAULT_FROM
-    form.count = (to ?? from ?? DEFAULT_FROM) - (from ?? DEFAULT_FROM) + 1
+    form.fromPeriod = span.from
+    form.count = span.to - span.from + 1
   }
   return form
 }
@@ -258,8 +258,11 @@ async function save(propose: boolean): Promise<void> {
       if (err instanceof ApiError && err.code === 'item_invalid') {
         const body = err.body as unknown as ItemInvalidBody
         problems.value = [
-          ...body.problems.map((p) => `${CATALOGUE_PROBLEM_LABELS[p.code] ?? p.code}${p.session === undefined ? '' : ` (Termin ${p.session + 1})`}`),
-          ...(body.unknownTeachers.length > 0 ? ['Eine Lehrkraft ist nicht in der Personenliste'] : []),
+          ...body.problems.map((p) => {
+            const label = CATALOGUE_PROBLEM_LABELS[p.code] ?? p.code
+            return p.session === undefined ? label : t.item.inSession(label, p.session + 1)
+          }),
+          ...(body.unknownTeachers.length > 0 ? [t.item.unknownTeachers] : []),
         ]
       }
       throw err
@@ -272,10 +275,10 @@ async function save(propose: boolean): Promise<void> {
 <template>
   <p>
     <RouterLink :to="`/wahlen/${props.id}`">
-      ← Zur Wahl
+      ← {{ t.common.backToCampaign }}
     </RouterLink>
   </p>
-  <h1>{{ props.itemId ? 'Aktivität bearbeiten' : 'Neue Aktivität' }}</h1>
+  <h1>{{ props.itemId ? t.item.editTitle : t.common.page.newItem }}</h1>
   <p
     v-if="loading.error.value"
     role="alert"
@@ -291,10 +294,10 @@ async function save(propose: boolean): Promise<void> {
       v-if="existing?.reviewNote"
       class="notice"
     >
-      Rückmeldung der Organisation: {{ existing.reviewNote }}
+      {{ t.item.reviewNote(existing.reviewNote) }}
     </p>
     <p class="field">
-      <label for="title">Titel</label>
+      <label for="title">{{ t.item.title }}</label>
       <input
         id="title"
         v-model="title"
@@ -303,7 +306,7 @@ async function save(propose: boolean): Promise<void> {
       >
     </p>
     <p class="field">
-      <label for="description">Beschreibung</label>
+      <label for="description">{{ t.item.description }}</label>
       <textarea
         id="description"
         v-model="description"
@@ -312,7 +315,7 @@ async function save(propose: boolean): Promise<void> {
       />
     </p>
     <p class="field">
-      <label for="location">Ort oder Treffpunkt</label>
+      <label for="location">{{ t.item.location }}</label>
       <input
         id="location"
         v-model="location"
@@ -320,21 +323,21 @@ async function save(propose: boolean): Promise<void> {
       >
     </p>
 
-    <h2>Lehrkräfte</h2>
+    <h2>{{ t.common.field.teachers }}</h2>
     <div class="chips">
       <button
         v-for="teacher in teachers"
         :key="teacher.personId"
         type="button"
         class="ghost"
-        :aria-label="`${teacher.displayName} entfernen`"
+        :aria-label="t.item.teachers.remove(teacher.displayName)"
         @click="removeTeacher(teacher.personId)"
       >
         {{ teacher.displayName }} ✕
       </button>
     </div>
     <p class="field">
-      <label for="teacher-search">Lehrkraft hinzufügen</label>
+      <label for="teacher-search">{{ t.item.teachers.search }}</label>
       <input
         id="teacher-search"
         v-model="teacherQuery"
@@ -356,23 +359,23 @@ async function save(propose: boolean): Promise<void> {
           class="ghost"
           @click="addTeacher(teacher)"
         >
-          {{ teacher.displayName }} hinzufügen
+          {{ t.item.teachers.add(teacher.displayName) }}
         </button>
       </li>
     </ul>
 
-    <h2>Termine</h2>
+    <h2>{{ t.common.field.sessions }}</h2>
     <p class="muted">
-      Ein Termin liegt in den Unterrichtseinheiten der Schule oder, etwa ein Ausflug, nach der Uhr. Angerechnet werden die Minuten, die die Lehrkraft je Projekttag angibt; Anreise und Pausen zählen nicht.
+      {{ t.item.sessions.intro }}
     </p>
     <div
       v-for="(s, index) in sessions"
       :key="index"
       class="session"
     >
-      <h3>Termin {{ index + 1 }}</h3>
+      <h3>{{ t.item.sessions.session(index + 1) }}</h3>
       <p class="field">
-        <label :for="`s-${index}-mode`">Eingabe</label>
+        <label :for="`s-${index}-mode`">{{ t.item.sessions.mode }}</label>
         <select
           :id="`s-${index}-mode`"
           v-model="s.mode"
@@ -382,10 +385,10 @@ async function save(propose: boolean): Promise<void> {
             value="periods"
             :disabled="grid.length === 0"
           >
-            nach Einheiten
+            {{ t.item.sessions.byPeriods }}
           </option>
           <option value="clock">
-            nach Uhrzeit
+            {{ t.item.sessions.byClock }}
           </option>
         </select>
       </p>
@@ -394,7 +397,7 @@ async function save(propose: boolean): Promise<void> {
         class="row"
       >
         <p class="field">
-          <label :for="`s-${index}-day`">Tag</label>
+          <label :for="`s-${index}-day`">{{ t.common.field.day }}</label>
           <select
             :id="`s-${index}-day`"
             v-model="s.date"
@@ -411,7 +414,7 @@ async function save(propose: boolean): Promise<void> {
           </select>
         </p>
         <p class="field">
-          <label :for="`s-${index}-from`">ab Einheit</label>
+          <label :for="`s-${index}-from`">{{ t.item.sessions.fromPeriod }}</label>
           <select
             :id="`s-${index}-from`"
             v-model.number="s.fromPeriod"
@@ -422,12 +425,12 @@ async function save(propose: boolean): Promise<void> {
               :key="p.period"
               :value="p.period"
             >
-              {{ p.period }}. EH ({{ p.starts }})
+              {{ t.format.period(p.period) }} ({{ p.starts }})
             </option>
           </select>
         </p>
         <p class="field">
-          <label :for="`s-${index}-count`">Einheiten</label>
+          <label :for="`s-${index}-count`">{{ t.item.sessions.count }}</label>
           <input
             :id="`s-${index}-count`"
             v-model.number="s.count"
@@ -442,7 +445,7 @@ async function save(propose: boolean): Promise<void> {
           <span class="muted">{{ s.start }} – {{ s.end }}</span>
         </p>
         <p class="field">
-          <label :for="`s-${index}-location`">Ort</label>
+          <label :for="`s-${index}-location`">{{ t.item.sessions.location }}</label>
           <input
             :id="`s-${index}-location`"
             v-model="s.location"
@@ -455,7 +458,7 @@ async function save(propose: boolean): Promise<void> {
         class="row"
       >
         <p class="field">
-          <label :for="`s-${index}-date`">Beginn am</label>
+          <label :for="`s-${index}-date`">{{ t.item.sessions.startsOn }}</label>
           <input
             :id="`s-${index}-date`"
             v-model="s.date"
@@ -465,7 +468,7 @@ async function save(propose: boolean): Promise<void> {
           >
         </p>
         <p class="field">
-          <label :for="`s-${index}-start`">um</label>
+          <label :for="`s-${index}-start`">{{ t.item.sessions.at }}</label>
           <input
             :id="`s-${index}-start`"
             v-model="s.start"
@@ -474,7 +477,7 @@ async function save(propose: boolean): Promise<void> {
           >
         </p>
         <p class="field">
-          <label :for="`s-${index}-end-date`">Ende am</label>
+          <label :for="`s-${index}-end-date`">{{ t.item.sessions.endsOn }}</label>
           <input
             :id="`s-${index}-end-date`"
             v-model="s.endDate"
@@ -483,7 +486,7 @@ async function save(propose: boolean): Promise<void> {
           >
         </p>
         <p class="field">
-          <label :for="`s-${index}-end`">um</label>
+          <label :for="`s-${index}-end`">{{ t.item.sessions.at }}</label>
           <input
             :id="`s-${index}-end`"
             v-model="s.end"
@@ -492,7 +495,7 @@ async function save(propose: boolean): Promise<void> {
           >
         </p>
         <p class="field">
-          <label :for="`s-${index}-location`">Ort</label>
+          <label :for="`s-${index}-location`">{{ t.item.sessions.location }}</label>
           <input
             :id="`s-${index}-location`"
             v-model="s.location"
@@ -506,7 +509,7 @@ async function save(propose: boolean): Promise<void> {
           :key="date"
           class="field"
         >
-          <label :for="`s-${index}-credit-${date}`">Minuten am {{ formatDay(date) }}</label>
+          <label :for="`s-${index}-credit-${date}`">{{ t.item.sessions.minutesOn(formatDay(date)) }}</label>
           <input
             :id="`s-${index}-credit-${date}`"
             type="number"
@@ -525,7 +528,7 @@ async function save(propose: boolean): Promise<void> {
           class="ghost"
           @click="removeSession(index)"
         >
-          Termin entfernen
+          {{ t.item.sessions.remove }}
         </button>
       </p>
     </div>
@@ -536,13 +539,13 @@ async function save(propose: boolean): Promise<void> {
         :disabled="sessions.length >= 10"
         @click="addSession"
       >
-        Termin hinzufügen
+        {{ t.item.sessions.add }}
       </button>
     </p>
 
-    <h2>Teilnahme</h2>
+    <h2>{{ t.item.participation.heading }}</h2>
     <fieldset class="field">
-      <legend>Fix zugeteilte Klassen (die Aktivität findet für sie statt; sie wählen sie nicht)</legend>
+      <legend>{{ t.item.participation.fixedClasses }}</legend>
       <div class="checks">
         <label
           v-for="c in classes"
@@ -558,7 +561,7 @@ async function save(propose: boolean): Promise<void> {
       </div>
     </fieldset>
     <p class="field">
-      <label for="places">{{ isFixed ? 'Zusätzliche Plätze für andere Schüler/innen' : 'Plätze' }}</label>
+      <label for="places">{{ isFixed ? t.item.participation.extraPlaces : t.common.field.places }}</label>
       <input
         id="places"
         v-model.number="places"
@@ -570,7 +573,7 @@ async function save(propose: boolean): Promise<void> {
     </p>
     <template v-if="!isFixed">
       <p class="field">
-        <label for="min">Mindestteilnehmer/innen</label>
+        <label for="min">{{ t.item.participation.minParticipants }}</label>
         <input
           id="min"
           v-model.number="minParticipants"
@@ -585,12 +588,12 @@ async function save(propose: boolean): Promise<void> {
             v-model="cancellableBelowMin"
             type="checkbox"
           >
-          Darf bei zu wenigen Anmeldungen abgesagt werden
+          {{ t.item.participation.cancellable }}
         </label>
       </p>
     </template>
     <fieldset class="field">
-      <legend>Wählbar für Schulstufen (keine Auswahl: alle)</legend>
+      <legend>{{ t.item.participation.eligibleGrades }}</legend>
       <div class="checks">
         <label
           v-for="grade in grades"
@@ -606,7 +609,7 @@ async function save(propose: boolean): Promise<void> {
       </div>
     </fieldset>
     <fieldset class="field">
-      <legend>Wählbar für Klassen (keine Auswahl: alle)</legend>
+      <legend>{{ t.item.participation.eligibleClasses }}</legend>
       <div class="checks">
         <label
           v-for="c in classes"
@@ -623,9 +626,9 @@ async function save(propose: boolean): Promise<void> {
       </div>
     </fieldset>
 
-    <h2>Beitrag</h2>
+    <h2>{{ t.common.field.fee }}</h2>
     <p class="field">
-      <label for="fee">Beitrag in Euro (leer: keiner)</label>
+      <label for="fee">{{ t.item.fee.amount }}</label>
       <input
         id="fee"
         v-model="feeEuro"
@@ -635,7 +638,7 @@ async function save(propose: boolean): Promise<void> {
       >
     </p>
     <p class="field">
-      <label for="fee-note">Wofür</label>
+      <label for="fee-note">{{ t.item.fee.note }}</label>
       <input
         id="fee-note"
         v-model="feeNote"
@@ -667,7 +670,7 @@ async function save(propose: boolean): Promise<void> {
         type="submit"
         :disabled="saving.busy.value"
       >
-        Speichern
+        {{ t.common.save }}
       </button>
       <button
         v-if="!existing || existing.state === 'draft'"
@@ -675,18 +678,18 @@ async function save(propose: boolean): Promise<void> {
         :disabled="saving.busy.value"
         @click="save(true)"
       >
-        Speichern und einreichen
+        {{ t.item.saveAndPropose }}
       </button>
     </p>
   </form>
   <section v-if="participantsView">
-    <h2>Teilnehmer/innen ({{ participantsView.participants.length }})</h2>
+    <h2>{{ t.item.participants.heading(participantsView.participants.length) }}</h2>
     <p
       v-if="participantsView.item.cancelled"
       class="alert"
       role="status"
     >
-      Diese Aktivität wurde bei der Zuteilung abgesagt: zu wenige Wünsche für ihre Mindestteilnehmerzahl.
+      {{ t.item.participants.cancelled }}
     </p>
     <ul v-else-if="participantsView.participants.length > 0">
       <li
@@ -700,7 +703,7 @@ async function save(propose: boolean): Promise<void> {
       v-else
       class="muted"
     >
-      Niemand wurde dieser Aktivität zugeteilt.
+      {{ t.item.participants.none }}
     </p>
   </section>
 </template>

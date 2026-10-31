@@ -20,6 +20,7 @@
     "@fastify/rate-limit": "11.2.1",
     "@fastify/secure-session": "8.4.1",
     "@fastify/static": "10.1.7",
+    "@school-allocation/messages": "0.1.0",
     "@school-allocation/school-core": "0.1.0",
     "fastify": "5.12.7",
     "jose": "6.2.13",

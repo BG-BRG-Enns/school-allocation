@@ -4,11 +4,12 @@
 import { onMounted, ref } from 'vue'
 import { loadCampaigns, type Campaign } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
+import { t } from '../lib/i18n.ts'
 import { CAMPAIGN_STATE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
-usePageTitle(() => 'Startseite')
+usePageTitle(() => t.common.page.start)
 const campaigns = ref<Campaign[] | null>(null)
 const loading = useFeedback()
 onMounted(() => loading.run(async () => {
@@ -17,9 +18,9 @@ onMounted(() => loading.run(async () => {
 </script>
 
 <template>
-  <h1>Startseite</h1>
+  <h1>{{ t.common.page.start }}</h1>
   <p v-if="session">
-    Angemeldet als <strong>{{ session.displayName }}</strong>.
+    {{ t.start.signedInAs }} <strong>{{ session.displayName }}</strong>.
   </p>
   <p
     v-if="loading.error.value"
@@ -30,7 +31,7 @@ onMounted(() => loading.run(async () => {
   </p>
   <template v-if="campaigns">
     <p v-if="campaigns.length === 0">
-      Es gibt noch keine Wahl, an der Sie teilnehmen oder die Sie betreuen.
+      {{ t.start.noCampaigns }}
     </p>
     <ul
       v-else

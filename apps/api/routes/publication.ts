@@ -8,6 +8,7 @@ import type { FastifyInstance } from 'fastify'
 import { actorOf } from '../lib/actor.ts'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
+import { t } from '../lib/i18n.ts'
 import { runWorkbook } from '../lib/xlsx.ts'
 import { runCampaign } from '../services/allocation.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
@@ -40,7 +41,7 @@ export async function publicationRoutes(app: FastifyInstance, { db, guards, base
     const bytes = await runWorkbook(review, changes)
     return reply
       .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      .header('content-disposition', `attachment; filename="zuteilung-${campaign.schoolYear.replace('/', '-')}.xlsx"`)
+      .header('content-disposition', `attachment; filename="${t.files.assignments(campaign.schoolYear.replace('/', '-'))}"`)
       .send(bytes)
   })
 

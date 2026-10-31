@@ -8,7 +8,7 @@ Everyone taking part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT
 
 - For anything beyond a small fix, open an issue first and describe what you want to change. That avoids work on something that conflicts with the design in [`docs/`](docs/).
 - The invariants in [`AGENTS.md`](AGENTS.md) (Entra ID as the only assumption, the identity as the key, audited roles, reproducible and validated allocations, a release only on the schema it was built for) are not open to trade-offs for convenience.
-- Code, comments and documentation are in English. The user interface is in German.
+- Code, comments and documentation are in English. The user interface's words are in the message catalogue, German first (below).
 
 ## Setup
 
@@ -56,6 +56,10 @@ uv run --frozen pytest -q                      # the model against instances wit
 ```
 
 A dependency change edits the exact pin in `pyproject.toml` and runs `uv lock`; both files are committed, and Dependabot bumps them together. The image exports the lock to a requirements file at build time and installs it with `pip --require-hashes`, so nothing outside the lock can reach it. CI runs the solver's tests from the same lock (`uv sync --frozen`).
+
+## Words of the interface
+
+Every word the app shows, writes into a workbook or fills into a notice comes from `packages/messages/src/de.ts`. Outside it on purpose: the mail templates, which an organizer edits and the database stores; the names the audit log records for the clock and the server's start (`Zeitsteuerung`, `Systemstart`), which are part of its hashed chain; the CSV roster's format (its example row and the kinds it accepts); and `lang` and `<title>` in `index.html`. A new string goes there, under an English key in the group of its page (Wahl.vue's words are in `campaign`), or in `common` when several pages say the same thing; a value that depends on a number or a name is a function of it. Pages read it as `t.<group>.<key>` from `apps/web/src/lib/i18n.ts`, the API from `apps/api/lib/i18n.ts`, and the browser journeys look elements up by the same entries, so a change of wording is a change of that one file. ESLint refuses bare text in a template.
 
 ## Checks
 

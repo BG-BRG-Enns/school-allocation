@@ -9,6 +9,7 @@ import { registerEndpoint } from '../lib/endpoint.ts'
 import type { FastifyInstance } from 'fastify'
 import { type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
+import { t } from '../lib/i18n.ts'
 import { missingWorkbook } from '../lib/xlsx.ts'
 
 export interface ChoiceReportsRoutesOptions {
@@ -29,7 +30,7 @@ export async function choiceReportsRoutes(app: FastifyInstance, { db, guards }: 
     const bytes = await missingWorkbook(students)
     return reply
       .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      .header('content-disposition', `attachment; filename="wahlstand-${campaign.schoolYear.replace('/', '-')}.xlsx"`)
+      .header('content-disposition', `attachment; filename="${t.files.missing(campaign.schoolYear.replace('/', '-'))}"`)
       .send(bytes)
   })
 

@@ -111,6 +111,29 @@ export default [
       'vue/no-v-html': 'error',
     },
   },
+  // Every word on a page comes from the message catalogue
+  // (packages/messages/src/de.ts), so a template holds none of its own:
+  // only punctuation, symbols and numbers stand bare. The rule sees text
+  // and the attributes a person reads (title, aria-label, placeholder,
+  // alt); a word inside an expression is the reviewer's to catch.
+  {
+    files: ['apps/web/src/**/*.vue'],
+    rules: {
+      'vue/no-bare-strings-in-template': ['error', {
+        allowlist: [
+          '(', ')', ',', '.', ';', ':', '!', '?', '&', '+', '-', '=', '*', '/', '#', '%', '[', ']', '{', '}', '<', '>', '|',
+          '·', '•', '‐', '–', '—', '−', '…', '←', '→', '€', '×', '✕', '„', '“', '"', '\'',
+          String.raw`/\d+/`,
+        ],
+        attributes: {
+          '/.+/': ['title', 'aria-label', 'aria-placeholder', 'aria-roledescription', 'aria-valuetext', 'aria-description'],
+          'input': ['placeholder'],
+          'textarea': ['placeholder'],
+          'img': ['alt'],
+        },
+      }],
+    },
+  },
 
   // The domain package is pure: eligibility, time arithmetic, completeness,
   // the allocation model and its validation, the lifecycle guards. It must
@@ -118,9 +141,11 @@ export default [
   // code runs in the API and the browser. It must also be deterministic: the
   // same input always gives the same result, so nothing in it may read
   // randomness or the clock. Enforced here rather than left to review. Tests
-  // may use node:test.
+  // may use node:test. The message catalogue is held to the same rules: the
+  // API and the browser read the same words, and a word never depends on
+  // when or where it is read.
   {
-    files: ['packages/school-core/src/**/*.ts'],
+    files: ['packages/school-core/src/**/*.ts', 'packages/messages/src/**/*.ts'],
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
@@ -128,7 +153,7 @@ export default [
             // Only same-directory imports: src is flat, so any ../ would
             // leave it. Widen this deliberately if src ever gets folders.
             regex: String.raw`^(?!\./)`,
-            message: 'school-core is a pure domain module: only ./ imports inside src are allowed.',
+            message: 'school-core and messages are pure modules: only ./ imports inside src are allowed.',
           },
         ],
       }],
@@ -136,16 +161,16 @@ export default [
       // every other restriction could be sidestepped (globalThis.Math.random),
       // and process because Node's types are in scope for the tests.
       'no-restricted-globals': ['error',
-        { name: 'Date', message: 'school-core must not depend on the clock.' },
-        { name: 'crypto', message: 'school-core must not depend on randomness.' },
-        { name: 'performance', message: 'school-core must not depend on the clock.' },
+        { name: 'Date', message: 'A pure module must not depend on the clock.' },
+        { name: 'crypto', message: 'A pure module must not depend on randomness.' },
+        { name: 'performance', message: 'A pure module must not depend on the clock.' },
         ...['globalThis', 'global', 'window', 'self', 'process'].map((name) => ({
           name,
-          message: 'school-core must not reach the runtime environment.',
+          message: 'A pure module must not reach the runtime environment.',
         })),
       ],
       'no-restricted-properties': ['error',
-        { object: 'Math', property: 'random', message: 'school-core must not depend on randomness.' },
+        { object: 'Math', property: 'random', message: 'A pure module must not depend on randomness.' },
       ],
     },
   },

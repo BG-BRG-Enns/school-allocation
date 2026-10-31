@@ -7,11 +7,12 @@ import { computed, onMounted, ref } from 'vue'
 import { loadRetention, purgeSchoolYear, type RetentionYear } from '../lib/admin-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatWhenShort } from '../lib/format.ts'
+import { t } from '../lib/i18n.ts'
 import { CAMPAIGN_STATE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { isSchoolAdmin, session } from '../lib/session.ts'
 
-usePageTitle(() => 'Aufbewahrung')
+usePageTitle(() => t.common.page.retention)
 const years = ref<RetentionYear[]>([])
 const loading = useFeedback()
 const action = useFeedback()
@@ -37,7 +38,7 @@ async function onPurge(): Promise<void> {
   if (!ready.value) return
   const ok = await action.run(async () => {
     removed.value = (await purgeSchoolYear(chosen.value, reason.value.trim())).removed
-  }, 'Die Aufzeichnungen des Schuljahrs sind gelöscht.')
+  }, t.retention.purged)
   if (ok) {
     chosen.value = ''
     confirmYear.value = ''
@@ -50,19 +51,19 @@ async function onPurge(): Promise<void> {
 <template>
   <p>
     <RouterLink to="/verwaltung">
-      ← Zur Verwaltung
+      ← {{ t.common.backToAdmin }}
     </RouterLink>
   </p>
-  <h1>Aufbewahrung</h1>
+  <h1>{{ t.common.page.retention }}</h1>
   <p
     v-if="!mayRead"
     role="alert"
   >
-    Die Aufbewahrung ist der Administration der Schule vorbehalten; die Einsicht liest mit.
+    {{ t.retention.adminsOnly }}
   </p>
   <template v-else>
     <p class="muted">
-      Die Aufzeichnungen einer Projektwoche werden bis ein Jahr nach dem Ende ihres Schuljahrs aufbewahrt. Danach löscht die Administration sie hier, mit Begründung; von selbst wird nichts gelöscht. Vorher die Zuteilung und die Beitragsliste als Excel sichern, falls die Buchhaltung sie noch braucht: gelöscht ist gelöscht.
+      {{ t.retention.intro }}
     </p>
     <p
       v-if="loading.error.value"
@@ -86,21 +87,21 @@ async function onPurge(): Promise<void> {
       {{ action.notice.value }}
     </p>
     <section>
-      <h2>Schuljahre</h2>
+      <h2>{{ t.retention.years }}</h2>
       <p
         v-if="years.length === 0"
         class="muted"
       >
-        Noch keine Aufzeichnungen.
+        {{ t.retention.none }}
       </p>
       <table v-else>
         <thead>
           <tr>
-            <th>Schuljahr</th>
-            <th>Wahlen</th>
-            <th>Personenlisten</th>
-            <th>Klassenvorstände</th>
-            <th>Aufbewahrung bis</th>
+            <th>{{ t.common.field.schoolYear }}</th>
+            <th>{{ t.retention.campaigns }}</th>
+            <th>{{ t.retention.batches }}</th>
+            <th>{{ t.retention.classTeachers }}</th>
+            <th>{{ t.retention.retainedUntil }}</th>
           </tr>
         </thead>
         <tbody>
@@ -132,27 +133,27 @@ async function onPurge(): Promise<void> {
               {{ formatWhenShort(y.retentionEndsAt) }}<span
                 v-if="y.reached"
                 class="badge"
-              >abgelaufen</span>
+              >{{ t.retention.expired }}</span>
             </td>
           </tr>
         </tbody>
       </table>
     </section>
     <section v-if="isSchoolAdmin">
-      <h2>Schuljahr löschen</h2>
+      <h2>{{ t.retention.purge.title }}</h2>
       <form
-        aria-label="Schuljahr löschen"
+        :aria-label="t.retention.purge.title"
         @submit.prevent="onPurge"
       >
         <p class="field">
-          <label for="purge-year">Schuljahr</label>
+          <label for="purge-year">{{ t.common.field.schoolYear }}</label>
           <select
             id="purge-year"
             v-model="chosen"
             required
           >
             <option value="">
-              Bitte wählen
+              {{ t.common.pleaseChoose }}
             </option>
             <option
               v-for="y in years"
@@ -160,12 +161,12 @@ async function onPurge(): Promise<void> {
               :value="y.schoolYear"
               :disabled="!y.reached || y.campaigns.some((c) => c.state !== 'archived')"
             >
-              {{ y.schoolYear }}{{ !y.reached ? ' – Aufbewahrung läuft noch' : y.campaigns.some((c) => c.state !== 'archived') ? ' – eine Wahl ist nicht abgeschlossen' : '' }}
+              {{ y.schoolYear }}{{ !y.reached ? ` – ${t.retention.purge.stillRetained}` : y.campaigns.some((c) => c.state !== 'archived') ? ` – ${t.retention.purge.notArchived}` : '' }}
             </option>
           </select>
         </p>
         <p class="field">
-          <label for="purge-confirm">Zur Bestätigung das Schuljahr noch einmal</label>
+          <label for="purge-confirm">{{ t.retention.purge.confirm }}</label>
           <input
             id="purge-confirm"
             v-model="confirmYear"
@@ -175,7 +176,7 @@ async function onPurge(): Promise<void> {
           >
         </p>
         <p class="field">
-          <label for="purge-reason">Begründung</label>
+          <label for="purge-reason">{{ t.common.field.reason }}</label>
           <input
             id="purge-reason"
             v-model="reason"
@@ -190,12 +191,12 @@ async function onPurge(): Promise<void> {
             class="danger"
             :disabled="!ready || action.busy.value"
           >
-            Aufzeichnungen löschen
+            {{ t.retention.purge.submit }}
           </button>
         </p>
       </form>
       <div v-if="removed">
-        <h3>Gelöscht</h3>
+        <h3>{{ t.retention.purge.removed }}</h3>
         <ul class="plain">
           <li
             v-for="r in removed"
