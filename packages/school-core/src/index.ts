@@ -93,7 +93,7 @@ export {
 
 export { DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, placeTarget, type ClassSize, type DayDemand, type GradeDemand, type OfferedItem } from './demand.ts'
 
-export { AVAILABILITY_STATUSES, leadOf, type AvailabilityStatus } from './planning.ts'
+export { AVAILABILITY_STATUSES, leadOf, mayTakePlace, type AvailabilityStatus } from './planning.ts'
 
 export {
   RANKING_PROBLEM_CODES,

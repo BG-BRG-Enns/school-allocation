@@ -144,7 +144,8 @@ test('the lead is the creator when among the teachers, else the first named; the
   assert.equal(overview.status, 200, JSON.stringify(overview.body))
   assert.deepEqual(overview.body.days, DAYS)
   assert.equal(overview.body.editable, true)
-  const doing = (personId: string) => overview.body.teachers.find((teacher) => teacher.personId === personId)?.days.map((d) => [d.date, d.leads.map((i) => i.title), d.accompanies.map((i) => i.title)])
+  const doingIn = (planning: PlanningResponse, personId: string) => planning.teachers.find((teacher) => teacher.personId === personId)?.days.map((d) => [d.date, d.leads.map((i) => i.title), d.accompanies.map((i) => i.title)])
+  const doing = (personId: string) => doingIn(overview.body, personId)
   assert.deepEqual(overview.body.teachers.map((teacher) => teacher.displayName), [ANNA.name, BERND.name, CARLA.name])
   assert.deepEqual(doing(s.annaPerson), [['2027-06-21', [], []], ['2027-06-22', [], []], ['2027-06-23', [], []]], 'free: the chess she was named for is withdrawn')
   assert.deepEqual(doing(s.berndPerson), [['2027-06-21', ['Klettern'], []], ['2027-06-22', [], ['Wien']], ['2027-06-23', [], ['Wien']]])
@@ -160,10 +161,39 @@ test('the lead is the creator when among the teachers, else the first named; the
   assert.equal(sheet.rawPayload.subarray(0, 2).toString('latin1'), 'PK')
   assert.equal((await s.app.inject({ method: 'GET', url: `/api/admin/campaigns/${campaign.id}/export/planning.xlsx`, headers: { cookie: s.bernd.header() } })).statusCode, 403)
 
-  // The activity form's view is for whoever proposes, not for a student once the catalogue is out.
+  // Out with the catalogue: Klettern, proposed, may still be approved; Wien, still a draft, can no longer be proposed and is nobody's work.
+  assert.equal((await send(s, s.bernd, 'POST', `/api/items/${climbing.body.id}/propose`)).status, 200)
   await transition(s, campaign.id, 'published')
+  const published = (await get<PlanningResponse>(s, s.anna, `/api/admin/campaigns/${campaign.id}/planning`)).body
+  assert.deepEqual(doingIn(published, s.berndPerson), [['2027-06-21', ['Klettern'], []], ['2027-06-22', [], []], ['2027-06-23', [], []]])
+  assert.deepEqual(doingIn(published, s.carlaPerson), [['2027-06-21', [], ['Klettern']], ['2027-06-22', [], []], ['2027-06-23', [], []]])
+
+  // The activity form's view is for whoever proposes, not for a student once the catalogue is out.
   assert.equal((await get(s, s.sara, `/api/campaigns/${campaign.id}/availability`)).status, 403)
   assert.equal((await get(s, s.bernd, `/api/campaigns/${campaign.id}/availability`)).status, 200)
+})
+
+test('a teacher an organizer names after the roster froze is named from the roster in force', DB, async (t) => {
+  const s = await school(t)
+  const campaign = await draftCampaign(s)
+  await transition(s, campaign.id, 'catalogue')
+  const climbing = await send<Item>(s, s.bernd, 'POST', `/api/campaigns/${campaign.id}/items`, { title: 'Klettern', places: 12, teachers: [s.berndPerson], sessions: [MONDAY] })
+  assert.equal(climbing.status, 201, JSON.stringify(climbing.body))
+  // The registration keeps the roster it froze, as the window's close does; Dora comes with the next one, and an organizer names her.
+  await s.db.query(`update campaign set roster_batch_id = (select id from import_batch where state = 'committed' order by decided_at desc limit 1) where id = $1`, [campaign.id])
+  const csv = [
+    'email;given_name;family_name;class;grade;kind',
+    `${SARA.email};Sara;Schülerin;5A;9;student`,
+    `${ANNA.email};Anna;Lehrerin;;;teacher`, `${BERND.email};Bernd;Lehrer;;;teacher`, `${CARLA.email};Carla;Kollegin;;;teacher`,
+    'dora.neu@schule.example.org;Dora;Neu;;;teacher',
+  ].join('\n')
+  const batch = await send<BatchDetail>(s, s.anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })
+  const committed = await send<BatchDetail>(s, s.anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)
+  const dora = committed.body.diff.added.find((e) => e.displayName === 'Dora Neu')?.personId ?? assert.fail(JSON.stringify(committed.body.diff))
+  const named = await send<Item>(s, s.anna, 'PATCH', `/api/items/${climbing.body.id}`, { title: 'Klettern', places: 12, teachers: [s.berndPerson, dora], sessions: [MONDAY] })
+  assert.equal(named.status, 200, JSON.stringify(named.body))
+  const overview = await get<PlanningResponse>(s, s.anna, `/api/admin/campaigns/${campaign.id}/planning`)
+  assert.deepEqual(overview.body.teachers.map((teacher) => teacher.displayName), [ANNA.name, BERND.name, CARLA.name, 'Dora Neu'])
 })
 
 test('the place headroom is a registration setting, 20 % unless changed, from 0 to 100, while the window may change', DB, async (t) => {

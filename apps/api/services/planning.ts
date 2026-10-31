@@ -6,7 +6,7 @@
 // the teacher and the date, not to a registration.
 
 import type { CampaignAvailabilityResponse, MyAvailabilityResponse, PlanningResponse } from '@school-allocation/api-contracts/planning'
-import type { AvailabilityStatus } from '@school-allocation/school-core'
+import { mayTakePlace, type AvailabilityStatus } from '@school-allocation/school-core'
 import type { Actor, Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
 import { readPublishedRun } from '../lib/dao/allocation.ts'
@@ -16,6 +16,7 @@ import * as store from '../lib/dao/planning.ts'
 import { readSnapshot, type Database, type Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
+import type { Item } from '../lib/models/items.ts'
 import { isTeacher, mayPropose } from '../lib/policies.ts'
 import { datesOfSpan } from '../lib/time.ts'
 import { canonicalId, requireCampaign } from './campaigns.ts'
@@ -77,11 +78,15 @@ export async function campaignAvailability(db: Database, campaign: Campaign, cal
 
 type PlannedItem = PlanningResponse['teachers'][number]['days'][number]['leads'][number]
 
-async function planningOf(client: Queryable, campaign: Campaign): Promise<PlanningResponse> {
-  const teachers = await store.planningTeachers(client, campaign.id)
-  // An activity the published run cancelled is nobody's work, though it stays approved in the catalogue.
+/** The activities the planning counts: those that may still take place. One the published run cancelled is nobody's work, though it stays approved in the catalogue. */
+async function plannedItems(client: Queryable, campaign: Campaign): Promise<Item[]> {
   const cancelled = new Set((await readPublishedRun(client, campaign.id))?.cancelledItemIds ?? [])
-  const items = (await listCampaignItems(client, campaign.id)).filter((item) => item.state !== 'withdrawn' && !cancelled.has(item.id))
+  return (await listCampaignItems(client, campaign.id)).filter((item) => mayTakePlace(item.state, campaign.state) && !cancelled.has(item.id))
+}
+
+async function planningOf(client: Queryable, campaign: Campaign): Promise<PlanningResponse> {
+  const items = await plannedItems(client, campaign)
+  const teachers = await store.planningTeachers(client, campaign.id, items.map((item) => item.id))
   const key = (personId: string, date: string) => `${personId} ${date}`
   const status = new Map((await store.limitedDays(client, campaign.projectDays)).map((d) => [key(d.personId, d.date), d.status]))
   const planned = new Map<string, { leads: PlannedItem[], accompanies: PlannedItem[] }>()
@@ -132,7 +137,8 @@ export async function setAvailabilityFor(db: Database, rawId: string, personId: 
     if (!campaign) throw new ApplicationError('not_found')
     if (campaign.state === 'archived') throw new ApplicationError('campaign_state')
     if (!campaign.projectDays.includes(date)) throw new ApplicationError('not_found')
-    if (!(await store.planningTeachers(client, id)).some((teacher) => teacher.personId === person)) throw new ApplicationError('teacher_unknown')
+    const items = await plannedItems(client, campaign)
+    if (!(await store.planningTeachers(client, id, items.map((item) => item.id))).some((teacher) => teacher.personId === person)) throw new ApplicationError('teacher_unknown')
     const [current] = await store.limitedDays(client, [date], [person])
     if ((current?.status ?? 'available') === status) return
     await store.writeAvailability(client, person, date, status)

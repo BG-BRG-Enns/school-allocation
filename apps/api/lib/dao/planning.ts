@@ -1,6 +1,6 @@
 import type { AvailabilityStatus } from '@school-allocation/school-core'
 import type { Queryable } from '../db.ts'
-import { CAMPAIGN_BATCH_ID } from './roster-selection.ts'
+import { CAMPAIGN_BATCH_ID, CURRENT_BATCH_ID } from './roster-selection.ts'
 
 /** A teacher's status on a day other than available; available has no row. */
 export interface LimitedDay {
@@ -41,18 +41,24 @@ export async function campaignsTakingProposals(db: Queryable): Promise<{ id: str
   return rows.map((row) => ({ id: row.id, name: row.name, projectDays: row.project_days }))
 }
 
-/** The teachers of the planning: those of the campaign's roster and anyone an activity of it names, by name. */
-export async function planningTeachers(db: Queryable, campaignId: string): Promise<{ personId: string, displayName: string }[]> {
+/**
+ * The teachers of the planning: those of the campaign's roster and anyone
+ * one of `itemIds` names, by name: the campaign's roster's, else the
+ * current roster's, where an organizer added a teacher after the freeze.
+ */
+export async function planningTeachers(db: Queryable, campaignId: string, itemIds: readonly string[]): Promise<{ personId: string, displayName: string }[]> {
   const { rows } = await db.query<{ person_id: string, display_name: string }>(
     `with batch as (select ${CAMPAIGN_BATCH_ID} as id),
      named as (
        select e.person_id from roster_entry e, batch where e.batch_id = batch.id and e.kind = 'teacher' and e.person_id is not null
        union
-       select t.person_id from item_teacher t join catalog_item i on i.id = t.item_id where i.campaign_id = $1 and i.state <> 'withdrawn'
+       select t.person_id from item_teacher t where t.item_id = any($2::uuid[])
      )
-     select n.person_id, coalesce((select e.display_name from roster_entry e, batch where e.batch_id = batch.id and e.person_id = n.person_id), '?') as display_name
+     select n.person_id,
+            coalesce((select e.display_name from roster_entry e, batch where e.batch_id = batch.id and e.person_id = n.person_id),
+                     (select e.display_name from roster_entry e where e.batch_id = ${CURRENT_BATCH_ID} and e.person_id = n.person_id), '?') as display_name
        from named n order by 2, 1`,
-    [campaignId],
+    [campaignId, itemIds],
   )
   return rows.map((row) => ({ personId: row.person_id, displayName: row.display_name }))
 }
