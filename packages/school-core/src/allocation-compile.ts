@@ -115,6 +115,11 @@ export function prepareStudent(input: AllocationInput, student: AllocationStuden
     if (left > 0) required.set(date, left)
   }
   const requiredTotal = [...required.values()].reduce((sum, minutes) => sum + minutes, 0)
+  // A student whose class activities cover the days may still rank for a rule. Their wishes are costed against the
+  // week's minimum, as if they had it to cover, so the wishes still decide after the rules, before any fallback;
+  // nothing to cover would cost every option nothing and leave it to the tiebreak. Their norm stays 0: they have no
+  // average rank to be over.
+  const costNorm = requiredTotal > 0 ? requiredTotal : minimum * input.projectDays.length
   // A class activity counts toward a rule like any other: what it brings is off the minimum.
   const rules = input.rules.filter((rule) => ruleApplies(rule, student))
     .map((rule) => ({ rule, need: Math.max(0, rule.minimum - ruleProgress(rule, fixed, input.projectDays)) }))
@@ -130,14 +135,14 @@ export function prepareStudent(input: AllocationInput, student: AllocationStuden
     const ids = (student.ranking?.[group.key] ?? []).filter((id) => group.itemIds.includes(id))
     ids.forEach((id, index) => {
       ranked.add(id)
-      options.push(option(input, student, offeredById.get(id) as AllocationItem, 'wish', index + 1, requiredTotal, rules))
+      options.push(option(input, student, offeredById.get(id) as AllocationItem, 'wish', index + 1, costNorm, rules))
     })
   }
   for (const item of offered) {
     if (ranked.has(item.id)) continue
     const full = offeredById.get(item.id) as AllocationItem
     if (full.feeCents !== 0) continue
-    const fallback = option(input, student, full, 'fallback', cap + 1, requiredTotal, rules)
+    const fallback = option(input, student, full, 'fallback', cap + 1, costNorm, rules)
     // A fallback is for a day the student still has to cover, or for a rule still open: the rules come before the wishes.
     if (![...fallback.credit.keys()].some((date) => required.has(date)) && fallback.amounts.size === 0) continue
     options.push(fallback)
@@ -145,7 +150,7 @@ export function prepareStudent(input: AllocationInput, student: AllocationStuden
   return { student, required, requiredTotal, fixedSpans, options: options.filter((o) => !cancelled.has(o.itemId)).sort((a, b) => byText(a.itemId, b.itemId)), rules }
 }
 
-function option(input: AllocationInput, student: AllocationStudent, item: AllocationItem, kind: OptionKind, rank: number, requiredTotal: number, rules: readonly PreparedRule[]): CompiledOption {
+function option(input: AllocationInput, student: AllocationStudent, item: AllocationItem, kind: OptionKind, rank: number, costNorm: number, rules: readonly PreparedRule[]): CompiledOption {
   const credit = creditedMinutesByDate(item.sessions)
   const days = new Set(input.projectDays)
   const minutes = [...credit].filter(([date]) => days.has(date)).reduce((sum, [, m]) => sum + m, 0)
@@ -154,7 +159,7 @@ function option(input: AllocationInput, student: AllocationStudent, item: Alloca
     kind,
     rank,
     minutes,
-    cost: requiredTotal > 0 ? Math.round(rank * minutes * COST_SCALE / requiredTotal) : 0,
+    cost: costNorm > 0 ? Math.round(rank * minutes * COST_SCALE / costNorm) : 0,
     weight: rank * minutes,
     tie: tieWeight(input.seed, student.personId, item.id),
     credit,

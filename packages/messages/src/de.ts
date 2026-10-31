@@ -457,7 +457,7 @@ export const de = {
     rules_invalid: 'Die Regeln passen noch nicht. Sieh dir bitte die Hinweise an.',
     // Categories
     category_exists: 'Eine Kategorie mit diesem Namen gibt es schon.',
-    category_in_use: 'Diese Kategorie verwendet eine Aktivität oder eine Regel. Du kannst sie nur umbenennen.',
+    category_in_use: 'Eine Aktivität oder eine Regel verwendet diese Kategorie. Du kannst sie nur umbenennen.',
     category_unknown: 'Eine der Kategorien gibt es nicht mehr. Lade bitte die Seite neu.',
     too_many_categories: 'Mehr als 50 Kategorien hat eine Schule nicht.',
     // Settings and classes

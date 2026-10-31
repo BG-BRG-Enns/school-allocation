@@ -235,8 +235,10 @@ as a bound for the next:
    (× 1000, rounded per option), where `required_minutes(s)` is the requirement left after fixed items
    and `rank` counts within the item's time group; a fallback option ranks one past the cap. The
    threshold is compared exactly, `Σ rank · minutes · 1000 > t · 1000 · required_minutes(s)`, so the
-   rounding of the costs never puts a student over a threshold they are on. Students with nothing
-   left to choose have no cost and are not counted in L3.
+   rounding of the costs never puts a student over a threshold they are on. A student whose fixed
+   items cover the days but who has a rule left is not counted in L3 (`norm` 0); their options are
+   costed against the grade's whole weekly minimum instead, so L4 still takes their wishes in order and
+   a fallback last.
 4. **L4:** minimize the total cost over all students.
 5. **L5:** tie-break: minimize `Σ x[s,o] · ε(seed, s, o)`, with small deterministic pseudo-random
    weights (an FNV-1a hash of the seed, the student and the item, in `[0, 1000)`), sent as their own

@@ -38,6 +38,10 @@ watch(() => props.id, load)
 
 /** The categories some activity belongs to: the filter offers only those. */
 const usedCategories = computed(() => categories.value.filter((c) => items.value.some((item) => item.categoryIds.includes(c.id))))
+// Another registration's catalogue may use none of the chosen category: show it whole rather than empty.
+watch(usedCategories, (used) => {
+  if (filter.value !== '' && !used.some((c) => c.id === filter.value)) filter.value = ''
+})
 const shown = computed(() => filter.value === '' ? items.value : items.value.filter((item) => item.categoryIds.includes(filter.value)))
 const categoryNames = (item: Item): string[] => categories.value.filter((c) => item.categoryIds.includes(c.id)).map((c) => c.name)
 

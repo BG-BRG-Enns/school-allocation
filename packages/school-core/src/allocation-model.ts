@@ -70,7 +70,7 @@ export interface DayMinutes {
 
 export interface SolveOption {
   o: number
-  /** `rank · minutes · COST_SCALE / norm`, rounded: what L4 sums. */
+  /** `rank · minutes · COST_SCALE / norm`, rounded: what L4 sums. With `norm` 0 and a rule left, over the grade's weekly minimum instead. */
   cost: number
   /** `rank · minutes`, exact: what L3 compares against `t · norm`, so rounding never puts a student over a threshold they are on. */
   weight: number
@@ -96,7 +96,7 @@ export interface SolveRule {
 export interface SolveStudent {
   s: number
   required: DayMinutes[]
-  /** The minutes the student still needs over the week, the costs' denominator. */
+  /** The minutes the student still needs over the week, the costs' denominator (0: not counted by a threshold). */
   norm: number
   options: SolveOption[]
   rules: SolveRule[]

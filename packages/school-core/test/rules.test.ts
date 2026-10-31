@@ -163,6 +163,28 @@ test('a student whose days are covered is still in the pass for a rule, and has 
   })
 })
 
+test('a student whose class activities cover the days ranks for a rule as for the days: the first wish, the second, then a fallback', () => {
+  // 6C's trip takes both mornings, more than grade 10's minimum; Monday afternoon is open, and only the sport rule is left.
+  const trip = item('trip', [session(0, 8, 11, 180), session(1, 8, 11, 180)], [], { fixedClasses: ['6C'], places: 0, cancellableBelowMin: false })
+  const input: AllocationInput = {
+    ...INPUT,
+    dailyMinimum: { 9: 180, 10: 120 },
+    items: [...ITEMS, trip, item('volleyball', [session(0, 11, 13, 120)], [SPORT]), item('badminton', [session(0, 11, 13, 120)], [SPORT])],
+    rules: [RULES[0] as CampaignRule],
+    students: [student('cleo', '6C', 10, ['trip'], { [MON_PM]: ['volleyball', 'handball'] })],
+  }
+  const pass = compilePass(input, 1, 'run-r')
+  assert.deepEqual(pass.personIds, ['cleo'])
+  assert.equal(pass.request.students[0]?.norm, 0, 'no average rank to be over')
+  const cost = (id: string) => pass.request.students[0]?.options.find((o) => o.o === pass.itemIds.indexOf(id))?.cost ?? -1
+  assert.ok(cost('volleyball') > 0)
+  assert.ok(cost('volleyball') < cost('handball') && cost('handball') < cost('badminton'), 'the wishes decide, before the unranked fallback')
+  const levels = (itemId: string) => Object.fromEntries(recomputeLevels(pass, [['cleo', itemId]]).map((l) => [l.name, l.value]))
+  assert.equal(levels('volleyball').students_missing_rule, 0)
+  assert.equal(levels('badminton').students_missing_rule, 0)
+  assert.ok((levels('volleyball').total_cost as number) < (levels('badminton').total_cost as number))
+})
+
 test('the validator recomputes the rule levels from the assignment', () => {
   const pass = compilePass(INPUT, 1, 'run-r')
   const values = (pairs: [string, string][]) => Object.fromEntries(recomputeLevels(pass, pairs).filter((l) => l.name.includes('rule')).map((l) => [l.name, l.value]))

@@ -39,7 +39,7 @@ export const deFormal = {
     cancelled_mismatch: 'Die bestätigten Ausfälle sind nicht die der Berechnung. Bitte die Seite neu laden und noch einmal prüfen.',
     no_change: 'Bitte eine Aktivität angeben, in die oder aus der die Person wechselt.',
     rules_invalid: 'Die Regeln passen noch nicht. Bitte die Hinweise ansehen.',
-    category_in_use: 'Diese Kategorie verwendet eine Aktivität oder eine Regel. Umbenennen geht, entfernen nicht.',
+    category_in_use: 'Eine Aktivität oder eine Regel verwendet diese Kategorie. Umbenennen geht, entfernen nicht.',
     category_unknown: 'Eine der Kategorien gibt es nicht mehr. Bitte die Seite neu laden.',
   },
   signIn: {

@@ -45,7 +45,8 @@ TIE_RANGE = 1000
 
 class Option(Strict):
     o: int = Field(ge=0)
-    # rank · minutes · COST_SCALE / norm, rounded: what the total cost sums.
+    # rank · minutes · COST_SCALE / norm, rounded: what the total cost sums. A student with norm 0 and a rule
+    # left is costed against the grade's weekly minimum.
     cost: int = Field(ge=0)
     # rank · minutes, exact: what a threshold is compared against, times COST_SCALE, so rounding never tips it.
     weight: int = Field(ge=0)
@@ -70,7 +71,7 @@ class Rule(Strict):
 class Student(Strict):
     s: int = Field(ge=0)
     required: list[DayMinutes]
-    # The minutes the student still needs over the week, the costs' denominator.
+    # The minutes the student still needs over the week, the costs' denominator (0: not counted by a threshold).
     norm: int = Field(ge=0)
     options: list[Option]
     rules: list[Rule]
