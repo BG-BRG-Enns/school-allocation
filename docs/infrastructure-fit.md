@@ -42,8 +42,9 @@ rules:
 1. **A release runs only on the schema it was built for.** A migration that older code cannot run on
    raises the schema version (`-- schema-version: N`); the migrator and the server of a release built for
    less refuse the database. The nightly update has no automatic rollback: a release that fails to start
-   leaves the app down, where someone notices, until the next release fixes it, instead of running the
-   previous release on a schema nobody checked it against. A few hours down in a two-week choice window
+   leaves the app down, where someone notices, instead of running the previous release on a schema
+   nobody checked it against. The units retry a failed start with the newest image of the line, so the
+   next release repairs it as soon as it is published. A few hours down in a two-week choice window
    cost less than keeping every schema change compatible with the release before. A release that fixes
    a vulnerability raises the version, so no host goes back behind the fix.
 2. **No state lives only in the browser or in process memory.** Every change to a ranking is saved

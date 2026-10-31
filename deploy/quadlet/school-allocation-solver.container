@@ -5,10 +5,14 @@
 # v1 line like the app, and the two are released together.
 [Unit]
 Description=school-allocation solver
+# Retried every two minutes while it fails, with the newest image of the
+# line (Pull=newer), as the app is.
+StartLimitIntervalSec=0
 
 [Container]
 Image=ghcr.io/bg-brg-enns/school-allocation-solver:v1
 AutoUpdate=registry
+Pull=newer
 ContainerName=school-allocation-solver
 Network=school-allocation-internal.network
 ReadOnly=true
@@ -24,6 +28,7 @@ Notify=healthy
 
 [Service]
 Restart=always
+RestartSec=120
 TimeoutStartSec=300
 
 [Install]
