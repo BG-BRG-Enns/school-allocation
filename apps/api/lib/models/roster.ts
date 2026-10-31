@@ -1,4 +1,5 @@
 import { type RosterEntry, type RosterProblem } from '@school-allocation/school-core'
+import type { Actor } from '../actor.ts'
 
 export type BatchSource = typeof BATCH_SOURCES[number]
 
@@ -22,8 +23,8 @@ export interface NewBatch {
   /** Problems found before the batch check, such as a CSV row that could not be read. */
   problems?: RosterProblem[]
   warnings?: RosterWarning[]
-  /** app_user.id */
-  triggeredBy: string
+  /** The administrator who imports: the batch's triggered_by and the actor of the audit event. */
+  triggeredBy: Actor
 }
 
 export const BATCH_SOURCES = ['graph:groups', 'csv'] as const

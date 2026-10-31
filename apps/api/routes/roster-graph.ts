@@ -9,6 +9,7 @@ import { registerEndpoint } from '../lib/endpoint.ts'
 import type { FastifyInstance } from 'fastify'
 import { randomBytes } from 'node:crypto'
 import type { Config } from '../config.ts'
+import { actorOf } from '../lib/actor.ts'
 import { callerOf, withinSeconds, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { registerGraphAuthorization, SIGN_IN_SECONDS, SignInError } from '../lib/entra.ts'
@@ -83,7 +84,7 @@ export async function rosterGraphRoutes(app: FastifyInstance, { config, db, guar
       return reply.redirect(`${rosterPage}?gruppen=suchen`, 303)
     }
     try {
-      const batch = await importGraphRoster(db, graphBaseUrl, accessToken, pending.schoolYear, caller.id)
+      const batch = await importGraphRoster(db, graphBaseUrl, accessToken, pending.schoolYear, actorOf(caller))
       return reply.redirect(`${rosterPage}/import/${batch.id}`, 303)
     } catch (err) {
       return failed(err instanceof GraphError ? err.code : 'import_failed', err)
