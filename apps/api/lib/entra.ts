@@ -25,6 +25,7 @@ import oauth2, { type OAuth2Namespace } from '@fastify/oauth2'
 import { createRemoteJWKSet, jwtVerify } from 'jose'
 import { GUID, type EntraConfig } from '../config.ts'
 import { boundedName, type EntraIdentity } from './app-user.ts'
+import type { Clock } from './clock.ts'
 import { GRAPH_BASE_URL } from './graph.ts'
 
 export const ENTRA_AUTHORITY = 'https://login.microsoftonline.com'
@@ -117,7 +118,7 @@ function oauthOptions(name: string, config: EntraConfig, scope: string[], redire
  * well-formed object id. The expected issuer is Entra's whatever
  * `authority` the keys come from (tests point it at a stand-in).
  */
-export function idTokenVerifier(config: EntraConfig, authority: string): (idToken: string, nonce: string) => Promise<EntraIdentity> {
+export function idTokenVerifier(config: EntraConfig, authority: string, clock: Clock): (idToken: string, nonce: string) => Promise<EntraIdentity> {
   const { tenant } = endpoints(config, authority)
   const keys = createRemoteJWKSet(new URL(`${authority}${tenant}/discovery/v2.0/keys`))
   const issuer = `${ENTRA_AUTHORITY}${tenant}/v2.0`
@@ -128,6 +129,7 @@ export function idTokenVerifier(config: EntraConfig, authority: string): (idToke
       algorithms: ['RS256'],
       requiredClaims: ['exp', 'iat', 'nonce', 'tid', 'oid'],
       clockTolerance: 60,
+      currentDate: clock.now(),
     })
     if (payload.tid !== config.tenantId) throw new SignInError('wrong_tenant')
     if (payload.nonce !== nonce) throw new SignInError('wrong_nonce')
@@ -149,14 +151,14 @@ export function idTokenVerifier(config: EntraConfig, authority: string): (idToke
  * sign-in routes see it). `authority` is where Entra is reached; tests point
  * it at a local stand-in.
  */
-export async function registerEntra(app: FastifyInstance, config: EntraConfig, redirectUri: string, basePath = '', authority = ENTRA_AUTHORITY): Promise<EntraClient> {
+export async function registerEntra(app: FastifyInstance, config: EntraConfig, redirectUri: string, clock: Clock, basePath = '', authority = ENTRA_AUTHORITY): Promise<EntraClient> {
   const cookie = stateCookie(basePath)
   // openid for the ID token, email and profile for the address and the
   // name. No API scope: the access token is never used, and no token is
   // kept after sign-in.
   await app.register(oauth2, oauthOptions('entra', config, ['openid', 'email', 'profile'], redirectUri, cookie, endpoints(config, authority)))
   const client = app.getDecorator<OAuth2Namespace>('entra')
-  const verifyIdToken = idTokenVerifier(config, authority)
+  const verifyIdToken = idTokenVerifier(config, authority, clock)
 
   return {
     async authorizationUrl(request, reply, nonce, interactive) {
@@ -180,14 +182,14 @@ export async function registerEntra(app: FastifyInstance, config: EntraConfig, r
  * profile so the ID token says whose token it is. Registered on an
  * encapsulated instance of its own, beside the sign-in's.
  */
-export async function registerGraphAuthorization(app: FastifyInstance, config: EntraConfig, redirectUri: string, basePath: string, scopes: readonly string[], authority = ENTRA_AUTHORITY): Promise<GraphAuthorization> {
+export async function registerGraphAuthorization(app: FastifyInstance, config: EntraConfig, redirectUri: string, clock: Clock, basePath: string, scopes: readonly string[], authority = ENTRA_AUTHORITY): Promise<GraphAuthorization> {
   const cookie = stateCookie(basePath, 'graph')
   // openid and profile as at sign-in, so the ID token carries the object id
   // and the name; then the Graph permissions, by their full name.
   const scope = ['openid', 'profile', ...scopes.map((name) => `${GRAPH_BASE_URL}/${name}`)]
   await app.register(oauth2, oauthOptions('graphConsent', config, scope, redirectUri, cookie, endpoints(config, authority)))
   const client = app.getDecorator<OAuth2Namespace>('graphConsent')
-  const verifyIdToken = idTokenVerifier(config, authority)
+  const verifyIdToken = idTokenVerifier(config, authority, clock)
 
   return {
     async authorizationUrl(request, reply, nonce) {

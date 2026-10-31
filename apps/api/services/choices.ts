@@ -86,7 +86,7 @@ export async function saveRanking(db: Database, campaign: Campaign, personId: st
   let student: CampaignStudent | undefined
   await db.tx(async (client) => {
     await lockScope(client, campaign.id)
-    const now = new Date()
+    const now = db.now()
     const current = await store.lockChoiceWindow(client, campaign)
     if (!current || !acceptsChoices(current.state)) throw new ApplicationError('campaign_state')
     // The clock under the lock, not the last tick: after the window's end nothing is taken, whatever the state still says.

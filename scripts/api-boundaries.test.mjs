@@ -52,6 +52,25 @@ test('the scheduler is a timer adapter and browser wrappers use descriptor URLs'
   assert.deepEqual(await violations('apps/web/src/lib/campaigns-api.ts', 'apiRequest(getCampaigns, {})'), [])
 })
 
+/** A finding of the clock's rule (eslint.config.js clockReads), told from the other restricted syntax by its message. */
+const clockRule = (m) => m.ruleId === 'no-restricted-syntax' && m.message.includes('clock')
+
+test('the server reads the time from its clock alone: no system clock, no database now(), except in the clock, the tests and the migrator', async () => {
+  for (const file of ['apps/api/services/campaigns.ts', 'apps/api/routes/auth.ts', 'apps/api/lib/dao/items.ts', 'apps/api/lib/scheduler.ts', 'apps/api/lib/audit.ts', 'apps/api/app.ts']) {
+    for (const code of [
+      'const at = Date.now()',
+      'const at = new Date()',
+      'const read = Date.now',
+      'db.query(\'update campaign set updated_at = now() where id = $1\', [id])',
+      'db.query(`update campaign set updated_at = now() where id = ${id}`)',
+    ]) assert.ok((await violations(file, code)).some(clockRule), `${file}: ${code}`)
+    assert.deepEqual((await violations(file, 'const at = new Date(\'2034-03-06T08:00:00+01:00\')\ndb.now()\nconst sql = \'update campaign set updated_at = app_now()\'')).filter(clockRule), [], file)
+  }
+  for (const file of ['apps/api/lib/clock.ts', 'apps/api/test/clock.test.ts', 'apps/api/scripts/migrate.ts']) {
+    assert.deepEqual((await violations(file, 'const at = new Date()\nconst sql = \'applied_at timestamptz not null default now()\'')).filter(clockRule), [], file)
+  }
+})
+
 test('the message catalogue is pure as school-core is: nothing from outside its src, no clock, no randomness, no environment', async () => {
   for (const code of [
     'import { readFileSync } from \'node:fs\'',

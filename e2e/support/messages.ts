@@ -24,12 +24,12 @@ export const INTL_LOCALE = intlLocale(LOCALE)
 const dayFormat = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
 const dayTimeFormat = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 
-/** A school day (YYYY-MM-DD) as the pages write it: "Mo., 21.06.2027" in German, "Mon, 21/06/2027" in English. */
+/** A school day (YYYY-MM-DD) as the pages write it: "Mo., 03.07.2034" in German, "Mon, 03/07/2034" in English. */
 export function day(date: string): string {
   return dayFormat.format(new Date(`${date}T12:00:00Z`))
 }
 
-/** A wall-clock time of the school (YYYY-MM-DDTHH:MM) as the pages write it: "Mo., 01.03., 08:00". */
+/** A wall-clock time of the school (YYYY-MM-DDTHH:MM) as the pages write it: "Mo., 06.03., 08:00". */
 export function dayTime(local: string): string {
   return dayTimeFormat.format(new Date(`${local}:00Z`))
 }

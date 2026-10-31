@@ -10,6 +10,18 @@ const tsFiles = ['**/*.ts']
 const vueFiles = ['**/*.vue']
 const typedFiles = [...tsFiles, ...vueFiles]
 
+// One clock (apps/api/lib/clock.ts): the server reads the time through the
+// database, db.now() in TypeScript and app_now() in SQL, so a test that
+// controls the clock moves all of it. Another read of the system's clock,
+// or of the database's own now(), would stand still while the rest moved.
+// Spread into every no-restricted-syntax of apps/api below: a later
+// block's list replaces an earlier one's.
+const clockReads = [
+  { selector: 'MemberExpression[object.name="Date"][property.name="now"]', message: 'Read the time from the clock: db.now() (apps/api/lib/clock.ts).' },
+  { selector: 'NewExpression[callee.name="Date"][arguments.length=0]', message: 'Read the time from the clock: db.now() (apps/api/lib/clock.ts).' },
+  { selector: String.raw`Literal[value=/\bnow\(\)/], TemplateElement[value.raw=/\bnow\(\)/]`, message: 'SQL reads the clock with app_now() (migration 0012), not now().' },
+]
+
 export default [
   {
     ignores: ['**/node_modules/**', '**/dist/**', 'coverage/**', 'tmp/**', 'apps/solver/.venv/**', 'handbook/.vitepress/cache/**'],
@@ -200,6 +212,15 @@ export default [
       ],
     },
   },
+  // The server reads the time from its clock alone; the clock itself, the
+  // tests and the migrator (which runs outside the server) excepted.
+  {
+    files: ['apps/api/**/*.ts'],
+    ignores: ['apps/api/lib/clock.ts', 'apps/api/test/**', 'apps/api/scripts/migrate.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', ...clockReads],
+    },
+  },
   // HTTP adapters may call application operations, never sibling route modules.
   {
     files: ['apps/api/routes/**/*.ts'],
@@ -214,7 +235,7 @@ export default [
       }, {
         selector: 'CallExpression[callee.object.name="app"][callee.property.name=/^(get|post|put|patch|delete|route)$/]',
         message: 'Register shared endpoint descriptors through registerEndpoint.',
-      }],
+      }, ...clockReads],
     },
   },
   {
@@ -229,7 +250,7 @@ export default [
       }, {
         selector: 'ExportNamedDeclaration[source], ExportAllDeclaration',
         message: 'Services expose application operations, never re-export DAO functions or models.',
-      }],
+      }, ...clockReads],
     },
   },
   {
@@ -241,7 +262,7 @@ export default [
       'no-restricted-syntax': ['error', {
         selector: 'CallExpression[callee.type=\'MemberExpression\'][callee.property.name=\'tx\']',
         message: 'The calling service owns the transaction.',
-      }],
+      }, ...clockReads],
     },
   },
   {
@@ -257,7 +278,7 @@ export default [
       }, {
         selector: 'ImportExpression',
         message: 'Use static scheduling dependencies.',
-      }],
+      }, ...clockReads],
     },
   },
   {

@@ -11,7 +11,8 @@ export class GraphPickerTokens {
   private readonly tokens = new Map<string, PickerToken>()
   private readonly now: () => number
 
-  constructor(now: () => number = Date.now) {
+  /** `now` in milliseconds, from the database's clock (lib/clock.ts). */
+  constructor(now: () => number) {
     this.now = now
   }
 

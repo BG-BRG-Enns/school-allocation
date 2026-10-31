@@ -27,7 +27,7 @@ export interface SignedInUser {
 export async function upsertAppUser(db: Queryable, identity: EntraIdentity): Promise<SignedInUser> {
   const { rows } = await db.query<{ id: string, blocked: boolean }>(
     `insert into app_user (tid, oid, display_name, email) values ($1, $2, $3, $4)
-     on conflict (tid, oid) do update set display_name = excluded.display_name, email = excluded.email, last_sign_in_at = now()
+     on conflict (tid, oid) do update set display_name = excluded.display_name, email = excluded.email, last_sign_in_at = app_now()
      returning id, blocked_at is not null as blocked`,
     [identity.tid, identity.oid, identity.displayName, identity.email],
   )

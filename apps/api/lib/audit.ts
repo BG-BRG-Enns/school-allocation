@@ -107,12 +107,17 @@ export async function appendAudit(client: Queryable, input: AuditInput): Promise
   if (canonicalJson(metadata).length > MAX_METADATA_CHARS) throw new Error(`audit metadata of ${action} is too large`)
 
   await lockScope(client, scopeId)
-  const { rows: [previous] } = await client.query<{ seq: string, hash: string }>(
+  const { rows: [previous] } = await client.query<{ seq: string, hash: string, at: Date }>(
     // Ordered by the column, not by the text alias: "9" would sort after "10".
-    'select seq::text, hash from audit_event where scope_id = $1 order by audit_event.seq desc limit 1',
+    'select seq::text, hash, at from audit_event where scope_id = $1 order by audit_event.seq desc limit 1',
     [scopeId],
   )
-  const at = new Date().toISOString()
+  // The transaction's time, which every row it writes carries as well (app_now(), migration 0012): one change, one time.
+  // Never before the previous event's, though: a transaction that began
+  // earlier and waited for the lock follows one that began later.
+  const { rows: [clock] } = await client.query<{ at: Date }>('select greatest(app_now(), $1::timestamptz) as at', [previous?.at ?? null])
+  if (!clock) throw new Error('app_now() returned no row')
+  const at = clock.at.toISOString()
   const prevHash = previous?.hash ?? null
   const hash = auditEventHash({ scopeId, at, actor, action, metadata, prevHash })
   const { rows: [row] } = await client.query<{ seq: string }>(

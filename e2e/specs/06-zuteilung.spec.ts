@@ -1,11 +1,13 @@
-// Die Zuteilung: die Organisation beendet die Anmeldung, berechnet die Zuteilung
-// gegen den Solver-Stellvertreter des Testservers und sieht die Prüfung:
-// die Ziele, wer was bekommen hat, die Aktivitäten; dann veröffentlicht
+// Die Zuteilung: mit dem Ende der Anmeldung beginnt die Nachfrist, die die
+// Organisation vorzeitig beendet; sie berechnet die Zuteilung gegen den
+// Solver-Stellvertreter des Testservers und sieht die Prüfung: die Ziele,
+// wer was bekommen hat, die Aktivitäten; eine Woche später veröffentlicht
 // sie, die Schülerin sieht ihre Einteilung, der Klassenvorstand die Plätze
 // seiner Klasse. Baut auf 05-wahl auf (Sara hat gewählt, Tim wurde
 // eingetragen; Bernd ist Klassenvorstand der 5A).
 
 import { expect, test } from '../support/test.ts'
+import { runTick, setClock } from '../support/clock.ts'
 import { anyCount, anyText, literally, t } from '../support/messages.ts'
 import { ANNA, BERND, SARA } from '../support/personas.ts'
 import { picture, section, shot } from '../support/screenshot.ts'
@@ -14,10 +16,13 @@ import { openAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
 
-test('die Organisation beendet die Anmeldung und berechnet die Zuteilung; die Prüfung zeigt Ziele, Plätze und Aktivitäten', async ({ page }) => {
+test('die Nachfrist beginnt zu ihrer Zeit, die Organisation beendet sie und berechnet die Zuteilung; die Prüfung zeigt Ziele, Plätze und Aktivitäten', async ({ page }) => {
+  await setClock(page, '2034-03-13T20:00:00+01:00')
+  expect(await runTick()).toEqual({ transitions: 1, reminders: 0 })
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
-  // The daily minimum the run needs was set with the window (04-einstellungen).
+  await expect(page.getByText(t.labels.campaignState.grace, { exact: true })).toBeVisible()
+  // Everyone has their wishes: the organizer ends the late registration early. The daily minimum the run needs was set with the window (04-einstellungen).
   await page.getByRole('button', { name: t.campaign.organization.close }).click()
   await expect(page.getByText(t.labels.campaignState.closed)).toBeVisible()
   await page.getByRole('link', { name: t.common.page.allocation }).click()
@@ -48,6 +53,7 @@ test('die Organisation beendet die Anmeldung und berechnet die Zuteilung; die Pr
 })
 
 test('die Organisation veröffentlicht die Berechnung; die Schülerin sieht ihre Einteilung, der Klassenvorstand die Plätze seiner Klasse', async ({ page }) => {
+  await setClock(page, '2034-03-20T10:00:00+01:00')
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
   await page.getByRole('link', { name: t.common.page.allocation }).click()

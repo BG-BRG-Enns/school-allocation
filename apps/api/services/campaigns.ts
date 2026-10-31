@@ -98,7 +98,7 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     const windowChanged = changed.length > 0
     if (windowChanged && !WINDOW_SETTABLE.includes(current.state)) {
       const late = changed.every((field) => LATE_FIELDS.has(field)) && (current.state === 'closed' || current.state === 'review')
-      const swapOnly = changed.every((field) => SWAP_FIELDS.has(field)) && current.state === 'results' && (current.swapFrom === null || Date.parse(current.swapFrom) > Date.now())
+      const swapOnly = changed.every((field) => SWAP_FIELDS.has(field)) && current.state === 'results' && (current.swapFrom === null || Date.parse(current.swapFrom) > db.now().getTime())
       if (!late && !swapOnly) throw new ApplicationError('campaign_state')
     }
     const order = checkWindow(window)
@@ -153,7 +153,7 @@ export async function transitionCampaign(db: Database, rawId: string, to: Campai
     if (!current) throw new ApplicationError('not_found')
     const result = transition(current.state, to)
     if (!result.ok) throw new ApplicationError('invalid_transition')
-    if (options.byClock && dueTransition(current, options.now ?? new Date()) !== to) throw new ApplicationError('not_due')
+    if (options.byClock && dueTransition(current, options.now ?? db.now()) !== to) throw new ApplicationError('not_due')
     let numbered = 0
     if (to === 'published') numbered = await numberApprovedItems(client, id)
     await store.updateState(client, id, to)

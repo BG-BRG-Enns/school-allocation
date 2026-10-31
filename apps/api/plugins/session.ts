@@ -68,7 +68,7 @@ export interface SessionUser {
   /** app_user.id */
   id: string
   displayName: string
-  /** Date.now() at sign-in; the lifetime is counted from here. */
+  /** The time of sign-in in milliseconds (db.now()); the lifetime is counted from here. */
   issuedAt: number
 }
 

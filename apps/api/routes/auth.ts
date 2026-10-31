@@ -50,7 +50,7 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
     global: false,
     errorResponseBuilder: (_request, context) => Object.assign(new Error('rate limited'), { statusCode: context.statusCode, code: 'rate_limited' }),
   })
-  const entra = await registerEntra(app, config.entra, `${config.publicUrl}/api/auth/callback`, config.basePath, entraAuthority)
+  const entra = await registerEntra(app, config.entra, `${config.publicUrl}/api/auth/callback`, db, config.basePath, entraAuthority)
 
   // Sets the state cookie and the pending sign-in; changes nothing on the
   // server. After an sso_reload the same URL would fail silently again, so
@@ -69,7 +69,7 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
     // this browser's.
     if (!sessionBound(request)) request.userSession.regenerate()
     request.userSession.set('bind', bindDigest(bind))
-    request.userSession.set('signIn', { nonce, returnTo: safeReturnTo(request.query.returnTo, config.basePath), startedAt: Date.now() })
+    request.userSession.set('signIn', { nonce, returnTo: safeReturnTo(request.query.returnTo, config.basePath), startedAt: db.now().getTime() })
     const interactive = request.query.sso_reload === 'true'
     return reply.redirect(await entra.authorizationUrl(request, reply, nonce, interactive), 302)
   })
@@ -90,7 +90,7 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
       return refuse(request, reply, new SignInError('session_not_bound'))
     }
     if (pending) session.set('signIn', undefined)
-    if (!pending || !withinSeconds(pending.startedAt, SIGN_IN_SECONDS)) {
+    if (!pending || !withinSeconds(pending.startedAt, SIGN_IN_SECONDS, db.now().getTime())) {
       return refuse(request, reply, new SignInError('no_pending_sign_in'))
     }
     let identity
@@ -112,7 +112,7 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
       request.log.warn('sign-in refused: blocked')
       return reply.code(403).send({ error: 'blocked' })
     }
-    session.set('user', { id: user.id, displayName: identity.displayName, issuedAt: Date.now() })
+    session.set('user', { id: user.id, displayName: identity.displayName, issuedAt: db.now().getTime() })
     // Checked at login and sealed since; checked again all the same.
     return reply.redirect(safeReturnTo(pending.returnTo, config.basePath), 303)
   })
@@ -127,7 +127,7 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
   // signed-out visit is not an error. The roles come from the database on
   // every call, so a grant or a block shows at the next page load.
   registerEndpoint(app, endpoints.getAuthMe, { }, async (request, reply) => {
-    const user = currentUser(request)
+    const user = currentUser(request, db.now().getTime())
     const caller = user ? await loadCaller(db, user.id) : undefined
     if (!caller) {
       if (user) request.userSession.delete()

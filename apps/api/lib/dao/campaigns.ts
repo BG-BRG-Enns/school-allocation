@@ -101,14 +101,14 @@ export async function listActiveSessions(db: Queryable, id: string) {
 export async function updateSettings(db: Queryable, id: string, changes: CampaignChanges, window: CampaignWindow) {
   await db.query(
     `update campaign set name = $2, school_year = $3, project_days = $4::date[], opens_at = $5, closes_at = $6, late_until = $7, swap_from = $8, swap_until = $9,
-              wishes_per_group = $10, daily_minimum = $11, show_teachers = $12, reminder_days = $13, updated_at = now() where id = $1`,
+              wishes_per_group = $10, daily_minimum = $11, show_teachers = $12, reminder_days = $13, updated_at = app_now() where id = $1`,
     [id, changes.name, changes.schoolYear, changes.projectDays, window.opensAt, window.closesAt, window.lateUntil, window.swapFrom, window.swapUntil,
       window.wishesPerGroup, JSON.stringify(window.dailyMinimum), window.showTeachers, window.reminderDays],
   )
 }
 
 export async function updateState(db: Queryable, id: string, to: string) {
-  await db.query('update campaign set state = $2, updated_at = now() where id = $1', [id, to])
+  await db.query('update campaign set state = $2, updated_at = app_now() where id = $1', [id, to])
 }
 
 export async function listCampaigns(db: Queryable) {

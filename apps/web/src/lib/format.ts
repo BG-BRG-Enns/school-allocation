@@ -18,6 +18,11 @@ export function formatDay(date: string): string {
   return day.format(new Date(`${date}T12:00:00Z`))
 }
 
+/** The school's date an instant falls on, as "Sa., 01.09.2035": for an end that is a whole day, such as the retention's. */
+export function formatDateOf(iso: string): string {
+  return day.format(new Date(iso))
+}
+
 /** A span as "Di., 22.06. 08:00 – 13:00", or with the end's day when it ends on another one. */
 export function formatSpan(startsAt: string, endsAt: string): string {
   const start = new Date(startsAt)

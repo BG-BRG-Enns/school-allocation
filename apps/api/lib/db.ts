@@ -1,4 +1,5 @@
 import pg from 'pg'
+import { systemClock, type Clock } from './clock.ts'
 import { SQLSTATE, sqlState } from './pg-errors.ts'
 
 /** The unprivileged role the server connects as; created by the migrator. */
@@ -8,13 +9,23 @@ export interface Database {
   query: <R extends pg.QueryResultRow = pg.QueryResultRow>(text: string, values?: unknown[]) => Promise<pg.QueryResult<R>>
   /** Runs fn in a transaction: commit on success, rollback on throw, client always released. */
   tx: <T>(fn: (client: pg.PoolClient) => Promise<T>) => Promise<T>
+  /** The time on the clock the database was created with (lib/clock.ts); under a test's clock, `app_now()` reads the same in SQL. */
+  now: () => Date
   close: () => Promise<void>
 }
 
 /** What a query runs on: the pool, or the client of the transaction it is part of. */
 export type Queryable = Pick<Database, 'query'>
 
-export function createDatabase(connectionString: string, onClientError: (err: Error) => void): Database {
+/**
+ * The pool the server works with. Without `clock`, as the server runs, the
+ * system's clock answers `db.now()` and the database's own `now()` answers
+ * `app_now()` (migration 0012). A test passes a clock of its own: then every
+ * transaction starts by setting `app.now` to its time, which `app_now()`
+ * reads, and a statement outside a transaction runs in one of its own, so
+ * the database follows the clock too.
+ */
+export function createDatabase(connectionString: string, onClientError: (err: Error) => void, clock?: Clock): Database {
   const pool = new pg.Pool({
     connectionString,
     max: 10,
@@ -33,36 +44,56 @@ export function createDatabase(connectionString: string, onClientError: (err: Er
   // clients; tx() listens for the one it has checked out.
   pool.on('error', onClientError)
 
-  return {
-    query: (text, values) => pool.query(text, values),
-    async tx(fn) {
-      const client = await pool.connect()
-      let broken = false
-      const onError = (err: Error) => {
-        broken = true
-        onClientError(err)
-      }
-      client.on('error', onError)
+  async function tx<T>(fn: (client: pg.PoolClient) => Promise<T>): Promise<T> {
+    const client = await pool.connect()
+    let broken = false
+    const onError = (err: Error) => {
+      broken = true
+      onClientError(err)
+    }
+    client.on('error', onError)
+    try {
+      await client.query('begin')
+      if (clock !== undefined) await client.query(setNow(clock.now()))
+      const result = await fn(client)
+      await client.query('commit')
+      return result
+    } catch (err) {
       try {
-        await client.query('begin')
-        const result = await fn(client)
-        await client.query('commit')
-        return result
-      } catch (err) {
-        try {
-          await client.query('rollback')
-        } catch {
-          // A connection that cannot even roll back is not reused.
-          broken = true
-        }
-        throw err
-      } finally {
-        client.off('error', onError)
-        client.release(broken)
+        await client.query('rollback')
+      } catch {
+        // A connection that cannot even roll back is not reused.
+        broken = true
       }
-    },
+      throw err
+    } finally {
+      client.off('error', onError)
+      client.release(broken)
+    }
+  }
+
+  return {
+    query: clock === undefined
+      ? (text, values) => pool.query(text, values)
+      : <R extends pg.QueryResultRow>(text: string, values?: unknown[]) => tx((client) => client.query<R>(text, values)),
+    tx,
+    now: () => (clock ?? systemClock).now(),
     close: () => pool.end(),
   }
+}
+
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+
+/**
+ * What sets `app_now()` for the rest of a transaction. SET, unlike a
+ * select, takes no snapshot, so readSnapshot can still choose its isolation
+ * after it. SET takes no parameter: the value is the clock's instant as
+ * toISOString writes it, checked to be exactly that.
+ */
+function setNow(at: Date): string {
+  const instant = at.toISOString()
+  if (!ISO_INSTANT.test(instant)) throw new Error(`not a clock time: ${instant}`)
+  return `set local app.now = '${instant}'`
 }
 
 /**

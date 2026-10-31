@@ -140,7 +140,7 @@ export async function lockCampaignForUpdate(db: Queryable, current: Item) {
 export async function updateContent(db: Queryable, id: string, input: ItemInput) {
   await db.query(
     `update catalog_item set title = $2, description = $3, location = $4, fee_cents = $5, fee_note = $6, places = $7, min_participants = $8,
-              cancellable_below_min = $9, fixed_classes = $10, eligible_grades = $11, eligible_classes = $12, updated_at = now() where id = $1`,
+              cancellable_below_min = $9, fixed_classes = $10, eligible_grades = $11, eligible_classes = $12, updated_at = app_now() where id = $1`,
     [id, input.title, input.description, input.location, input.feeCents, input.feeNote, input.places, input.minParticipants, input.cancellableBelowMin,
       input.fixedClasses, input.eligibleGrades, input.eligibleClasses],
   )
@@ -166,23 +166,23 @@ export async function deleteItem(db: Queryable, id: string) {
 }
 
 export async function proposeItem(db: Queryable, id: string) {
-  await db.query('update catalog_item set state = $2, review_note = \'\', updated_at = now() where id = $1', [id, 'proposed'])
+  await db.query('update catalog_item set state = $2, review_note = \'\', updated_at = app_now() where id = $1', [id, 'proposed'])
 }
 
 export async function unproposeItem(db: Queryable, id: string) {
-  await db.query('update catalog_item set state = $2, updated_at = now() where id = $1', [id, 'draft'])
+  await db.query('update catalog_item set state = $2, updated_at = app_now() where id = $1', [id, 'draft'])
 }
 
 export async function approveItem(db: Queryable, id: string, caller: Caller) {
-  await db.query('update catalog_item set state = $2, approved_at = now(), approved_by = $3, review_note = \'\', updated_at = now() where id = $1', [id, 'approved', caller.id])
+  await db.query('update catalog_item set state = $2, approved_at = app_now(), approved_by = $3, review_note = \'\', updated_at = app_now() where id = $1', [id, 'approved', caller.id])
 }
 
 export async function returnItem(db: Queryable, id: string, note: string) {
-  await db.query('update catalog_item set state = $2, review_note = $3, approved_at = null, approved_by = null, updated_at = now() where id = $1', [id, 'draft', note])
+  await db.query('update catalog_item set state = $2, review_note = $3, approved_at = null, approved_by = null, updated_at = app_now() where id = $1', [id, 'draft', note])
 }
 
 export async function withdrawItem(db: Queryable, id: string, caller: Caller, reason: string) {
-  await db.query('update catalog_item set state = $2, withdrawn_at = now(), withdrawn_by = $3, withdraw_reason = $4, updated_at = now() where id = $1', [id, 'withdrawn', caller.id, reason])
+  await db.query('update catalog_item set state = $2, withdrawn_at = app_now(), withdrawn_by = $3, withdraw_reason = $4, updated_at = app_now() where id = $1', [id, 'withdrawn', caller.id, reason])
 }
 
 export async function lockCampaignForMove(db: Queryable, current: Item) {

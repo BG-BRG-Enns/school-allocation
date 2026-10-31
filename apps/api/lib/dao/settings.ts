@@ -24,5 +24,5 @@ export async function readLocale(db: Queryable): Promise<string | undefined> {
 }
 
 export async function updateLocale(db: Queryable, locale: string, actor: Actor) {
-  await db.query('update school_setting set locale = $1, updated_at = now(), updated_by = $2', [locale, actor.id])
+  await db.query('update school_setting set locale = $1, updated_at = app_now(), updated_by = $2', [locale, actor.id])
 }

@@ -20,18 +20,18 @@ import type { PersonKind } from '@school-allocation/school-core'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { SESSION_SECONDS, sessionBound, type SessionUser } from '../plugins/session.ts'
 import { type Caller } from './actor.ts'
-import type { Queryable } from './db.ts'
+import type { Database, Queryable } from './db.ts'
 import { isRole, type Role } from './roles.ts'
 
 /** The signed-in caller as the cookie has it, or undefined. A session past its lifetime, or without a sign-in time, counts as none. */
-export function currentUser(request: FastifyRequest, now = Date.now()): SessionUser | undefined {
+export function currentUser(request: FastifyRequest, now: number): SessionUser | undefined {
   const user = request.userSession.get('user')
   if (!user || !withinSeconds(user.issuedAt, SESSION_SECONDS, now) || !sessionBound(request)) return undefined
   return user
 }
 
-/** Whether `since` (a Date.now() value) lies less than `seconds` back; false for anything that is not a time. */
-export function withinSeconds(since: unknown, seconds: number, now = Date.now()): boolean {
+/** Whether `since` (milliseconds, as `now`) lies less than `seconds` back; false for anything that is not a time. */
+export function withinSeconds(since: unknown, seconds: number, now: number): boolean {
   if (typeof since !== 'number' || !Number.isFinite(since)) return false
   return now - since < seconds * 1000
 }
@@ -109,9 +109,9 @@ export interface Guards {
 }
 
 // A guard that replies ends the request; Fastify stops before the handler.
-export function createGuards(db: Queryable): Guards {
+export function createGuards(db: Pick<Database, 'query' | 'now'>): Guards {
   const requireSession = async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
-    const user = currentUser(request)
+    const user = currentUser(request, db.now().getTime())
     const caller = user ? await loadCaller(db, user.id) : undefined
     if (!caller) {
       // A session whose person is blocked or gone is dropped, so the

@@ -118,7 +118,7 @@ export async function swap(db: Database, context: WindowContext, campaign: Campa
   if (personId === null) throw new ApplicationError('not_a_student')
   await db.tx(async (client) => {
     const locked = await lock(client, campaign.id)
-    if (!swapWindowOpen(locked.campaign)) throw new ApplicationError('swap_closed')
+    if (!swapWindowOpen(locked.campaign, db.now().getTime())) throw new ApplicationError('swap_closed')
     const student = await campaignStudent(client, locked.campaign, personId)
     if (!student) throw new ApplicationError('not_a_student')
     const toItemId = itemId.toLowerCase()

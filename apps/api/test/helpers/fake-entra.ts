@@ -13,6 +13,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { exportJWK, generateKeyPair, SignJWT } from 'jose'
+import { systemClock, type Clock } from '../../lib/clock.ts'
 import { CLIENT_ID, CLIENT_SECRET, ORIGIN, TENANT_ID } from './env.ts'
 import { claimsOf, PERSONAS, type Person } from './personas.ts'
 
@@ -51,6 +52,8 @@ interface PendingCode {
 export interface FakeEntraOptions {
   /** The app's registered redirect URI for sign-in; any other is refused, as Entra refuses it. The Graph authorization's callback is registered beside it. */
   redirectUri?: string
+  /** What the tokens' times come from: the app's clock when a test controls it (helpers/clock.ts), the system's otherwise. */
+  clock?: Clock
 }
 
 /** The second redirect URI an app registration has: the roster refresh's callback, next to the sign-in's. */
@@ -58,7 +61,7 @@ export function graphRedirectUri(signInRedirectUri: string): string {
   return signInRedirectUri.replace(/\/api\/auth\/callback$/, '/api/admin/roster/graph/callback')
 }
 
-export async function startFakeEntra({ redirectUri = `${ORIGIN}/api/auth/callback` }: FakeEntraOptions = {}): Promise<FakeEntra> {
+export async function startFakeEntra({ redirectUri = `${ORIGIN}/api/auth/callback`, clock = systemClock }: FakeEntraOptions = {}): Promise<FakeEntra> {
   const redirectUris = [redirectUri, graphRedirectUri(redirectUri)]
   const kid = 'test-key'
   const tenantKey = await generateKeyPair('RS256')
@@ -108,7 +111,7 @@ export async function startFakeEntra({ redirectUri = `${ORIGIN}/api/auth/callbac
     const url = checked(authorizationUrl)
     const param = (name: string) => url.searchParams.get(name) ?? ''
     const redirectUri = param('redirect_uri')
-    const now = Math.floor(Date.now() / 1000)
+    const now = Math.floor(clock.now().getTime() / 1000)
     const merged: Record<string, unknown> = {
       iss: ISSUER,
       aud: CLIENT_ID,

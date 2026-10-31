@@ -98,7 +98,7 @@ export async function insertBatch(db: Queryable, input: NewBatch, hash: string, 
   const { rows: [row] } = await db.query<{ id: string }>(
     `insert into import_batch (source, state, school_year, payload_sha256, row_count, triggered_by, previous_batch_id, diff_summary, problems, warnings, decided_at, decided_by)
        values ($1, case when $10::boolean then 'rejected' else 'pending' end, $2, $3, $4, $5::uuid, $6, $7, $8, $9,
-               case when $10::boolean then now() end, case when $10::boolean then $5::uuid end) returning id`,
+               case when $10::boolean then app_now() end, case when $10::boolean then $5::uuid end) returning id`,
     [
       input.source, input.schoolYear, hash, input.entries.length, input.triggeredBy,
       current?.id ?? null, JSON.stringify(summary), JSON.stringify(problems), JSON.stringify(warnings),
@@ -171,7 +171,7 @@ export async function bindEntry(db: Queryable, entry: { id: string, oid: string 
 }
 
 export async function commitBatch(db: Queryable, batchId: string, actor: Actor) {
-  await db.query(`update import_batch set state = 'committed', decided_at = now(), decided_by = $2 where id = $1`, [batchId, actor.id])
+  await db.query(`update import_batch set state = 'committed', decided_at = app_now(), decided_by = $2 where id = $1`, [batchId, actor.id])
 }
 
 export async function lockBatchForDiscard(db: Queryable, batchId: string) {
@@ -180,7 +180,7 @@ export async function lockBatchForDiscard(db: Queryable, batchId: string) {
 }
 
 export async function discardBatch(db: Queryable, batchId: string, actor: Actor) {
-  await db.query(`update import_batch set state = 'discarded', decided_at = now(), decided_by = $2 where id = $1`, [batchId, actor.id])
+  await db.query(`update import_batch set state = 'discarded', decided_at = app_now(), decided_by = $2 where id = $1`, [batchId, actor.id])
 }
 
 export async function insertEntries(client: Queryable, batchId: string, entries: readonly import('@school-allocation/school-core').RosterEntry[]): Promise<void> {

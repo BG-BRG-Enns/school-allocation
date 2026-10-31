@@ -75,7 +75,7 @@ export async function listAssignments(db: Queryable, schoolYear: string, classNa
 }
 
 export async function revokeAssignment(db: Queryable, row: { id: string, personId: string }, actor: Actor) {
-  await db.query('update class_teacher set revoked_at = now(), revoked_by = $2 where id = $1', [row.id, actor.id])
+  await db.query('update class_teacher set revoked_at = app_now(), revoked_by = $2 where id = $1', [row.id, actor.id])
 }
 
 export async function insertAssignment(db: Queryable, schoolYear: string, className: string, personId: string, actor: Actor) {

@@ -25,7 +25,7 @@ export async function listAttendance(db: Queryable, campaignId: string): Promise
 export async function upsertAttendance(client: Queryable, itemId: string, position: number, personId: string, status: AttendanceStatus, note: string, recordedBy: string): Promise<void> {
   await client.query(
     `insert into attendance (item_id, position, person_id, status, note, recorded_by) values ($1, $2, $3, $4, $5, $6)
-     on conflict (item_id, position, person_id) do update set status = excluded.status, note = excluded.note, recorded_by = excluded.recorded_by, recorded_at = now()`,
+     on conflict (item_id, position, person_id) do update set status = excluded.status, note = excluded.note, recorded_by = excluded.recorded_by, recorded_at = app_now()`,
     [itemId, position, personId, status, note, recordedBy],
   )
 }

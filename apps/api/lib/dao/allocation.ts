@@ -90,7 +90,7 @@ export async function claimRunning(client: Queryable, runId: string): Promise<bo
 
 export async function finishRun(client: Queryable, runId: string, finish: RunFinish): Promise<void> {
   await client.query(
-    `update allocation_run set status = $2, finished_at = now(), passes = $3, cancelled_items = $4::uuid[], solver_version = $5, ortools_version = $6, failure = $7, detail = $8, problems = $9
+    `update allocation_run set status = $2, finished_at = app_now(), passes = $3, cancelled_items = $4::uuid[], solver_version = $5, ortools_version = $6, failure = $7, detail = $8, problems = $9
       where id = $1 and status = 'running'`,
     [runId, finish.status, JSON.stringify(finish.passes), finish.cancelled, finish.versions?.solver ?? null, finish.versions?.ortools ?? null, finish.failure, finish.detail, JSON.stringify(finish.problems)],
   )
@@ -176,7 +176,7 @@ export async function runningRuns(client: Queryable): Promise<{ id: string, camp
 /** Marks one run interrupted if it is still running; false when a job finished it meanwhile. */
 export async function interruptRun(client: Queryable, runId: string): Promise<boolean> {
   const { rowCount } = await client.query(
-    'update allocation_run set status = \'interrupted\', finished_at = now(), failure = \'internal_error\', detail = \'interrupted by a restart\' where id = $1 and status = \'running\'',
+    'update allocation_run set status = \'interrupted\', finished_at = app_now(), failure = \'internal_error\', detail = \'interrupted by a restart\' where id = $1 and status = \'running\'',
     [runId],
   )
   return rowCount === 1
@@ -213,7 +213,7 @@ export async function lockRun(client: Queryable, campaignId: string, runId: stri
 }
 
 export async function markPublished(client: Queryable, runId: string, userId: string): Promise<void> {
-  await client.query('update allocation_run set published_at = now(), published_by = $2 where id = $1 and published_at is null', [runId, userId])
+  await client.query('update allocation_run set published_at = app_now(), published_by = $2 where id = $1 and published_at is null', [runId, userId])
 }
 
 /** The teachers among `personIds` with an address, from the campaign's roster. */

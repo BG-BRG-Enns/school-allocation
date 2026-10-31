@@ -1,10 +1,13 @@
-// Die Anmeldung: die Organisation öffnet sie, eine Schülerin gibt ihre Wünsche
-// ab und ist vollständig, die Organisation sieht den Stand der Anmeldung und gibt
-// für einen Schüler ein, der Klassenvorstand sieht den Stand seiner
-// Klasse, die E-Mail-Vorlagen lassen sich ändern. Baut auf 03-katalog und
-// 04-einstellungen auf (Bernd ist Klassenvorstand der 5A).
+// Die Anmeldung: sie öffnet sich zu ihrer Zeit, eine Schülerin gibt ihre
+// Wünsche ab und ist vollständig, einen Tag vor dem Ende wird erinnert, wer
+// noch fehlt, die Organisation sieht den Stand der Anmeldung und gibt für
+// einen Schüler ein, der Klassenvorstand sieht den Stand seiner Klasse, die
+// E-Mail-Vorlagen lassen sich ändern. Baut auf 03-katalog und
+// 04-einstellungen auf (Bernd ist Klassenvorstand der 5A; die Anmeldung
+// läuft vom 6. bis 13. März 2034, die Nachfrist bis 17. März).
 
 import { expect, test } from '../support/test.ts'
+import { runTick, setClock } from '../support/clock.ts'
 import { refused } from '../support/console.ts'
 import { t } from '../support/messages.ts'
 import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
@@ -14,10 +17,11 @@ import { openAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
 
-test('die Organisation öffnet die Anmeldung; eine Schülerin gibt ihre Wünsche ab und ist vollständig', async ({ page }) => {
+test('die Anmeldung öffnet sich zu ihrer Zeit; eine Schülerin gibt ihre Wünsche ab und ist vollständig', async ({ page }) => {
+  await setClock(page, '2034-03-06T08:00:00+01:00')
+  expect(await runTick()).toEqual({ transitions: 1, reminders: 0 })
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
-  await page.getByRole('button', { name: t.campaign.organization.open }).click()
   await expect(page.getByText(t.labels.campaignState.open)).toBeVisible()
   await expect(page.getByRole('heading', { name: t.campaign.missing.heading })).toBeVisible()
   await expect(page.getByText(t.campaign.missing.summary(2, 2))).toBeVisible()
@@ -40,12 +44,17 @@ test('die Organisation öffnet die Anmeldung; eine Schülerin gibt ihre Wünsche
   await signOut(page)
 })
 
-test('die Organisation gibt für einen Schüler ein; der Klassenvorstand sieht den Stand seiner Klasse', async ({ page }) => {
+test('einen Tag vor dem Ende wird erinnert, wer fehlt; die Organisation gibt für einen Schüler ein; der Klassenvorstand sieht den Stand seiner Klasse', async ({ page }) => {
+  // The reminder goes out a day before the end (the registration's default): to Tim, who has given no wishes yet, not to Sara.
+  await setClock(page, '2034-03-12T20:00:00+01:00')
+  expect(await runTick()).toEqual({ transitions: 0, reminders: 1 })
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
   await expect(page.getByText(t.campaign.missing.summary(2, 1))).toBeVisible()
   const tim = page.getByRole('row', { name: new RegExp(TIM.name) })
   await expect(tim).toContainText(t.labels.choiceState.none)
+  await expect(tim).toContainText(`${t.labels.mailKind.choice_reminder}: ${t.labels.mailState.queued}`)
+  await expect(page.getByRole('row', { name: new RegExp(SARA.name) })).not.toContainText(t.labels.mailKind.choice_reminder)
   await picture(page, 'stand-der-anmeldung', section(page, t.campaign.missing.heading))
   await tim.getByRole('link', { name: t.campaign.missing.enter }).click()
   await expect(page.getByRole('heading', { name: t.wishes.titleOnBehalf })).toBeVisible()
