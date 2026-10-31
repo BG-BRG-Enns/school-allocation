@@ -8,6 +8,7 @@ import type { Campaign } from '../lib/models/campaigns.ts'
 import { type StudentChoiceState } from '../lib/models/choices.ts'
 import { canSee, isOrganizer, isTeacher, mayPropose, maySeeDemand, withoutTeachers } from '../lib/policies.ts'
 import { campaignDemand, requireCampaign } from './campaigns.ts'
+import { classTeacherOf } from './class-teachers.ts'
 import { choiceStates } from './choices.ts'
 import { catalogueItems, listItems } from './items.ts'
 import { classPlacements, type ClassPlacement } from './publication.ts'
@@ -27,8 +28,8 @@ export async function campaignView(db: Database, campaign: Campaign, caller: Cal
       propose: mayPropose(caller) && campaign.state === 'catalogue',
       organize: isOrganizer(caller),
       seeDemand: maySeeDemand(caller, campaign),
-      /** The classes the caller may open the class page of: their own as class teacher. Organizers open any from the class list. */
-      classTeacherOf: caller.classTeacherOf,
+      /** The classes the caller may open the class page of: their own as class teacher in the campaign's school year. Organizers open any from the class list. */
+      classTeacherOf: await classTeacherOf(db, campaign, caller),
     },
   }
 }
@@ -39,7 +40,7 @@ export async function demandView(db: Database, campaign: Campaign, caller: Calle
 }
 
 export async function classStatus(db: Database, campaign: Campaign, caller: Caller, className: string) {
-  if (!isOrganizer(caller) && !caller.classTeacherOf.includes(className)) throw new ApplicationError('forbidden')
+  if (!isOrganizer(caller) && !(await classTeacherOf(db, campaign, caller)).includes(className)) throw new ApplicationError('forbidden')
   // The campaign's roster: the one frozen at its close, else the one in force, as the lists and notices go by it.
   const students = await campaignStudents(db, campaign, className)
   if (students.length === 0) throw new ApplicationError('not_found')

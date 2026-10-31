@@ -26,8 +26,6 @@ export interface Caller {
   roles: Role[]
   /** null until a roster entry is bound to this identity. */
   person: CallerPerson | null
-  /** The classes the caller is class teacher of in the roster's school year: assigned in the app, or named by the roster's class-teacher address. */
-  classTeacherOf: string[]
 }
 
 /** The actor of an administrative change: the caller's identity and app_user id. */

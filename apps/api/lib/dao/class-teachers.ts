@@ -43,6 +43,29 @@ export async function listClasses(db: Queryable): Promise<ClassWithTeachers[]> {
   return rows.map((row) => ({ className: row.class_name, grade: row.grade, students: Number(row.students), teachers: row.teachers }))
 }
 
+/**
+ * The classes a teacher is class teacher of in a school year: assigned in
+ * the app for that year, or named by the class-teacher address of the
+ * students in that year's newest committed roster, matched against the
+ * teacher's addresses in that same roster. Keyed by the year, not by the
+ * roster in force: a class name recurs every year, the right does not.
+ */
+export async function classesTaught(db: Queryable, schoolYear: string, personId: string): Promise<string[]> {
+  const { rows } = await db.query<{ c: string }>(
+    `with batch as (select id from import_batch where state = 'committed' and school_year = $1 order by decided_at desc limit 1),
+          me as (select lower(e.mail) as mail, lower(e.upn) as upn from roster_entry e, batch where e.batch_id = batch.id and e.person_id = $2 and e.kind = 'teacher')
+     select distinct c from (
+       select a.class_name as c from class_teacher a where a.school_year = $1 and a.person_id = $2 and a.revoked_at is null
+       union
+       select s.class_name from roster_entry s, batch, me
+        where s.batch_id = batch.id and s.kind = 'student' and s.class_name is not null
+          and lower(s.class_teacher_mail) in (me.mail, me.upn)
+     ) k order by c`,
+    [schoolYear, personId],
+  )
+  return rows.map((row) => row.c)
+}
+
 export async function classStudents(db: Queryable, className: string): Promise<ClassStudent[]> {
   const { rows } = await db.query<{ person_id: string, display_name: string }>(
     `select e.person_id, e.display_name from roster_entry e

@@ -26,6 +26,7 @@ import type { CampaignStudent } from '../lib/models/choices.ts'
 import type { Item } from '../lib/models/items.ts'
 import type { WindowContext } from '../lib/models/window.ts'
 import { isOrganizer } from '../lib/policies.ts'
+import { classTeacherOf } from './class-teachers.ts'
 import { readTemplate, renderTemplate } from './mail-templates.ts'
 import { itemLabel, programmeWriter, swapWindowOpen, unavailableItems } from './publication.ts'
 import { firstNameOf } from './window.ts'
@@ -137,7 +138,8 @@ export async function swap(db: Database, context: WindowContext, campaign: Campa
  * may too. From publication to the archive, no window.
  */
 export async function placeStudent(db: Database, context: WindowContext, campaign: Campaign, caller: Caller, className: string, personId: string, itemId: string, reason: string): Promise<void> {
-  const asClassTeacher = caller.classTeacherOf.includes(className)
+  // Class teacher of the class in the campaign's school year; the year of a campaign in results changes no more.
+  const asClassTeacher = (await classTeacherOf(db, campaign, caller)).includes(className)
   if (!isOrganizer(caller) && !asClassTeacher) throw new ApplicationError('forbidden')
   await db.tx(async (client) => {
     const locked = await lock(client, campaign.id)

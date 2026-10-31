@@ -56,7 +56,7 @@ Rules for both:
 | **Eligibility** | The campaign's rule (`all`, or `class prefix` such as `5` for WPF) applied to the frozen roster batch | Decides who may choose in a campaign and which items they may see |
 | **Privileged roles** `campaign_organizer`, `school_admin`, `read_only_auditor` | Granted in the app by a `school_admin`, audited, optionally scoped to a campaign | Never derived from Entra |
 | **Bootstrap** | Configuration lists the UPNs or `oid`s of the first administrators | Applied at their first sign-in |
-| **Class teacher (KV)** | Assigned per class in the app by an organizer or admin, or taken from a CSV column | Needed for attendance |
+| **Class teacher (KV)** | Assigned per class and school year in the app by an organizer or admin, or taken from a CSV column | Base data of the school year, the same for every campaign of it: a campaign's class pages, placements and attendance open to the class teachers of its school year, not to a later year's teacher of a class of the same name. Also a teacher of the roster in force |
 
 ### Rights matrix
 
