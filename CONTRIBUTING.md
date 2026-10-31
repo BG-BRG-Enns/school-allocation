@@ -103,6 +103,7 @@ Formatting is enforced by ESLint; there is no separate formatter. `npx eslint . 
 - Add or update tests for behaviour changes. Changes to completeness, the allocation model or its validator need tests that cover the boundary cases.
 - Explain in the description why the change is needed, not only what it does.
 - A migration that older code cannot run on (a column dropped or renamed, a constraint the old code would break, a meaning changed) starts with `-- schema-version: N`, one more than the newest before it. An additive one (a table, a column with a default, an index, a foreign key the code already keeps) carries none. No release has to keep working on a newer schema: a release refuses a schema version above the one it was built for, and a failed update stays down until the next release fixes it.
+- A foreign key gets an index its check can use, so removing the row it points to looks the referencing rows up instead of reading the table. `apps/api/test/db/migrate.test.ts` plans every key's check and names each one no index serves.
 - A release that ships the fix of a vulnerability in the app (in the code, the base image or a dependency) raises the schema version, with a migration that may hold the `-- schema-version: N` line alone. Add it with the fix, or in the release's pull request when the fix came in as a dependency update. No earlier release then starts on a database it migrated, so a host never goes back behind the fix.
 
 ## Dependencies

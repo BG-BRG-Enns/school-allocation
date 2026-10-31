@@ -13,6 +13,13 @@
 -- taken back, a row removed), for every role, the owner at a prompt
 -- included. The one way past them is the retention purge at the end.
 
+-- Every foreign key's check can use an index (test/db/migrate.test.ts
+-- plans each one): removing a row a key points to, as the retention purge
+-- and the removal of a draft item do, looks the referencing rows up rather
+-- than reading the table. A key that is not an index's first column relies
+-- on a skip scan over a leading column with few values (a campaign, an
+-- allocation run, an item).
+
 -- How a trigger refuses a change: SQLSTATE 55000, which the application maps
 -- by code (lib/pg-errors.ts). The message names the rule, never a value.
 create function refuse(rule text) returns void language plpgsql as $$
@@ -57,6 +64,7 @@ create table app_user (
   check ((blocked_at is null) = (blocked_by is null)),
   constraint app_user_identity unique (tid, oid)
 );
+create index app_user_blocked_by on app_user (blocked_by);
 
 -- The privileged roles, granted in the application and audited: for the
 -- school (campaign_id null), or for one campaign (role_grant_campaign,
@@ -77,7 +85,10 @@ create table role_grant (
 );
 -- One active grant per person, role and scope; the school scope is null.
 create unique index role_grant_active on role_grant (user_id, role, campaign_id) nulls not distinct where revoked_at is null;
-create index role_grant_user on role_grant (user_id) where revoked_at is null;
+create index role_grant_user on role_grant (user_id);
+create index role_grant_granted_by on role_grant (granted_by);
+create index role_grant_revoked_by on role_grant (revoked_by);
+create index role_grant_campaign_id on role_grant (campaign_id);
 
 create function role_grant_guard() returns trigger language plpgsql as $$
 begin
@@ -164,6 +175,7 @@ create table job (
   check (finished_at is null or finished_at >= started_at)
 );
 create index job_unfinished on job (started_at) where finished_at is null;
+create index job_started_by on job (started_by);
 
 -- The roster: who takes part, in which class, from which import, and how a
 -- roster entry is tied to a sign-in (docs/data-sources.md, docs/identity-and-roles.md
@@ -211,6 +223,9 @@ create table import_batch (
 );
 create index import_batch_committed on import_batch (decided_at desc) where state = 'committed';
 create index import_batch_fetched on import_batch (fetched_at desc);
+create index import_batch_triggered_by on import_batch (triggered_by);
+create index import_batch_previous_batch_id on import_batch (previous_batch_id);
+create index import_batch_decided_by on import_batch (decided_by);
 
 -- What a stored batch must satisfy, whoever writes it: it is born pending or
 -- rejected, and it is committed only once every entry has its person.
@@ -263,6 +278,7 @@ create table roster_group (
   updated_at timestamptz not null default app_now(),
   updated_by uuid not null references app_user (id)
 );
+create index roster_group_updated_by on roster_group (updated_by);
 
 -- One row of one batch: a person as that import saw them. Immutable except
 -- for the person it is resolved to when the batch is committed. The key is
@@ -341,6 +357,9 @@ create table identity_binding (
 create unique index identity_binding_active_identity on identity_binding (tid, oid) where unbound_at is null;
 create unique index identity_binding_active_person on identity_binding (person_id) where unbound_at is null;
 create index identity_binding_person on identity_binding (person_id);
+create index identity_binding_bound_by on identity_binding (bound_by);
+create index identity_binding_import_batch_id on identity_binding (import_batch_id);
+create index identity_binding_unbound_by on identity_binding (unbound_by);
 
 create function identity_binding_guard() returns trigger language plpgsql as $$
 begin
@@ -382,6 +401,7 @@ create table school_setting (
   updated_by uuid references app_user (id) on delete set null,
   mail_paused boolean not null default false
 );
+create index school_setting_updated_by on school_setting (updated_by);
 insert into school_setting default values;
 
 -- The lesson periods (D-25), one row each, numbered from 1; replaced as a
@@ -425,7 +445,9 @@ create table class_teacher (
   check ((revoked_at is null) = (revoked_by is null))
 );
 create unique index class_teacher_active on class_teacher (school_year, class_name, person_id) where revoked_at is null;
-create index class_teacher_person on class_teacher (person_id) where revoked_at is null;
+create index class_teacher_person on class_teacher (person_id);
+create index class_teacher_assigned_by on class_teacher (assigned_by);
+create index class_teacher_revoked_by on class_teacher (revoked_by);
 
 create function class_teacher_guard() returns trigger language plpgsql as $$
 begin
@@ -507,6 +529,8 @@ create table campaign (
   constraint campaign_swap_order check (swap_from is null or swap_until is null or swap_from <= swap_until)
 );
 create index campaign_year on campaign (school_year, created_at desc);
+create index campaign_roster_batch_id on campaign (roster_batch_id);
+create index campaign_created_by on campaign (created_by);
 
 alter table role_grant add constraint role_grant_campaign foreign key (campaign_id) references campaign (id);
 
@@ -568,6 +592,9 @@ create table catalog_item (
 );
 create unique index catalog_item_number on catalog_item (campaign_id, number) where number is not null;
 create index catalog_item_campaign on catalog_item (campaign_id, state);
+create index catalog_item_proposed_by on catalog_item (proposed_by);
+create index catalog_item_approved_by on catalog_item (approved_by);
+create index catalog_item_withdrawn_by on catalog_item (withdrawn_by);
 
 -- A draft nobody has reviewed may go; anything later, and anything that was
 -- in a published catalogue (it has a number), is withdrawn, so the record of
@@ -646,6 +673,7 @@ create table pre_assignment (
   check ((exempted_at is null) = (exempted_by is null) and (exempted_at is null) = (exempt_reason is null))
 );
 create index pre_assignment_person on pre_assignment (campaign_id, person_id);
+create index pre_assignment_exempted_by on pre_assignment (exempted_by);
 
 create function pre_assignment_guard() returns trigger language plpgsql as $$
 begin
@@ -684,6 +712,7 @@ create table choice (
   entered_by uuid not null references app_user (id),
   primary key (campaign_id, person_id)
 );
+create index choice_entered_by on choice (entered_by);
 
 create table choice_revision (
   seq bigint generated always as identity primary key,
@@ -698,6 +727,7 @@ create table choice_revision (
   reason text check (reason is null or char_length(reason) between 1 and 500),
   unique (campaign_id, person_id, version)
 );
+create index choice_revision_entered_by on choice_revision (entered_by);
 
 create function choice_revision_guard() returns trigger language plpgsql as $$
 begin
@@ -725,6 +755,7 @@ create table mail_template (
   updated_by uuid not null references app_user (id),
   locale text not null default 'de' check (locale in ('de', 'de-formal', 'en'))
 );
+create index mail_template_updated_by on mail_template (updated_by);
 
 create function mail_template_guard() returns trigger language plpgsql as $$
 begin
@@ -775,6 +806,7 @@ create table outbox_mail (
 create index outbox_mail_queue on outbox_mail (priority, created_at) where state = 'queued';
 create index outbox_mail_claimed on outbox_mail (claimed_at) where claimed_at is not null;
 create index outbox_mail_campaign on outbox_mail (campaign_id, created_at desc);
+create index outbox_mail_person_id on outbox_mail (person_id);
 
 create function outbox_mail_guard() returns trigger language plpgsql as $$
 begin
@@ -840,6 +872,8 @@ create table allocation_run (
 );
 create unique index allocation_run_published on allocation_run (campaign_id) where published_at is not null;
 create index allocation_run_campaign on allocation_run (campaign_id, seq desc);
+create index allocation_run_started_by on allocation_run (started_by);
+create index allocation_run_published_by on allocation_run (published_by);
 
 create function allocation_run_guard() returns trigger language plpgsql as $$
 begin
@@ -898,6 +932,10 @@ create table assignment_change (
   check (from_item_id is distinct from to_item_id)
 );
 create index assignment_change_run on assignment_change (run_id, seq);
+create index assignment_change_person_id on assignment_change (person_id);
+create index assignment_change_from_item_id on assignment_change (from_item_id);
+create index assignment_change_to_item_id on assignment_change (to_item_id);
+create index assignment_change_changed_by on assignment_change (changed_by);
 
 create function assignment_change_guard() returns trigger language plpgsql as $$
 begin
@@ -942,6 +980,7 @@ create index assignment_item on assignment (run_id, item_id);
 create unique index assignment_current on assignment (run_id, person_id, item_id) where superseded_by is null;
 -- The change log asks which rows a change superseded.
 create index assignment_superseded on assignment (superseded_by) where superseded_by is not null;
+create index assignment_change_id on assignment (change_id);
 
 create function assignment_guard() returns trigger language plpgsql as $$
 begin
@@ -992,6 +1031,7 @@ create table attendance (
   foreign key (item_id, position) references item_session (item_id, position) deferrable initially deferred
 );
 create index attendance_person on attendance (person_id);
+create index attendance_recorded_by on attendance (recorded_by);
 
 create function attendance_guard() returns trigger language plpgsql as $$
 begin

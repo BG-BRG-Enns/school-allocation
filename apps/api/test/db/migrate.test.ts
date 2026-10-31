@@ -26,6 +26,31 @@ test('a second run applies nothing, and every table in public is either granted 
   assert.deepEqual(tables, Object.keys(RUNTIME_TABLES).sort())
 })
 
+test('every foreign key\'s check can use an index, so removing the row it points to never reads the referencing table', DB, async (t) => {
+  const db = await createTestDatabase(t)
+  const { keys, unserved } = await withClient(db.ownerUrl, async (c) => {
+    const { rows: keys } = await c.query<{ name: string, tbl: string, cols: string[] }>(
+      `select c.conname::text as name, c.conrelid::regclass::text as tbl, array_agg(a.attname::text order by k.n) as cols
+         from pg_constraint c cross join unnest(c.conkey) with ordinality k(attnum, n)
+         join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum
+        where c.contype = 'f' and c.connamespace = 'public'::regnamespace
+        group by c.oid, c.conname, c.conrelid order by 2, 1`,
+    )
+    // With sequential scans off, a plan without an index condition means no index can serve the check.
+    await c.query('set enable_seqscan = off')
+    const unserved: string[] = []
+    for (const key of keys) {
+      // The query PostgreSQL's trigger runs when a referenced row is removed, planned for any value.
+      const where = key.cols.map((col, i) => `${col} = $${i + 1}`).join(' and ')
+      const { rows } = await c.query<{ 'QUERY PLAN': string }>(`explain (generic_plan, costs off) select 1 from only ${key.tbl} x where ${where} for key share of x`)
+      if (!rows.some((r) => r['QUERY PLAN'].includes('Index Cond'))) unserved.push(`${key.tbl} (${key.cols.join(', ')})`)
+    }
+    return { keys, unserved }
+  })
+  assert.ok(keys.length > 0)
+  assert.deepEqual(unserved, [])
+})
+
 test('the runtime role may not create, may not change identities, and may not touch the audit log', DB, async (t) => {
   const db = await createTestDatabase(t)
   await withClient(db.runtimeUrl, async (c) => {
