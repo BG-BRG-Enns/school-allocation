@@ -1,6 +1,6 @@
 # Zuteilung
 
-Ist die Anmeldung beendet, berechnet SchulWahl die Zuteilung: eine Einteilung, die jede Regel einhält. Keine Aktivität bekommt mehr Schüler\*innen als Plätze, keine zwei Aktivitäten einer Person überschneiden sich, jede Aktivität bekommt nur, wer zu ihrer Schulstufe oder Klasse passt, und eine Klassenaktivität behält ihre ganzen Klassen. Eine Aktivität mit Kosten bekommt nur, wer sie sich gewünscht hat.
+Ist die Anmeldung beendet, berechnet SchulWahl die Zuteilung: eine Einteilung, die jede Regel einhält. Keine Aktivität bekommt mehr Schüler\*innen als Plätze, keine zwei Aktivitäten einer Person überschneiden sich, jede Aktivität bekommt nur, wer zu ihrer Schulstufe oder Klasse passt, und eine Klassenaktivität behält ihre ganzen Klassen. In eine Aktivität mit Kosten teilt die Berechnung nur ein, wer sie sich gewünscht hat, außer den ganzen Klassen einer Klassenaktivität, und nie als Restplatz.
 
 Innerhalb dieser Regeln verfolgt die Berechnung ihre Ziele, in dieser Reihenfolge:
 

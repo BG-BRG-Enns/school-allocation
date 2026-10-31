@@ -1,6 +1,6 @@
 # Allocation
 
-Once registration has ended, SchulWahl calculates the allocation: a placement for everyone that follows every rule. No activity gets more students than places, no person's two activities overlap, every activity only gets students from a suitable year or class, and a class activity keeps its whole classes. Only students who chose an activity with a cost are placed in it.
+Once registration has ended, SchulWahl calculates the allocation: a placement for everyone that follows every rule. No activity gets more students than places, no person's two activities overlap, every activity only gets students from a suitable year or class, and a class activity keeps its whole classes. The calculation places students in an activity with a cost only if they chose it, apart from the whole classes of a class activity, and never on a remaining place.
 
 Within these rules, the calculation pursues its goals in this order:
 

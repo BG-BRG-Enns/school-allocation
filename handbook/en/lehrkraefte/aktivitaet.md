@@ -33,7 +33,7 @@ If you select one or more classes under **Whole classes taking part (they make n
 
 ## Cost
 
-**Cost in euros (blank: none)** and **What for** appear in the catalogue. Anyone placed pays. Only students who chose an activity with a cost are placed in it, never anyone on a remaining place.
+**Cost in euros (blank: none)** and **What for** appear in the catalogue. Anyone placed pays, so for a class activity its whole classes do. Otherwise the calculation places students in an activity with a cost only if they chose it, and never on a remaining place. After publication, a swap, the class teacher or the organisation can also bring someone into an activity with a cost.
 
 ## Saving and submitting
 

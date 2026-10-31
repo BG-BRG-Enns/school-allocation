@@ -33,7 +33,7 @@ Wählst du unter **Ganze Klassen, die teilnehmen** eine oder mehrere Klassen, is
 
 ## Kosten
 
-**Kosten in Euro** (leer: keine) und **Wofür** stehen im Katalog. Wer eingeteilt ist, zahlt. Eine Aktivität mit Kosten bekommt nur, wer sie sich gewünscht hat, nie jemand als Restplatz.
+**Kosten in Euro** (leer: keine) und **Wofür** stehen im Katalog. Wer eingeteilt ist, zahlt, bei einer Klassenaktivität also die ganzen Klassen. Sonst teilt die Berechnung in eine Aktivität mit Kosten nur ein, wer sie sich gewünscht hat, und nie als Restplatz. Nach der Veröffentlichung kann ein Tausch, der Klassenvorstand oder die Organisation jemanden auch in eine Aktivität mit Kosten bringen.
 
 ## Speichern und einreichen
 
