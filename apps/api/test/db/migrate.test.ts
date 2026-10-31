@@ -188,6 +188,45 @@ test('0011: the seeded mail templates go, a saved one stays in German with its p
   })
 })
 
+test('0013: a reminder queued before it expires with its window, at once when the campaign has left the window; the rest keep their turn by kind; an expired mail stays so', DB, async (t) => {
+  const db = await createTestDatabase(t, { until: '0012_one_clock.sql' })
+  const closes = '2034-03-13T19:00:00.000Z'
+  const late = '2034-03-17T19:00:00.000Z'
+  await withClient(db.ownerUrl, async (c) => {
+    const { rows: [user] } = await c.query<{ id: string }>('insert into app_user (tid, oid, display_name) values ($1, $2, $3) returning id', [TID, OID, 'Anna'])
+    const campaign = async (state: string) => (await c.query<{ id: string }>(
+      `insert into campaign (kind, name, school_year, state, project_days, created_by, opens_at, closes_at, late_until)
+       values ('project_week', $1, '2033/34', $1, '{2034-07-03}', $2, '2034-03-06T07:00:00Z', $3, $4) returning id`,
+      [state, user?.id, closes, late],
+    )).rows[0]?.id
+    const open = await campaign('open')
+    const grace = await campaign('grace')
+    const mail = (kind: string, campaignId: string | null | undefined, key: string) => c.query(
+      'insert into outbox_mail (kind, campaign_id, to_address, subject, body, dedupe_key) values ($1, $2, $3, $4, $5, $6)',
+      [kind, campaignId, 'sara@schule.example.org', 's', 'b', key],
+    )
+    await mail('choice_reminder', open, 'open-reminder')
+    await mail('choice_reminder', grace, 'ended-reminder')
+    await mail('grace_reminder', grace, 'grace-reminder')
+    await mail('swap_confirmed', open, 'swap')
+    await mail('choice_reminder', null, 'test:choice_reminder:1')
+    await mail('result_published', open, 'result')
+  })
+  assert.deepEqual(await migrateTestDatabase(db, '0013_mail_pacing.sql'), ['0013_mail_pacing.sql'])
+  await withClient(db.ownerUrl, async (c) => {
+    const { rows } = await c.query<{ dedupe_key: string, state: string, priority: number, expires_at: Date | null }>('select dedupe_key, state, priority, expires_at from outbox_mail order by dedupe_key')
+    assert.deepEqual(rows.map((r) => [r.dedupe_key, r.state, r.priority, r.expires_at?.toISOString() ?? null]), [
+      ['ended-reminder', 'expired', 3, closes],
+      ['grace-reminder', 'queued', 3, late],
+      ['open-reminder', 'queued', 3, closes],
+      ['result', 'queued', 3, null],
+      ['swap', 'queued', 1, null],
+      ['test:choice_reminder:1', 'queued', 1, null],
+    ])
+    await assert.rejects(c.query('update outbox_mail set state = $1 where dedupe_key = $2', ['queued', 'ended-reminder']), /stays so/, 'not even the owner sends an expired mail after all')
+  })
+})
+
 test('a database a newer release migrated without raising the schema version is accepted by an older migrator; a gap in known history is not', DB, async (t) => {
   const db = await createTestDatabase(t)
   const lines: string[] = []

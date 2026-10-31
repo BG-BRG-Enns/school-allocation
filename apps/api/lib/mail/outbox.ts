@@ -133,10 +133,19 @@ export async function expireMails(db: Queryable): Promise<number> {
   return rowCount ?? 0
 }
 
-/** A campaign's queued mails of `kinds` expire now: the window they remind of ended early; returns how many. */
+/**
+ * A campaign's queued mails of `kinds` expire now: the window they remind
+ * of has ended, perhaps early; returns how many. One in a session gets the
+ * same end: sent, it stays sent, but a transient failure that puts it back
+ * in the queue lets it expire there instead of going out later.
+ */
 export async function expireCampaignMails(db: Queryable, campaignId: string, kinds: readonly MailKind[]): Promise<number> {
   const { rowCount } = await db.query(
     'update outbox_mail set state = \'expired\', updated_at = app_now() where state = \'queued\' and campaign_id = $1 and kind = any($2::text[])',
+    [campaignId, kinds],
+  )
+  await db.query(
+    'update outbox_mail set expires_at = app_now(), updated_at = app_now() where state = \'sending\' and campaign_id = $1 and kind = any($2::text[]) and (expires_at is null or expires_at > app_now())',
     [campaignId, kinds],
   )
   return rowCount ?? 0

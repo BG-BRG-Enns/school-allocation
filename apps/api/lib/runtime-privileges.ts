@@ -86,7 +86,7 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   // reset removes it, and the catalogue's default applies again. Never truncated (the trigger refuses it).
   mail_template: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['subject', 'body', 'locale', 'updated_at', 'updated_by'] },
   // A mail is queued and moved through its states by the sender; never removed.
-  outbox_mail: { table: ['SELECT', 'INSERT'], updateColumns: ['state', 'attempts', 'detail', 'message_id', 'next_attempt_at', 'updated_at', 'sent_at', 'claimed_at'] },
+  outbox_mail: { table: ['SELECT', 'INSERT'], updateColumns: ['state', 'attempts', 'detail', 'message_id', 'next_attempt_at', 'updated_at', 'sent_at', 'claimed_at', 'expires_at'] },
   allocation_run: {
     table: ['SELECT', 'INSERT'],
     updateColumns: ['status', 'finished_at', 'solver_version', 'ortools_version', 'passes', 'cancelled_items', 'failure', 'detail', 'problems', 'published_at', 'published_by'],
