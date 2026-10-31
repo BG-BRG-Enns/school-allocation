@@ -28,6 +28,8 @@ Darunter änderst du die Einteilung selbst: Wähle die Person, die Aktivität, v
 
 Titel, Beschreibung und Ort einer Aktivität lassen sich noch ändern. Termine, Plätze, Mindestzahl, Kosten und für wen sie angeboten wird, bleiben, wie sie sind: Mit ihnen wurde die Einteilung berechnet.
 
+Ziehst du eine Aktivität nach der Veröffentlichung zurück, findet sie nicht statt: Alle Personen, die ihr zugeteilt waren, werden von ihr abgemeldet, jede als Änderung von Hand mit deiner Begründung, und bekommen eine E-Mail. Ihre Lücke zeigen die Klassenseite und die Zuteilung, wo der Klassenvorstand oder du sie füllst.
+
 ## Anwesenheit
 
 Während der Projektwoche tragen die Klassenvorstände die Anwesenheit ihrer Klasse ein ([Als Klassenvorstand](/lehrkraefte/klassenvorstand#anwesenheit)). **Anwesenheit als Excel** auf der Seite Zuteilung liefert sie für alle Klassen.
