@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 import { appendAudit, readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { verifyAuditChain } from '../lib/audit-chain.ts'
 import { createDatabase } from '../lib/db.ts'
+import { ControlledClock } from './helpers/clock.ts'
 import { createTestDatabase, DB } from './helpers/db.ts'
 
 const ACTOR = { tid: '3f2b8c1d-6e4a-4b7f-9c2d-8a1e5f6b7c90', oid: 'a0000000-0000-4000-8000-00000000000a', name: 'Anna Lehrerin' }
@@ -62,6 +63,25 @@ test('concurrent writers to one scope get distinct predecessors: the chain stays
   const events = await readAudit(db, SCHOOL_SCOPE)
   assert.equal(events.length, 8)
   assert.equal(verifyAuditChain(events).valid, true)
+})
+
+test('an event never carries a time before the one it follows, though its transaction began earlier', DB, async (t) => {
+  const testDb = await createTestDatabase(t)
+  const start = new Date('2034-03-06T07:00:00.000Z')
+  const clock = new ControlledClock(start)
+  const db = createDatabase(testDb.runtimeUrl, () => {}, clock)
+  t.after(() => db.close())
+  // The first transaction begins, then a later one writes its event and
+  // commits before the first one takes the lock.
+  await db.tx(async (client) => {
+    clock.advance(60_000)
+    await db.tx((other) => appendAudit(other, { scopeId: SCHOOL_SCOPE, actor: ACTOR, action: 'user.blocked', metadata: { i: 0 } }))
+    await appendAudit(client, { scopeId: SCHOOL_SCOPE, actor: ACTOR, action: 'user.unblocked', metadata: { i: 1 } })
+  })
+  const [first, second] = await readAudit(db, SCHOOL_SCOPE)
+  assert.ok(Date.parse(first?.at ?? '') >= start.getTime() + 60_000, String(first?.at))
+  assert.equal(second?.at, first?.at)
+  assert.equal(verifyAuditChain([first!, second!]).valid, true)
 })
 
 test('an unknown action or oversized metadata is refused before anything is written', DB, async (t) => {
