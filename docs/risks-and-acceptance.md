@@ -42,7 +42,7 @@ The evidence column states what has to be shown for sign-off.
 | PW9 | The completeness indicator is correct for the example week of the decision record (2 × Monday, 1 × Tue–Wed), both as chosen items and with the Tue–Wed trip fixed for the class, and for edge cases (touching sessions, over-midnight, min(*N*, remaining) alternatives) | Unit tests |
 | PW10 | At window close, each student with an incomplete list receives exactly one missed-deadline e-mail, even across restarts and retries; the send state is visible | API test with an SMTP double; staging run against a test mailbox |
 | PW11 | Every manual change, on-behalf entry, run, publication and binding correction appears in the audit log with actor and reason | API tests; audit export |
-| PW12 | A KV can record attendance only for their own class's students, and attendance is separate from assignments | API + e2e tests |
+| PW12 | A KV can record attendance only for their own class's students, in the campaign's school year (not an earlier cohort of the same class name), and attendance is separate from assignments | API + e2e tests |
 | PW13 | The printable catalogue matches the published catalogue version | e2e snapshot |
 | PW14 | Every overview has an xlsx export | e2e download checks |
 | PW15 | When the window opens, every student of a class named in a fixed item is pre-assigned; the item is offered to nobody else; an organizer exemption turns the student into a chooser for that time, audited | API + e2e tests |

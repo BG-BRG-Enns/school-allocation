@@ -64,24 +64,19 @@ interface CallerRow {
   kind: PersonKind | null
   class_name: string | null
   grade: number | null
-  classes: string[]
 }
 
+// The caller carries no class-teacher list: class teachers are base data
+// of a school year, and a campaign's school year decides which year's
+// (services/class-teachers.ts classTeacherOf). A list made for the roster
+// in force, applied to an earlier campaign, would open an earlier cohort
+// of the same class name.
 export async function loadCaller(db: Queryable, userId: string): Promise<Caller | undefined> {
   const { rows: [row] } = await db.query<CallerRow>(
-    `with current as (select id, school_year from import_batch where state = 'committed' order by decided_at desc limit 1)
+    `with current as (select id from import_batch where state = 'committed' order by decided_at desc limit 1)
      select u.tid, u.oid, u.display_name, u.email, u.blocked_at is not null as blocked,
             coalesce((select array_agg(g.role order by g.role) from role_grant g where g.user_id = u.id and g.campaign_id is null and g.revoked_at is null), '{}') as roles,
-            b.person_id, e.kind, e.class_name, e.grade,
-            case when e.kind = 'teacher' then coalesce((
-              select array_agg(distinct c order by c) from (
-                select a.class_name as c from class_teacher a, current
-                 where a.person_id = e.person_id and a.school_year = current.school_year and a.revoked_at is null
-                union
-                select s.class_name from roster_entry s, current
-                 where s.batch_id = current.id and s.kind = 'student' and s.class_name is not null
-                   and lower(s.class_teacher_mail) in (lower(e.mail), lower(e.upn))
-              ) k), '{}') else '{}' end as classes
+            b.person_id, e.kind, e.class_name, e.grade
        from app_user u
        left join identity_binding b on b.tid = u.tid and b.oid = u.oid and b.unbound_at is null
        left join roster_entry e on e.person_id = b.person_id and e.batch_id = (select id from current)
@@ -97,7 +92,6 @@ export async function loadCaller(db: Queryable, userId: string): Promise<Caller 
     email: row.email,
     roles: row.roles.filter(isRole),
     person: row.person_id === null ? null : { id: row.person_id, kind: row.kind, className: row.class_name, grade: row.grade },
-    classTeacherOf: row.classes,
   }
 }
 
