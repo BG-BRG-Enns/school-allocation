@@ -133,15 +133,7 @@ failures retry with backoff; permanent ones become `failed` with the reason. The
 interface with the SMTP implementation built in, so a school can substitute its own. The state
 (`sent` / `failed`) is shown on the organizer's non-submitter list; bounces are not tracked.
 
-The worker sends one mail at a time, at most `MAIL_PER_HOUR` an hour (default and ceiling 200),
-spaced from the last claim the database holds, so neither a restart nor a second process sends a
-burst. A row's `priority`, set when it is queued, decides its turn before its age: 1 for a mail
-someone waits for (`swap_confirmed`, `assignment_changed`, the test mail), 2 for staff
-(`class_missing`, `class_unplaced`, `item_cancelled`), 3 for students in bulk. An organizer or
-administrator can pause sending (`school_setting.mail_paused`, audited as `mail.paused` /
-`mail.resumed`); queued rows stay queued. A reminder carries `expires_at`, the end of the window it
-reminds of: still queued then, or when the window ends early, it becomes `expired` and is never
-sent.
+The worker sends one mail at a time, at most `MAIL_PER_HOUR` an hour (default and ceiling 200), spaced from the last claim the database holds, so a restart sends no burst. A row's `priority`, set when it is queued, decides its turn before its age: 1 for a mail someone waits for (`swap_confirmed`, `assignment_changed`, the test mail), 2 for staff (`class_missing`, `class_unplaced`, `item_cancelled`), 3 for students in bulk. An organizer or administrator can pause sending (`school_setting.mail_paused`, audited as `mail.paused` / `mail.resumed`); queued rows stay queued. A reminder carries `expires_at`, the end of the window it reminds of: still queued then, or when the window ends early, it becomes `expired` and is never sent.
 
 ## 5. Allocation model (project week)
 

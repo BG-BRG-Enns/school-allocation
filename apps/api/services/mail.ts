@@ -29,8 +29,9 @@ export async function queueTestMail(db: Database, kind: MailKind, caller: Caller
 /**
  * What the outbox holds: the mails waiting by priority and one in a
  * session, whether sending is paused, the pace (`perHour`, null while mail
- * is off), and when the last waiting mail goes out at that pace if nothing
- * changes; none while mail is off or paused.
+ * is off), and when the last waiting mail goes out at that pace, or when
+ * the latest retry is due if that is later, if nothing changes; none while
+ * mail is off or paused.
  */
 export async function mailStatus(db: Database, perHour: number | null) {
   const status = await queueStatus(db)
@@ -39,7 +40,7 @@ export async function mailStatus(db: Database, perHour: number | null) {
   if (perHour !== null && !status.paused && waiting > 0) {
     const spacing = spacingOf(perHour)
     const first = Math.max(db.now().getTime(), (status.lastClaimAt?.getTime() ?? 0) + spacing)
-    expectedEndAt = new Date(first + (waiting - 1) * spacing).toISOString()
+    expectedEndAt = new Date(Math.max(first + (waiting - 1) * spacing, status.lastDueAt?.getTime() ?? 0)).toISOString()
   }
   return {
     mailEnabled: perHour !== null,

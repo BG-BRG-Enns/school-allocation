@@ -95,9 +95,10 @@ export type Claim = { mail: OutboxMail } | { mail: undefined, retryInMs: number 
  * and recording the claim: the highest priority first, then the oldest,
  * among those whose time has come. Nothing while sending is paused, and
  * nothing sooner than `spacingMs` after the last claim the database holds,
- * whichever process made it: the claims take one lock, one after the
- * other, so neither a restart nor a second process sends a burst. Mails
- * past their expiry expire on the way.
+ * so a restart sends no burst; the claims take one lock, one after the
+ * other. The server runs as one process (docs/architecture-decision.md):
+ * what a process that died left in `sending` is failed at the next start
+ * (recoverInterruptedMails). Mails past their expiry expire on the way.
  */
 export async function claimNextMail(db: Database, spacingMs: number): Promise<Claim> {
   return db.tx(async (client) => {
@@ -198,11 +199,13 @@ export async function mailStatesByPerson(db: Queryable, campaignId: string): Pro
   return byPerson
 }
 
-/** What the outbox holds for the mail status: the mails waiting, by priority, one in a session, the last claim, and whether sending is paused. */
+/** What the outbox holds for the mail status: the mails waiting, by priority, one in a session, the last claim, the latest time a waiting mail is due, and whether sending is paused. */
 export interface QueueStatus {
   waiting: Record<MailPriority, number>
   sending: number
   lastClaimAt: Date | null
+  /** A retry waits until its `next_attempt_at`, which may lie beyond the pace. */
+  lastDueAt: Date | null
   paused: boolean
 }
 
@@ -210,7 +213,9 @@ export async function queueStatus(db: Queryable): Promise<QueueStatus> {
   const { rows } = await db.query<{ priority: MailPriority, state: MailState, n: number }>(
     'select priority, state, count(*)::int as n from outbox_mail where state in (\'queued\', \'sending\') group by priority, state',
   )
-  const { rows: [last] } = await db.query<{ at: Date | null }>('select max(claimed_at) as at from outbox_mail where claimed_at is not null')
+  const { rows: [last] } = await db.query<{ claimed: Date | null, due: Date | null }>(
+    'select (select max(claimed_at) from outbox_mail) as claimed, (select max(next_attempt_at) from outbox_mail where state = \'queued\') as due',
+  )
   const { rows: [setting] } = await db.query<{ paused: boolean }>('select mail_paused as paused from school_setting')
   const waiting: Record<MailPriority, number> = { 1: 0, 2: 0, 3: 0 }
   let sending = 0
@@ -218,7 +223,7 @@ export async function queueStatus(db: Queryable): Promise<QueueStatus> {
     if (row.state === 'queued') waiting[row.priority] += row.n
     else sending += row.n
   }
-  return { waiting, sending, lastClaimAt: last?.at ?? null, paused: setting?.paused === true }
+  return { waiting, sending, lastClaimAt: last?.claimed ?? null, lastDueAt: last?.due ?? null, paused: setting?.paused === true }
 }
 
 const COLUMNS = 'id, kind, campaign_id, person_id, to_address, subject, body, dedupe_key, state, attempts, detail, message_id, created_at, sent_at'

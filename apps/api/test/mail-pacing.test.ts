@@ -189,4 +189,11 @@ test('a sender started anew keeps the spacing; an organizer pauses sending and r
   const actions = (await readAudit(owner, SCHOOL_SCOPE)).filter((e) => e.action.startsWith('mail.')).map((e) => [e.action, e.actor.name])
   assert.deepEqual(actions, [['mail.paused', ANNA.name], ['mail.resumed', ANNA.name]])
   assert.equal((await send(h, anna, 'PUT', '/api/admin/mail/paused', { paused: 'yes' })).status, 400)
+
+  // The last one fails transiently, to be tried again in an hour: the end is then, not a spacing away.
+  clock.advance(SPACING)
+  const retried = (await claimNextMail(h.db, SPACING)).mail ?? assert.fail('no mail')
+  await recordRetry(h.db, retried.id, '451 busy', 3_600_000)
+  const retryEnd = Date.parse((await status()).expectedEndAt ?? '') - clock.peek().getTime()
+  assert.ok(retryEnd > 3_600_000 - 100 && retryEnd <= 3_600_000, String(retryEnd))
 })
