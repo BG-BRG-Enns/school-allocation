@@ -1,10 +1,12 @@
-// Anwesenheit und Abschluss: der Klassenvorstand trägt für seine Klasse
-// die Anwesenheit der Sportwoche ein und lädt die Liste; die Organisation
-// schließt die Anmeldung ab; die Administration sieht, wie lange die Daten
-// des Schuljahrs bleiben. Baut auf 07 auf (die Sportwoche ist
-// veröffentlicht; Sara ist in Bogenschießen, Tim in Werken und Schach).
+// Anwesenheit und Abschluss: der Klassenvorstand trägt am Sporttag für seine
+// Klasse die Anwesenheit ein und lädt die Liste; die Organisation schließt
+// die Anmeldung danach ab; die Administration sieht, wie lange die Daten
+// des Schuljahrs bleiben (bis 1. September 2035). Baut auf 07 auf (die
+// Sportwoche ist veröffentlicht; Sara ist in Bogenschießen, Tim in Werken
+// und Schach).
 
 import { expect, test } from '../support/test.ts'
+import { setClock } from '../support/clock.ts'
 import { day, t } from '../support/messages.ts'
 import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
 import { picture, section, shot } from '../support/screenshot.ts'
@@ -16,12 +18,13 @@ test.describe.configure({ mode: 'serial' })
 const NAME = sample.sportsWeek
 
 test('der Klassenvorstand trägt die Anwesenheit seiner Klasse ein und lädt die Liste', async ({ page }) => {
+  await setClock(page, '2034-06-26T15:00:00+02:00')
   await openAs(page, BERND, '/wahlen')
   await page.getByRole('link', { name: NAME }).click()
   await page.getByRole('link', { name: t.campaign.myClass('5A') }).click()
   const attendance = t.schoolClass.attendance
   await expect(page.getByRole('heading', { name: attendance.heading })).toBeVisible()
-  const monday = page.getByRole('form', { name: attendance.ofDay(day('2027-06-28')) })
+  const monday = page.getByRole('form', { name: attendance.ofDay(day('2034-06-26')) })
   await monday.getByLabel(attendance.statusOf(SARA.name, sample.archery)).selectOption('present')
   await monday.getByLabel(attendance.statusOf(TIM.name, sample.chess)).selectOption('absent')
   await monday.getByRole('button', { name: attendance.save }).click()
@@ -34,11 +37,12 @@ test('der Klassenvorstand trägt die Anwesenheit seiner Klasse ein und lädt die
   await picture(page, 'anwesenheit', section(page, attendance.heading))
   const download = page.waitForEvent('download')
   await page.getByRole('link', { name: attendance.export }).click()
-  expect((await download).suggestedFilename()).toBe(t.files.classAttendance('5A', '2026-27'))
+  expect((await download).suggestedFilename()).toBe(t.files.classAttendance('5A', '2033-34'))
   await signOut(page)
 })
 
 test('die Organisation schließt die Anmeldung ab; danach ist alles nur noch zu lesen', async ({ page }) => {
+  await setClock(page, '2034-06-30T10:00:00+02:00')
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: NAME }).click()
   page.once('dialog', (dialog) => void dialog.accept())
@@ -60,11 +64,12 @@ test('die Administration sieht die Schuljahre mit ihren Daten; vor dem Ende der 
   await openAs(page, ANNA, '/verwaltung')
   await page.getByRole('link', { name: t.common.page.retention }).click()
   await expect(page.getByRole('heading', { name: t.common.page.retention })).toBeVisible()
-  const year = page.getByRole('row', { name: /^2026\/27/ })
+  const year = page.getByRole('row', { name: /^2033\/34/ })
   await expect(year).toContainText(sample.projectWeek)
   await expect(year).toContainText(`${NAME} ${t.labels.campaignState.archived}`)
+  await expect(year).toContainText(day('2035-09-01'))
   // Kept until a year after the school year ends: the year is offered for deletion, but cannot be chosen yet.
-  await expect(page.getByLabel(t.common.field.schoolYear).getByRole('option', { name: `2026/27 – ${t.retention.purge.stillRetained}` })).toBeDisabled()
+  await expect(page.getByLabel(t.common.field.schoolYear).getByRole('option', { name: `2033/34 – ${t.retention.purge.stillRetained}` })).toBeDisabled()
   await picture(page, 'aufbewahrung', page.locator('main'))
   await signOut(page)
 })

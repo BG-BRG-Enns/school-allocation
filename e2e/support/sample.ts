@@ -8,8 +8,8 @@
 import { LOCALE } from './messages.ts'
 
 const de = {
-  projectWeek: 'Projektwoche 2027',
-  sportsWeek: 'Sportwoche 2027',
+  projectWeek: 'Projektwoche 2034',
+  sportsWeek: 'Sportwoche 2034',
   climbing: 'Klettern',
   climbingDescription: 'Kletterhalle, Ausrüstung wird gestellt.',
   /** The fee as a person types it, with the language's decimal mark. */
@@ -33,8 +33,8 @@ const de = {
 }
 
 const en: typeof de = {
-  projectWeek: 'Project Week 2027',
-  sportsWeek: 'Sports Week 2027',
+  projectWeek: 'Project Week 2034',
+  sportsWeek: 'Sports Week 2034',
   climbing: 'Climbing',
   climbingDescription: 'Climbing centre, equipment provided.',
   climbingFee: '15.00',

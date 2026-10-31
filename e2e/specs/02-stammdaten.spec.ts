@@ -30,7 +30,7 @@ test('die Administratorin importiert eine CSV-Datei, sieht die Ã„nderungen und Ã
   await shot(page, '04-stammdaten-leer')
 
   await page.getByLabel(t.roster.csv.paste).fill(CSV)
-  await page.getByLabel(t.common.field.schoolYear).last().fill('2026/27')
+  await page.getByLabel(t.common.field.schoolYear).last().fill('2033/34')
   await picture(page, 'csv-hochladen', section(page, t.roster.csv.title))
   await page.getByRole('button', { name: t.roster.csv.import }).click()
   await expect(page.getByRole('heading', { name: t.rosterImport.title })).toBeVisible()

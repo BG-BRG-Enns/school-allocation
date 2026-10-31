@@ -1,7 +1,9 @@
 // The journeys' `test`: Playwright's, with the console watched in every
-// context a spec creates and checked at the end of every test.
+// context a spec creates and checked at the end of every test, and the
+// browser's clock following the harness's from the start (support/clock.ts).
 
 import { test as base, expect, type Browser } from '@playwright/test'
+import { followClock } from './clock.ts'
 import { drain, watch } from './console.ts'
 
 export { expect }
@@ -14,6 +16,7 @@ export const test = base.extend<{ cleanConsole: void }, { browser: Browser }>({
     browser.newContext = async (options) => {
       const context = await create(options)
       watch(context)
+      await followClock(context)
       return context
     }
     await use(browser)

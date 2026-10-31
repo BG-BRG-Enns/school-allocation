@@ -1,6 +1,7 @@
 // Nach der Veröffentlichung: eine zweite Anmeldung, mit der Organisation über
 // die API bis zur veröffentlichten Einteilung gebracht (ein Projekttag, vier
-// Aktivitäten, die Tauschzeit offen), dann im Browser: ein Schüler
+// Aktivitäten, die Tauschzeit offen: Montag, 22. Mai 2034, 7 Uhr, bis
+// Dienstag, 20 Uhr), dann im Browser: ein Schüler
 // sieht die volle Aktivität als voll, eine Schülerin wechselt in eine
 // mit freien Plätzen, der Klassenvorstand teilt den Schüler ohne Platz in
 // eine Lücke zu, die Organisation nimmt mit Begründung heraus und lädt die
@@ -10,6 +11,7 @@
 import { expect, test } from '../support/test.ts'
 import { apiGet, apiPost } from '../support/api.ts'
 import { BASE_PATH } from '../support/base.ts'
+import { setClock } from '../support/clock.ts'
 import { anyCount, anyText, literally, t } from '../support/messages.ts'
 import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
 import { picture, section, shot } from '../support/screenshot.ts'
@@ -18,7 +20,7 @@ import { openAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
 
-const DAY = '2027-06-28'
+const DAY = '2034-06-26'
 const NAME = sample.sportsWeek
 const session = (from: string, to: string) => ({ startsAt: `${DAY}T${from}:00+02:00`, endsAt: `${DAY}T${to}:00+02:00`, credits: [{ date: DAY, minutes: 120 }] })
 
@@ -30,9 +32,10 @@ async function must<T>(answer: Promise<{ status: number, body: T }>, what: strin
 }
 
 test('die Organisation bringt eine zweite Anmeldung über die API bis zur veröffentlichten Einteilung, mit offener Tauschzeit', async ({ page }) => {
+  await setClock(page, '2034-05-22T08:00:00+02:00')
   // Bernd proposes the four activities of the Monday, every one with a fee so the run places nobody as a fallback: two in the morning (one place; five places), two in the afternoon (one place; ten places).
   await openAs(page, ANNA, '/wahlen')
-  const campaign = await must(apiPost<{ id: string }>(page, '/api/admin/campaigns', { kind: 'project_week', name: NAME, schoolYear: '2026/27', projectDays: [DAY] }), 'campaign')
+  const campaign = await must(apiPost<{ id: string }>(page, '/api/admin/campaigns', { kind: 'project_week', name: NAME, schoolYear: '2033/34', projectDays: [DAY] }), 'campaign')
   const id = campaign.id
   await must(apiPost(page, `/api/admin/campaigns/${id}/transition`, { to: 'catalogue' }), 'catalogue')
   const teachers = await must(apiGet<{ teachers: { personId: string, displayName: string }[] }>(page, `/api/campaigns/${id}/teachers?q=Bernd`), 'teachers')
@@ -55,10 +58,9 @@ test('die Organisation bringt eine zweite Anmeldung über die API bis zur veröf
   }
   await signOut(page)
 
-  // Anna approves, publishes the catalogue, sets the window with a daily minimum of 240 and the swap window open now, opens, enters both lists, closes, runs and publishes.
+  // Anna approves, publishes the catalogue, sets the window with a daily minimum of 240 and the swap window open since 7:00, opens, enters both lists, closes, runs and publishes.
   await openAs(page, ANNA, '/wahlen')
   for (const itemId of Object.values(items)) await must(apiPost(page, `/api/admin/items/${itemId}/approve`), 'approve')
-  const now = Date.now()
   /** A PATCH or PUT from within the page, as apiPost does it. */
   const write = (method: 'PATCH' | 'PUT', path: string, payload: object) => page.evaluate(async ([m, url, body]) => {
     const response = await fetch(url, { method: m, headers: { 'accept': 'application/json', 'content-type': 'application/json' }, body: JSON.stringify(body) })
@@ -68,7 +70,7 @@ test('die Organisation bringt eine zweite Anmeldung über die API bis zur veröf
     const answer = await write('PATCH', `/api/admin/campaigns/${id}`, changes)
     expect(answer.status, JSON.stringify(answer.body)).toBe(200)
   }
-  await patch({ name: NAME, schoolYear: '2026/27', projectDays: [DAY], opensAt: new Date(now - 7 * 86400e3).toISOString(), closesAt: new Date(now + 86400e3).toISOString(), lateUntil: new Date(now + 2 * 86400e3).toISOString(), swapFrom: new Date(now - 3600e3).toISOString(), swapUntil: new Date(now + 86400e3).toISOString(), wishesPerGroup: 3, dailyMinimum: { 9: 240 }, showTeachers: true, reminderDays: 1 })
+  await patch({ name: NAME, schoolYear: '2033/34', projectDays: [DAY], opensAt: '2034-05-15T08:00:00+02:00', closesAt: '2034-05-23T20:00:00+02:00', lateUntil: '2034-05-24T20:00:00+02:00', swapFrom: '2034-05-22T07:00:00+02:00', swapUntil: '2034-05-23T20:00:00+02:00', wishesPerGroup: 3, dailyMinimum: { 9: 240 }, showTeachers: true, reminderDays: 1 })
   await must(apiPost(page, `/api/admin/campaigns/${id}/transition`, { to: 'published' }), 'published')
   await must(apiPost(page, `/api/admin/campaigns/${id}/transition`, { to: 'open' }), 'open')
   const missing = await must(apiGet<{ students: { personId: string, displayName: string }[] }>(page, `/api/admin/campaigns/${id}/missing`), 'students')
@@ -158,7 +160,7 @@ test('der Klassenvorstand teilt den Schüler ohne Platz in eine Lücke zu; die O
   await expect(page.getByRole('row', { name: new RegExp(literally(t.labels.changeKind.remove)) })).toContainText(sample.reason.reportedIll)
   const download = page.waitForEvent('download')
   await page.getByRole('link', { name: t.allocation.publication.assignmentsExport }).click()
-  expect((await download).suggestedFilename()).toBe(t.files.assignments('2026-27'))
+  expect((await download).suggestedFilename()).toBe(t.files.assignments('2033-34'))
   await shot(page, '37-aenderungen')
   await picture(page, 'aenderungen', [page.getByRole('heading', { name: t.allocation.publication.changes(3) }), change])
   await signOut(page)
