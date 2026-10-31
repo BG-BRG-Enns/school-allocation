@@ -107,17 +107,17 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   // A change after publication is written once and read; never changed or removed.
   assignment_change: { table: ['SELECT', 'INSERT'] },
   // Attendance is recorded and corrected in place; never removed (the trigger keeps the rest). It names a session by its
-  // item and position, so the previous release's rewrite of an item's sessions keeps it.
+  // item and position, so an edit that rewrites an item's sessions keeps it.
   attendance: { table: ['SELECT', 'INSERT'], updateColumns: ['status', 'note', 'recorded_by', 'recorded_at'] },
 }
 
 /** Functions the runtime role may execute, by their signature as PostgreSQL prints a regprocedure: argument types without spaces between them. */
 export const RUNTIME_FUNCTIONS: readonly string[] = [
-  // The application's clock (0012): every time it writes or compares, and the columns' defaults, so every insert needs it.
+  // The application's clock (app_now()): every time it writes or compares, and the columns' defaults, so every insert needs it.
   'app_now()',
-  // The retention purge (0010): a definer function owned by the migrator, the one path through the guards; the service checks the date and the reason and writes the audit event.
+  // The retention purge (purge_school_year): a definer function owned by the migrator, the one path through the guards; the service checks the date and the reason and writes the audit event.
   'purge_school_year(text)',
-  // The guards' refusal (0001): a trigger runs as the role that writes, so the runtime role meets a guard's rule as SQLSTATE 55000 with
+  // The guards' refusal (refuse()): a trigger runs as the role that writes, so the runtime role meets a guard's rule as SQLSTATE 55000 with
   // its words rather than as a permission error on the function. It raises and returns nothing.
   'refuse(text)',
 ]

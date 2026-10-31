@@ -109,7 +109,9 @@ export interface RosterProblem {
   line?: number
 }
 
-const ADDRESS = /^[^\s@\p{Cc}\p{Cs}]+@[^\s@\p{Cc}\p{Cs}]+\.[^\s@\p{Cc}\p{Cs}]+$/u
+// The domain as one character, the rest up to the next dot, then the rest: the addresses `…+\.…+` takes,
+// without trying every dot as the one that splits the domain.
+const ADDRESS = /^[^\s@\p{Cc}\p{Cs}]+@[^\s@\p{Cc}\p{Cs}][^\s@.\p{Cc}\p{Cs}]*\.[^\s@\p{Cc}\p{Cs}]+$/u
 const NAME = /^(?=.*\S)[^\p{Cc}\p{Cs}\p{Zl}\p{Zp}]{1,256}$/u
 const MAX_ADDRESS = 254
 

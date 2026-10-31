@@ -387,7 +387,8 @@ export function parseBootstrapAdmins(raw: string | undefined): string[] {
   if (entries.length > MAX_BOOTSTRAP_ADMINS) {
     throw new ConfigError(`BOOTSTRAP_ADMINS lists ${entries.length} people; at most ${MAX_BOOTSTRAP_ADMINS} are bootstrapped, the rest are granted in the app`)
   }
-  const bad = entries.filter((entry) => !GUID.test(entry) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry))
+  // The domain as one character, the rest up to the next dot, then the rest: no dot tried in turn as the split.
+  const bad = entries.filter((entry) => !GUID.test(entry) && !/^[^\s@]+@[^\s@][^\s@.]*\.[^\s@]+$/.test(entry))
   if (bad.length > 0) {
     throw new ConfigError(`BOOTSTRAP_ADMINS must list Entra object ids or school e-mail addresses separated by commas, got ${bad.join(', ')}`)
   }

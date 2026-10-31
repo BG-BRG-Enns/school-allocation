@@ -35,7 +35,7 @@ export async function purgeAvailability(client: Queryable, schoolYear: string): 
   return rowCount ?? 0
 }
 
-/** Runs the purge (0010) and returns what it removed, per relation, in order. */
+/** Runs the purge (purge_school_year) and returns what it removed, per relation, in order. */
 export async function purgeSchoolYear(client: Queryable, schoolYear: string): Promise<{ relation: string, count: number }[]> {
   const { rows } = await client.query<{ relation: string, removed: string }>('select relation, removed from purge_school_year($1)', [schoolYear])
   return rows.map((row) => ({ relation: row.relation, count: Number(row.removed) }))

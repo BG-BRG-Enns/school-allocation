@@ -2,7 +2,7 @@
 // database's clock (`db.now()` in TypeScript, `app_now()` in SQL), so a test
 // that controls the clock moves all of it at once: the times the app
 // compares, the times it writes and the defaults of the tables
-// (migration 0012). ESLint refuses another time read in apps/api.
+// (app_now()). ESLint refuses another time read in apps/api.
 
 /** Where the time comes from. */
 export interface Clock {

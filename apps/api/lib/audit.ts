@@ -122,7 +122,7 @@ export async function appendAudit(client: Queryable, input: AuditInput): Promise
     'select seq::text, hash, at from audit_event where scope_id = $1 order by audit_event.seq desc limit 1',
     [scopeId],
   )
-  // The transaction's time, which every row it writes carries as well (app_now(), migration 0012): one change, one time.
+  // The transaction's time, which every row it writes carries as well (app_now()): one change, one time.
   // Never before the previous event's, though: a transaction that began
   // earlier and waited for the lock follows one that began later.
   const { rows: [clock] } = await client.query<{ at: Date }>('select greatest(app_now(), $1::timestamptz) as at', [previous?.at ?? null])

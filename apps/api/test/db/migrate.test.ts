@@ -11,7 +11,7 @@ import { checkSchema } from '../../lib/db.ts'
 import { RUNTIME_TABLES } from '../../lib/runtime-privileges.ts'
 import { SQLSTATE, sqlState } from '../../lib/pg-errors.ts'
 import { LOCALES } from '@school-allocation/messages'
-import { checkedValues, createTestDatabase, DB, migrateTestDatabase, TEST_RUNTIME_PASSWORD, withClient } from '../helpers/db.ts'
+import { checkedValues, createTestDatabase, DB, TEST_RUNTIME_PASSWORD, withClient } from '../helpers/db.ts'
 
 const TID = '3f2b8c1d-6e4a-4b7f-9c2d-8a1e5f6b7c90'
 const OID = 'a0000000-0000-4000-8000-00000000000a'
@@ -24,6 +24,31 @@ test('a second run applies nothing, and every table in public is either granted 
   )).rows.map((r) => r.name).sort())
   // schema_migrations too: the server reads it to check the schema.
   assert.deepEqual(tables, Object.keys(RUNTIME_TABLES).sort())
+})
+
+test('every foreign key\'s check can use an index, so removing the row it points to never reads the referencing table', DB, async (t) => {
+  const db = await createTestDatabase(t)
+  const { keys, unserved } = await withClient(db.ownerUrl, async (c) => {
+    const { rows: keys } = await c.query<{ name: string, tbl: string, cols: string[] }>(
+      `select c.conname::text as name, c.conrelid::regclass::text as tbl, array_agg(a.attname::text order by k.n) as cols
+         from pg_constraint c cross join unnest(c.conkey) with ordinality k(attnum, n)
+         join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum
+        where c.contype = 'f' and c.connamespace = 'public'::regnamespace
+        group by c.oid, c.conname, c.conrelid order by 2, 1`,
+    )
+    // With sequential scans off, a plan without an index condition means no index can serve the check.
+    await c.query('set enable_seqscan = off')
+    const unserved: string[] = []
+    for (const key of keys) {
+      // The query PostgreSQL's trigger runs when a referenced row is removed, planned for any value.
+      const where = key.cols.map((col, i) => `${col} = $${i + 1}`).join(' and ')
+      const { rows } = await c.query<{ 'QUERY PLAN': string }>(`explain (generic_plan, costs off) select 1 from only ${key.tbl} x where ${where} for key share of x`)
+      if (!rows.some((r) => r['QUERY PLAN'].includes('Index Cond'))) unserved.push(`${key.tbl} (${key.cols.join(', ')})`)
+    }
+    return { keys, unserved }
+  })
+  assert.ok(keys.length > 0)
+  assert.deepEqual(unserved, [])
 })
 
 test('the runtime role may not create, may not change identities, and may not touch the audit log', DB, async (t) => {
@@ -158,26 +183,13 @@ test('an item past draft is withdrawn rather than removed, keeps its campaign an
   })
 })
 
-test('0011: the seeded mail templates go, a saved one stays in German with its placeholders renamed in every form; a reset removes a row, nothing truncates the table', DB, async (t) => {
-  const db = await createTestDatabase(t, { until: '0010_retention.sql' })
+test('a mail template row is a text somebody saved, in one of the catalogue\'s languages; the reset removes it, nothing truncates the table', DB, async (t) => {
+  const db = await createTestDatabase(t)
   await withClient(db.ownerUrl, async (c) => {
-    assert.equal((await c.query('select 1 from mail_template where updated_by is null')).rowCount, 11, 'the seed: every kind, no author')
+    assert.equal((await c.query('select 1 from mail_template')).rowCount, 0, 'nothing seeded: the catalogue has the defaults')
     const { rows: [user] } = await c.query<{ id: string }>('insert into app_user (tid, oid, display_name) values ($1, $2, $3) returning id', [TID, OID, 'Anna'])
-    await c.query('update mail_template set subject = $2, body = $3, updated_at = now(), updated_by = $4 where kind = $1', [
-      'class_missing',
-      '{{ wahl }}: {{klasse}} ({{{fenster}}})',
-      '{{#if vorname}}Hallo {{vorname}}{{else}}Hallo{{/if}},\n{{#if  liste }}{{{ liste }}}{{/if}} {{wahlen}} wahl {{name}} {{link}} {{minimum}}',
-      user?.id,
-    ])
-  })
-  assert.deepEqual(await migrateTestDatabase(db, '0011_language_and_mail_defaults.sql'), ['0011_language_and_mail_defaults.sql'])
-  await withClient(db.ownerUrl, async (c) => {
-    assert.deepEqual((await c.query('select kind, subject, body, locale from mail_template')).rows, [{
-      kind: 'class_missing',
-      subject: '{{ campaign }}: {{class_name}} ({{{window}}})',
-      body: '{{#if first_name}}Hallo {{first_name}}{{else}}Hallo{{/if}},\n{{#if  list }}{{{ list }}}{{/if}} {{wahlen}} wahl {{name}} {{link}} {{minimum}}',
-      locale: 'de',
-    }], 'a name is renamed only where it stands whole inside the braces')
+    await c.query('insert into mail_template (kind, subject, body, updated_by) values ($1, $2, $3, $4)', ['class_missing', '{{campaign}}: {{class_name}}', 'Hallo {{first_name}}', user?.id])
+    assert.deepEqual((await c.query('select locale from mail_template')).rows, [{ locale: 'de' }])
     await assert.rejects(c.query('truncate mail_template'), (err: unknown) => sqlState(err) === SQLSTATE.objectNotInPrerequisiteState, 'not even the owner truncates')
     await assert.rejects(c.query('update mail_template set updated_by = null'), (err: unknown) => sqlState(err) === '23502', 'a row is a text somebody saved')
   })
@@ -188,42 +200,18 @@ test('0011: the seeded mail templates go, a saved one stays in German with its p
   })
 })
 
-test('0013: a reminder queued before it expires with its window, at once when the campaign has left the window; the rest keep their turn by kind; an expired mail stays so', DB, async (t) => {
-  const db = await createTestDatabase(t, { until: '0012_one_clock.sql' })
-  const closes = '2034-03-13T19:00:00.000Z'
-  const late = '2034-03-17T19:00:00.000Z'
+test('a sent, failed or expired mail stays so, for the owner too, and no mail is removed', DB, async (t) => {
+  const db = await createTestDatabase(t)
   await withClient(db.ownerUrl, async (c) => {
-    const { rows: [user] } = await c.query<{ id: string }>('insert into app_user (tid, oid, display_name) values ($1, $2, $3) returning id', [TID, OID, 'Anna'])
-    const campaign = async (state: string) => (await c.query<{ id: string }>(
-      `insert into campaign (kind, name, school_year, state, project_days, created_by, opens_at, closes_at, late_until)
-       values ('project_week', $1, '2033/34', $1, '{2034-07-03}', $2, '2034-03-06T07:00:00Z', $3, $4) returning id`,
-      [state, user?.id, closes, late],
-    )).rows[0]?.id
-    const open = await campaign('open')
-    const grace = await campaign('grace')
-    const mail = (kind: string, campaignId: string | null | undefined, key: string) => c.query(
-      'insert into outbox_mail (kind, campaign_id, to_address, subject, body, dedupe_key) values ($1, $2, $3, $4, $5, $6)',
-      [kind, campaignId, 'sara@schule.example.org', 's', 'b', key],
+    const mail = (key: string, state: string) => c.query(
+      `insert into outbox_mail (kind, to_address, subject, body, dedupe_key, state, sent_at) values ('choice_reminder', 'sara@schule.example.org', 's', 'b', $1, $2::text, case when $2::text = 'sent' then now() end)`,
+      [key, state],
     )
-    await mail('choice_reminder', open, 'open-reminder')
-    await mail('choice_reminder', grace, 'ended-reminder')
-    await mail('grace_reminder', grace, 'grace-reminder')
-    await mail('swap_confirmed', open, 'swap')
-    await mail('choice_reminder', null, 'test:choice_reminder:1')
-    await mail('result_published', open, 'result')
-  })
-  assert.deepEqual(await migrateTestDatabase(db, '0013_mail_pacing.sql'), ['0013_mail_pacing.sql'])
-  await withClient(db.ownerUrl, async (c) => {
-    const { rows } = await c.query<{ dedupe_key: string, state: string, priority: number, expires_at: Date | null }>('select dedupe_key, state, priority, expires_at from outbox_mail order by dedupe_key')
-    assert.deepEqual(rows.map((r) => [r.dedupe_key, r.state, r.priority, r.expires_at?.toISOString() ?? null]), [
-      ['ended-reminder', 'expired', 3, closes],
-      ['grace-reminder', 'queued', 3, late],
-      ['open-reminder', 'queued', 3, closes],
-      ['result', 'queued', 3, null],
-      ['swap', 'queued', 1, null],
-      ['test:choice_reminder:1', 'queued', 1, null],
-    ])
-    await assert.rejects(c.query('update outbox_mail set state = $1 where dedupe_key = $2', ['queued', 'ended-reminder']), /stays so/, 'not even the owner sends an expired mail after all')
+    for (const state of ['sent', 'failed', 'expired']) await mail(state, state)
+    for (const key of ['sent', 'failed', 'expired']) {
+      await assert.rejects(c.query('update outbox_mail set state = $1, sent_at = null where dedupe_key = $2', ['queued', key]), /stays so/, key)
+    }
+    await assert.rejects(c.query('delete from outbox_mail'), (err: unknown) => sqlState(err) === SQLSTATE.objectNotInPrerequisiteState)
   })
 })
 

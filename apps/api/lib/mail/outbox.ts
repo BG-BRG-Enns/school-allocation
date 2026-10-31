@@ -6,7 +6,7 @@
 // after the attempts a transient error gets or at once on a permanent one;
 // and expired, for a reminder whose window ended before its turn came.
 //
-// The pace (migration 0013): a claim takes the mail whose turn it is, by
+// The pace: a claim takes the mail whose turn it is, by
 // priority, then age, never sooner than the spacing after the last claim
 // the database holds, and nothing while sending is paused.
 

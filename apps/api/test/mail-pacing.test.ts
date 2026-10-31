@@ -1,4 +1,4 @@
-// Mail pacing (migration 0013), on a clock the test moves: one claim per
+// Mail pacing, on a clock the test moves: one claim per
 // spacing, measured from the last claim the database holds, so a sender
 // started anew keeps it; the mails someone waits for first, then the
 // staff's, then the students'; nothing while sending is paused, which an

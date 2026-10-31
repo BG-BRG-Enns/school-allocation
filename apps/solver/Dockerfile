@@ -1,7 +1,8 @@
 # The solver: Python, FastAPI and OR-Tools, non-root, nothing else. The
 # packages are pinned in pyproject.toml and locked with hashes in uv.lock;
 # a build stage exports the lock to a requirements file, and pip installs
-# that with --require-hashes, refusing anything the lock does not name. uv
+# that with --require-hashes, refusing anything the lock does not name, and
+# from wheels only, so no package runs a build script of its own. uv
 # itself never reaches the runtime image. Build arguments APP_VERSION and
 # GIT_SHA record what was built, as for the app. No `# syntax=` line, as in
 # the app's Dockerfile: the pinned BuildKit's built-in frontend reads it.
@@ -26,7 +27,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN groupadd -r -g 10002 solver && useradd -r -u 10002 -g solver solver
 
 COPY --from=requirements /lock/requirements.txt ./
-RUN pip install --require-hashes --no-deps -r requirements.txt
+RUN pip install --require-hashes --no-deps --only-binary :all: -r requirements.txt
 
 COPY app ./app
 # The notices for what the wheels carry beyond their own licence files

@@ -19,7 +19,7 @@ const typedFiles = [...tsFiles, ...vueFiles]
 const clockReads = [
   { selector: 'MemberExpression[object.name="Date"][property.name="now"]', message: 'Read the time from the clock: db.now() (apps/api/lib/clock.ts).' },
   { selector: 'NewExpression[callee.name="Date"][arguments.length=0]', message: 'Read the time from the clock: db.now() (apps/api/lib/clock.ts).' },
-  { selector: String.raw`Literal[value=/\bnow\(\)/], TemplateElement[value.raw=/\bnow\(\)/]`, message: 'SQL reads the clock with app_now() (migration 0012), not now().' },
+  { selector: String.raw`Literal[value=/\bnow\(\)/], TemplateElement[value.raw=/\bnow\(\)/]`, message: 'SQL reads the clock with app_now(), not now().' },
 ]
 
 export default [

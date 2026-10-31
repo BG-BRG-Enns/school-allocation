@@ -15,6 +15,8 @@ test('BOOTSTRAP_ADMINS takes object ids and school addresses, lower-cased and wi
 test('an entry that is neither an object id nor an address is refused by name, as is a long list', () => {
   assert.throws(() => parseBootstrapAdmins('anna.lehrerin, b@x.org'), (err: unknown) => err instanceof ConfigError && err.message.includes('anna.lehrerin') && !err.message.includes('b@x.org'))
   assert.throws(() => parseBootstrapAdmins('bad entry@x.org'), ConfigError)
+  for (const entry of ['anna@schule.', 'anna@.example', `anna@${'.'.repeat(200)}x y`]) assert.throws(() => parseBootstrapAdmins(entry), ConfigError, entry)
+  assert.deepEqual(parseBootstrapAdmins('anna@mail.schule.example.org'), ['anna@mail.schule.example.org'])
   const many = Array.from({ length: 21 }, (_, i) => `person${i}@schule.example.org`).join(',')
   assert.throws(() => parseBootstrapAdmins(many), /at most 20/)
 })
