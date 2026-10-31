@@ -14,7 +14,7 @@ import * as runs from '../lib/dao/allocation.ts'
 import { lockedCampaign, readCampaign } from '../lib/dao/campaigns.ts'
 import { campaignStudents } from '../lib/dao/choices.ts'
 import { listCampaignItems } from '../lib/dao/items.ts'
-import type { Database, Queryable } from '../lib/db.ts'
+import { readSnapshot, type Database, type Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import type { AttendanceRecord, AttendanceRow, AttendanceStatus, ClassAttendanceResponse } from '../lib/models/attendance.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
@@ -38,7 +38,10 @@ function mayRecord(caller: Caller, campaign: Pick<Campaign, 'state'>, classes: r
 async function rows(db: Queryable, campaign: Campaign, students: readonly CampaignStudent[]): Promise<{ date: string, rows: AttendanceRow[] }[]> {
   const run = await runs.readPublishedRun(db, campaign.id)
   if (!run) return campaign.projectDays.map((date) => ({ date, rows: [] }))
-  const [assignments, items, records] = await Promise.all([runs.listAssignments(db, run.id), listCampaignItems(db, campaign.id), store.listAttendance(db, campaign.id)])
+  // One after the other: the reads share a snapshot's client, which takes one query at a time.
+  const assignments = await runs.listAssignments(db, run.id)
+  const items = await listCampaignItems(db, campaign.id)
+  const records = await store.listAttendance(db, campaign.id)
   const byItem = new Map<string, Item>(items.map((item) => [item.id, item]))
   const recorded = new Map(records.map((r) => [`${r.sessionId}\u0000${r.personId}`, r]))
   const named = new Map(students.map((s) => [s.personId, s]))
@@ -63,25 +66,30 @@ async function rows(db: Queryable, campaign: Campaign, students: readonly Campai
 
 /** A class's attendance as its class teacher sees and records it. */
 export async function classAttendance(db: Database, campaign: Campaign, caller: Caller, className: string): Promise<ClassAttendanceResponse> {
-  const classes = await classTeacherOf(db, campaign, caller)
-  if (!mayRead(caller, classes, className)) throw new ApplicationError('forbidden')
-  const students = await campaignStudents(db, campaign, className)
-  if (students.length === 0) throw new ApplicationError('not_found')
-  return { className, recordable: mayRecord(caller, campaign, classes, className), days: await rows(db, campaign, students) }
+  // One snapshot for the right and the rows, as the class page reads them (catalogue.ts classStatus).
+  return readSnapshot(db, async (client) => {
+    const classes = await classTeacherOf(client, campaign, caller)
+    if (!mayRead(caller, classes, className)) throw new ApplicationError('forbidden')
+    const students = await campaignStudents(client, campaign, className)
+    if (students.length === 0) throw new ApplicationError('not_found')
+    return { className, recordable: mayRecord(caller, campaign, classes, className), days: await rows(client, campaign, students) }
+  })
 }
 
 /** Every row of the campaign (the organizer's and the auditor's workbook), or a class's: one per student and session, a session over two days once. */
 export async function attendanceRows(db: Database, campaign: Campaign, caller: Caller, className?: string): Promise<AttendanceRow[]> {
-  if (className !== undefined && !mayRead(caller, await classTeacherOf(db, campaign, caller), className)) throw new ApplicationError('forbidden')
-  if (className === undefined && !isOrganizer(caller) && !caller.roles.includes('read_only_auditor')) throw new ApplicationError('forbidden')
-  const students = await campaignStudents(db, campaign, className)
-  if (className !== undefined && students.length === 0) throw new ApplicationError('not_found')
-  const seen = new Set<string>()
-  return (await rows(db, campaign, students)).flatMap((d) => d.rows).filter((r) => {
-    const key = `${r.sessionId}\u0000${r.personId}`
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
+  return readSnapshot(db, async (client) => {
+    if (className !== undefined && !mayRead(caller, await classTeacherOf(client, campaign, caller), className)) throw new ApplicationError('forbidden')
+    if (className === undefined && !isOrganizer(caller) && !caller.roles.includes('read_only_auditor')) throw new ApplicationError('forbidden')
+    const students = await campaignStudents(client, campaign, className)
+    if (className !== undefined && students.length === 0) throw new ApplicationError('not_found')
+    const seen = new Set<string>()
+    return (await rows(client, campaign, students)).flatMap((d) => d.rows).filter((r) => {
+      const key = `${r.sessionId}\u0000${r.personId}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
   })
 }
 

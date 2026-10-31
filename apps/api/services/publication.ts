@@ -263,7 +263,9 @@ export interface ClassPlacement {
 export async function classPlacements(db: Queryable, campaign: Campaign, className: string): Promise<Map<string, ClassPlacement>> {
   const run = await store.readPublishedRun(db, campaign.id)
   if (!run) return new Map()
-  const [rows, items] = await Promise.all([store.listAssignments(db, run.id), listCampaignItems(db, campaign.id)])
+  // One after the other: the class page reads this inside a snapshot, whose client takes one query at a time.
+  const rows = await store.listAssignments(db, run.id)
+  const items = await listCampaignItems(db, campaign.id)
   const byId = new Map(items.map((item) => [item.id, item]))
   const unavailable = unavailableItems(run, items)
   const result = new Map<string, ClassPlacement>()
