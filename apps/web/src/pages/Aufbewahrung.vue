@@ -6,7 +6,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { loadRetention, purgeSchoolYear, type RetentionYear } from '../lib/admin-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { formatWhenShort } from '../lib/format.ts'
+import { formatDateOf } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
 import { CAMPAIGN_STATE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
@@ -94,7 +94,10 @@ async function onPurge(): Promise<void> {
       >
         {{ t.retention.none }}
       </p>
-      <table v-else>
+      <table
+        v-else
+        class="table"
+      >
         <thead>
           <tr>
             <th>{{ t.common.field.schoolYear }}</th>
@@ -130,7 +133,7 @@ async function onPurge(): Promise<void> {
             <td>{{ y.batches }}</td>
             <td>{{ y.classTeachers }}</td>
             <td>
-              {{ formatWhenShort(y.retentionEndsAt) }}<span
+              {{ formatDateOf(y.retentionEndsAt) }} <span
                 v-if="y.reached"
                 class="badge"
               >{{ t.retention.expired }}</span>
