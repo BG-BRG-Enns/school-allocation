@@ -72,7 +72,7 @@ npm test
 npm run build
 ```
 
-A deprecation warning fails the tests and the browser journeys (`--throw-deprecation`); change the call that causes it. `scripts/compat-check.sh` runs the previous release's API tests on your migrations, as CI does: the release's code on the new schema is what a host runs after an update is rolled back. It takes the newest release tag, or the ref you give it.
+A deprecation warning fails the tests and the browser journeys (`--throw-deprecation`); change the call that causes it.
 
 Formatting is enforced by ESLint; there is no separate formatter. `npx eslint . --fix` fixes most style findings.
 

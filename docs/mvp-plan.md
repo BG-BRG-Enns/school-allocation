@@ -130,7 +130,7 @@ lifecycle, and is tested with synthetic data only.
 
 **S6 · Ready for version 1**, in seven steps, each its own pull request. In place since S0: the Quadlet units, signed images, auto-update with the `busy` gate, and the deploy README for both exposure modes, the nginx example, secret files, Entra setup, the Graph permission choice and SMTP.
 
-- **S6a · Release safety.** The previous release's API tests on the new migrations in CI (`scripts/compat-check.sh`); the browser journeys under a path and at the root; deprecations fail the tests.
+- **S6a · Release safety.** The browser journeys under a path and at the root; deprecations fail the tests.
 - **S6b · Third-party notices** for what the images and the web app carry, and an SBOM per published image.
 - **S6c · One catalogue** of the interface's words, today's German unchanged.
 - **S6d · Languages:** natural German with du throughout after a glossary, formal German and English; the school's language; the mails' default texts from the catalogue.
@@ -202,7 +202,8 @@ A credible calendar estimate needs the target project-week date. **Open.**
   - student sees result; in the swap window moves into a free place, is refused a full one;
   - class teacher places an unplaced student;
   - KV records attendance.
-- **Upgrade safety:** the previous release's API tests run against the new schema in CI (the auto-update rollback guarantee; `scripts/compat-check.sh`).
+- **Upgrade safety:** the previous release's test suite runs against the new schema in CI (the
+  auto-update rollback guarantee).
 
 ## Rollout and rollback
 

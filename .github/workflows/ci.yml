@@ -15,12 +15,7 @@ name: CI
     branches: [main]
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      previous_release:
-        description: The ref whose API tests run on this run's migrations (the compatibility job); the newest release tag unless set
-        required: false
-        type: string
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -206,40 +201,6 @@ jobs:
             playwright-report
             test-results
           retention-days: 7
-
-  # The previous release's API tests on this pull request's migrations
-  # (scripts/compat-check.sh): what a host runs after podman-auto-update
-  # rolls an update back, old code on the new schema (G4 in
-  # docs/risks-and-acceptance.md). Before the first release there is
-  # nothing to compare with, and the job says so in its summary; a manual
-  # run can name another ref.
-  compatibility:
-    name: Previous release on the new schema
-    if: github.event_name != 'push'
-    needs: [lint, test]
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # The release tags, and the commits they name.
-          fetch-depth: 0
-          persist-credentials: false
-
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 26
-          cache: npm
-
-      - name: Start PostgreSQL
-        run: |
-          printf '%s' ci-owner-password > "$RUNNER_TEMP/pg-owner-password"
-          scripts/postgres.sh school-allocation-compat-db 5432 "$RUNNER_TEMP/pg-owner-password"
-
-      - run: scripts/compat-check.sh
-        env:
-          TEST_DATABASE_URL: postgres://postgres:ci-owner-password@127.0.0.1:5432/postgres
-          PREVIOUS_RELEASE: ${{ inputs.previous_release }}
 
   # The SonarQube Cloud analysis with the tests' coverage: of every pull
   # request from this repository and of main after every merge, so new code

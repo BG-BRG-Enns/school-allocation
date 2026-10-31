@@ -38,7 +38,6 @@ npm run dev:api     # API on :3000
 npm run dev:api:fake-entra  # the same API, signing in with a stand-in for Entra ID
 npm run dev:web     # Vite dev server, proxies /api to :3000
 npm run e2e         # Playwright journeys in Chromium; needs TEST_DATABASE_URL and `npm run e2e:install` once
-scripts/compat-check.sh [ref]  # the previous release's API tests on these migrations, as CI runs them; needs TEST_DATABASE_URL
 (cd apps/solver && uv run --frozen pytest -q)   # the solver's tests, from uv.lock (CONTRIBUTING.md)
 ```
 
