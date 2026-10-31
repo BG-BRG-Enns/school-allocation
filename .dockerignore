@@ -27,3 +27,9 @@ deploy
 .DS_Store
 *.log
 tmp
+
+# The handbooks' site and pictures are published to GitHub Pages, never
+# carried by the image; only the workspace's package.json is needed, for
+# npm ci.
+handbook/*
+!handbook/package.json

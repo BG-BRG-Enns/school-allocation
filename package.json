@@ -11,7 +11,8 @@
     "packages/messages",
     "packages/api-contracts",
     "apps/api",
-    "apps/web"
+    "apps/web",
+    "handbook"
   ],
   "scripts": {
     "db:dev": "scripts/postgres.sh school-allocation-db 5432 apps/api/.secrets/db-owner-password",
@@ -32,6 +33,9 @@
     "e2e:ui": "playwright test --ui",
     "e2e:install": "playwright install chromium",
     "e2e:screenshots": "SCREENSHOT_DIR=docs/anleitung/bilder/full-size playwright test",
+    "handbook": "npm run build --workspace handbook",
+    "handbook:dev": "npm run dev --workspace handbook",
+    "handbook:shots": "rm -rf handbook/public/bilder && HANDBOOK_SHOTS=1 E2E_LOCALE=de playwright test && HANDBOOK_SHOTS=1 E2E_LOCALE=en playwright test",
     "contracts:update:routes": "node apps/api/scripts/update-route-fixture.ts"
   },
   "engines": {

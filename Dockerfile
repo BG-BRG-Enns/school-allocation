@@ -22,6 +22,7 @@ COPY packages/messages/package.json packages/messages/
 COPY packages/api-contracts/package.json packages/api-contracts/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
+COPY handbook/package.json handbook/
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund --ignore-scripts
 
@@ -41,6 +42,7 @@ COPY packages/messages/package.json packages/messages/
 COPY packages/api-contracts/package.json packages/api-contracts/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
+COPY handbook/package.json handbook/
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --omit=dev --no-audit --no-fund --ignore-scripts
 

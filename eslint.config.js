@@ -12,7 +12,7 @@ const typedFiles = [...tsFiles, ...vueFiles]
 
 export default [
   {
-    ignores: ['**/node_modules/**', '**/dist/**', 'coverage/**', 'tmp/**', 'apps/solver/.venv/**'],
+    ignores: ['**/node_modules/**', '**/dist/**', 'coverage/**', 'tmp/**', 'apps/solver/.venv/**', 'handbook/.vitepress/cache/**'],
   },
 
   // One formatter for the whole repository, enforced by ESLint rather than a
