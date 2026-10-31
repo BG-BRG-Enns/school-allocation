@@ -29,6 +29,7 @@
     "lint:js": "eslint . --max-warnings 0",
     "lint:md": "markdownlint-cli2",
     "lint:deps": "node scripts/lint-deps.mjs",
+    "simulate": "node e2e/scenario/simulate.ts",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "e2e:install": "playwright install chromium",
