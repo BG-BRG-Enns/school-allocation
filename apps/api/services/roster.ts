@@ -40,13 +40,18 @@ export async function readBatch(db: Queryable, id: string): Promise<BatchDetail>
 /**
  * Stores a batch: pending with its diff against the roster in force when
  * its rows form a roster, rejected with the problems when they do not.
- * Nothing about persons changes until the batch is committed.
+ * Nothing about persons changes until the batch is committed. Audited in
+ * the school's chain with the batch's counts (no row of it): identified
+ * data of children was written, by whom; an audit the chain refuses rolls
+ * the batch back with it.
  */
 export async function createBatch(db: Database, input: NewBatch): Promise<BatchDetail> {
   const problems = [...(input.problems ?? []), ...checkRoster(input.entries)].map(storableProblem)
   const warnings = input.warnings ?? []
   const hash = payloadHash([...input.entries].sort((a, b) => (rosterKey(a) ?? '').localeCompare(rosterKey(b) ?? '')))
   const id = await db.tx(async (client) => {
+    // The school's lock first, as every writer of its chain takes it (commit, discard, the groups).
+    await lockScope(client, SCHOOL_SCOPE)
     const current = await currentBatch(client)
     const previous = current === undefined ? [] : await entriesOf(client, current.id)
     const summary = problems.length > 0 ? EMPTY_SUMMARY : summarizeDiff(diffRoster(previous, input.entries))
@@ -59,6 +64,12 @@ export async function createBatch(db: Database, input: NewBatch): Promise<BatchD
     if (!rejected) {
       await store.insertEntries(client, row.id, input.entries)
     }
+    await appendAudit(client, {
+      scopeId: SCHOOL_SCOPE,
+      actor: { tid: input.triggeredBy.tid, oid: input.triggeredBy.oid, name: input.triggeredBy.name },
+      action: rejected ? 'roster.rejected' : 'roster.staged',
+      metadata: { batchId: row.id, source: input.source, schoolYear: input.schoolYear, rowCount: input.entries.length, problems: problems.length, warnings: warnings.length },
+    })
     return row.id
   })
   const batch = await readBatch(db, id)

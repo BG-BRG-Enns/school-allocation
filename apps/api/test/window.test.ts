@@ -129,7 +129,7 @@ test('an organizer enters a ranking on behalf and exempts a student from a class
   await owner.query('update campaign set show_teachers = false where id = $1', [id])
   const timsOwn = await send<View>(s, s.tim, 'PUT', `/api/campaigns/${id}/my-choice`, { ranking: { [monday]: [s.items.klettern] } })
   assert.equal(timsOwn.status, 200, JSON.stringify(timsOwn.body))
-  assert.ok(timsOwn.body.groups.flatMap((g) => g.items).every((i) => i.teachers.length === 0 && i.proposedBy.displayName === ''), 'no teacher, no proposer for the student')
+  assert.ok(timsOwn.body.groups.flatMap((g) => g.items).every((i) => i.teachers.length === 0 && i.proposedBy.displayName === '' && i.proposedBy.id === ''), 'no teacher, no proposer for the student, not even an id')
   assert.ok((await get<View>(s, s.tim, `/api/campaigns/${id}/my-choice`)).body.groups.flatMap((g) => g.items).every((i) => i.teachers.length === 0))
   await owner.query('update campaign set show_teachers = true where id = $1', [id])
   assert.equal((await get(s, s.anna, `/api/admin/campaigns/${id}/choices/00000000-0000-0000-0000-000000000000`)).status, 404)

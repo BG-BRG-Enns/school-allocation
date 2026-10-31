@@ -78,10 +78,12 @@ test('a CSV becomes a pending batch with its diff, the commit makes it the roste
   const db = createDatabase(h.ownerUrl, () => {})
   t.after(() => db.close())
   const events = await readAudit(db, SCHOOL_SCOPE)
-  assert.deepEqual(events.map((e) => e.action), ['admin.bootstrapped', 'roster.imported', 'identity.bound', 'identity.bound', 'identity.bound'])
-  assert.equal(events[1]?.metadata.rowCount, 4)
-  assert.equal(events[2]?.actor.oid, SARA.oid)
-  assert.equal(events[2]?.metadata.method, 'email_match')
+  assert.deepEqual(events.map((e) => e.action), ['admin.bootstrapped', 'roster.staged', 'roster.imported', 'identity.bound', 'identity.bound', 'identity.bound'])
+  assert.deepEqual(events[1]?.metadata, { batchId: created.body.id, source: 'csv', schoolYear: '2026/27', rowCount: 4, problems: 0, warnings: 0 }, 'the staging, with counts and no row')
+  assert.equal(events[1]?.actor.oid, ANNA.oid)
+  assert.equal(events[2]?.metadata.rowCount, 4)
+  assert.equal(events[3]?.actor.oid, SARA.oid)
+  assert.equal(events[3]?.metadata.method, 'email_match')
   assert.equal(verifyAuditChain(events).valid, true)
 })
 
@@ -155,6 +157,11 @@ test('a batch that is not a roster is stored as rejected with the problems; a fi
   ])
   assert.equal((await send(h, anna, 'POST', `/api/admin/roster/batches/${rejected.body.id}/commit`)).status, 409)
   assert.equal((await send(h, anna, 'POST', `/api/admin/roster/batches/${rejected.body.id}/discard`)).status, 409)
+  const db = createDatabase(h.ownerUrl, () => {})
+  t.after(() => db.close())
+  const staged = (await readAudit(db, SCHOOL_SCOPE)).at(-1)
+  assert.equal(staged?.action, 'roster.rejected', 'a rejected batch is in the chain too')
+  assert.deepEqual(staged?.metadata, { batchId: rejected.body.id, source: 'csv', schoolYear: '2026/27', rowCount: 3, problems: 3, warnings: 0 })
   // Text PostgreSQL could not hold (NUL, a lone surrogate) is a row's problem, not a server error.
   const unholdable = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', {
     csv: [

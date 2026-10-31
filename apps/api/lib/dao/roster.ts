@@ -100,7 +100,7 @@ export async function insertBatch(db: Queryable, input: NewBatch, hash: string, 
        values ($1, case when $10::boolean then 'rejected' else 'pending' end, $2, $3, $4, $5::uuid, $6, $7, $8, $9,
                case when $10::boolean then app_now() end, case when $10::boolean then $5::uuid end) returning id`,
     [
-      input.source, input.schoolYear, hash, input.entries.length, input.triggeredBy,
+      input.source, input.schoolYear, hash, input.entries.length, input.triggeredBy.id,
       current?.id ?? null, JSON.stringify(summary), JSON.stringify(problems), JSON.stringify(warnings),
       rejected,
     ],

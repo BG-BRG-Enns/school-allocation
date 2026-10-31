@@ -37,9 +37,14 @@ export function maySeeDemand(caller: Caller, campaign: Pick<Campaign, 'state'>):
   return isOrganizer(caller) || (isTeacher(caller) && campaign.state === 'catalogue')
 }
 
-/** The item as a student sees it when the campaign keeps the teachers out (D-13): no teachers, no proposer's name. */
+/**
+ * The item as a student sees it when the campaign keeps the teachers out
+ * (D-13): no teachers, and nothing of the proposer, their account id
+ * included: an id is stable across campaigns, and one campaign that names
+ * the proposer would name them in every other.
+ */
 export function withoutTeachers(item: Item): Item {
-  return { ...item, teachers: [], proposedBy: { id: item.proposedBy.id, displayName: '', personId: null } }
+  return { ...item, teachers: [], proposedBy: { id: '', displayName: '', personId: null } }
 }
 
 /** Whether the caller is one of the item's people: its proposer or one of its teachers. */
