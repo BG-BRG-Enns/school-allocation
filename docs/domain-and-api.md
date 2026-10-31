@@ -112,7 +112,8 @@ transition that was missed during a restart is applied on start.
    short of minutes or of a rule into an item that fits the gap or brings the rule closer, with a
    reason, from publication to the archive; the organizer moves or removes with a reason, and may
    override a full item, a minimum or a rule falling short (recorded as `forced`), never the other
-   rules. The swap window's dates may be set until the window has
+   rules. A removal alone may cost minutes and rules without an override: the student leaves the
+   item either way, and the gap shows on the review and the class page. The swap window's dates may be set until the window has
    begun, so the organizer can set them when publishing.
 
 **Credited minutes** are given by the teacher per session and local date (`Europe/Vienna`). They are

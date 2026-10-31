@@ -122,6 +122,8 @@ export function checkMove(input: AllocationInput, assignments: readonly Assignme
     }
   }
   const kept = mine.filter((a) => !move.leaves.includes(a.itemId))
+  // A removal alone (the organizer's, for a student who is ill or leaves) may cost minutes and rules: the student is
+  // out of the item either way, and the review and the class page show the gap. A move into an item may not.
   if (move.toItemId !== null) {
     const target = items.get(move.toItemId)
     if (!offered(input, student, target, unavailable)) {

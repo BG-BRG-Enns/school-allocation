@@ -159,11 +159,13 @@ test('the explanation and the summary: each rule with what it asks and what the 
   assert.deepEqual(summary.ruleGaps, [{ personId: 'ben', ruleId: 'r-ibobb', missing: 180 }])
 })
 
-test('after publication: a move that leaves a rule short is refused unless the organizer forces it; a placement closing a rule gap fills one', () => {
+test('after publication: a move that leaves a rule short is refused unless the organizer forces it, a removal alone is not; a placement closing a rule gap fills one', () => {
   const placed = rows('ben', 'football', 'crafts', 'museum')
   const swapToDance = { personId: 'ben', toItemId: 'dance', leaves: ['football'] }
   assert.deepEqual(checkMove(INPUT, placed, swapToDance), [{ code: 'rule_lost', itemId: 'dance' }])
   assert.deepEqual(checkMove(INPUT, placed, swapToDance, { force: true }), [])
+  // A removal alone may cost a rule, as it may cost minutes: the student is out of the item either way.
+  assert.deepEqual(checkMove(INPUT, placed, { personId: 'ben', toItemId: null, leaves: ['football'] }), [])
   // From crafts to handball keeps the rule met and adds to it.
   assert.deepEqual(checkMove(INPUT, placed, { personId: 'ben', toItemId: 'handball', leaves: ['crafts'] }), [])
   // Every day covered: a seat in careers fills no day, but closes the IBOBB gap.
