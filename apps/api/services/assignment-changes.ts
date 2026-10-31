@@ -138,7 +138,7 @@ export async function swap(db: Database, context: WindowContext, campaign: Campa
  * may too. From publication to the archive, no window.
  */
 export async function placeStudent(db: Database, context: WindowContext, campaign: Campaign, caller: Caller, className: string, personId: string, itemId: string, reason: string): Promise<void> {
-  // Class teacher of the class in the campaign's school year; the year of a campaign in results changes no more.
+  // Class teacher of the class in the campaign's school year; the roster of a campaign in results is frozen, its year with it.
   const asClassTeacher = (await classTeacherOf(db, campaign, caller)).includes(className)
   if (!isOrganizer(caller) && !asClassTeacher) throw new ApplicationError('forbidden')
   await db.tx(async (client) => {

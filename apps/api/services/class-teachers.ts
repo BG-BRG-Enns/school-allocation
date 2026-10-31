@@ -18,17 +18,21 @@ import { isTeacher } from '../lib/policies.ts'
 
 /**
  * The classes the caller is class teacher of in the campaign's school
- * year: a teacher of the roster in force (a binding outlives the roster,
- * the right does not), class teacher of the class in that year, assigned
- * in the app or named by the roster's class-teacher address. Class
- * teachers are base data of a school year, the same for every campaign of
- * it; a class name recurs every year, so this year's class teacher of 5A
- * has no right to an earlier 5A. Every class page, workbook and recording
- * asks this, never a list made for the roster in force.
+ * year, the year of the roster its students come from: a teacher of the
+ * roster in force (a binding outlives the roster, the right does not),
+ * class teacher of the class in that year, assigned in the app or named
+ * by the roster's class-teacher address. Class teachers are base data of
+ * a school year, the same for every campaign of it; a class name recurs
+ * every year, so this year's class teacher of 5A has no right to an
+ * earlier 5A. The year is read from the roster the campaign goes by, not
+ * from its settings: a campaign still following the roster in force shows
+ * that roster's students, and its class teachers are that roster's year's.
+ * Every class page, workbook and recording asks this, never a list made
+ * for the roster in force.
  */
-export async function classTeacherOf(db: Queryable, campaign: Pick<Campaign, 'schoolYear'>, caller: Caller): Promise<string[]> {
+export async function classTeacherOf(db: Queryable, campaign: Pick<Campaign, 'rosterBatchId'>, caller: Caller): Promise<string[]> {
   if (!isTeacher(caller) || caller.person === null) return []
-  return store.classesTaught(db, campaign.schoolYear, caller.person.id)
+  return store.classesTaught(db, campaign, caller.person.id)
 }
 
 /**

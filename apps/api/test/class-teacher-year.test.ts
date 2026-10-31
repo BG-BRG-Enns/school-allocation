@@ -78,6 +78,12 @@ test('a class teacher\'s right is the school year\'s: next year\'s teacher of a 
   assert.equal((await send(s, s.anna, 'PUT', '/api/admin/classes/5A/teachers', { teachers: [] })).status, 200)
   await reads(s.bernd, 403, 'revoked')
 
+  // A second campaign set up as 2026/27 that still follows the roster in force (no close yet): its students are whatever roster is in force.
+  const following = await send<Campaign>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'Nachzügler', schoolYear: '2026/27', projectDays: ['2027-06-28'] })
+  assert.equal(following.status, 201, JSON.stringify(following.body))
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${following.body.id}/transition`, { to: 'catalogue' })).status, 200)
+  assert.equal((await status(carla, following.body.id)).status, 200)
+
   // The next school year: a roster in which Bernd is 5A's class teacher by the column and Carla a teacher without a class.
   const roster = (teachers: string[]) => [
     'email;given_name;family_name;class;grade;kind;class_teacher_email',
@@ -99,6 +105,12 @@ test('a class teacher\'s right is the school year\'s: next year\'s teacher of a 
   await reads(carla, 200, 'the class teacher of the 5A of 2026/27')
   assert.equal((await record(carla, tanz, 'excused')).body.recorded, 1)
   assert.deepEqual((await may(carla)).body.may.classTeacherOf, ['5A'])
+
+  // The campaign still following the roster in force now shows the 5A of 2027/28: Bernd's class, whatever the campaign's settings say, not Carla's.
+  assert.equal((await status(s.bernd, following.body.id)).status, 200, 'the class teacher of the cohort the page shows')
+  assert.equal((await status(carla, following.body.id)).status, 403, 'the class teacher of the earlier cohort, which the page no longer shows')
+  assert.deepEqual((await may(s.bernd, following.body.id)).body.may.classTeacherOf, ['5A'])
+  assert.deepEqual((await may(carla, following.body.id)).body.may.classTeacherOf, [])
 
   // A campaign of 2027/28: Bernd's class there, not Carla's.
   const next = await send<Campaign>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'Projektwoche 2028', schoolYear: '2027/28', projectDays: ['2028-06-19', '2028-06-20'] })

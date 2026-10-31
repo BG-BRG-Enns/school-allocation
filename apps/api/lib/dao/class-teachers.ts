@@ -1,7 +1,8 @@
 import { type Actor } from '../actor.ts'
 import type { Queryable } from '../db.ts'
+import type { Campaign } from '../models/campaigns.ts'
 import type { ClassStudent, ClassTeacher, ClassWithTeachers } from '../models/class-teachers.ts'
-import { CURRENT_BATCH_ID } from './roster-selection.ts'
+import { campaignRosterBatch, CURRENT_BATCH_ID } from './roster-selection.ts'
 
 /** The current school year: the one of the roster in force; undefined without a roster. */
 export async function currentSchoolYear(db: Queryable): Promise<string | undefined> {
@@ -44,24 +45,28 @@ export async function listClasses(db: Queryable): Promise<ClassWithTeachers[]> {
 }
 
 /**
- * The classes a teacher is class teacher of in a school year: assigned in
- * the app for that year, or named by the class-teacher address of the
- * students in that year's newest committed roster, matched against the
- * teacher's addresses in that same roster. Keyed by the year, not by the
- * roster in force: a class name recurs every year, the right does not.
+ * The classes a teacher is class teacher of in the school year of the
+ * roster a campaign goes by (the batch frozen at its close, else the one
+ * in force): assigned in the app for that year, or named by the
+ * class-teacher address of the students in that year's newest committed
+ * roster, matched against the teacher's addresses in that same roster.
+ * Keyed by the year of the roster the campaign's students come from, so
+ * the right and the data are one year's: a class name recurs every year,
+ * the right does not.
  */
-export async function classesTaught(db: Queryable, schoolYear: string, personId: string): Promise<string[]> {
+export async function classesTaught(db: Queryable, campaign: Pick<Campaign, 'rosterBatchId'>, personId: string): Promise<string[]> {
   const { rows } = await db.query<{ c: string }>(
-    `with batch as (select id from import_batch where state = 'committed' and school_year = $1 order by decided_at desc limit 1),
-          me as (select lower(e.mail) as mail, lower(e.upn) as upn from roster_entry e, batch where e.batch_id = batch.id and e.person_id = $2 and e.kind = 'teacher')
+    `with year as (select school_year from import_batch where id = ${campaignRosterBatch(campaign)}),
+          batch as (select b.id from import_batch b, year where b.state = 'committed' and b.school_year = year.school_year order by b.decided_at desc limit 1),
+          me as (select lower(e.mail) as mail, lower(e.upn) as upn from roster_entry e, batch where e.batch_id = batch.id and e.person_id = $1 and e.kind = 'teacher')
      select distinct c from (
-       select a.class_name as c from class_teacher a where a.school_year = $1 and a.person_id = $2 and a.revoked_at is null
+       select a.class_name as c from class_teacher a, year where a.school_year = year.school_year and a.person_id = $1 and a.revoked_at is null
        union
        select s.class_name from roster_entry s, batch, me
         where s.batch_id = batch.id and s.kind = 'student' and s.class_name is not null
           and lower(s.class_teacher_mail) in (me.mail, me.upn)
      ) k order by c`,
-    [schoolYear, personId],
+    [personId],
   )
   return rows.map((row) => row.c)
 }
