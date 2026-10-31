@@ -15,6 +15,7 @@ import type { AuditActor } from '../lib/audit-chain.ts'
 import { canonicalJson } from '../lib/canonical-json.ts'
 import * as store from '../lib/dao/allocation.ts'
 import { lockedCampaign, readCampaign, updateState } from '../lib/dao/campaigns.ts'
+import { listCategories } from '../lib/dao/categories.ts'
 import { campaignStudents, listChoices } from '../lib/dao/choices.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
@@ -65,13 +66,28 @@ export async function snapshotOf(client: Queryable, campaign: Campaign, seed: nu
         const endMs = instantOf(s.endsAt) ?? 0
         return { startMs, endMs, dates: datesOfSpan(startMs, endMs), credits: s.credits }
       }),
+      categoryIds: item.categoryIds,
     })),
+    rules: campaign.rules,
   }
 }
 
-/** The hash of a snapshot without the seed and the limit: two runs of the same campaign as it stood share it, whatever their lot. */
+/**
+ * The hash of a snapshot without the seed and the limit: two runs of the
+ * same campaign as it stood share it, whatever their lot. No rules and no
+ * categories hash as a snapshot from before them did, so a run made before
+ * they existed is not stale for that alone.
+ */
 export function snapshotHash(input: AllocationInput): string {
-  return createHash('sha256').update(canonicalJson({ ...input, seed: 0, limits: { deterministicTimePerLevel: 0 } })).digest('hex')
+  const { rules, items, ...rest } = input
+  const hashed = {
+    ...rest,
+    ...(rules.length > 0 ? { rules } : {}),
+    items: items.map(({ categoryIds, ...item }) => (categoryIds.length > 0 ? { ...item, categoryIds } : item)),
+    seed: 0,
+    limits: { deterministicTimePerLevel: 0 },
+  }
+  return createHash('sha256').update(canonicalJson(hashed)).digest('hex')
 }
 
 /**
@@ -245,6 +261,7 @@ export async function runReview(db: Queryable, campaign: Campaign, runId: string
   const students = await campaignStudents(db, campaign)
   const items = await listCampaignItems(db, campaign.id)
   const current = await snapshotOf(db, campaign, 0, 0)
+  const categories = await listCategories(db)
   const { snapshot, passResults: _passes, ...view } = run
   const summary = run.status === 'succeeded' ? summarizeAllocation(snapshot, rows, run.cancelledItemIds) : null
   const named = new Map(students.map((s) => [s.personId, s]))
@@ -257,7 +274,7 @@ export async function runReview(db: Queryable, campaign: Campaign, runId: string
     students: snapshot.students.map((s) => {
       const student = named.get(s.personId)
       const explanation = explainStudent(snapshot, rows, s.personId)
-      return { personId: s.personId, displayName: student?.displayName ?? '', className: s.className, grade: s.grade, window: s.savedIn, items: explanation?.items ?? [], days: explanation?.days ?? [], averageRank: explanation?.averageRank ?? null }
+      return { personId: s.personId, displayName: student?.displayName ?? '', className: s.className, grade: s.grade, window: s.savedIn, items: explanation?.items ?? [], days: explanation?.days ?? [], averageRank: explanation?.averageRank ?? null, rules: explanation?.rules ?? [] }
     }).sort((a, b) => a.className.localeCompare(b.className, 'de') || a.displayName.localeCompare(b.displayName, 'de')),
     items: snapshot.items.map((i) => {
       const item = byId.get(i.id)
@@ -265,6 +282,8 @@ export async function runReview(db: Queryable, campaign: Campaign, runId: string
       return { itemId: i.id, title: item?.title ?? '', number: item?.number ?? null, feeCents: i.feeCents, fixed: counts?.fixed ?? rows.filter((r) => r.itemId === i.id && r.source === 'fixed').length, assigned: counts?.assigned ?? 0, places: i.rules.places, minimum: i.rules.fixedClasses.length > 0 ? 0 : i.rules.minParticipants, cancelled: cancelled.has(i.id) }
     }).sort((a, b) => (a.number ?? Number.MAX_SAFE_INTEGER) - (b.number ?? Number.MAX_SAFE_INTEGER) || a.title.localeCompare(b.title, 'de')),
     projectDays: campaign.projectDays,
+    rules: snapshot.rules,
+    categories,
   }
 }
 

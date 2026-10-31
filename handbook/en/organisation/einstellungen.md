@@ -28,6 +28,10 @@ For each year: how many minutes of activities students need on a project day. Th
 
 By what percentage the activities should offer more places than students need, 20 unless you enter otherwise. **Places and demand** computes the target for each project day and year from it ([Setting up and the catalogue](./anlegen)). More places than needed leave room for the choices.
 
+## Rules
+
+A rule asks the students of a year (or only some of its classes) for at least so many activities or minutes from a category. How to set up rules and what they do is described under [Categories and rules](./kategorien-und-regeln).
+
 ## Teachers in the catalogue
 
 **The catalogue names the teachers of the activities**: If unticked, students see no teacher names, either in the catalogue or when making their choices.
@@ -37,6 +41,6 @@ By what percentage the activities should offer more places than students need, 2
 | Setting | Can be changed until |
 | ------- | -------------------- |
 | Name, school year, project days | the catalogue is published |
-| Registration period, late registration, choices per time block, places above the need, teachers in the catalogue | registration opens |
+| Registration period, late registration, choices per time block, places above the need, rules, teachers in the catalogue | registration opens |
 | Minimum minutes per day | the allocation is published |
 | Swap period | the swap period starts |

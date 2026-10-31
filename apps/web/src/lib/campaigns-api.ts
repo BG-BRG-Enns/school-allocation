@@ -3,12 +3,14 @@
 
 import { endpointPath } from '@school-allocation/api-contracts/client-endpoint'
 import * as endpoints from '@school-allocation/api-contracts/endpoint-metadata'
-export type { DayDemand } from '@school-allocation/school-core'
+export type { CampaignRule, DayDemand, RuleDemand, RuleUnit } from '@school-allocation/school-core'
 
 import type { AvailabilityStatus, CampaignChanges, ItemInput } from '@school-allocation/api-contracts'
 import { apiRequest } from './api.ts'
 
-export type { Campaign, CampaignChanges, CampaignCounts, CampaignView, CampaignWindow, ChoiceState, ChoiceView, ClassStatus, GroupView, Item, ItemInput, ItemInvalidBody, MissingStudent, RankingInvalidBody, SessionInput } from '@school-allocation/api-contracts'
+export type { Campaign, CampaignChanges, Category, CampaignCounts, CampaignView, CampaignWindow, ChoiceState, ChoiceView, ClassStatus, GroupView, Item, ItemInput, ItemInvalidBody, MissingStudent, RankingInvalidBody, SessionInput } from '@school-allocation/api-contracts'
+/** The school's categories, for the activity form, the catalogue, the choice page and the rules. */
+export const loadCategories = () => apiRequest(endpoints.getCategories, { })
 export const loadCampaigns = () => apiRequest(endpoints.getCampaigns, { })
 export const loadCampaign = (id: string) => apiRequest(endpoints.getCampaignsById, { params: { id: id } })
 export const loadItems = (id: string) => apiRequest(endpoints.getCampaignsByIdItems, { params: { id: id } })

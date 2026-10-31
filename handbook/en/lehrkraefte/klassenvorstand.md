@@ -14,13 +14,13 @@ The page shows your class's students and the class activities taking the whole c
 
 Once registration is open, each person's progress is shown: no choices, incomplete or complete. At the end of the registration period, you receive an email listing everyone in your class whose choices are still missing, and another at the end of registration. Speak to them about it; the organisation can also enter choices for someone.
 
-## After publication: placing those short of time
+## After publication: placing those short of time or of a rule
 
-![Not placed for every day: a person with missing minutes, a choice of an activity with open places, a reason and the Place button](/bilder/en/klasse-einteilen.png)
+![Not fully placed: a person with missing minutes, a choice of an activity with open places, a reason and the Place button](/bilder/en/klasse-einteilen.png)
 
-On publication, you receive an email listing everyone in your class not yet placed for every day. Under **Not placed for every day**, each of these people is listed, with their missing minutes and what they have so far.
+On publication, you receive an email listing everyone in your class not yet placed for every day. Under **Not fully placed**, each of these people is listed, with their missing minutes and what they have so far. If the registration has [rules](../organisation/kategorien-und-regeln), it also shows who misses a rule and by how much, such as “Sport: 1 activity missing”.
 
-1. Choose an activity that fits the gap. The selection shows each one's open places; one that is not possible, for example because it is full, is listed with the reason and cannot be selected.
+1. Choose an activity that fits the gap or helps with the rule. The selection shows each one's open places; one that is not possible, for example because it is full, is listed with the reason and cannot be selected.
 2. Write a **Reason**.
 3. Click **Place**.
 

@@ -11,6 +11,7 @@ import { acceptsProposals, checkItem, itemTransition, type CampaignState, type I
 import { actorOf, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
 import { readCampaign } from '../lib/dao/campaigns.ts'
+import { knownCategories } from '../lib/dao/categories.ts'
 import * as store from '../lib/dao/items.ts'
 import { numberApprovedItems, readItem, writeParts } from '../lib/dao/items.ts'
 import type { Database, Queryable } from '../lib/db.ts'
@@ -37,6 +38,9 @@ async function validate(client: Queryable, campaignId: string, input: ItemInput)
   })
   const problems = checkItem({ sessions, rules: input, teachers: input.teachers }, { projectDays: campaign?.projectDays ?? [], classes: classes.map((row) => row.className) })
   if (problems.length > 0 || unknownTeachers.length > 0) throw new ItemInvalid(problems, unknownTeachers)
+  const categories = input.categories ?? []
+  const categoriesKnown = await knownCategories(client, categories)
+  if (categories.some((id) => !categoriesKnown.has(id))) throw new ApplicationError('category_unknown')
 }
 
 /**
@@ -54,6 +58,7 @@ export async function createItem(db: Database, campaignId: string, input: ItemIn
     const row = await store.insertItem(client, campaignId, input, caller)
     if (!row) throw new Error('catalog_item insert returned no row')
     await writeParts(client, row.id, input)
+    await store.replaceCategories(client, row.id, input.categories ?? [])
     if (caller.person?.kind !== 'teacher') {
       await appendAudit(client, { scopeId: campaignId, actor: actorOf(caller), action: 'item.created', metadata: { itemId: row.id, teachers: input.teachers.length } })
     }
@@ -72,13 +77,14 @@ function timedSessionsKey(list: readonly { startsAt: string, endsAt: string, cre
   return sessionsKey(list.map((s) => ({ ...s, location: '' })))
 }
 
-/** Whether the edit changes what the allocation computed with: the times and credits, the places and the minimum, the fee, the classes and grades. */
-function allocationRelevantChange(current: Item, input: ItemInput): boolean {
+/** Whether the edit changes what the allocation computed with: the times and credits, the places and the minimum, the fee, the classes and grades, the categories its rules counted. */
+function allocationRelevantChange(current: Item, input: ItemInput & { categories: string[] }): boolean {
   const byText = (a: string | number, b: string | number) => String(a).localeCompare(String(b), 'en')
   const sorted = (list: readonly (string | number)[]) => [...list].sort(byText).join(',')
   return current.places !== input.places || current.minParticipants !== input.minParticipants || current.cancellableBelowMin !== input.cancellableBelowMin || current.feeCents !== input.feeCents
     || sorted(current.fixedClasses) !== sorted(input.fixedClasses) || sorted(current.eligibleGrades) !== sorted(input.eligibleGrades) || sorted(current.eligibleClasses) !== sorted(input.eligibleClasses)
     || timedSessionsKey(current.sessions) !== timedSessionsKey(input.sessions)
+    || sorted(current.categoryIds) !== sorted(input.categories)
 }
 
 /**
@@ -87,10 +93,12 @@ function allocationRelevantChange(current: Item, input: ItemInput): boolean {
  * withdrawn, audited unless it is their own; from publication on only its
  * words, not what the allocation computed with.
  */
-export async function updateItem(db: Database, id: string, input: ItemInput, caller: Caller, organizer: boolean): Promise<Item> {
+export async function updateItem(db: Database, id: string, sent: ItemInput, caller: Caller, organizer: boolean): Promise<Item> {
   await db.tx(async (client) => {
     const current = await lockedItem(client, id)
     if (!current) throw new ApplicationError('not_found')
+    // Categories left out are the ones it has: a client that knows none keeps them.
+    const input = { ...sent, categories: sent.categories ?? current.categoryIds }
     const campaign = await store.lockCampaignForUpdate(client, current)
     // What a teacher may do without organizer rights: tend their own draft
     // while the catalogue takes proposals. Everything else is an
@@ -104,8 +112,8 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
     }
     if (current.state === 'withdrawn') throw new ApplicationError('item_state')
     // An archived campaign changes no more. From publication on, an approved item is what the published run was computed
-    // with: its times, places, minimum, fee and eligibility stay (the result, the swaps and the placements read them); the
-    // words may still change.
+    // with: its times, places, minimum, fee, eligibility and categories stay (the result, the swaps and the placements read
+    // them); the words may still change.
     if (campaign?.state === 'archived') throw new ApplicationError('campaign_state')
     if (campaign?.state === 'results' && current.state === 'approved' && allocationRelevantChange(current, input)) throw new ApplicationError('campaign_state')
     await validate(client, current.campaignId, input)
@@ -117,6 +125,7 @@ export async function updateItem(db: Database, id: string, input: ItemInput, cal
     if (timesChanged) await store.deleteSessions(client, id)
     else if (sessionsKey(current.sessions) !== sessionsKey(input.sessions)) await store.updateSessionLocations(client, id, input.sessions.map((s) => s.location ?? ''))
     await writeParts(client, id, timesChanged ? input : { ...input, sessions: [] })
+    await store.replaceCategories(client, id, input.categories)
     if (campaign !== undefined && current.state === 'approved' && (campaign.state === 'open' || campaign.state === 'grace')) {
       await reconcilePreAssignments(client, current.campaignId, id)
     }

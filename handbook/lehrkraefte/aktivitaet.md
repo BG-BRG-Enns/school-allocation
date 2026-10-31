@@ -39,12 +39,16 @@ Wählst du unter **Ganze Klassen, die teilnehmen** eine oder mehrere Klassen, is
 
 **Kosten in Euro** (leer: keine) und **Wofür** stehen im Katalog. Wer eingeteilt ist, zahlt, bei einer Klassenaktivität also die ganzen Klassen. Sonst teilt die Berechnung in eine Aktivität mit Kosten nur ein, wer sie sich gewünscht hat, und nie als Restplatz. Nach der Veröffentlichung kann ein Tausch, der Klassenvorstand oder die Organisation jemanden auch in eine Aktivität mit Kosten bringen.
 
+## Kategorien
+
+Unter **Kategorien** wählst du, wozu die Aktivität gehört, etwa Sport oder Berufsorientierung; auch mehrere oder keine. Die Kategorien legt die Organisation für die ganze Schule an. Eine Anmeldung kann mit ihnen Regeln haben, etwa „mindestens eine Sport-Aktivität“; die Schüler\*innen sehen die Kategorien im Katalog und bei ihren Wünschen.
+
 ## Speichern und einreichen
 
 - **Speichern** hält die Aktivität als Entwurf. Den sehen nur du, die anderen Lehrkräfte der Aktivität und die Organisation.
 - **Speichern und einreichen** reicht sie bei der Organisation ein.
 
-In der Tabelle **Aktivitäten** hat ein Entwurf die Knöpfe **Bearbeiten**, **Einreichen** und **Löschen**. Eine eingereichte Aktivität holst du mit **Zurück zum Entwurf** zurück, solange Angebote gesammelt werden. Passt etwas nicht, nennt das Formular die Regel, etwa „Ein Termin liegt außerhalb der Projekttage“ oder „Die Mindestzahl ist größer als die Zahl der Plätze“.
+In der Tabelle **Aktivitäten** hat ein Entwurf die Knöpfe **Bearbeiten**, **Einreichen** und **Löschen**. Eine eingereichte Aktivität holst du mit **Zurück zum Entwurf** zurück, solange Angebote gesammelt werden. Passt etwas nicht, sagt das Formular, was nicht stimmt, etwa „Ein Termin liegt außerhalb der Projekttage“ oder „Die Mindestzahl ist größer als die Zahl der Plätze“.
 
 Gibt die Organisation deine Aktivität zurück, ist sie wieder ein Entwurf, und oben steht die **Rückmeldung der Organisation**. Ändere, was sie anspricht, und reiche sie noch einmal ein. Genehmigte Aktivitäten kommen mit der Veröffentlichung in den Katalog.
 

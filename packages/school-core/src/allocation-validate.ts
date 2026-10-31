@@ -65,6 +65,8 @@ export function recomputeLevels(compiled: CompiledPass, pairs: readonly [string,
   }
   let withDeficit = 0
   let deficitMinutes = 0
+  let missingRule = 0
+  const ruleMissing = { items: 0, minutes: 0 }
   let totalCost = 0
   let tiebreak = 0
   /** Per student: the exact minutes-weighted rank sum and the minutes it is measured against. */
@@ -79,8 +81,16 @@ export function recomputeLevels(compiled: CompiledPass, pairs: readonly [string,
     }
     if (deficit > 0) withDeficit += 1
     deficitMinutes += deficit
+    let missesRule = false
+    for (const { rule, need } of p.rules) {
+      const missing = Math.max(0, need - options.reduce((sum, o) => sum + (o.amounts.get(rule.id) ?? 0), 0))
+      if (missing > 0) missesRule = true
+      ruleMissing[rule.unit] += missing
+    }
+    if (missesRule) missingRule += 1
     const cost = options.reduce((sum, o) => sum + o.cost, 0)
-    weights.push([options.reduce((sum, o) => sum + o.weight, 0), p.requiredTotal])
+    // A student with no day to cover (only a rule) has no average rank to be over.
+    if (p.requiredTotal > 0) weights.push([options.reduce((sum, o) => sum + o.weight, 0), p.requiredTotal])
     totalCost += cost
     tiebreak += options.reduce((sum, o) => sum + o.tie, 0)
   }
@@ -88,6 +98,9 @@ export function recomputeLevels(compiled: CompiledPass, pairs: readonly [string,
     let value: number
     if (name === 'students_with_deficit') value = withDeficit
     else if (name === 'deficit_minutes') value = deficitMinutes
+    else if (name === 'students_missing_rule') value = missingRule
+    else if (name === 'rule_missing_items') value = ruleMissing.items
+    else if (name === 'rule_missing_minutes') value = ruleMissing.minutes
     else if (name === 'total_cost') value = totalCost
     else if (name === 'tiebreak') value = tiebreak
     else {

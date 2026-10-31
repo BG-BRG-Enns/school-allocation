@@ -1,4 +1,4 @@
-import type { AllocationInput, AllocationWarning, Assignment } from '@school-allocation/school-core'
+import type { AllocationInput, AllocationItem, AllocationWarning, Assignment } from '@school-allocation/school-core'
 import type { AuditActor } from '../audit-chain.ts'
 import type { Queryable } from '../db.ts'
 import type { AllocationRun, RunFinish, StoredChange, StoredRun } from '../models/allocation.ts'
@@ -7,6 +7,14 @@ import type { AssignmentRow, ChangeRow, RunRow, RunRowWithSnapshot } from './all
 const COLUMNS = `r.id, r.campaign_id, r.seq, r.status, r.started_at, r.finished_at, r.started_by, u.display_name as started_by_name, r.seed::text as seed,
   r.limits, r.core_version, r.contract, r.solver_version, r.ortools_version, r.snapshot_sha256, r.warnings, r.passes, r.cancelled_items, r.failure, r.detail, r.problems, r.published_at`
 const FROM = 'from allocation_run r join app_user u on u.id = r.started_by'
+
+/** A snapshot as stored: one written before categories and rules has neither. */
+type StoredSnapshot = Omit<AllocationInput, 'rules' | 'items'> & { rules?: AllocationInput['rules'], items: (Omit<AllocationItem, 'categoryIds'> & { categoryIds?: string[] })[] }
+
+/** A stored snapshot as the core reads it: one from before categories and rules had none, and gets none. */
+function snapshotOfRow(stored: StoredSnapshot): AllocationInput {
+  return { ...stored, rules: stored.rules ?? [], items: stored.items.map((item) => ({ ...item, categoryIds: item.categoryIds ?? [] })) }
+}
 
 function toRun(row: RunRow): AllocationRun {
   const iso = (value: Date | null) => value?.toISOString() ?? null
@@ -43,13 +51,13 @@ export async function listRuns(db: Queryable, campaignId: string): Promise<Alloc
 /** One run of a campaign with its snapshot and the passes' pairs; undefined when the campaign has no such run. */
 export async function readRun(db: Queryable, campaignId: string, runId: string): Promise<StoredRun | undefined> {
   const { rows: [row] } = await db.query<RunRowWithSnapshot>(`select ${COLUMNS}, r.snapshot ${FROM} where r.campaign_id = $1 and r.id = $2`, [campaignId, runId])
-  return row === undefined ? undefined : { ...toRun(row), snapshot: row.snapshot, passResults: row.passes }
+  return row === undefined ? undefined : { ...toRun(row), snapshot: snapshotOfRow(row.snapshot), passResults: row.passes }
 }
 
 /** The run the job works on, by id alone. */
 export async function readRunById(db: Queryable, runId: string): Promise<StoredRun | undefined> {
   const { rows: [row] } = await db.query<RunRowWithSnapshot>(`select ${COLUMNS}, r.snapshot ${FROM} where r.id = $1`, [runId])
-  return row === undefined ? undefined : { ...toRun(row), snapshot: row.snapshot, passResults: row.passes }
+  return row === undefined ? undefined : { ...toRun(row), snapshot: snapshotOfRow(row.snapshot), passResults: row.passes }
 }
 
 /** Whether a run of the campaign is still executing; the caller holds the campaign's lock. */
@@ -203,13 +211,13 @@ export async function actorOfUser(db: Queryable, userId: string): Promise<AuditA
 /** The campaign's published run, with its snapshot; undefined before publication. */
 export async function readPublishedRun(db: Queryable, campaignId: string): Promise<StoredRun | undefined> {
   const { rows: [row] } = await db.query<RunRowWithSnapshot>(`select ${COLUMNS}, r.snapshot ${FROM} where r.campaign_id = $1 and r.published_at is not null`, [campaignId])
-  return row === undefined ? undefined : { ...toRun(row), snapshot: row.snapshot, passResults: row.passes }
+  return row === undefined ? undefined : { ...toRun(row), snapshot: snapshotOfRow(row.snapshot), passResults: row.passes }
 }
 
 /** The run locked for publication; the caller holds the campaign's lock and checks what it finds. */
 export async function lockRun(client: Queryable, campaignId: string, runId: string): Promise<StoredRun | undefined> {
   const { rows: [row] } = await client.query<RunRowWithSnapshot>(`select ${COLUMNS}, r.snapshot ${FROM} where r.campaign_id = $1 and r.id = $2 for update of r`, [campaignId, runId])
-  return row === undefined ? undefined : { ...toRun(row), snapshot: row.snapshot, passResults: row.passes }
+  return row === undefined ? undefined : { ...toRun(row), snapshot: snapshotOfRow(row.snapshot), passResults: row.passes }
 }
 
 export async function markPublished(client: Queryable, runId: string, userId: string): Promise<void> {

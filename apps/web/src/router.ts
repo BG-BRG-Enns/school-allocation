@@ -12,6 +12,7 @@ import Aktivitaet from './pages/Aktivitaet.vue'
 import Ergebnis from './pages/Ergebnis.vue'
 import Import from './pages/Import.vue'
 import Katalog from './pages/Katalog.vue'
+import Kategorien from './pages/Kategorien.vue'
 import Klasse from './pages/Klasse.vue'
 import Klassen from './pages/Klassen.vue'
 import Lehrkraefte from './pages/Lehrkraefte.vue'
@@ -53,6 +54,7 @@ export const router = createRouter({
     { path: '/verwaltung/personen', component: Personen },
     { path: '/verwaltung/klassen', component: Klassen },
     { path: '/verwaltung/zeiten', component: Zeiten },
+    { path: '/verwaltung/kategorien', component: Kategorien },
     { path: '/verwaltung/mailvorlagen', component: Mailvorlagen },
     { path: '/verwaltung/aufbewahrung', component: Aufbewahrung },
   ],

@@ -7,8 +7,9 @@
 
 import type { ItemRules, SessionInput } from './catalogue.ts'
 import type { Ranking } from './choices.ts'
+import type { CampaignRule, RuleUnit } from './rules.ts'
 
-export const ALLOCATION_CONTRACT = 'allocation/v1'
+export const ALLOCATION_CONTRACT = 'allocation/v2'
 
 /** A cost of one rank unit over a student's whole requirement: `rank · minutes / required · COST_SCALE`. */
 export const COST_SCALE = 1000
@@ -35,6 +36,8 @@ export interface AllocationItem {
   feeCents: number
   rules: ItemRules
   sessions: SessionInput[]
+  /** The categories it belongs to, for the campaign's rules (rules.ts). */
+  categoryIds: string[]
 }
 
 export interface AllocationLimits {
@@ -53,6 +56,8 @@ export interface AllocationInput {
   students: AllocationStudent[]
   /** The approved catalogue. */
   items: AllocationItem[]
+  /** What the campaign asks of whom per category (rules.ts); met where possible, after the days and before the wishes. */
+  rules: CampaignRule[]
 }
 
 // --- The solver contract (§6): small integers, no domain ids.
@@ -65,7 +70,7 @@ export interface DayMinutes {
 
 export interface SolveOption {
   o: number
-  /** `rank · minutes · COST_SCALE / norm`, rounded: what L4 sums. */
+  /** `rank · minutes · COST_SCALE / norm`, rounded: what L4 sums. With `norm` 0 and a rule left, over the grade's weekly minimum instead. */
   cost: number
   /** `rank · minutes`, exact: what L3 compares against `t · norm`, so rounding never puts a student over a threshold they are on. */
   weight: number
@@ -73,12 +78,28 @@ export interface SolveOption {
   credit: DayMinutes[]
 }
 
+/** What an option brings to a rule: one activity, or its minutes. */
+export interface RuleAmount {
+  o: number
+  n: number
+}
+
+/** A rule as one student still has to meet it, after their class activities. */
+export interface SolveRule {
+  r: number
+  unit: RuleUnit
+  need: number
+  /** The options of the student that count toward it. */
+  amounts: RuleAmount[]
+}
+
 export interface SolveStudent {
   s: number
   required: DayMinutes[]
-  /** The minutes the student still needs over the week, the costs' denominator. */
+  /** The minutes the student still needs over the week, the costs' denominator (0: not counted by a threshold). */
   norm: number
   options: SolveOption[]
+  rules: SolveRule[]
 }
 
 export interface SolveItem {
@@ -167,14 +188,18 @@ export function tieWeight(seed: number, personId: string, itemId: string): numbe
   return fnv1a32(`${seed}:${personId}:${itemId}`) % TIE_RANGE
 }
 
+/** The levels of the rules, between the days and the wishes: as few students missing a rule, then as few activities missing, then as few minutes. */
+export const RULE_LEVELS = ['students_missing_rule', 'rule_missing_items', 'rule_missing_minutes'] as const
+
 /**
  * The lexicographic levels (§5, D-04) for a campaign's cap: nobody without a
- * full week, then as few missing minutes as possible, then as few students
- * as possible whose minutes-weighted average rank exceeds t for t = cap … 2,
- * then the total cost, then the lot.
+ * full week, then as few missing minutes as possible, then, when the
+ * campaign has rules, as few students and as little missing a rule, then as
+ * few students as possible whose minutes-weighted average rank exceeds t for
+ * t = cap … 2, then the total cost, then the lot.
  */
-export function levelNames(cap: number): string[] {
+export function levelNames(cap: number, withRules = false): string[] {
   const over: string[] = []
   for (let t = cap; t >= 2; t--) over.push(`over:${t * COST_SCALE}`)
-  return ['students_with_deficit', 'deficit_minutes', ...over, 'total_cost', 'tiebreak']
+  return ['students_with_deficit', 'deficit_minutes', ...(withRules ? RULE_LEVELS : []), ...over, 'total_cost', 'tiebreak']
 }

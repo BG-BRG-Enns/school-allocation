@@ -1,16 +1,18 @@
 <script setup lang="ts">
 // One campaign: its state and days, the activities as far as the person
 // may see them, and what they may do: teachers propose and tend their own,
-// organizers review, move the campaign on and export the catalogue.
+// organizers review, move the campaign on, set its rules and export the
+// catalogue.
 
-import { placeTarget } from '@school-allocation/school-core'
+import { MAX_RULES, placeTarget, RULE_LIMITS, RULE_UNITS } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
-import { approveItem, catalogueExportPath, deleteItem, loadCampaign, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignView, type DayDemand, type Item, type MissingStudent } from '../lib/campaigns-api.ts'
+import { approveItem, catalogueExportPath, deleteItem, loadCampaign, loadCategories, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignRule, type CampaignView, type Category, type DayDemand, type Item, type MissingStudent, type RuleDemand, type RuleUnit } from '../lib/campaigns-api.ts'
+import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
-import { CAMPAIGN_STATE_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS, MAIL_KIND_LABELS, MAIL_STATE_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
+import { CAMPAIGN_STATE_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS, MAIL_KIND_LABELS, MAIL_STATE_LABELS, RULE_PROBLEM_LABELS, RULE_UNIT_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
@@ -18,7 +20,10 @@ const props = defineProps<{ id: string }>()
 const view = ref<CampaignView | null>(null)
 const items = ref<Item[]>([])
 const demand = ref<DayDemand[]>([])
+const ruleDemand = ref<RuleDemand[]>([])
 const grades = ref<number[]>([])
+/** The school's categories, to name the rules by. */
+const categories = ref<Category[]>([])
 const loading = useFeedback()
 const action = useFeedback()
 usePageTitle(() => view.value?.campaign.name ?? t.campaign.title)
@@ -31,8 +36,10 @@ async function load(): Promise<void> {
     if (v.may.seeDemand) {
       const [d, c] = await Promise.all([loadDemand(props.id), loadClasses(props.id)])
       demand.value = d.demand
+      ruleDemand.value = d.rules
       grades.value = [...new Set(c.classes.map((cl) => cl.grade))].sort((a, b) => a - b)
     }
+    if (v.may.organize || v.campaign.rules.length > 0) categories.value = (await loadCategories()).categories
   })
 }
 onMounted(load)
@@ -105,6 +112,23 @@ function shortOf(day: DayDemand, grade: number): number {
   return d ? Math.max(0, targetOf(day, grade) - d.offered) : 0
 }
 
+/** What a rule asks of whom, in a line: "Sport: mindestens 1 Aktivität · 9. Schulstufe". */
+function ruleText(rule: Pick<CampaignRule, 'categoryId' | 'minimum' | 'unit' | 'grades' | 'classes'>): string {
+  const category = categories.value.find((c) => c.id === rule.categoryId)?.name ?? '–'
+  return `${t.rules.asks(category, rule.minimum, rule.unit)} · ${t.rules.scope(rule.grades, rule.classes)}`
+}
+
+/** The rules by id, for the demand table; an amount of a minutes rule in minutes. */
+const ruleById = computed(() => new Map((campaign.value?.rules ?? []).map((rule) => [rule.id, rule])))
+/** What the rule asks, without whom: the demand table has the grade in its own column. */
+function ruleAsks(ruleId: string): string {
+  const rule = ruleById.value.get(ruleId)
+  return rule ? t.rules.asks(categories.value.find((c) => c.id === rule.categoryId)?.name ?? '–', rule.minimum, rule.unit) : '–'
+}
+function ruleAmount(ruleId: string, amount: number): string {
+  return ruleById.value.get(ruleId)?.unit === 'minutes' ? t.common.minutes(amount) : String(amount)
+}
+
 /** An instant as the datetime-local input takes it, in the school's zone; '' for none. */
 function localInput(iso: string | null): string {
   return iso === null ? '' : `${localDateOf(iso)}T${localTimeOf(iso)}`
@@ -137,6 +161,16 @@ const wishesPerGroup = ref(3)
 const dailyMinimum = ref<Record<string, string | number>>({})
 const showTeachers = ref(true)
 const placeHeadroomPercent = ref(20)
+/** The rules as the form holds them: the classes as typed, the minimum as a number input gives it. */
+interface RuleDraft { categoryId: string, grades: number[], classes: string, unit: RuleUnit, minimum: number | string }
+const rules = ref<RuleDraft[]>([])
+/** Why the server refused the rules, a line each. */
+const ruleProblems = ref<string[]>([])
+/** The grades a rule may name: the roster's, and any a rule names already. */
+const ruleGrades = computed(() => [...new Set([...demandGrades.value, ...rules.value.flatMap((rule) => rule.grades)])].sort((a, b) => a - b))
+function addRule(): void {
+  rules.value.push({ categoryId: categories.value[0]?.id ?? '', grades: [...demandGrades.value], classes: '', unit: 'items', minimum: 1 })
+}
 function startEditing(): void {
   const c = campaign.value
   if (!c) return
@@ -154,9 +188,12 @@ function startEditing(): void {
   dailyMinimum.value = Object.fromEntries(minimumGrades.map((grade) => [String(grade), c.dailyMinimum[String(grade)] === undefined ? '' : String(c.dailyMinimum[String(grade)])]))
   showTeachers.value = c.showTeachers
   placeHeadroomPercent.value = c.placeHeadroomPercent
+  rules.value = c.rules.map((rule) => ({ categoryId: rule.categoryId, grades: [...rule.grades], classes: rule.classes.join(', '), unit: rule.unit, minimum: rule.minimum }))
+  ruleProblems.value = []
   editing.value = true
 }
 async function onSaveSettings(): Promise<void> {
+  ruleProblems.value = []
   const ok = await action.run(async () => {
     const changes: CampaignChanges = { name: name.value.trim(), schoolYear: schoolYear.value.trim(), projectDays: days.value.filter(Boolean) }
     if (windowEditable.value) {
@@ -166,6 +203,13 @@ async function onSaveSettings(): Promise<void> {
       changes.wishesPerGroup = Number(wishesPerGroup.value)
       changes.showTeachers = showTeachers.value
       changes.placeHeadroomPercent = Number(placeHeadroomPercent.value)
+      changes.rules = rules.value.map((rule) => ({
+        categoryId: rule.categoryId,
+        grades: [...rule.grades].sort((a, b) => a - b),
+        classes: rule.classes.split(/[\s,;]+/).filter(Boolean),
+        unit: rule.unit,
+        minimum: Number(rule.minimum),
+      }))
     }
     if (swapEditable.value) {
       changes.swapFrom = instantOrNull(swapFrom.value)
@@ -174,7 +218,17 @@ async function onSaveSettings(): Promise<void> {
     if (minimumEditable.value) {
       changes.dailyMinimum = Object.fromEntries(Object.entries(dailyMinimum.value).filter(([, minutes]) => String(minutes).trim() !== '').map(([grade, minutes]) => [grade, Number(minutes)]))
     }
-    await updateCampaign(props.id, changes)
+    try {
+      await updateCampaign(props.id, changes)
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'rules_invalid' && Array.isArray(err.body.problems)) {
+        ruleProblems.value = (err.body.problems as { code: string, rule?: number }[]).map((p) => {
+          const label = RULE_PROBLEM_LABELS[p.code] ?? p.code
+          return p.rule === undefined ? label : `${t.campaign.rulesEditor.rule(p.rule + 1)}: ${label}`
+        })
+      }
+      throw err
+    }
   }, t.common.saved)
   if (ok) {
     editing.value = false
@@ -275,6 +329,18 @@ function onSubmitPending(): void {
       >
         {{ t.campaign.organization.itemCounts(view.counts) }}
       </p>
+      <p
+        v-if="campaign.rules.length > 0"
+        class="muted"
+      >
+        {{ t.campaign.organization.rules }}:
+        <template
+          v-for="rule in campaign.rules"
+          :key="rule.id"
+        >
+          <br>{{ ruleText(rule) }}
+        </template>
+      </p>
       <p class="actions">
         <button
           v-if="campaign.state === 'draft'"
@@ -348,6 +414,12 @@ function onSubmitPending(): void {
           to="/verwaltung/klassen"
         >
           {{ t.common.page.classTeachers }}
+        </RouterLink>
+        <RouterLink
+          class="button ghost-link"
+          to="/verwaltung/kategorien"
+        >
+          {{ t.common.page.categories }}
         </RouterLink>
         <RouterLink
           class="button ghost-link"
@@ -522,6 +594,132 @@ function onSubmitPending(): void {
             </label>
           </p>
         </fieldset>
+        <fieldset
+          class="field"
+          :disabled="!windowEditable"
+        >
+          <legend>{{ t.campaign.rulesEditor.heading }}</legend>
+          <p class="muted">
+            {{ windowEditable ? t.campaign.rulesEditor.intro : t.campaign.rulesEditor.fixed }}
+          </p>
+          <p v-if="categories.length === 0">
+            {{ t.campaign.rulesEditor.noCategories }}
+            <RouterLink to="/verwaltung/kategorien">
+              {{ t.common.page.categories }}
+            </RouterLink>
+          </p>
+          <p
+            v-else-if="rules.length === 0"
+            class="muted"
+          >
+            {{ t.campaign.rulesEditor.none }}
+          </p>
+          <fieldset
+            v-for="(rule, index) in rules"
+            :key="index"
+            class="panel"
+          >
+            <legend>{{ t.campaign.rulesEditor.rule(index + 1) }}</legend>
+            <div class="row">
+              <p class="field">
+                <label :for="`rule-${index}-category`">{{ t.rules.category }}</label>
+                <select
+                  :id="`rule-${index}-category`"
+                  v-model="rule.categoryId"
+                  required
+                >
+                  <option
+                    v-for="c in categories"
+                    :key="c.id"
+                    :value="c.id"
+                  >
+                    {{ c.name }}
+                  </option>
+                </select>
+              </p>
+              <p class="field">
+                <label :for="`rule-${index}-unit`">{{ t.campaign.rulesEditor.unit }}</label>
+                <select
+                  :id="`rule-${index}-unit`"
+                  v-model="rule.unit"
+                >
+                  <option
+                    v-for="unit in RULE_UNITS"
+                    :key="unit"
+                    :value="unit"
+                  >
+                    {{ RULE_UNIT_LABELS[unit] }}
+                  </option>
+                </select>
+              </p>
+              <p class="field">
+                <label :for="`rule-${index}-minimum`">{{ t.campaign.rulesEditor.minimum }}</label>
+                <input
+                  :id="`rule-${index}-minimum`"
+                  v-model.number="rule.minimum"
+                  type="number"
+                  min="1"
+                  :max="RULE_LIMITS[rule.unit]"
+                  required
+                >
+              </p>
+            </div>
+            <fieldset class="field">
+              <legend>{{ t.campaign.rulesEditor.grades }}</legend>
+              <label
+                v-for="grade in ruleGrades"
+                :key="grade"
+              >
+                <input
+                  v-model="rule.grades"
+                  type="checkbox"
+                  :value="grade"
+                >
+                {{ t.common.gradeOrdinal(grade) }}
+              </label>
+            </fieldset>
+            <p class="field">
+              <label :for="`rule-${index}-classes`">{{ t.campaign.rulesEditor.classes }}</label>
+              <input
+                :id="`rule-${index}-classes`"
+                v-model="rule.classes"
+                :placeholder="t.campaign.rulesEditor.classesExample"
+                maxlength="400"
+              >
+            </p>
+            <p>
+              <button
+                type="button"
+                class="ghost"
+                @click="rules.splice(index, 1)"
+              >
+                {{ t.campaign.rulesEditor.remove }}
+              </button>
+            </p>
+          </fieldset>
+          <p v-if="categories.length > 0">
+            <button
+              type="button"
+              class="ghost"
+              :disabled="rules.length >= MAX_RULES"
+              @click="addRule"
+            >
+              {{ t.campaign.rulesEditor.add }}
+            </button>
+          </p>
+          <ul
+            v-if="ruleProblems.length > 0"
+            role="alert"
+            class="alert"
+          >
+            <li
+              v-for="problem in ruleProblems"
+              :key="problem"
+            >
+              {{ problem }}
+            </li>
+          </ul>
+        </fieldset>
         <p class="actions">
           <button
             type="submit"
@@ -671,6 +869,49 @@ function onSubmitPending(): void {
           </tr>
         </tbody>
       </table>
+      <template v-if="ruleDemand.length > 0">
+        <p class="muted">
+          {{ t.campaign.demand.rulesIntro }}
+        </p>
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">
+                {{ t.rules.rule }}
+              </th>
+              <th scope="col">
+                {{ t.common.field.grade }}
+              </th>
+              <th scope="col">
+                {{ t.common.field.students }}
+              </th>
+              <th scope="col">
+                {{ t.campaign.demand.needed }}
+              </th>
+              <th scope="col">
+                {{ t.campaign.demand.offered }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="d in ruleDemand"
+              :key="`${d.ruleId}-${d.grade}`"
+            >
+              <td>{{ ruleAsks(d.ruleId) }}</td>
+              <td>{{ d.grade }}.</td>
+              <td>{{ d.students }}</td>
+              <td>{{ ruleAmount(d.ruleId, d.needed) }}</td>
+              <td :class="{ short: d.offered < d.needed }">
+                {{ ruleAmount(d.ruleId, d.offered) }}
+                <template v-if="d.offered < d.needed">
+                  <br>{{ t.campaign.demand.ruleShort }}
+                </template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
     </section>
 
     <section>

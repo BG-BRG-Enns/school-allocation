@@ -133,8 +133,8 @@ export async function swap(db: Database, context: WindowContext, campaign: Campa
 
 /**
  * A class teacher places a student of their class who is short of minutes
- * into an item with free places that fits the gap; organizers may too.
- * From publication to the archive, no window.
+ * or of a rule into an item with free places that fits the gap; organizers
+ * may too. From publication to the archive, no window.
  */
 export async function placeStudent(db: Database, context: WindowContext, campaign: Campaign, caller: Caller, className: string, personId: string, itemId: string, reason: string): Promise<void> {
   const asClassTeacher = caller.classTeacherOf.includes(className)
@@ -145,7 +145,7 @@ export async function placeStudent(db: Database, context: WindowContext, campaig
     if (!student || student.className !== className) throw new ApplicationError('not_found')
     const explanation = explainStudent(locked.run.snapshot, locked.rows, student.personId)
     if (!explanation) throw new ApplicationError('not_found')
-    if (!explanation.days.some((d) => d.deficit > 0)) throw new ApplicationError('fully_placed')
+    if (!explanation.days.some((d) => d.deficit > 0) && explanation.rules.every((r) => r.met)) throw new ApplicationError('fully_placed')
     const move: Move = { personId: student.personId, toItemId: itemId.toLowerCase(), leaves: [] }
     refuse(checkMove(locked.run.snapshot, locked.rows, move, { unavailable: locked.unavailable }))
     const actor = actorOf(caller)
@@ -165,8 +165,9 @@ export interface ManualChange {
 
 /**
  * The organizer's change by hand: into an item, out of one, or both. The
- * same rules as everyone's; `force` overrides a full item and an item's
- * minimum on the organizer's responsibility, recorded with the change.
+ * same rules as everyone's; `force` overrides a full item, an item's
+ * minimum and a rule falling short on the organizer's responsibility,
+ * recorded with the change.
  */
 export async function changeAssignment(db: Database, context: WindowContext, campaign: Campaign, caller: Caller, input: ManualChange): Promise<AssignmentChange> {
   const toItemId = input.itemId?.toLowerCase() ?? null

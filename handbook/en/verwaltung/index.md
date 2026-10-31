@@ -8,9 +8,9 @@ The operator decides who gets the first administration role during setup: they e
 
 ## The Administration page
 
-![The Administration page with links to Class lists, Accounts and roles, Class teachers, Timetable, Email templates and Retention, followed by the school's language](/bilder/en/verwaltung.png)
+![The Administration page with links to Class lists, Accounts and roles, Class teachers, Timetable, Categories, Email templates and Retention, followed by the school's language](/bilder/en/verwaltung.png)
 
-From here you can reach everything the administration maintains. You share the email templates with the organisation; they are covered in the [Organisation](/en/organisation/e-mail-vorlagen) handbook.
+From here you can reach everything the administration maintains. You share the email templates and the categories with the organisation; they are covered in the Organisation handbook, under [Email templates](/en/organisation/e-mail-vorlagen) and [Categories and rules](/en/organisation/kategorien-und-regeln).
 
 ## Before the first registration
 

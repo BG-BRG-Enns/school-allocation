@@ -32,6 +32,7 @@ import { itemsRoutes } from './routes/items.ts'
 import { mailRoutes } from './routes/mail.ts'
 import { publicationRoutes } from './routes/publication.ts'
 import { attendanceRoutes } from './routes/attendance.ts'
+import { categoryRoutes } from './routes/categories.ts'
 import { planningRoutes } from './routes/planning.ts'
 import { retentionRoutes } from './routes/retention.ts'
 import { rosterGraphRoutes } from './routes/roster-graph.ts'
@@ -161,6 +162,7 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   const wakeSender = () => sender?.wake()
   await app.register(campaignsRoutes, { db, guards, baseUrl: config.publicUrl, wakeSender, ...under })
   await app.register(settingsRoutes, { db, guards, ...under })
+  await app.register(categoryRoutes, { db, guards, ...under })
   await app.register(windowRoutes, { db, guards, ...under })
   await app.register(catalogueRoutes, { db, guards, baseUrl: config.publicUrl, wakeSender, ...under })
   await app.register(itemsRoutes, { db, guards, ...under })

@@ -12,6 +12,7 @@ import type { Period } from '@school-allocation/school-core'
 import { loadMyResult, swapInto, type MoveOffer, type MyResultResponse } from '../lib/allocation-api.ts'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
+import { loadCategories, type Category } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { datesBetween, formatDay, formatFee, formatSpanOnGrid, formatWhenShort, localDateOf } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
@@ -23,6 +24,7 @@ usePageTitle(() => t.common.page.result)
 
 const result = ref<MyResultResponse | null>(null)
 const grid = ref<Period[]>([])
+const categories = ref<Category[]>([])
 const notYet = ref(false)
 const loading = useFeedback()
 const action = useFeedback()
@@ -31,9 +33,10 @@ async function load(): Promise<void> {
   notYet.value = false
   await loading.run(async () => {
     try {
-      const [r, periods] = await Promise.all([loadMyResult(props.id), loadPeriods()])
+      const [r, periods, school] = await Promise.all([loadMyResult(props.id), loadPeriods(), loadCategories()])
       result.value = r
       grid.value = periods.periods
+      categories.value = school.categories
     } catch (err) {
       if (err instanceof ApiError && err.code === 'not_published') {
         notYet.value = true
@@ -45,6 +48,8 @@ async function load(): Promise<void> {
 }
 onMounted(load)
 watch(() => props.id, load)
+
+const categoryName = (id: string): string => categories.value.find((c) => c.id === id)?.name ?? '–'
 
 /** The local dates a session touches, an end at midnight belonging to the day before. */
 const touches = (session: { startsAt: string, endsAt: string }, date: string) => datesBetween(localDateOf(session.startsAt), localDateOf(new Date(Date.parse(session.endsAt) - 1).toISOString())).includes(date)
@@ -200,6 +205,24 @@ async function onSwap(o: MoveOffer): Promise<void> {
       <h2>{{ t.common.field.fee }}</h2>
       <p>{{ result.feeCents === 0 ? t.result.noFee : t.result.feeTotal(formatFee(result.feeCents)) }}</p>
     </section>
+    <section v-if="result.explanation.rules.length > 0">
+      <h2>{{ t.result.rules }}</h2>
+      <ul class="plain">
+        <li
+          v-for="r in result.explanation.rules"
+          :key="r.ruleId"
+        >
+          <span :class="['badge', r.met ? 'badge-approved' : 'badge-proposed']">{{ r.met ? t.rules.met : t.rules.missing(r.minimum - r.have, r.unit) }}</span>
+          {{ t.rules.asks(categoryName(r.categoryId), r.minimum, r.unit) }} · {{ t.rules.progress(r.have, r.minimum, r.unit) }}
+        </li>
+      </ul>
+      <p
+        v-if="result.explanation.rules.some((r) => !r.met)"
+        class="muted"
+      >
+        {{ t.result.ruleMissing }}
+      </p>
+    </section>
     <section v-if="result.swapWindow">
       <h2>{{ t.result.swap.heading }}</h2>
       <p>
@@ -278,6 +301,9 @@ async function onSwap(o: MoveOffer): Promise<void> {
         </template>
         <template v-else-if="result.explanation.window === null && result.explanation.items.some((e) => e.source !== 'fixed')">
           {{ t.result.explanation.noWishes }}
+        </template>
+        <template v-if="result.campaign.rules.length > 0">
+          {{ t.result.explanation.rules }}
         </template>
       </p>
     </section>

@@ -1,7 +1,8 @@
-// Der Katalog: die Organisation legt eine Anmeldung an und sammelt Aktivitäten,
-// eine Lehrkraft trägt ihre Verfügbarkeit ein und reicht eine Aktivität ein,
-// die Organisation sieht die Lehrkräfte je Tag, genehmigt und veröffentlicht,
-// und Schüler*innen lesen den nummerierten Katalog. Baut
+// Der Katalog: die Organisation legt eine Anmeldung an, sammelt Aktivitäten
+// und legt die Kategorie Sport an, eine Lehrkraft trägt ihre Verfügbarkeit
+// ein und reicht eine Aktivität der Kategorie ein, die Organisation sieht die
+// Lehrkräfte je Tag, genehmigt und veröffentlicht, und Schüler*innen lesen
+// den nummerierten Katalog mit den Kategorien. Baut
 // auf den Klassenlisten aus 02-stammdaten auf (Anna organisiert als
 // Administratorin, Bernd ist Lehrkraft, Sara Schülerin der 5A).
 
@@ -9,6 +10,7 @@ import { expect, test } from '../support/test.ts'
 import { ANNA, BERND, SARA } from '../support/personas.ts'
 import { picture, section, shot } from '../support/screenshot.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
+import { refused } from '../support/console.ts'
 import { day, fee, literally, t } from '../support/messages.ts'
 import { sample } from '../support/sample.ts'
 
@@ -33,6 +35,18 @@ test('die Organisation legt die Anmeldung an und öffnet sie für Aktivitäten',
   await picture(page, 'anmeldung-in-vorbereitung', [page.getByRole('heading', { name: sample.projectWeek }), section(page, t.campaign.organization.heading)])
   await page.getByRole('button', { name: t.campaign.organization.collect }).click()
   await expect(page.getByText(t.labels.campaignState.catalogue)).toBeVisible()
+
+  // The school's categories, for the rule the registration gets with its window (04-einstellungen); a name once, in any case.
+  await page.getByRole('link', { name: t.common.page.categories }).click()
+  await expect(page.getByRole('heading', { name: t.common.page.categories })).toBeVisible()
+  await expect(page.getByText(t.categories.none)).toBeVisible()
+  await page.getByLabel(t.categories.newName).fill(sample.sport)
+  await page.getByRole('button', { name: t.categories.add }).click()
+  await expect(page.getByRole('status')).toHaveText(t.categories.added)
+  await expect(page.getByRole('row', { name: new RegExp(literally(sample.sport)) })).toContainText(t.categories.usage(0, 0))
+  await page.getByLabel(t.categories.newName).fill(sample.sport.toUpperCase())
+  await refused(page, 409, () => page.getByRole('button', { name: t.categories.add }).click())
+  await expect(page.getByRole('alert')).toHaveText(t.errors.category_exists)
   await signOut(page)
 })
 
@@ -66,6 +80,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.item.participation.minParticipants).fill('6')
   await page.getByLabel(t.item.fee.amount).fill(sample.climbingFee)
   await page.getByLabel(t.item.fee.note).fill(sample.climbingFeeNote)
+  await page.getByRole('group', { name: t.item.categories.intro }).getByLabel(sample.sport).check()
   await expect(page.getByText(t.item.participants.lead(BERND.name))).toBeVisible()
   await shot(page, '15-neue-aktivitaet')
   await picture(page, 'aktivitaet-beschreibung', [page.getByRole('heading', { name: t.common.page.newItem }), page.getByLabel(t.item.teachers.search)])
@@ -131,6 +146,11 @@ test('Schüler*innen lesen den veröffentlichten Katalog mit Nummern', async ({ 
   await expect(page.getByText(`${day('2034-07-03')}, ${t.format.periods(2, 5)} (08:30 – 12:15)`)).toBeVisible()
   await expect(page.getByText(`${t.catalogue.places(12)} · ${t.catalogue.forWhom(t.catalogue.allGrades)} · ${t.catalogue.fee(fee(1500))}`)).toBeVisible()
   await expect(page.getByRole('button', { name: t.catalogue.print })).toBeVisible()
+  // Climbing is sport: the catalogue says so, and filters by it.
+  await expect(page.locator('.catalogue-item').getByText(sample.sport, { exact: true })).toBeVisible()
+  await page.getByLabel(t.catalogue.categoryFilter).selectOption({ label: sample.sport })
+  await expect(page.getByRole('heading', { name: `1 · ${sample.climbing}` })).toBeVisible()
+  await page.getByLabel(t.catalogue.categoryFilter).selectOption({ label: t.catalogue.allCategories })
   await shot(page, '18-katalog')
   await picture(page, 'katalog', page.locator('main'))
   await signOut(page)

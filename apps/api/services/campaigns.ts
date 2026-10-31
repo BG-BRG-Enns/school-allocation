@@ -4,18 +4,20 @@
 // they are: organizers see every campaign, teachers also the ones taking
 // proposals, everyone else what has been published.
 
-import { demandByDay, transition, type CampaignState, type DayDemand, type OfferedItem } from '@school-allocation/school-core'
+import { checkRules, demandByDay, ruleDemand, transition, type CampaignState, type DayDemand, type OfferedItem, type RuleDemand } from '@school-allocation/school-core'
 import { type Actor, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import * as store from '../lib/dao/campaigns.ts'
 import { lockedCampaign, readCampaign, rosterClassSizes } from '../lib/dao/campaigns.ts'
-import { numberApprovedItems } from '../lib/dao/items.ts'
+import { knownCategories } from '../lib/dao/categories.ts'
+import { listCampaignItems, numberApprovedItems } from '../lib/dao/items.ts'
 import type { Database, Queryable } from '../lib/db.ts'
-import { ApplicationError } from '../lib/errors.ts'
-import type { Campaign, CampaignChanges, CampaignWindow, NewCampaign } from '../lib/models/campaigns.ts'
+import { ApplicationError, RulesInvalid } from '../lib/errors.ts'
+import type { Campaign, CampaignChanges, CampaignWindow, NewCampaign, RuleInput } from '../lib/models/campaigns.ts'
 import type { WindowContext } from '../lib/models/window.ts'
 import { canSee } from '../lib/policies.ts'
 import { datesOfSpan } from '../lib/time.ts'
+import { uniqueSorted } from './catalogue-input.ts'
 import { windowEffects } from './window.ts'
 
 /** The states an organizer moves a campaign into by hand; the grace week comes by the clock alone, the allocation's states by a run and its publication. The archive closes the campaign after the event and the attendance: nothing changes afterwards. */
@@ -103,6 +105,16 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     }
     const order = checkWindow(window)
     if (order !== undefined) throw new ApplicationError(order)
+    // The rules: students rank against them, so they are fixed from the opening like the window; ids are the database's,
+    // so a list sent again unchanged keeps them and marks no run stale.
+    const rules = changes.rules?.map(canonicalRule)
+    const rulesChanged = rules !== undefined && JSON.stringify(rules) !== JSON.stringify(current.rules.map(({ id: _, ...rule }) => canonicalRule(rule)))
+    if (rules !== undefined && rulesChanged) {
+      if (!WINDOW_SETTABLE.includes(current.state)) throw new ApplicationError('campaign_state')
+      const known = await knownCategories(client, [...new Set(rules.map((rule) => rule.categoryId))])
+      const problems = checkRules(rules, known)
+      if (problems.length > 0) throw new RulesInvalid(problems)
+    }
     const days = new Set(changes.projectDays)
     const sessions = await store.listActiveSessions(client, id)
     if (sessions.some((s) => datesOfSpan(s.startsAt.getTime(), s.endsAt.getTime()).some((date) => !days.has(date)))) {
@@ -113,8 +125,27 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
       scopeId: id, actor: auditActor(actor), action: 'campaign.changed',
       metadata: { campaignId: id, projectDays: changes.projectDays.length, setUp: setUpChanged, window: windowChanged },
     })
+    if (rules !== undefined && rulesChanged) {
+      await store.replaceRules(client, id, rules)
+      await appendAudit(client, {
+        scopeId: id, actor: auditActor(actor), action: 'campaign.rules-changed',
+        // The classes by count: forty class names would crowd out the rest.
+        metadata: { campaignId: id, rules: rules.map((rule) => ({ categoryId: rule.categoryId, grades: rule.grades, classes: rule.classes.length, unit: rule.unit, minimum: rule.minimum })) },
+      })
+    }
   })
   return requireCampaign(db, id)
+}
+
+/** A rule as stored: ids in lower case, grades and classes each once and in order. */
+function canonicalRule(rule: RuleInput): RuleInput {
+  return {
+    categoryId: rule.categoryId.toLowerCase(),
+    grades: [...new Set(rule.grades)].sort((a, b) => a - b),
+    classes: uniqueSorted(rule.classes),
+    unit: rule.unit,
+    minimum: rule.minimum,
+  }
 }
 
 /** What the clock does and an organizer may not: enter the grace week. */
@@ -178,7 +209,7 @@ export async function listCampaigns(db: Queryable, caller: Pick<Caller, 'roles' 
  * by the dates their sessions touch. Drafts and withdrawn items count for
  * nothing.
  */
-export async function campaignDemand(db: Queryable, campaign: Campaign): Promise<DayDemand[]> {
+export async function campaignDemand(db: Queryable, campaign: Campaign): Promise<{ demand: DayDemand[], rules: RuleDemand[] }> {
   const classes = await rosterClassSizes(db)
   const rows = await store.listDemandSessions(db, campaign)
   // One row per session; an item counts once per date its sessions touch.
@@ -188,7 +219,10 @@ export async function campaignDemand(db: Queryable, campaign: Campaign): Promise
     const dates = new Set([...item.dates, ...datesOfSpan(row.startsAt.getTime(), row.endsAt.getTime())])
     items.set(row.id, { ...item, dates: [...dates] })
   }
-  return demandByDay(campaign.projectDays, classes, [...items.values()])
+  const demand = demandByDay(campaign.projectDays, classes, [...items.values()])
+  if (campaign.rules.length === 0) return { demand, rules: [] }
+  const offered = (await listCampaignItems(db, campaign.id)).filter((item) => item.state === 'proposed' || item.state === 'approved')
+  return { demand, rules: ruleDemand(campaign.rules, classes, offered, campaign.projectDays) }
 }
 
 function auditActor(actor: Actor) {

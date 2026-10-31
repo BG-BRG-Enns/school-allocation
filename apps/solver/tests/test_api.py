@@ -15,7 +15,7 @@ client = TestClient(main.app)
 def test_health_names_the_solver_and_the_contract() -> None:
     body = client.get("/health").json()
     assert body["status"] == "ok"
-    assert body["contract"] == "allocation/v1"
+    assert body["contract"] == "allocation/v2"
     assert body["ortools"]
 
 
@@ -31,10 +31,10 @@ def test_solve_answers_the_contract(two_students: dict) -> None:
 
 
 def test_a_malformed_request_is_refused_as_such() -> None:
-    assert client.post("/v1/solve", json={"contract": "allocation/v1"}).status_code == 422
+    assert client.post("/v1/solve", json={"contract": "allocation/v2"}).status_code == 422
     payload = request([student(0, [option(0, 1000)])], [item(0, 1)])
     assert client.post("/v1/solve", json={**payload, "extra": 1}).status_code == 422
-    assert client.post("/v1/solve", json={**payload, "contract": "allocation/v2"}).status_code == 422
+    assert client.post("/v1/solve", json={**payload, "contract": "allocation/v1"}).status_code == 422, "the contract before the rules"
     over = request([student(0, [option(0, 1000, tie=1000)])], [item(0, 1)])
     assert client.post("/v1/solve", json=over).status_code == 422, "a tie weight is drawn below 1000"
 

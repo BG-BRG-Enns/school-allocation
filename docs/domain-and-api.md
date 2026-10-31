@@ -16,9 +16,11 @@ Status: proposal for review · 2026-10-27 · revised 2026-10-29 for the decision
 | `RosterEntry` | `batch_id`, `oid?`, `upn?`, `mail?`, `display_name`, `kind`, `class?`, `grade?`, `person_id?` | One per person per batch |
 | `ClassTeacher` | `school_year`, `class`, `person_id`, `assigned_by` | Assigned in the app or from a CSV column |
 | `SchoolYear` | `id` (e.g. `2026/27`), `starts_on`, `ends_on` | Explicit rollover |
-| `Campaign` | `id`, `kind` (`project_week` / `wpf`), `mechanism` (`ranked`), `school_year`, `project_days[]`, `eligibility` (rule), `opens_at`, `closes_at`, `late_until` (end of the grace week), `swap_from`, `swap_until`, `config` (wishes per time group, default 3; daily minimum in minutes per grade; reminders; whether the catalogue names teachers; `place_headroom_percent`, the places above the need the demand's target asks for, default 20), `status`, `roster_batch_id?` (frozen at close) | Lifecycle in §2; the days and the per-grade minimum are configuration, not code |
+| `Campaign` | `id`, `kind` (`project_week` / `wpf`), `mechanism` (`ranked`), `school_year`, `project_days[]`, `eligibility` (rule), `opens_at`, `closes_at`, `late_until` (end of the grace week), `swap_from`, `swap_until`, `config` (wishes per time group, default 3; daily minimum in minutes per grade; reminders; whether the catalogue names teachers; `place_headroom_percent`, the places above the need the demand's target asks for, default 20), `rules[]` (`CampaignRule`), `status`, `roster_batch_id?` (frozen at close) | Lifecycle in §2; the days and the per-grade minimum are configuration, not code |
+| `Category` | `id`, `name` (unique in any case, at most 60 characters) | The school's, outside any school year, like the period grid: at most 50, sorted by name. Kept by organizers and administrators, audited in the school scope (`category.created` / `changed` / `removed`); renamed freely, removed only while no item and no rule names it (409 `category_in_use`) |
+| `CampaignRule` | `campaign_id`, `position`, `category_id`, `grades[]` (at least one), `classes[]` (empty: every class of the grades), `unit` (`items` / `minutes`), `minimum` (1–20 items or 1–10000 minutes) | At least so many items, or credited minutes, of the category per student (school-core `rules.ts`); class activities count. At most 20 per campaign, replaced as a whole until the window opens, audited as `campaign.rules-changed` when they change. Never a hard constraint (§5) |
 | `TeacherAvailability` | `person_id`, `day`, `status` (`unavailable` / `if_needed`), `updated_at` | No row means available; no reason is stored. Per date, not per campaign. Set by the teacher on the days of a campaign taking proposals, by an organizer on a campaign's days until it is archived (audited in its chain as `availability.changed`); purged with the school year its date falls in |
-| `CatalogItem` | `id`, `campaign_id`, `number` (from publication), `title`, `description`, `location`, `teachers[]`, `fixed_classes[]`, `eligible_grades[]`, `eligible_classes[]`, `places`, `min_participants`, `cancellable_below_min`, `fee_cents`, `fee_note`, `state` (draft/proposed/approved/withdrawn), `review_note` | Project-week activity or WPF subject. The students of `fixed_classes` are pre-assigned; `places` are what others may rank: the capacity of a choosable activity, the extra places of a class activity (D-24 revised). An item is numbered when the catalogue is published. Its lead is the proposer when among its teachers, else the first named; the others accompany (school-core `leadOf`); rights do not depend on it |
+| `CatalogItem` | `id`, `campaign_id`, `number` (from publication), `title`, `description`, `location`, `teachers[]`, `fixed_classes[]`, `eligible_grades[]`, `eligible_classes[]`, `places`, `min_participants`, `cancellable_below_min`, `fee_cents`, `fee_note`, `category_ids[]`, `state` (draft/proposed/approved/withdrawn), `review_note` | Project-week activity or WPF subject. The students of `fixed_classes` are pre-assigned; `places` are what others may rank: the capacity of a choosable activity, the extra places of a class activity (D-24 revised). An item is numbered when the catalogue is published. Its lead is the proposer when among its teachers, else the first named; the others accompany (school-core `leadOf`); rights do not depend on it |
 | `Session` | `item_id`, `starts_at`, `ends_at` (timestamptz), `credited` per local date (`[{date, minutes}]`), `location` | Entered as "from period *x*, *y* periods" (default: from the 2nd period) or as a clock time and a duration, stored as instants (D-25); shown with period labels where it matches the grid. Immutable once the window opens, except by audited organizer change |
 | `PreAssignment` | `campaign_id`, `item_id`, `person_id`, `source` (`class` / `manual`), `exempted_at?`, `exempted_by?`, `reason?` | Materialized from `fixed_classes` against the frozen roster when the window opens; an organizer may exempt a student, audited, who then chooses for that time |
 | `WpfSubjectRule` | `item_id`, `rule_version_id`, years offered, periods per year, prerequisites, exclusions, continuation | WPF only |
@@ -26,9 +28,9 @@ Status: proposal for review · 2026-10-27 · revised 2026-10-29 for the decision
 | `CurriculumProfile` | `id`, `sfkz[]`, `name` | SFKZ → profile mapping |
 | `Choice` | `campaign_id`, `person_id`, `ranked` (per time group: item ids in order, at most the campaign's cap), `window` (`first` / `late`, from the time of the last save), `version`, `updated_at`, `entered_by` (self / organizer) | Whole-list replace; history kept in `ChoiceRevision` |
 | `WpfPlan` | `campaign_id`, `person_id`, `items_by_year`, `alternatives?`, `rule_version_id`, `validation` | Multi-year plan, chosen at once |
-| `AllocationRun` | `id`, `campaign_id`, `seq` (Lauf 1, 2, …), `status` (`running` / `succeeded` / `failed` / `interrupted`), `seed`, `limits`, `core_version`, `contract`, `solver_version`, `ortools_version`, `snapshot` (the compiled input, ids only) and `snapshot_sha256` (without seed and limit, so a changed campaign shows as stale), `warnings`, `passes[]` (per pass the solver's status, level values with `proven`, pairs, cancelled), `cancelled_items`, `failure` and `detail` (why it failed), `problems` (the validator's), `started_by`, `published_at?` | Many per campaign, at most one published; a finished run changes only by being published |
+| `AllocationRun` | `id`, `campaign_id`, `seq` (Lauf 1, 2, …), `status` (`running` / `succeeded` / `failed` / `interrupted`), `seed`, `limits`, `core_version`, `contract`, `solver_version`, `ortools_version`, `snapshot` (the compiled input, ids only, the rules and the items' categories included) and `snapshot_sha256` (without seed and limit, so a changed campaign shows as stale; empty rules and categories are left out of it, so a run from before them stays current), `warnings`, `passes[]` (per pass the solver's status, level values with `proven`, pairs, cancelled), `cancelled_items`, `failure` and `detail` (why it failed), `problems` (the validator's), `started_by`, `published_at?` | Many per campaign, at most one published; a finished run changes only by being published |
 | `Assignment` | `id`, `run_id`, `person_id`, `item_id`, `source` (`fixed` / `solver` / `fallback` / `swap` / `manual`), `change_id?`, `superseded_by?` | Fixed rows are copied from the pre-assignments; `fallback` is a placement into a fee-free item outside the student's wishes (D-06); `swap` a student's own move in the swap window, `manual` a placement by hand, each added by a change. A row is never changed or removed: a change supersedes it (`superseded_by`, set once); the run's current rows are those not superseded, and a student is in an item once among them |
-| `AssignmentChange` | `run_id`, `seq`, `kind` (`swap` / `place` / `move` / `remove`), `person_id`, `from_item_id?`, `to_item_id?`, `reason?`, `forced`, `changed_by`, `changed_at` | A change of the published run: the student's own swap (no reason), a class teacher's placement into a gap, the organizer's move or removal (a reason each). `forced` says the organizer overrode a full item or a minimum. The rows it superseded point at it; append-only. The reason is the organizer's and the auditor's; the student is told what changed and by whom (class teacher or organization), never why |
+| `AssignmentChange` | `run_id`, `seq`, `kind` (`swap` / `place` / `move` / `remove`), `person_id`, `from_item_id?`, `to_item_id?`, `reason?`, `forced`, `changed_by`, `changed_at` | A change of the published run: the student's own swap (no reason), a class teacher's placement into a gap, the organizer's move or removal (a reason each). `forced` says the organizer overrode a full item, a minimum or a rule falling short. The rows it superseded point at it; append-only. The reason is the organizer's and the auditor's; the student is told what changed and by whom (class teacher or organization), never why |
 | `Attendance` | `session_id`, `person_id`, `status` (`present` / `absent` / `excused`), `note`, `recorded_by`, `recorded_at` | Separate from assignments: an absent student keeps their place. Recorded by the class teacher of the student's class (D-16) or an organizer, for students currently assigned to the session's item, from publication to the archive; corrected in place, never removed; every recording audited with its counts |
 | `OutboxMail` | `id`, `kind`, `campaign_id?`, `person_id?`, `to_address`, `subject`, `body`, `dedupe_key` (unique), `state` (`queued` / `sending` / `sent` / `failed`), `attempts`, `next_attempt_at`, `detail`, `message_id`, `sent_at` | Written in the triggering transaction; the unique `dedupe_key` (e.g. `choice_reminder:<campaign>:<person>:reminder:<close>`) prevents double notices; rows stay as the record of what was sent |
 | `MailTemplate` | `kind` (one of `choice_invitation`, `choice_reminder`, `grace_invitation`, `grace_reminder`, `missed_deadline`, `class_missing`, `result_published`, `class_unplaced`, `item_cancelled`, `swap_confirmed`, `assignment_changed`), `subject`, `body`, `locale`, `updated_by` | An override of the message catalogue's default text (`packages/messages`, group `mail`), in the school's language: a row exists only for a kind an organizer saved, kept with the language it was written in, and the reset removes it. A notice renders the saved text or the default. Placeholders in `{{…}}` have English names (`first_name`, `name`, `campaign`, `link`, `deadline`, `project_days`, `class_name`, `window`, `list`, `programme`, `swap_period`, `activity`, `wish_count`, `minimum`, `changed_by`, `change`) and are checked against the kind's list at save; the catalogue says what each means and gives the test mail's sample value |
@@ -86,8 +88,11 @@ transition that was missed during a restart is applied on start.
    full-morning courses has one group; a Sporttag with blocks (2.–3. EH, 4.–5. EH, 3.–5. EH, single
    periods) has several, and they may overlap in time. The student ranks **up to the campaign's cap
    (default 3) per group**, fewer when fewer are eligible. Groups covered by the student's fixed items
-   are not shown. A list is **complete** when every shown group has its wishes; school-core computes
-   it and the page shows it live. Nobody ranks a weekly list, and nobody names combinations: the
+   are not shown. A list is **complete** when every shown group has its wishes and, for every rule
+   of the campaign applying to the student, the class activities and the best ranked item per group
+   reach the minimum, or everything the offer could bring when it cannot, or as far as the cap leaves room next to the
+   other rules: no wish added to a group or put in place of another brings the rule closer without taking another rule
+   further from its own (school-core `ruleReaches`); school-core computes it and the page shows it live. Nobody ranks a weekly list, and nobody names combinations: the
    allocation composes across groups by real session times (§5).
 5. Editing is allowed until `late_until` by server time. A list last saved after `closes_at` is
    marked `late` and allocated in the second pass (§5). Every save replaces the whole list
@@ -101,12 +106,15 @@ transition that was missed during a restart is applied on start.
    first served, under the campaign lock (`item_full` when someone was faster). Refused when an item
    left would drop under its minimum (`below_minimum`), when a class activity would have to be left
    (`leaves_fixed`), when the target overlaps an item the student keeps (`overlap`), and when any
-   project day would end up with more minutes missing than before (`coverage_lost`). Each move
+   project day would end up with more minutes missing than before (`coverage_lost`), and when a rule
+   would end up unmet with less toward it than before (`rule_lost`). Each move
    supersedes the rows left, adds a `swap` row, records the change and sends a confirmation. The
    same rules apply to the changes by hand: a class teacher places a student of their class who is
-   short of minutes into an item that fits the gap, with a reason, from publication to the archive;
-   the organizer moves or removes with a reason, and may override a full item or a minimum (recorded
-   as `forced`), never the other rules. The swap window's dates may be set until the window has
+   short of minutes or of a rule into an item that fits the gap or brings the rule closer, with a
+   reason, from publication to the archive; the organizer moves or removes with a reason, and may
+   override a full item, a minimum or a rule falling short (recorded as `forced`), never the other
+   rules. A removal alone may cost minutes and rules without an override: the student leaves the
+   item either way, and the gap shows on the review and the class page. The swap window's dates may be set until the window has
    begun, so the organizer can set them when publishing.
 
 **Credited minutes** are given by the teacher per session and local date (`Europe/Vienna`). They are
@@ -146,6 +154,7 @@ The worker sends one mail at a time, at most `MAIL_PER_HOUR` an hour (default an
 - the approved catalogue with sessions and credits;
 - capacities, minimums, cancellability, fees;
 - daily minimum per grade;
+- the campaign's rules and the items' categories;
 - the seed.
 
 **Two passes** (D-20): the first pass allocates the students whose list was saved in the first
@@ -157,9 +166,10 @@ first pass cancelled is not offered in the second (a course the first window cou
 revived by late lists). The second pass's level values are over every student, the first pass's
 constants included, so they describe the whole school.
 
-**Fallback placement** (D-06): for each day a student still has to cover, the compiler adds every
-eligible **fee-free** item with places the student did not rank as a fallback option, at rank
-`cap + 1`, which costs more than any wish. Wish numbers are counted over the list as the student
+**Fallback placement** (D-06): for each day a student still has to cover, and for each rule they
+still have to meet, the compiler adds every eligible **fee-free** item with places the student did
+not rank (for a rule, of its category) as a fallback option, at rank `cap + 1`, which costs more than
+any wish. Wish numbers are counted over the list as the student
 saved it, so when the first pass cancels a student's first wish, their second stays the second in the
 second pass. A non-submitter has fallback options only. L1 then fills the day if it can; a day that
 stays uncovered is a deficit, and the student is listed as unplaced for the class teacher and the
@@ -168,17 +178,20 @@ the same student at the same time are the catalogue's mistake: the run is refuse
 (`fixed_items_overlap`), and the validator refuses such a result too.
 
 **Pre-assignments are resolved by the compiler, not the solver.** For each student, the credit of
-their fixed items is subtracted from each day's requirement (floored at zero), and items that overlap
+their fixed items is subtracted from each day's requirement (floored at zero), what they bring to a
+rule from its minimum (`need`), and items that overlap
 a fixed item are dropped from that student's options. An item reaches the solver with `max = places`,
 which for a class activity are its extra places; the pre-assigned students are not variables of it,
 and its minimum is its classes' business, so it reaches the solver with `min = 0`. A student with no
-remaining requirement gets no variables.
+remaining requirement and no rule left to meet gets no variables.
 
 **A run needs a daily minimum for every grade of the roster.** The requirement per day and the cost's
 normalization come from it; without one the run is refused before the solver (`daily_minimum_missing`
 names the grades). Before solving, the compiler also names every non-cancellable item fewer students
 can take than its minimum asks (`minimum_out_of_reach`): the usual cause when a run comes back
-infeasible, with the remedies at hand (make it cancellable, lower the minimum, withdraw it).
+infeasible, with the remedies at hand (make it cancellable, lower the minimum, withdraw it). It
+names every rule and grade whose category cannot reach every student even if all its places went to
+them (`rule_out_of_reach`, an upper bound): such a rule is met as far as it goes.
 
 **Variables:**
 
@@ -201,20 +214,31 @@ infeasible, with the remedies at hand (make it cancellable, lower the minimum, w
 **Soft constraint (reported, never hidden):**
 
 - **Daily coverage:** `Σ_o credit[o,d] · x[s,o] + u[s,d] ≥ R[s,d]`, with deficit `u[s,d] ≥ 0`.
+- **Rules:** `Σ_o amount[o,r] · x[s,o] + v[s,r] ≥ need[s,r]`, with `v[s,r] ≥ 0` what the student
+  misses of rule `r` (items or minutes) and `w[s]` ∈ {0,1} whether they miss any (`v[s,r] ≤ need[s,r]
+  · w[s]`). `amount[o,r]` is 1 for an item of the category (unit `items`) or its credited minutes
+  (unit `minutes`).
 
 **Objective, lexicographic** (D-04 b, "protect the worst-off first"). Each level is solved, then fixed
 as a bound for the next:
 
 1. **L1:** minimize the number of students with any uncovered day.
 2. **L2:** minimize the total uncovered minutes.
+   **Rule levels**, only when the campaign has rules: minimize the number of students missing any
+   rule (`students_missing_rule`, Σ `w[s]`), then the items missing for rules
+   (`rule_missing_items`), then the minutes missing for rules (`rule_missing_minutes`). They come
+   after the days and before the wishes, and do not exist for a campaign without rules, whose levels
+   stay as before.
 3. **L3:** for thresholds *t* = cap, cap − 1, …, 2, minimize the number of students whose
    minutes-weighted average rank exceeds *t*, one sub-level per threshold, the worst first. A
    student's cost is `Σ_o x[s,o] · rank(s,o) · minutes(o) / required_minutes(s)`, scaled to integers
    (× 1000, rounded per option), where `required_minutes(s)` is the requirement left after fixed items
    and `rank` counts within the item's time group; a fallback option ranks one past the cap. The
    threshold is compared exactly, `Σ rank · minutes · 1000 > t · 1000 · required_minutes(s)`, so the
-   rounding of the costs never puts a student over a threshold they are on. Students with nothing
-   left to choose have no cost and are not counted in L3.
+   rounding of the costs never puts a student over a threshold they are on. A student whose fixed
+   items cover the days but who has a rule left is not counted in L3 (`norm` 0); their options are
+   costed against the grade's whole weekly minimum instead, so L4 still takes their wishes in order and
+   a fallback last.
 4. **L4:** minimize the total cost over all students.
 5. **L5:** tie-break: minimize `Σ x[s,o] · ε(seed, s, o)`, with small deterministic pseudo-random
    weights (an FNV-1a hash of the seed, the student and the item, in `[0, 1000)`), sent as their own
@@ -245,13 +269,13 @@ and the organizer may raise it for another run.
 - the first pass's assignments unchanged by the second;
 - every pre-assignment present and unchanged, and no assigned item overlapping a fixed one;
 - an item cancelled only if it may be, and nobody assigned to a cancelled item;
-- the recomputed coverage, deficits and costs must equal the solver's reported level values, level
-  by level, for each pass.
+- the recomputed coverage, deficits, rule shortfalls and costs must equal the solver's reported
+  level values, level by level, for each pass.
 
 Any mismatch rejects the run.
 
 **Explanation per student:** the assigned items with their ranks, minutes per day, deficits if any,
-and a plain sentence on the rule ("first nobody without a full week, then as few students as possible
+each rule applying to them with what their items bring and whether it is met, and a plain sentence on the rule ("first nobody without a full week, then as few students as possible
 with mostly low-ranked choices, then the best overall result; ties by lot, seed …"), with the window
 named for a late submitter ("your list came in the grace week and was placed after the others").
 
@@ -260,22 +284,24 @@ mis-ranking, which is easier when demand is visible. Mitigation: no demand indic
 communicate "rank honestly — it is the best strategy for nearly everyone". The simulation (D-20)
 should quantify this.
 
-## 6. Solver contract (versioned, `contracts/allocation/v1`)
+## 6. Solver contract (versioned, `contracts/allocation/v2`)
 
 `POST /v1/solve` (internal network only):
 
 ```json
 {
-  "contract": "allocation/v1",
+  "contract": "allocation/v2",
   "runId": "…",
   "seed": 123456789,
   "limits": { "deterministicTimePerLevel": 30 },
   "students": [{ "s": 17, "required": [{ "d": 0, "min": 300 }], "norm": 300,
-                 "options": [{ "o": 4, "cost": 1200, "weight": 360, "tie": 613, "credit": [{ "d": 0, "min": 120 }] }] }],
+                 "options": [{ "o": 4, "cost": 1200, "weight": 360, "tie": 613, "credit": [{ "d": 0, "min": 120 }] }],
+                 "rules": [{ "r": 0, "unit": "items", "need": 1, "amounts": [{ "o": 4, "n": 1 }] }] }],
   "items": [{ "o": 4, "max": 20, "min": 8, "cancellable": true }],
   "conflicts": [[4, 9]],
   "fixed": [[23, 4]],
-  "levels": ["students_with_deficit", "deficit_minutes", "over:3000", "over:2000", "total_cost", "tiebreak"]
+  "levels": ["students_with_deficit", "deficit_minutes", "students_missing_rule", "rule_missing_items",
+             "rule_missing_minutes", "over:3000", "over:2000", "total_cost", "tiebreak"]
 }
 ```
 
@@ -293,6 +319,11 @@ Response:
   `cost` is the rounded normalized rank the total (L4) sums; its `weight` is the exact `rank · minutes`
   a threshold (L3) is compared against, over the student's `norm`.
 - **No names, e-mails or classes.** The solver has no database credentials and no egress.
+- **Rules are per student** (v2): each one still open after the fixed items, with its index `r` in
+  the campaign's order, its unit, what is left of the minimum (`need`) and what each of the student's
+  options brings to it (`amounts`, options bringing nothing left out). A student without rules sends
+  `"rules": []`, and a campaign without rules sends no rule levels. The categories never reach the
+  solver. v1 had no `rules`; the API and the solver speak one version, checked through `/health`.
 - **The tie-break weights are computed in the TypeScript core from the seed** and sent as `tie` per
   option, minimized as the last level. This keeps the Python side free of domain randomness and L4
   exact.
@@ -348,14 +379,16 @@ it deliberately with `npm run contracts:update:routes` and review the diff.
 | `GET /api/campaigns/:id/my-choice` · `PUT …/my-choice` | student | Fixed items, the offered items by project day and time group, the ranked wishes per group, completeness (whole-list replace); until `late_until` |
 | `GET /api/campaigns/:id/my-result` | student | The published places with the explanation (the items per day with the wish number, the minutes against the requirement, what is missing, the window the list came in, the seed), the fee, the swap window's dates and, while it is open, every item the student could move into with its free places, what the move would leave and why it would be refused (D-13); the student's own changes since publication; 409 `not_published` before publication |
 | `POST /api/campaigns/:id/swap` | student | Move into an item with free places during the swap window (§3 rule 7); answers with the result as it is afterwards; 409 `swap_closed`, `item_full`, `already_placed`, 422 with the rule's code otherwise |
-| `GET /api/campaigns/:id/demand` | teacher, organizer | Places needed per project day and grade: students of the grade minus those in fixed items, against the places offered (D-13); the page adds the target, the need plus the campaign's headroom (school-core `placeTarget`) |
+| `GET /api/campaigns/:id/demand` | teacher, organizer | Places needed per project day and grade: students of the grade minus those in fixed items, against the places offered (D-13); the page adds the target, the need plus the campaign's headroom (school-core `placeTarget`). Per rule and grade (`rules`): what the students still need after their class activities, against the most the category's places could bring (school-core `ruleDemand`, an upper bound) |
 | `GET /api/my-availability` · `PUT /api/my-availability/:date` | teacher | The teacher's own status on the project days of every campaign taking proposals, with those campaigns; set one of them (`{ status }`; 409 `campaign_state` on any other day) |
 | `GET /api/campaigns/:id/availability` | teacher, organizer | Who is not plainly available on which of the campaign's days, for the proposal form's warnings |
 | `GET /api/admin/campaigns/:id/planning` · `PUT …/availability/:personId/:date` · `GET …/export/planning.xlsx` | organizer (set), auditor (read) | Per teacher (the roster's and every one a counted activity names, by the campaign's roster, else the current one) and project day: the status and the activities they lead and accompany, those that may still take place (school-core `mayTakePlace`: approved and not cancelled by the published run, proposed until the window opens, a draft while proposals are taken); set anyone's status on a project day until the archive (audited; the same status again records nothing; 422 `teacher_unknown`); the overview as a workbook |
-| `GET /api/campaigns/:id/classes/:class/status` · `POST …/classes/:class/place` | class teacher (own class), organizer | The class's students with the state of their list, and after publication each one's places, the minutes they miss and, for one short of minutes, the items with free places that fit the gap; place such a student into one of them (reason required, audited, the student notified); 409 `fully_placed` for a student with every day covered |
-| `POST /api/campaigns/:id/items` · `PATCH /api/items/:id` · `DELETE /api/items/:id` · `POST …/propose` · `POST …/unpropose` | teacher (own), organizer | Draft, edit, remove, propose and take back an activity with its teachers, sessions, places, fixed classes and eligibility; a 422 names the rules broken. From publication on, an approved item's times, places, minimum, fee and eligibility are fixed (409 `campaign_state`); its words may still change |
+| `GET /api/campaigns/:id/classes/:class/status` · `POST …/classes/:class/place` | class teacher (own class), organizer | The class's students with the state of their list, and after publication each one's places, the minutes and rules they miss and, for one short of either, the items with free places that fit the gap or bring the rule closer; place such a student into one of them (reason required, audited, the student notified); 409 `fully_placed` for a student with every day covered and every rule met |
+| `POST /api/campaigns/:id/items` · `PATCH /api/items/:id` · `DELETE /api/items/:id` · `POST …/propose` · `POST …/unpropose` | teacher (own), organizer | Draft, edit, remove, propose and take back an activity with its teachers, sessions, places, fixed classes, eligibility and categories (`categories` left out keeps the ones it has; 422 `category_unknown`); a 422 names the rules broken. From publication on, an approved item's times, places, minimum, fee, eligibility and categories are fixed (409 `campaign_state`); its words may still change |
+| `GET /api/categories` | any | The school's categories by name |
+| `GET /api/admin/categories` · `POST …` · `PATCH …/:id` · `DELETE …/:id` | organizer, admin | The categories with how many items and rules name each; add (`{ name }`, trimmed; 409 `category_exists`, `too_many_categories`), rename (the same name records nothing) and remove (409 `category_in_use`); each answers with the list, audited in the school scope |
 | `POST /api/admin/items/:id/approve` · `POST …/return` · `POST …/withdraw` | organizer | Review, audited: approve, return to draft with a note, withdraw with a reason |
-| `POST /api/admin/campaigns` · `PATCH …/:id` · `POST …/:id/transition` | organizer | Campaign set-up (name, school year, project days) and lifecycle; this release moves to `catalogue` and `published`, which numbers the approved items |
+| `POST /api/admin/campaigns` · `PATCH …/:id` · `POST …/:id/transition` | organizer | Campaign set-up (name, school year, project days, the window's settings and the rules, `rules` replacing the list as a whole until the window opens; 422 `rules_invalid` with `problems: [{ code, rule? }]`) and lifecycle; this release moves to `catalogue` and `published`, which numbers the approved items |
 | `GET /api/admin/campaigns/:id/export/catalogue.xlsx` | organizer, auditor | The catalogue as a workbook: activities and sessions |
 | `GET /api/admin/roster` · `PUT /api/admin/roster/groups` | admin | The roster in force, recent batches; label Entra groups (students/teachers, class, grade) |
 | `GET /api/admin/roster/graph/start` · `GET …/graph/callback` | admin | Refresh from the labelled groups with the administrator's own Graph token (authorization-code flow, second redirect URI) |
@@ -378,7 +411,7 @@ it deliberately with `npm run contracts:update:routes` and review the diff.
 | `POST /api/admin/campaigns/:id/runs` · `GET …/runs` · `GET …/runs/:runId` · `GET …/runs/:runId/export.xlsx` | organizer (start), auditor (read) | Start a run on a closed campaign (seed and limit optional; 202, the job finishes it), the runs with their status and levels, the review of one (levels per pass, every student's places and missing minutes, the items' counts, the cancelled items, whether the campaign changed since), and the review as a workbook |
 | `POST …/runs/:runId/publish` | organizer | Publish a succeeded run of a campaign in review that is not stale, the cancelled items named as the review showed them (a different list is refused); the campaign to `results`, the notices queued once per run: every student their programme, every class teacher their students short of minutes, every teacher of a cancelled item the cancellation |
 | `GET /api/admin/campaigns/:id/export/assignments.xlsx` | organizer, auditor | The published run as a workbook: the students with their places per day and the fee, the participants per item, the items, the missing minutes |
-| `POST /api/admin/campaigns/:id/assignments` · `GET …/assignments` | organizer (change), auditor (read) | A change by hand: into an item (`itemId`), out of one (`removeItemId`) or both, reason required, `force` overriding a full item or a minimum (recorded); the same rules as a swap otherwise, audited, the student notified. The log of every change since publication with names and reasons |
+| `POST /api/admin/campaigns/:id/assignments` · `GET …/assignments` | organizer (change), auditor (read) | A change by hand: into an item (`itemId`), out of one (`removeItemId`) or both, reason required, `force` overriding a full item, a minimum or a rule falling short (recorded); the same rules as a swap otherwise, audited, the student notified. The log of every change since publication with names and reasons |
 | `GET /api/campaigns/:id/items/:itemId/participants` | teacher (own, after results), organizer, auditor | The participants of an item in the published run, with class and how they got there; whether the item was cancelled |
 | `GET /api/campaigns/:id/classes/:class/attendance` · `GET …/attendance.xlsx` | class teacher (own class), organizer, auditor | The class's attendance per project day and session, with what was recorded, and whether the caller may record now; the same as a workbook |
 | `PUT /api/sessions/:id/attendance` | class teacher (own class's students), organizer; admin for WPF | Record or correct the session's attendance for the students named (`{ entries: [{ personId, status, note? }] }`); 422 `not_assigned` for a student the session's item does not have, 409 `campaign_state` outside `results` |

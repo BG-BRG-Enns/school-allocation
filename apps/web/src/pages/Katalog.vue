@@ -1,13 +1,14 @@
 <script setup lang="ts">
 // The catalogue as students read it and as the school prints it: every
-// approved activity with its number, teachers, sessions, places and fee.
+// approved activity with its number, teachers, sessions, places, fee and
+// categories, filtered by one if the reader likes.
 // The browser's print function makes the PDF; the page hides the shell
 // around it when printing.
 
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import type { Period } from '@school-allocation/school-core'
 import { loadPeriods } from '../lib/admin-api.ts'
-import { loadCatalogue, type Campaign, type Item } from '../lib/campaigns-api.ts'
+import { loadCatalogue, loadCategories, type Campaign, type Category, type Item } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatFee, formatSpanOnGrid } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
@@ -17,19 +18,32 @@ const props = defineProps<{ id: string }>()
 const campaign = ref<Campaign | null>(null)
 const items = ref<Item[]>([])
 const grid = ref<Period[]>([])
+const categories = ref<Category[]>([])
+/** The category the list is filtered by; '' for all. */
+const filter = ref('')
 const loading = useFeedback()
 usePageTitle(() => campaign.value ? t.catalogue.titleOf(campaign.value.name) : t.catalogue.title)
 
 async function load(): Promise<void> {
   await loading.run(async () => {
-    const [result, periods] = await Promise.all([loadCatalogue(props.id), loadPeriods()])
+    const [result, periods, school] = await Promise.all([loadCatalogue(props.id), loadPeriods(), loadCategories()])
     campaign.value = result.campaign
     items.value = result.items
     grid.value = periods.periods
+    categories.value = school.categories
   })
 }
 onMounted(load)
 watch(() => props.id, load)
+
+/** The categories some activity belongs to: the filter offers only those. */
+const usedCategories = computed(() => categories.value.filter((c) => items.value.some((item) => item.categoryIds.includes(c.id))))
+// Another registration's catalogue may use none of the chosen category: show it whole rather than empty.
+watch(usedCategories, (used) => {
+  if (filter.value !== '' && !used.some((c) => c.id === filter.value)) filter.value = ''
+})
+const shown = computed(() => filter.value === '' ? items.value : items.value.filter((item) => item.categoryIds.includes(filter.value)))
+const categoryNames = (item: Item): string[] => categories.value.filter((c) => item.categoryIds.includes(c.id)).map((c) => c.name)
 
 function places(item: Item): string {
   if (item.fixedClasses.length === 0) return t.catalogue.places(item.places)
@@ -78,15 +92,43 @@ function who(item: Item): string {
         {{ t.catalogue.print }}
       </button>
     </p>
+    <p
+      v-if="usedCategories.length > 0"
+      class="field no-print"
+    >
+      <label for="category-filter">{{ t.catalogue.categoryFilter }}</label>
+      <select
+        id="category-filter"
+        v-model="filter"
+      >
+        <option value="">
+          {{ t.catalogue.allCategories }}
+        </option>
+        <option
+          v-for="c in usedCategories"
+          :key="c.id"
+          :value="c.id"
+        >
+          {{ c.name }}
+        </option>
+      </select>
+    </p>
     <p v-if="items.length === 0">
       {{ t.catalogue.empty }}
     </p>
     <article
-      v-for="item in items"
+      v-for="item in shown"
       :key="item.id"
       class="catalogue-item"
     >
       <h2>{{ item.number === null ? item.title : `${item.number} · ${item.title}` }}</h2>
+      <p v-if="item.categoryIds.length > 0">
+        <span
+          v-for="name in categoryNames(item)"
+          :key="name"
+          class="badge"
+        >{{ name }}</span>
+      </p>
       <p
         v-if="item.teachers.length > 0 || item.location"
         class="muted"

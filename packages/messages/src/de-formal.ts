@@ -38,6 +38,9 @@ export const deFormal = {
     run_stale: 'Seit dieser Berechnung hat sich die Anmeldung geändert. Bitte vor der Veröffentlichung neu berechnen.',
     cancelled_mismatch: 'Die bestätigten Ausfälle sind nicht die der Berechnung. Bitte die Seite neu laden und noch einmal prüfen.',
     no_change: 'Bitte eine Aktivität angeben, in die oder aus der die Person wechselt.',
+    rules_invalid: 'Die Regeln passen noch nicht. Bitte die Hinweise ansehen.',
+    category_in_use: 'Eine Aktivität oder eine Regel verwendet diese Kategorie. Umbenennen geht, entfernen nicht.',
+    category_unknown: 'Eine der Kategorien gibt es nicht mehr. Bitte die Seite neu laden.',
   },
   signIn: {
     intro: 'Bitte mit dem Schulkonto (Microsoft) einloggen.',
@@ -58,7 +61,7 @@ export const deFormal = {
   },
   schoolClass: {
     unplaced: {
-      note: 'Als Klassenvorstand teilen Sie hier ein, wem noch Zeit fehlt. Wer eingeteilt wird, bekommt Bescheid; die Organisation sieht jede Änderung mit Ihrer Begründung.',
+      note: 'Als Klassenvorstand teilen Sie hier ein, wem noch Zeit oder eine Regel fehlt. Wer eingeteilt wird, bekommt Bescheid; die Organisation sieht jede Änderung mit Ihrer Begründung.',
     },
     attendance: {
       recordable: 'Eintragen und speichern; korrigieren können Sie bis zum Abschluss der Anmeldung.',
@@ -66,7 +69,7 @@ export const deFormal = {
   },
   allocation: {
     change: {
-      rules: 'Es gelten dieselben Regeln wie beim Tausch: in eine Aktivität mit freien Plätzen, die zur Schulstufe passt und sich mit nichts überschneidet, das bleibt; eine Klassenaktivität bleibt immer. Eine volle Aktivität oder die Mindestzahl dürfen Sie übergehen; das Häkchen dafür wird vermerkt.',
+      rules: 'Es gilt dasselbe wie beim Tausch: in eine Aktivität mit freien Plätzen, die zur Schulstufe passt und sich mit nichts überschneidet, das bleibt; eine Klassenaktivität bleibt immer. Eine volle Aktivität, die Mindestzahl oder eine Regel der Anmeldung dürfen Sie übergehen; das Häkchen dafür wird vermerkt.',
     },
     review: {
       stale: 'Seit dieser Berechnung hat sich der Katalog, die Klassenlisten oder eine Klassenaktivität geändert. Bitte berechnen Sie neu, bevor Sie veröffentlichen.',

@@ -36,6 +36,8 @@ export const AUDIT_ACTIONS = [
   'campaign.created',
   'campaign.changed',
   'campaign.transitioned',
+  // Its rules per category replaced, with the new list (campaign scope).
+  'campaign.rules-changed',
   // An activity, in its campaign's scope: an organizer's review, and what
   // an organizer does by that right alone (creating on behalf, changing an
   // item past drafting). A teacher's own drafting is not privileged and not
@@ -46,10 +48,14 @@ export const AUDIT_ACTIONS = [
   'item.withdrawn',
   'item.changed',
   // The school's settings (school scope): the period grid replaced, the
-  // language changed; the class teachers of a class set.
+  // language changed; the class teachers of a class set; the categories.
   'settings.periods-changed',
   'settings.language-changed',
   'class.teachers-changed',
+  // The school's categories (school scope): added, renamed, removed while nothing named it.
+  'category.created',
+  'category.changed',
+  'category.removed',
   // The window (campaign scope): an organizer exempts a student from a
   // class activity, or enters a ranking on a student's behalf. A
   // student's own saving is not privileged and keeps its revisions instead.

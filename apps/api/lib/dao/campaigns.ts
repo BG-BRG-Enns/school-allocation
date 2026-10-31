@@ -1,7 +1,7 @@
 import { type ClassSize } from '@school-allocation/school-core'
 import { type Actor } from '../actor.ts'
 import type { Queryable } from '../db.ts'
-import type { Campaign, CampaignChanges, CampaignCounts, CampaignWindow, NewCampaign, RosterClass, RosterTeacher } from '../models/campaigns.ts'
+import type { Campaign, CampaignChanges, CampaignCounts, CampaignWindow, NewCampaign, RosterClass, RosterTeacher, RuleInput } from '../models/campaigns.ts'
 import type { CampaignRow } from './campaigns-rows.ts'
 import { CURRENT_BATCH_ID } from './roster-selection.ts'
 
@@ -57,7 +57,10 @@ export async function rosterTeachers(db: Queryable, q: string): Promise<RosterTe
 // local midnight, which is not what a project day is.
 const SELECT = `select c.id, c.kind, c.name, c.school_year, c.state, c.project_days::text[] as project_days,
   c.opens_at, c.closes_at, c.late_until, c.swap_from, c.swap_until, c.wishes_per_group, c.daily_minimum, c.show_teachers, c.reminder_days,
-  c.place_headroom_percent, c.roster_batch_id, c.created_at, c.updated_at from campaign c`
+  c.place_headroom_percent, c.roster_batch_id, c.created_at, c.updated_at,
+  coalesce((select json_agg(json_build_object('id', r.id, 'categoryId', r.category_id, 'grades', r.grades, 'classes', r.classes, 'unit', r.unit, 'minimum', r.minimum) order by r.position)
+              from campaign_rule r where r.campaign_id = c.id), '[]') as rules
+  from campaign c`
 
 function toCampaign(row: CampaignRow): Campaign {
   const iso = (value: Date | null) => value?.toISOString() ?? null
@@ -78,6 +81,7 @@ function toCampaign(row: CampaignRow): Campaign {
     showTeachers: row.show_teachers,
     reminderDays: row.reminder_days,
     placeHeadroomPercent: row.place_headroom_percent,
+    rules: row.rules,
     rosterBatchId: row.roster_batch_id,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -106,6 +110,17 @@ export async function updateSettings(db: Queryable, id: string, changes: Campaig
     [id, changes.name, changes.schoolYear, changes.projectDays, window.opensAt, window.closesAt, window.lateUntil, window.swapFrom, window.swapUntil,
       window.wishesPerGroup, JSON.stringify(window.dailyMinimum), window.showTeachers, window.reminderDays, window.placeHeadroomPercent],
   )
+}
+
+/** Replaces the campaign's rules with `rules`, in their order. */
+export async function replaceRules(db: Queryable, id: string, rules: readonly RuleInput[]) {
+  await db.query('delete from campaign_rule where campaign_id = $1', [id])
+  for (const [position, rule] of rules.entries()) {
+    await db.query(
+      'insert into campaign_rule (campaign_id, position, category_id, grades, classes, unit, minimum) values ($1, $2, $3, $4::smallint[], $5::text[], $6, $7)',
+      [id, position, rule.categoryId, rule.grades, rule.classes, rule.unit, rule.minimum],
+    )
+  }
 }
 
 export async function updateState(db: Queryable, id: string, to: string) {

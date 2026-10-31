@@ -19,6 +19,8 @@ export interface ItemInput extends ItemRules {
   /** Person ids of roster teachers. */
   teachers: string[]
   sessions: SessionInput[]
+  /** Ids of the school's categories; undefined keeps the ones an item has. */
+  categories?: string[]
 }
 
 export interface Session extends SessionInput {

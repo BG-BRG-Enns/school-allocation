@@ -11,7 +11,7 @@ const DAYS = ['2027-06-21', '2027-06-22']
 const at = (day: number, hour: number, minute = 0) => Date.UTC(2027, 5, 21 + day, hour - 2, minute)
 const session = (day: number, from: number, to: number, minutes: number): SessionInput => ({ startMs: at(day, from), endMs: at(day, to), dates: [DAYS[day] as string], credits: [{ date: DAYS[day] as string, minutes }] })
 const open: ItemRules = { fixedClasses: [], eligibleGrades: [], eligibleClasses: [], places: 10, minParticipants: 0, cancellableBelowMin: true }
-const item = (id: string, sessions: SessionInput[], rules: Partial<ItemRules> = {}, feeCents = 0): AllocationItem => ({ id, feeCents, rules: { ...open, ...rules }, sessions })
+const item = (id: string, sessions: SessionInput[], rules: Partial<ItemRules> = {}, feeCents = 0, categoryIds: string[] = []): AllocationItem => ({ id, feeCents, rules: { ...open, ...rules }, sessions, categoryIds })
 const ITEMS: AllocationItem[] = [
   item('vienna', [session(1, 8, 18, 420)], { fixedClasses: ['5A'], places: 1, cancellableBelowMin: false }),
   item('climbing', [session(0, 8, 11, 180)], { places: 1 }, 1500),
@@ -27,6 +27,7 @@ const INPUT: AllocationInput = {
   projectDays: DAYS,
   dailyMinimum: { 9: 300, 10: 300 },
   wishesPerGroup: 3,
+  rules: [],
   seed: 1,
   limits: { deterministicTimePerLevel: 5 },
   students: [student('sara', '5A', 9, ['vienna']), student('tim', '5A', 9, ['vienna']), student('max', '5A', 9, ['vienna']), student('lena', '6A', 10, [])],

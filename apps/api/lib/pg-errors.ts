@@ -3,6 +3,8 @@
 
 export const SQLSTATE = {
   duplicateObject: '42710',
+  /** A row still named by another, as a reference without cascade refuses its removal. */
+  foreignKeyViolation: '23503',
   insufficientPrivilege: '42501',
   /** How every trigger of the migrations refuses a change (refuse()). */
   objectNotInPrerequisiteState: '55000',

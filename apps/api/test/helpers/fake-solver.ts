@@ -6,7 +6,7 @@
 // a solver that is gone.
 
 import { createServer, type Server } from 'node:http'
-import type { SolveRequest, SolveResponse } from '@school-allocation/school-core'
+import { ALLOCATION_CONTRACT, type SolveRequest, type SolveResponse } from '@school-allocation/school-core'
 
 export interface FakeSolver {
   baseUrl: string
@@ -24,7 +24,7 @@ export async function startFakeSolver(): Promise<FakeSolver> {
   const server: Server = createServer((req, res) => {
     if (req.method === 'GET' && req.url === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' })
-      res.end(JSON.stringify({ status: 'ok', ortools: FAKE_VERSIONS.ortools, contract: 'allocation/v1' }))
+      res.end(JSON.stringify({ status: 'ok', ortools: FAKE_VERSIONS.ortools, contract: ALLOCATION_CONTRACT }))
       return
     }
     if (req.method !== 'POST' || req.url !== '/v1/solve') {
@@ -61,7 +61,7 @@ export async function startFakeSolver(): Promise<FakeSolver> {
   return fake
 }
 
-/** The options with a place by wish number (the cost per minute) and then the longer first, day by day, fixed pairs first; a cancellable item below its minimum is cancelled and its takers lose it. */
+/** The options with a place by wish number (the cost per minute) and then the longer first, day by day, fixed pairs first, then the cheapest options toward each rule still open; a cancellable item below its minimum is cancelled and its takers lose it. */
 export function greedySolve(request: SolveRequest): SolveResponse {
   const remaining = new Map(request.items.map((item) => [item.o, item.max]))
   const conflicts = new Set(request.conflicts.map(([a, b]) => `${Math.min(a, b)}:${Math.max(a, b)}`))
@@ -88,6 +88,18 @@ export function greedySolve(request: SolveRequest): SolveResponse {
         assign.add(key(student.s, option.o))
       }
     }
+    for (const rule of student.rules) {
+      let have = rule.amounts.filter((a) => taken.includes(a.o)).reduce((sum, a) => sum + a.n, 0)
+      const cost = (o: number) => student.options.find((op) => op.o === o)?.cost ?? 0
+      for (const amount of [...rule.amounts].sort((a, b) => cost(a.o) - cost(b.o) || a.o - b.o)) {
+        if (have >= rule.need) break
+        if (taken.includes(amount.o) || (remaining.get(amount.o) ?? 0) <= 0 || taken.some((t) => clash(t, amount.o))) continue
+        taken.push(amount.o)
+        remaining.set(amount.o, (remaining.get(amount.o) ?? 0) - 1)
+        assign.add(key(student.s, amount.o))
+        have += amount.n
+      }
+    }
   }
   const cancelled: number[] = []
   for (const item of request.items) {
@@ -110,9 +122,15 @@ function evaluate(request: SolveRequest, name: string, assign: ReadonlySet<strin
   })
   if (name === 'students_with_deficit') return request.students.filter((st) => deficits(st).some((d) => d > 0)).length
   if (name === 'deficit_minutes') return request.students.reduce((sum, st) => sum + deficits(st).reduce((a, b) => a + b, 0), 0)
+  const ruleMissing = (student: SolveRequest['students'][number]) => student.rules.map((rule) => ({ unit: rule.unit, missing: Math.max(0, rule.need - rule.amounts.filter((a) => assign.has(`${student.s}:${a.o}`)).reduce((sum, a) => sum + a.n, 0)) }))
+  if (name === 'students_missing_rule') return request.students.filter((st) => ruleMissing(st).some((r) => r.missing > 0)).length
+  if (name === 'rule_missing_items' || name === 'rule_missing_minutes') {
+    const unit = name === 'rule_missing_items' ? 'items' : 'minutes'
+    return request.students.reduce((sum, st) => sum + ruleMissing(st).filter((r) => r.unit === unit).reduce((a, r) => a + r.missing, 0), 0)
+  }
   if (name === 'total_cost') return request.students.reduce((sum, st) => sum + costOf(st.s), 0)
   if (name === 'tiebreak') return request.students.reduce((sum, st) => sum + st.options.filter((op) => assign.has(`${st.s}:${op.o}`)).reduce((a, op) => a + op.tie, 0), 0)
-  // A threshold is an average rank: Σ rank · minutes · 1000 > t · norm, exactly, as the compiler and the validator count it.
+  // A threshold is an average rank: Σ rank · minutes · 1000 > t · norm, exactly, as the compiler and the validator count it; a student with no minutes to cover (only a rule) has none.
   const threshold = Number(name.slice('over:'.length))
-  return request.students.filter((st) => st.options.filter((op) => assign.has(`${st.s}:${op.o}`)).reduce((sum, op) => sum + op.weight, 0) * 1000 > threshold * st.norm).length
+  return request.students.filter((st) => st.norm > 0).filter((st) => st.options.filter((op) => assign.has(`${st.s}:${op.o}`)).reduce((sum, op) => sum + op.weight, 0) * 1000 > threshold * st.norm).length
 }

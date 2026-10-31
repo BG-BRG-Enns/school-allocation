@@ -34,6 +34,7 @@ export const HANDBOOKS: readonly Handbook[] = [
       ['', 'Überblick', 'Overview'],
       ['anlegen', 'Anlegen und Katalog', 'Setting up and the catalogue'],
       ['einstellungen', 'Einstellungen', 'Settings'],
+      ['kategorien-und-regeln', 'Kategorien und Regeln', 'Categories and rules'],
       ['anmeldung', 'Während der Anmeldung', 'During registration'],
       ['zuteilung', 'Zuteilung', 'Allocation'],
       ['nach-der-veroeffentlichung', 'Nach der Veröffentlichung', 'After publication'],

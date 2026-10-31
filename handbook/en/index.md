@@ -24,7 +24,7 @@ features:
 
 ## Which handbook?
 
-SchulWahl allocates a school's students to the activities of its project week: teachers propose activities, students register with their choices, and the organisation calculates an allocation that follows every rule.
+SchulWahl allocates a school's students to the activities of its project week: teachers propose activities, students register with their choices, and the organisation calculates an allocation that meets every condition.
 
 - If you have the **Administration** role at the school, read the [Administration](/en/verwaltung/) handbook.
 - If you **organise** registrations, read the [Organisation](/en/organisation/) handbook.

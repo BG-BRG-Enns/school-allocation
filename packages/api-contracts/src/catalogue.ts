@@ -2,10 +2,10 @@
 // (sessions on project days, places against the minimum, who may rank)
 // are school-core's checkItem, applied after these.
 
-import { CLASS_NAME, GRADES } from '@school-allocation/school-core'
+import { CLASS_NAME, GRADES, MAX_RULES, RULE_LIMITS, RULE_PROBLEM_CODES, RULE_UNITS } from '@school-allocation/school-core'
 import { Type } from 'typebox'
 import { CatalogueProblemSchema } from './campaigns.ts'
-import { MultiLineText, SingleLineText, StrictObject, Uuid } from './common.ts'
+import { Literals, MultiLineText, SingleLineText, StrictObject, Uuid } from './common.ts'
 
 export const LocalDate = Type.String({ pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' })
 const ClassName = Type.String({ pattern: CLASS_NAME.source, maxLength: 16 })
@@ -21,6 +21,20 @@ export const CampaignBody = StrictObject({
 })
 
 const InstantOrNull = Type.Union([Instant, Type.Null()])
+
+/** A rule as the settings send it (school-core CampaignRule without its id); checkRules holds it to the school's categories. */
+export const RuleBody = StrictObject({
+  categoryId: Uuid,
+  grades: Type.Array(Grade, { minItems: 1, maxItems: 13 }),
+  /** Limits it to these classes of the grades; empty for every class. */
+  classes: Type.Array(ClassName, { maxItems: 40 }),
+  unit: Literals(RULE_UNITS),
+  minimum: Type.Integer({ minimum: 1, maximum: Math.max(...Object.values(RULE_LIMITS)) }),
+})
+
+/** Why a list of rules was refused: school-core's codes, with the rule's position. */
+export const RuleProblemSchema = StrictObject({ code: Literals(RULE_PROBLEM_CODES), rule: Type.Optional(Type.Integer()) })
+export const RulesInvalidResponse = StrictObject({ error: Type.Literal('rules_invalid'), problems: Type.Array(RuleProblemSchema) })
 
 export const CampaignChangesBody = StrictObject({
   name: SingleLineText(200),
@@ -40,6 +54,8 @@ export const CampaignChangesBody = StrictObject({
   reminderDays: Type.Optional(Type.Integer({ minimum: 0, maximum: 14 })),
   /** Places beyond the need the demand aims for, in percent. */
   placeHeadroomPercent: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
+  /** What the registration asks per category; the list replaces the one before. */
+  rules: Type.Optional(Type.Array(RuleBody, { maxItems: MAX_RULES })),
 })
 
 export const PeriodBody = StrictObject({
@@ -85,6 +101,8 @@ export const ItemBody = StrictObject({
   eligibleClasses: Type.Optional(Type.Array(ClassName, { maxItems: 40 })),
   teachers: Type.Array(Uuid, { maxItems: 8 }),
   sessions: Type.Array(SessionBody, { maxItems: 10 }),
+  /** The school's categories it belongs to; left out, it keeps the ones it has. */
+  categories: Type.Optional(Type.Array(Uuid, { maxItems: 10 })),
 })
 
 export const NoteBody = StrictObject({ note: MultiLineText(1000, 1) })
@@ -100,5 +118,6 @@ export const ItemInvalidResponse = StrictObject({
 export type ItemInput = import('typebox').Static<typeof ItemBody>
 export type SessionInput = import('typebox').Static<typeof SessionBody>
 export type CampaignChanges = import('typebox').Static<typeof CampaignChangesBody>
+export type RuleInput = import('typebox').Static<typeof RuleBody>
 
 export const TeachersQuery = StrictObject({ q: Type.Optional(Type.String({ maxLength: 100 })) })

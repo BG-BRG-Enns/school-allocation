@@ -1,4 +1,4 @@
-import { ApplicationError, type ApplicationErrorCode, ChoiceInvalid, ItemInvalid, PeriodsInvalid, TemplateInvalid } from './errors.ts'
+import { ApplicationError, type ApplicationErrorCode, ChoiceInvalid, ItemInvalid, PeriodsInvalid, RulesInvalid, TemplateInvalid } from './errors.ts'
 
 /** Every new application code must choose its HTTP status at compile time. */
 export const APPLICATION_ERROR_STATUS = {
@@ -15,6 +15,9 @@ export const APPLICATION_ERROR_STATUS = {
   cancelled_mismatch: 409,
   cannot_block_self: 409,
   cannot_revoke_self: 409,
+  category_exists: 409,
+  category_in_use: 409,
+  category_unknown: 422,
   class_unknown: 404,
   coverage_lost: 422,
   csv_invalid: 422,
@@ -54,12 +57,14 @@ export const APPLICATION_ERROR_STATUS = {
   retention_not_reached: 409,
   run_in_progress: 409,
   run_not_publishable: 409,
+  rule_lost: 422,
   run_stale: 409,
   sessions_outside_days: 409,
   solver_off: 409,
   swap_closed: 409,
   swap_order: 422,
   teacher_unknown: 422,
+  too_many_categories: 409,
   transition_not_available: 409,
   validation_failed: 400,
   window_order: 422,
@@ -69,6 +74,7 @@ export const APPLICATION_ERROR_STATUS = {
 export function applicationFailure(error: unknown): { status: number, body: object } | undefined {
   if (error instanceof ItemInvalid) return { status: 422, body: { error: 'item_invalid', problems: error.problems, unknownTeachers: error.unknownTeachers } }
   if (error instanceof ChoiceInvalid) return { status: 422, body: { error: 'ranking_invalid', problems: error.problems } }
+  if (error instanceof RulesInvalid) return { status: 422, body: { error: 'rules_invalid', problems: error.problems } }
   if (error instanceof PeriodsInvalid) return { status: 422, body: { error: 'period_grid_invalid', problems: error.problems } }
   if (error instanceof TemplateInvalid) return { status: 422, body: { error: 'template_invalid', problems: error.problems } }
   if (!(error instanceof ApplicationError)) return undefined

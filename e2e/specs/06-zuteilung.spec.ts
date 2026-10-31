@@ -38,6 +38,10 @@ test('die Nachfrist beginnt zu ihrer Zeit, die Organisation beendet sie und bere
   await expect(page.getByRole('row', { name: new RegExp(literally(t.labels.level.students_with_deficit)) })).toContainText(t.allocation.review.proven)
   await expect(page.getByRole('heading', { name: t.allocation.review.items, exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: new RegExp(literally(t.allocation.review.studentList(2))) })).toBeVisible()
+  // Climbing, the one sport activity, has too few for its minimum: both students miss the rule, which the review counts after the minutes.
+  await expect(page.getByRole('row', { name: new RegExp(literally(t.labels.level.students_missing_rule)) })).toContainText('2')
+  await expect(page.getByText(`${t.rules.asks(sample.sport, 1, 'items')} · ${t.rules.scope([9], [])}: ${t.allocation.review.ruleMet(0, 2)}`)).toBeVisible()
+  await expect(page.getByRole('heading', { name: t.allocation.review.ruleGaps(2) })).toBeVisible()
   await shot(page, '29-zuteilung')
   await picture(page, 'zuteilung-pruefen', [page.getByRole('heading', { name: t.allocation.review.heading(1) }), page.getByRole('heading', { name: t.allocation.review.levels }).locator('xpath=following-sibling::p[1]')])
   // The same seed again is the same allocation, which the comparison says.
@@ -82,6 +86,8 @@ test('die Organisation veröffentlicht die Berechnung; die Schülerin sieht ihre
   // Climbing needs six and two wanted it: cancelled by the run, so Sara has her days still to fill, which the page says.
   await expect(page.getByText(new RegExp(literally(t.result.deficit(240)))).first()).toBeVisible()
   await expect(page.getByRole('heading', { name: t.result.explanation.heading })).toBeVisible()
+  await expect(section(page, t.result.rules)).toContainText(t.rules.missing(1, 'items'))
+  await expect(section(page, t.result.rules)).toContainText(t.result.ruleMissing)
   await shot(page, '32-mein-ergebnis')
   await picture(page, 'meine-einteilung', page.locator('main'))
   await signOut(page)
@@ -91,6 +97,7 @@ test('die Organisation veröffentlicht die Berechnung; die Schülerin sieht ihre
   await page.getByRole('link', { name: t.campaign.myClass('5A') }).click()
   await expect(page.getByRole('heading', { name: t.schoolClass.unplaced.heading(2) })).toBeVisible()
   await expect(page.getByRole('listitem').filter({ hasText: SARA.name }).first()).toContainText(anyCount(t.schoolClass.unplaced.minutesMissing))
+  await expect(page.getByRole('listitem').filter({ hasText: SARA.name }).first()).toContainText(t.schoolClass.unplaced.ruleMissing(sample.sport, t.rules.missing(1, 'items')))
   await shot(page, '33-klasse-plaetze')
   await signOut(page)
 })

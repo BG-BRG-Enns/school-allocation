@@ -1,5 +1,5 @@
 // The administration's API, typed as the server answers it
-// (apps/api/routes/admin-roster.ts, admin-users.ts).
+// (apps/api/routes/admin-roster.ts, admin-users.ts, categories.ts).
 
 import type { MailKind, Role } from '@school-allocation/api-contracts'
 import { endpointPath } from '@school-allocation/api-contracts/client-endpoint'
@@ -48,5 +48,10 @@ export const bindAccount = (userId: string, personId: string, reason: string) =>
 export const loadGrants = () => apiRequest(endpoints.getAdminRoles, { })
 export const grantRole = (userId: string, role: Role, reason: string) => apiRequest(endpoints.postAdminRoles, { body: { userId, role, reason } })
 export const revokeGrant = (id: string, reason: string) => apiRequest(endpoints.postAdminRolesByIdRevoke, { params: { id: id }, body: { reason } })
+export type { Category, CategoryUsage } from '@school-allocation/api-contracts'
+export const loadCategoryUsage = () => apiRequest(endpoints.getAdminCategories, { })
+export const createCategory = (name: string) => apiRequest(endpoints.postAdminCategories, { body: { name } })
+export const renameCategory = (id: string, name: string) => apiRequest(endpoints.patchAdminCategoriesById, { params: { id }, body: { name } })
+export const removeCategory = (id: string) => apiRequest(endpoints.deleteAdminCategoriesById, { params: { id } })
 export const loadRetention = () => apiRequest(endpoints.getAdminRetention, { })
 export const purgeSchoolYear = (schoolYear: string, reason: string) => apiRequest(endpoints.postAdminPurge, { body: { schoolYear, reason } })

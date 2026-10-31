@@ -10,7 +10,7 @@ Unter **Meine Einteilung ansehen** sehen Schüler\*innen je Projekttag ihre Akti
 
 ![Tauschen: die Aktivitäten mit freien Plätzen, eine volle, und bei jeder, was man dafür verlässt, mit dem Knopf Wechseln](/bilder/de/tauschen.png)
 
-Während der [Tauschzeit](./einstellungen#tauschzeit) können Schüler\*innen in eine Aktivität mit freien Plätzen wechseln. Wer zuerst kommt, bekommt den Platz. Eine Aktivität der ganzen Klasse bleibt, und nach dem Tausch darf niemandem mehr Zeit fehlen als vorher. Die Seite zeigt bei jeder Aktivität, was man dafür verlässt, oder warum es nicht geht, etwa „voll“. Ein Tausch gilt sofort und wird per E-Mail bestätigt.
+Während der [Tauschzeit](./einstellungen#tauschzeit) können Schüler\*innen in eine Aktivität mit freien Plätzen wechseln. Wer zuerst kommt, bekommt den Platz. Eine Aktivität der ganzen Klasse bleibt, nach dem Tausch darf niemandem mehr Zeit fehlen als vorher, und eine [Regel](./kategorien-und-regeln) der Anmeldung darf danach nicht weniger erfüllt sein. Die Seite zeigt bei jeder Aktivität, was man dafür verlässt, oder warum es nicht geht, etwa „voll“. Ein Tausch gilt sofort und wird per E-Mail bestätigt.
 
 ## Die Klassenvorstände teilen ein
 
@@ -22,7 +22,7 @@ Wem nach der Veröffentlichung an einem Tag Minuten fehlen, den teilt der Klasse
 
 Auf der Seite **Zuteilung** stehen unter **Veröffentlicht** alle **Änderungen seit der Veröffentlichung**: jeder Tausch, jede Einteilung durch einen Klassenvorstand und jede Änderung von Hand, mit Zeitpunkt, Begründung und wer sie gemacht hat.
 
-Darunter änderst du die Einteilung selbst: Wähle die Person, die Aktivität, von der du sie **abmeldest**, und die, in die du sie **einteilst** (eins von beiden genügt), schreib eine Begründung und klicke **Ändern**. Es gelten dieselben Regeln wie beim Tausch: freie Plätze, die passende Schulstufe, keine Überschneidung mit dem, was bleibt, und eine Klassenaktivität bleibt immer. Eine volle Aktivität oder eine Mindestzahl darfst du übergehen, mit dem Häkchen **Auch wenn die Aktivität voll ist oder dann zu wenige bleiben**; die Tabelle vermerkt das mit „trotzdem“. Die Person bekommt eine E-Mail.
+Darunter änderst du die Einteilung selbst: Wähle die Person, die Aktivität, von der du sie **abmeldest**, und die, in die du sie **einteilst** (eins von beiden genügt), schreib eine Begründung und klicke **Ändern**. Es gilt dasselbe wie beim Tausch: freie Plätze, die passende Schulstufe, keine Überschneidung mit dem, was bleibt, und eine Klassenaktivität bleibt immer. Eine volle Aktivität, eine Mindestzahl oder eine Regel der Anmeldung darfst du übergehen, mit dem Häkchen **Auch wenn die Aktivität voll ist, dann zu wenige bleiben oder eine Regel nicht mehr erfüllt ist**; die Tabelle vermerkt das mit „trotzdem“. Die Person bekommt eine E-Mail.
 
 ## Aktivitäten nach der Veröffentlichung
 

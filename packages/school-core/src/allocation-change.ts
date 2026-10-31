@@ -7,6 +7,7 @@
 
 import { creditedMinutesByDate, isEligible, overlaps } from './catalogue.ts'
 import type { AllocationInput, AllocationItem, AllocationStudent, Assignment, AssignmentSource } from './allocation-model.ts'
+import { ruleStandings, type RuleStanding } from './rules.ts'
 
 /**
  * Why a move is refused: the target is not one the student may enter (not
@@ -15,10 +16,11 @@ import type { AllocationInput, AllocationItem, AllocationStudent, Assignment, As
  * full; an item left is not theirs; a class activity would be left; an
  * item left would drop under its minimum; the target overlaps an item they
  * keep; a project day would end up with more minutes missing than before;
- * a move that leaves nothing fills no gap (a seat taken on a day already
- * covered).
+ * a rule the student meets, or is closer to, would fall short (the
+ * organizer may override that); a move that leaves nothing fills no gap
+ * (a seat taken on a day already covered, for no rule still open).
  */
-export const MOVE_PROBLEM_CODES = ['not_offered', 'already_placed', 'item_full', 'not_placed', 'leaves_fixed', 'below_minimum', 'overlap', 'coverage_lost', 'fills_nothing'] as const
+export const MOVE_PROBLEM_CODES = ['not_offered', 'already_placed', 'item_full', 'not_placed', 'leaves_fixed', 'below_minimum', 'overlap', 'coverage_lost', 'rule_lost', 'fills_nothing'] as const
 export type MoveProblemCode = typeof MOVE_PROBLEM_CODES[number]
 
 export interface MoveProblem {
@@ -37,7 +39,7 @@ export interface Move {
 export interface MoveOptions {
   /** Items nobody enters now: cancelled by the run, withdrawn since. */
   unavailable?: ReadonlySet<string>
-  /** The organizer's override of a full item and of an item's minimum, on their responsibility; never of the other rules. */
+  /** The organizer's override of a full item, an item's minimum and a rule falling short, on their responsibility; never of the other rules. */
   force?: boolean
 }
 
@@ -80,6 +82,12 @@ function deficits(input: AllocationInput, student: AllocationStudent, itemIds: r
   return new Map(input.projectDays.map((date) => [date, Math.max(0, minimum - (credited.get(date) ?? 0))]))
 }
 
+/** The campaign's rules for the student over their items. */
+function standings(input: AllocationInput, student: AllocationStudent, itemIds: readonly string[]): RuleStanding[] {
+  const items = new Map(input.items.map((i) => [i.id, i]))
+  return ruleStandings(input.rules, student, itemIds.map((id) => items.get(id)).filter((item): item is AllocationItem => item !== undefined), input.projectDays)
+}
+
 /** Whether the student may enter the item at all: approved and not cancelled, eligible for them, no class activity of theirs and overlapping none. */
 function offered(input: AllocationInput, student: AllocationStudent, item: AllocationItem | undefined, unavailable: ReadonlySet<string>): item is AllocationItem {
   if (item === undefined || unavailable.has(item.id) || !isEligible(student, item.rules)) return false
@@ -114,6 +122,8 @@ export function checkMove(input: AllocationInput, assignments: readonly Assignme
     }
   }
   const kept = mine.filter((a) => !move.leaves.includes(a.itemId))
+  // A removal alone (the organizer's, for a student who is ill or leaves) may cost minutes and rules: the student is
+  // out of the item either way, and the review and the class page show the gap. A move into an item may not.
   if (move.toItemId !== null) {
     const target = items.get(move.toItemId)
     if (!offered(input, student, target, unavailable)) {
@@ -126,8 +136,17 @@ export function checkMove(input: AllocationInput, assignments: readonly Assignme
       const before = deficits(input, student, mine.map((a) => a.itemId))
       const after = deficits(input, student, [...kept.map((a) => a.itemId), move.toItemId])
       if (input.projectDays.some((date) => (after.get(date) ?? 0) > (before.get(date) ?? 0))) problems.push({ code: 'coverage_lost', itemId: move.toItemId })
-      // Into a gap means into a gap: with nothing left, the target must bring a day closer to its minimum.
-      if (move.leaves.length === 0 && !input.projectDays.some((date) => (after.get(date) ?? 0) < (before.get(date) ?? 0))) problems.push({ code: 'fills_nothing', itemId: move.toItemId })
+      // Rules in the same order before and after: one that falls short and loses ground is lost.
+      const rulesBefore = standings(input, student, mine.map((a) => a.itemId))
+      const rulesAfter = standings(input, student, [...kept.map((a) => a.itemId), move.toItemId])
+      if (!force && rulesAfter.some((r, i) => !r.met && r.have < (rulesBefore[i]?.have ?? 0))) problems.push({ code: 'rule_lost', itemId: move.toItemId })
+      // Into a gap means into a gap: with nothing left, the target must bring a day closer to its minimum or an open rule closer to its own.
+      const dayCloser = input.projectDays.some((date) => (after.get(date) ?? 0) < (before.get(date) ?? 0))
+      const ruleCloser = rulesAfter.some((r, i) => {
+        const was = rulesBefore[i]
+        return was !== undefined && !was.met && r.have > was.have
+      })
+      if (move.leaves.length === 0 && !dayCloser && !ruleCloser) problems.push({ code: 'fills_nothing', itemId: move.toItemId })
     }
   }
   return problems

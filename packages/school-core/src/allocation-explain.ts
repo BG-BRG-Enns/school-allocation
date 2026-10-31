@@ -1,12 +1,14 @@
 // What a result means to one student and to the organizer (docs/domain-and-api.md
 // §5, "Explanation per student"; the review screen of docs/mvp-plan.md S4):
 // the items with their wish numbers, the minutes per day against the
-// requirement, the deficits, and the numbers of a run. Computed from the
+// requirement, the deficits, each rule with what it asks and what the items
+// bring, and the numbers of a run. Computed from the
 // stored assignment rows, so a published run reads the same years later.
 // Data only: the German sentences are the pages'.
 
 import { creditedMinutesByDate } from './catalogue.ts'
 import type { AllocationInput, AllocationItem, Assignment, AssignmentSource, SubmissionWindow } from './allocation-model.ts'
+import { ruleStandings, type RuleStanding } from './rules.ts'
 
 export interface ExplainedItem {
   itemId: string
@@ -32,6 +34,8 @@ export interface StudentExplanation {
   days: ExplainedDay[]
   /** The minutes-weighted average wish number over the chosen items (a fallback counts as cap + 1); null without any. */
   averageRank: number | null
+  /** The campaign's rules applying to the student, with what their items (class activities included) bring. */
+  rules: RuleStanding[]
 }
 
 const byText = (a: string, b: string) => a.localeCompare(b, 'en')
@@ -63,7 +67,8 @@ export function explainStudent(input: AllocationInput, assignments: readonly Ass
   const weight = (e: ExplainedItem) => Object.values(e.minutesByDate).reduce((sum, m) => sum + m, 0)
   const total = chosen.reduce((sum, e) => sum + weight(e), 0)
   const averageRank = total === 0 ? null : chosen.reduce((sum, e) => sum + (e.rank ?? input.wishesPerGroup + 1) * weight(e), 0) / total
-  return { personId, window: student.savedIn, items: explained, days, averageRank }
+  const rules = ruleStandings(input.rules, student, mine.map((a) => items.get(a.itemId)).filter((item): item is AllocationItem => item !== undefined), input.projectDays)
+  return { personId, window: student.savedIn, items: explained, days, averageRank, rules }
 }
 
 export interface ClassSummary {
@@ -71,6 +76,15 @@ export interface ClassSummary {
   students: number
   withDeficit: number
   withFallback: number
+  /** Students missing at least one rule. */
+  missingRule: number
+}
+
+/** A rule over the run: how many students it applies to and how many meet it. */
+export interface RuleSummary {
+  ruleId: string
+  students: number
+  met: number
 }
 
 export interface ItemSummary {
@@ -93,6 +107,8 @@ export interface AllocationSummary {
     covered: number
     withDeficit: number
     withFallback: number
+    /** Students missing at least one rule. */
+    missingRule: number
     late: number
     nonSubmitters: number
   }
@@ -102,6 +118,9 @@ export interface AllocationSummary {
   items: ItemSummary[]
   deficits: { personId: string, date: string, minutes: number }[]
   fallbacks: { personId: string, itemId: string }[]
+  rules: RuleSummary[]
+  /** Every student and rule they miss, with how many activities or minutes are missing. */
+  ruleGaps: { personId: string, ruleId: string, missing: number }[]
 }
 
 /** The numbers of a run, from its stored rows. */
@@ -111,10 +130,12 @@ export function summarizeAllocation(input: AllocationInput, assignments: readonl
   const deficits: AllocationSummary['deficits'] = []
   const fallbacks: AllocationSummary['fallbacks'] = []
   const classes = new Map<string, ClassSummary>()
-  const students = { total: input.students.length, choosing: 0, covered: 0, withDeficit: 0, withFallback: 0, late: 0, nonSubmitters: 0 }
+  const students = { total: input.students.length, choosing: 0, covered: 0, withDeficit: 0, withFallback: 0, missingRule: 0, late: 0, nonSubmitters: 0 }
+  const rules = new Map<string, RuleSummary>(input.rules.map((rule) => [rule.id, { ruleId: rule.id, students: 0, met: 0 }]))
+  const ruleGaps: AllocationSummary['ruleGaps'] = []
   for (const student of [...input.students].sort((a, b) => byText(a.className, b.className) || byText(a.personId, b.personId))) {
     const explanation = explainStudent(input, assignments, student.personId) as StudentExplanation
-    const summary = classes.get(student.className) ?? { className: student.className, students: 0, withDeficit: 0, withFallback: 0 }
+    const summary = classes.get(student.className) ?? { className: student.className, students: 0, withDeficit: 0, withFallback: 0, missingRule: 0 }
     summary.students += 1
     classes.set(student.className, summary)
     const fixedMinutes = creditedMinutesByDate(student.fixedItemIds.flatMap((id) => input.items.find((item) => item.id === id)?.sessions ?? []))
@@ -141,6 +162,16 @@ export function summarizeAllocation(input: AllocationInput, assignments: readonl
       students.withFallback += 1
       summary.withFallback += 1
     }
+    for (const standing of explanation.rules) {
+      const rule = rules.get(standing.ruleId) as RuleSummary
+      rule.students += 1
+      if (standing.met) rule.met += 1
+      else ruleGaps.push({ personId: student.personId, ruleId: standing.ruleId, missing: standing.minimum - standing.have })
+    }
+    if (explanation.rules.some((r) => !r.met)) {
+      students.missingRule += 1
+      summary.missingRule += 1
+    }
   }
   const cancelledSet = new Set(cancelled)
   const items: ItemSummary[] = [...input.items].sort((a, b) => byText(a.id, b.id)).map((item) => ({
@@ -151,5 +182,5 @@ export function summarizeAllocation(input: AllocationInput, assignments: readonl
     minimum: item.rules.fixedClasses.length > 0 ? 0 : item.rules.minParticipants,
     cancelled: cancelledSet.has(item.id),
   }))
-  return { students, ranks, classes: [...classes.values()], items, deficits, fallbacks }
+  return { students, ranks, classes: [...classes.values()], items, deficits, fallbacks, rules: [...rules.values()], ruleGaps }
 }
