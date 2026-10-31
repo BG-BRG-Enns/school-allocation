@@ -1,3 +1,4 @@
+-- schema-version: 1
 -- The school's language and the mail templates' defaults (mvp-plan S6d):
 -- the pages, the workbooks and the notices speak the language an
 -- administrator sets here, one of the message catalogue's (packages/messages
@@ -5,9 +6,9 @@
 -- language rather than a seeded row. A row of mail_template is now what an
 -- organizer saved, kept with the language it was written in; removing it
 -- is the reset to the default. The placeholders take English names, as
--- code does. Nothing of S6d has been released, so this migration need not
--- carry an older release's code. No grants here: the migrator applies
--- apps/api/lib/runtime-privileges.ts.
+-- code does. A release before it reads the seeded rows this removes, so
+-- it raises the schema version (AGENTS.md). No grants here: the migrator
+-- applies apps/api/lib/runtime-privileges.ts.
 
 -- One row, the school's: its language, and who set it last. The audit log
 -- keeps every change with who made it, so the retention purge may remove

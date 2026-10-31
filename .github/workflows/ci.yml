@@ -144,7 +144,9 @@ jobs:
   # database, the sign-in stand-in and Chromium: what the unit, API and
   # web tests cannot see. Same launcher for PostgreSQL as the tests. Once
   # under a path of the host and once at its root, the two ways a school
-  # exposes the app (deploy/README.md).
+  # exposes the app (deploy/README.md), and in the two complete languages:
+  # German under the path, English at the root. Formal German is the
+  # catalogue tests' (packages/messages/test/register.test.ts).
   e2e:
     name: Browser journeys (${{ matrix.mode }})
     if: github.event_name != 'push'
@@ -155,12 +157,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - mode: under /wahl
+          - mode: under /wahl, German
             slug: path
             base_path: /wahl
-          - mode: at the root
+            locale: de
+          - mode: at the root, English
             slug: root
             base_path: ''
+            locale: en
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -192,6 +196,7 @@ jobs:
         env:
           TEST_DATABASE_URL: postgres://postgres:ci-owner-password@127.0.0.1:5432/postgres
           E2E_BASE_PATH: ${{ matrix.base_path }}
+          E2E_LOCALE: ${{ matrix.locale }}
 
       # What a failed journey leaves behind: the report, traces and videos.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
