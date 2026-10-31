@@ -222,6 +222,6 @@ test('the class teacher places a student short of minutes into a gap; the organi
   assert.equal(changed.rows.length, 5)
   assert.match(changed.rows[1]?.body ?? '', /von der Organisation geändert: statt .*Tanz jetzt .*Klettern/)
   assert.match(changed.rows[4]?.body ?? '', /nicht mehr .*Tanz/)
-  assert.match(changed.rows[3]?.body ?? '', /Tanz – Beitrag 3,00 €/, 'the fee the run froze, not the 99 € of today')
+  assert.match(changed.rows[3]?.body ?? '', /Tanz – Kosten: 3,00 €/, 'the fee the run froze, not the 99 € of today')
   assert.doesNotMatch(changed.rows[4]?.body ?? '', /99,00/)
 })

@@ -1,6 +1,6 @@
-// Stammdaten: die Administratorin importiert die Personenliste, aus einer
+// Klassenlisten: die Administratorin liest die Klassenlisten ein, aus einer
 // CSV-Datei und aus den Entra-Gruppen, prüft die Änderungen und übernimmt
-// sie; wer in der Liste steht, ist nach der Anmeldung zugeordnet, wer nicht,
+// sie; wer in der Liste steht, ist nach dem Einloggen zugeordnet, wer nicht,
 // wird von der Administratorin zugeordnet; Rollen werden erteilt.
 
 import { expect, test } from '../support/test.ts'
@@ -105,7 +105,7 @@ test('die Administratorin erteilt eine Rolle, die beim nächsten Seitenaufruf gi
   await signOut(page)
 })
 
-test('die Administratorin liest die Personenliste aus den Entra-Gruppen mit ihrem eigenen Konto', async ({ page }) => {
+test('die Administratorin liest die Klassenlisten aus den Entra-Gruppen mit ihrem eigenen Konto', async ({ page }) => {
   await openAs(page, ANNA, '/verwaltung/stammdaten')
   await page.getByRole('button', { name: t.roster.groups.add }).click()
   await page.getByLabel(t.roster.groups.fieldOf(t.roster.groups.id, t.roster.groups.newGroup)).fill(CLASS_5A_GROUP)

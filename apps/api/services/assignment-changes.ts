@@ -9,6 +9,7 @@
 
 import { applyMove, checkMove, explainStudent, leavesForSwap, type Assignment, type Move, type MoveProblem } from '@school-allocation/school-core'
 import type { AssignmentChange, ChangeKind } from '@school-allocation/api-contracts/publication'
+import type { Messages } from '@school-allocation/messages'
 import { actorOf, type Actor, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
 import * as store from '../lib/dao/allocation.ts'
@@ -17,7 +18,7 @@ import { campaignStudent, campaignStudents } from '../lib/dao/choices.ts'
 import { listCampaignItems } from '../lib/dao/items.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
-import { t } from '../lib/i18n.ts'
+import { schoolWords } from '../lib/i18n.ts'
 import { enqueueMail } from '../lib/mail/outbox.ts'
 import type { StoredChange, StoredRun } from '../lib/models/allocation.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
@@ -26,7 +27,7 @@ import type { Item } from '../lib/models/items.ts'
 import type { WindowContext } from '../lib/models/window.ts'
 import { isOrganizer } from '../lib/policies.ts'
 import { readTemplate, renderTemplate } from './mail-templates.ts'
-import { itemLabel, programmeLines, swapWindowOpen, unavailableItems } from './publication.ts'
+import { itemLabel, programmeWriter, swapWindowOpen, unavailableItems } from './publication.ts'
 import { firstNameOf } from './window.ts'
 
 /** The campaign locked with its published run and the rows as they stand; what every change starts from. */
@@ -72,24 +73,30 @@ async function write(client: Queryable, locked: Locked, move: Move, kind: Change
   return change
 }
 
-/** Tells the student, once per change: their programme as it is now, and for a change by hand who changed what. */
-async function notify(client: Queryable, context: WindowContext, locked: Locked, student: CampaignStudent, move: Move, changeId: string, by: { wer: string, aenderung: string } | null): Promise<void> {
+/**
+ * Tells the student, once per change, in the school's language as the
+ * change's transaction reads it: their programme as it is now, and for a
+ * change by hand who changed it (the class teacher or the organization) and
+ * what changed.
+ */
+async function notify(client: Queryable, context: WindowContext, locked: Locked, student: CampaignStudent, move: Move, changeId: string, by: 'classTeacher' | 'organizer' | null): Promise<void> {
   if (student.address === null) return
+  const words = await schoolWords(client)
   const kind = by === null ? 'swap_confirmed' : 'assignment_changed'
   const after = applyMove(locked.rows, move, by === null ? 'swap' : 'manual')
   const explanation = explainStudent(locked.run.snapshot, after, student.personId)
-  const template = await readTemplate(client, kind)
+  const template = await readTemplate(client, kind, words.locale)
   const { subject, body } = renderTemplate(template, {
-    vorname: firstNameOf(student.displayName), name: student.displayName, wahl: locked.campaign.name,
+    first_name: firstNameOf(student.displayName), name: student.displayName, campaign: locked.campaign.name,
     link: `${context.baseUrl}/wahlen/${locked.campaign.id}/ergebnis`,
-    zuteilung: explanation ? programmeLines(explanation, locked.items).join('\n') || '–' : '–',
-    ...(by ?? {}),
+    programme: explanation ? programmeWriter(words).lines(explanation, locked.items).join('\n') || '–' : '–',
+    ...(by === null ? {} : { changed_by: words.t.notices.changedBy[by], change: changeText(words.t, locked, move) }),
   })
   await enqueueMail(client, { kind, campaignId: locked.campaign.id, personId: student.personId, to: student.address, subject, body, dedupeKey: `${kind}:${locked.campaign.id}:${changeId}` })
 }
 
 /** What a change by hand did, in the student's notice: the item entered, the item left, or both. */
-function changeText(locked: Locked, move: Move): string {
+function changeText(t: Messages, locked: Locked, move: Move): string {
   const label = (id: string) => {
     const item = locked.items.get(id)
     return item ? itemLabel(item) : '?'
@@ -143,7 +150,7 @@ export async function placeStudent(db: Database, context: WindowContext, campaig
     refuse(checkMove(locked.run.snapshot, locked.rows, move, { unavailable: locked.unavailable }))
     const actor = actorOf(caller)
     const change = await write(client, locked, move, 'place', reason, false, actor)
-    await notify(client, context, locked, student, move, change.id, { wer: asClassTeacher ? t.notices.changedBy.classTeacher : t.notices.changedBy.organizer, aenderung: changeText(locked, move) })
+    await notify(client, context, locked, student, move, change.id, asClassTeacher ? 'classTeacher' : 'organizer')
     await appendAudit(client, { scopeId: campaign.id, actor: auditActor(actor), action: 'assignment.placed', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId: student.personId, toItemId: move.toItemId, className } })
   })
 }
@@ -177,7 +184,7 @@ export async function changeAssignment(db: Database, context: WindowContext, cam
     const actor = actorOf(caller)
     const change = await write(client, locked, move, kind, input.reason, force, actor)
     changeId = change.id
-    await notify(client, context, locked, student, move, change.id, { wer: t.notices.changedBy.organizer, aenderung: changeText(locked, move) })
+    await notify(client, context, locked, student, move, change.id, 'organizer')
     await appendAudit(client, { scopeId: campaign.id, actor: auditActor(actor), action: 'assignment.changed', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId: student.personId, kind, toItemId, fromItemId, forced: force } })
   })
   const change = (await changeLog(db, campaign)).find((c) => c.id === changeId)

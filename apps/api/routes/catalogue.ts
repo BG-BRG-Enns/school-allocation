@@ -8,7 +8,7 @@ import { registerEndpoint } from '../lib/endpoint.ts'
 import type { FastifyInstance } from 'fastify'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { t } from '../lib/i18n.ts'
+import { schoolWords } from '../lib/i18n.ts'
 import { catalogueWorkbook } from '../lib/xlsx.ts'
 import { placeStudent } from '../services/assignment-changes.ts'
 import { catalogueView, classOptions, classStatus, demandView, itemsView, teacherOptions, visibleCampaign } from '../services/catalogue.ts'
@@ -62,10 +62,11 @@ export async function catalogueRoutes(app: FastifyInstance, { db, guards, baseUr
 
   registerEndpoint(app, endpoints.getAdminCampaignsByIdExportCatalogueXlsx, { preHandler: guards.requireRole('campaign_organizer', 'school_admin', 'read_only_auditor'), exposeHeadRoute: false }, async (request, reply) => {
     const { campaign, items } = await catalogueExport(db, request.params.id)
-    const bytes = await catalogueWorkbook(items)
+    const words = await schoolWords(db)
+    const bytes = await catalogueWorkbook(words, items)
     return reply
       .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      .header('content-disposition', `attachment; filename="${t.files.catalogue(campaign.schoolYear.replace('/', '-'))}"`)
+      .header('content-disposition', `attachment; filename="${words.t.files.catalogue(campaign.schoolYear.replace('/', '-'))}"`)
       .send(bytes)
   })
 }

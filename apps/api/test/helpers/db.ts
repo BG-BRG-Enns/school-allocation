@@ -69,8 +69,8 @@ function refuseDevelopmentServer(testUrl: string): void {
 
 let counter = 0
 
-/** An empty database; `migrated` also applies every migration. */
-export async function createTestDatabase(t: TestContext, { migrated = true } = {}): Promise<TestDatabase> {
+/** An empty database; `migrated` also applies the migrations, every one or those up to `until` (a file name). */
+export async function createTestDatabase(t: TestContext, { migrated = true, until }: { migrated?: boolean, until?: string } = {}): Promise<TestDatabase> {
   const admin = new URL(process.env.TEST_DATABASE_URL ?? '')
   const name = `sa_test_${process.pid}_${counter++}`
   await withClient(admin.toString(), (client) => client.query(`create database ${name}`))
@@ -88,20 +88,27 @@ export async function createTestDatabase(t: TestContext, { migrated = true } = {
     drop: () => withClient(admin.toString(), (client) => client.query(`drop database if exists ${name} with (force)`)).then(() => {}),
   }
   t.after(db.drop)
-  // The migrator serialises runs on one database with an advisory lock, which is a database's; the runtime role it
-  // alters is the server's. Test files run in parallel processes, each migrating its own fresh database, and two
-  // `alter role` at once fail with "tuple concurrently updated": one lock on the server, held while migrating.
-  if (migrated) {
-    await withClient(admin.toString(), async (client) => {
-      await client.query('select pg_advisory_lock($1)', [MIGRATE_LOCK])
-      try {
-        await migrate({ databaseUrl: db.ownerUrl, runtimePassword: TEST_RUNTIME_PASSWORD })
-      } finally {
-        await client.query('select pg_advisory_unlock($1)', [MIGRATE_LOCK])
-      }
-    })
-  }
+  if (migrated) await migrateTestDatabase(db, until)
   return db
+}
+
+/**
+ * Applies the pending migrations to `db`, those up to `until` when given.
+ * The migrator serialises runs on one database with an advisory lock, which
+ * is a database's; the runtime role it alters is the server's. Test files
+ * run in parallel processes, each migrating its own fresh database, and two
+ * `alter role` at once fail with "tuple concurrently updated": one lock on
+ * the server, held while migrating.
+ */
+export async function migrateTestDatabase(db: TestDatabase, until?: string): Promise<string[]> {
+  return withClient(process.env.TEST_DATABASE_URL ?? '', async (client) => {
+    await client.query('select pg_advisory_lock($1)', [MIGRATE_LOCK])
+    try {
+      return await migrate({ databaseUrl: db.ownerUrl, runtimePassword: TEST_RUNTIME_PASSWORD, ...(until === undefined ? {} : { until }) })
+    } finally {
+      await client.query('select pg_advisory_unlock($1)', [MIGRATE_LOCK])
+    }
+  })
 }
 
 /** One key for every test process on the server; nothing else locks it. */

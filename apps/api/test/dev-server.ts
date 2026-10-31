@@ -70,7 +70,7 @@ server.addHook('onClose', async () => {
 await interruptStaleJobs(db)
 await recoverInterruptedRuns(db)
 server.log.warn({ authority: entra.authority }, 'sign-in is the test stand-in, not Microsoft Entra ID: for development only')
-server.log.warn({ graph: graph.baseUrl, groups: [CLASS_5A_GROUP, TEACHERS_GROUP] }, 'Graph is a stand-in with two groups: label them under Verwaltung → Stammdaten')
+server.log.warn({ graph: graph.baseUrl, groups: [CLASS_5A_GROUP, TEACHERS_GROUP] }, 'Graph is a stand-in with two groups: label them under Verwaltung → Klassenlisten')
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {

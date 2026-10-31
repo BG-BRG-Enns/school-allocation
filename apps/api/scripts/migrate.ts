@@ -17,7 +17,7 @@ import pg from 'pg'
 import { ConfigError, loadMigrationConfig } from '../config.ts'
 import { RUNTIME_ROLE } from '../lib/db.ts'
 import { SQLSTATE, sqlState } from '../lib/pg-errors.ts'
-import { grantStatements, RUNTIME_FUNCTIONS, RUNTIME_TABLES } from '../lib/runtime-privileges.ts'
+import { grantStatements, listedColumns, RUNTIME_FUNCTIONS, RUNTIME_TABLES } from '../lib/runtime-privileges.ts'
 
 export { RUNTIME_ROLE }
 export const MIGRATIONS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'migrations')
@@ -294,14 +294,19 @@ async function resetRuntimePrivileges(client: pg.Client, { complete }: { complet
     `select relname::text as name from pg_class
       where relnamespace = 'public'::regnamespace and relkind in ('r', 'p', 'v', 'm', 'f')`,
   )).rows.map((row) => row.name))
+  const columns = new Set((await client.query<{ name: string }>(
+    `select c.relname || '.' || a.attname as name from pg_attribute a join pg_class c on c.oid = a.attrelid
+      where c.relnamespace = 'public'::regnamespace and a.attnum > 0 and not a.attisdropped`,
+  )).rows.map((row) => row.name))
   const functions = new Set((await client.query<{ signature: string }>(
     'select oid::regprocedure::text as signature from pg_proc where pronamespace = \'public\'::regnamespace',
   )).rows.map((row) => row.signature))
-  // A run that stops early (until) has not created everything yet; a full
-  // run that lacks a listed object means the list names something no
-  // migration creates.
+  // A run that stops early (until) has not created everything yet: a table
+  // or a column a later migration adds; a full run that lacks a listed
+  // object means the list names something no migration creates.
   const missing = [
     ...Object.keys(RUNTIME_TABLES).filter((table) => !tables.has(table)),
+    ...listedColumns().filter((column) => !columns.has(column)),
     ...RUNTIME_FUNCTIONS.filter((signature) => !functions.has(signature)),
   ]
   if (complete && missing.length > 0) {
@@ -322,7 +327,7 @@ async function resetRuntimePrivileges(client: pg.Client, { complete }: { complet
     // list goes as one multi-statement query, inside this transaction.
     await client.query(['tables', 'sequences', 'routines']
       .map((kind) => `revoke all on all ${kind} in schema public from public, ${RUNTIME_ROLE}`).join(';\n'))
-    const grants = grantStatements(RUNTIME_ROLE, { tables, functions })
+    const grants = grantStatements(RUNTIME_ROLE, { tables, columns, functions })
     if (grants.length > 0) await client.query(grants.join(';\n'))
     await client.query('commit')
   } catch (err) {

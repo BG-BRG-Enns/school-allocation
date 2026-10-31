@@ -1,16 +1,31 @@
-// Die Einstellungen der Schule und der Wahl: das Stundenraster, die
-// Klassenvorstände (die ihre Klasse in der Wahl sehen), die Gruppensuche
-// bei Microsoft für die Personenliste, das Wahlfenster und der Bedarf je
+// Die Einstellungen der Schule und der Anmeldung: die Sprache, das Stundenraster, die
+// Klassenvorstände (die ihre Klasse in der Anmeldung sehen), die Gruppensuche
+// bei Microsoft für die Klassenlisten, der Anmeldezeitraum und der Bedarf je
 // Tag und Schulstufe. Baut auf 02-stammdaten und 03-katalog auf.
 
+import { htmlLang } from '../../packages/messages/src/index.ts'
 import { expect, test } from '../support/test.ts'
 import { refused } from '../support/console.ts'
 import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
 import { shot } from '../support/screenshot.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
-import { t } from '../support/messages.ts'
+import { day, dayTime, literally, LOCALE, t } from '../support/messages.ts'
 
 test.describe.configure({ mode: 'serial' })
+
+test('die Administration sieht die Sprache der Schule, die auch die Seite nennt; Speichern lädt die Seite neu', async ({ page }) => {
+  await openAs(page, ANNA, '/verwaltung')
+  await expect(page.locator('html')).toHaveAttribute('lang', htmlLang(LOCALE))
+  const language = page.getByLabel(t.admin.language.label)
+  await expect(language).toHaveValue(LOCALE)
+  await expect(language.getByRole('option')).toHaveText([t.labels.locale.de, t.labels.locale['de-formal'], t.labels.locale.en])
+  // The same language again: nothing changes, and the page loads anew.
+  const reloaded = page.waitForEvent('load')
+  await page.getByRole('button', { name: t.common.save }).click()
+  await reloaded
+  await expect(page.getByLabel(t.admin.language.label)).toHaveValue(LOCALE)
+  await signOut(page)
+})
 
 test('die Administration passt das Stundenraster an', async ({ page }) => {
   await openAs(page, ANNA, '/verwaltung')
@@ -30,7 +45,7 @@ test('die Administration passt das Stundenraster an', async ({ page }) => {
   await signOut(page)
 })
 
-test('die Administration ordnet einen Klassenvorstand zu, der seine Klasse in der Wahl sieht', async ({ page }) => {
+test('die Administration ordnet einen Klassenvorstand zu, der seine Klasse in der Anmeldung sieht', async ({ page }) => {
   await openAs(page, ANNA, '/verwaltung/klassen')
   await expect(page.getByRole('heading', { name: t.common.page.classTeachers })).toBeVisible()
   await expect(page.getByRole('row', { name: /5A/ })).toContainText('–')
@@ -79,14 +94,14 @@ test('die Administration findet eine Entra-Gruppe über die Suche bei Microsoft'
   await signOut(page)
 })
 
-test('die Organisation legt das Wahlfenster fest und sieht den Bedarf je Tag und Schulstufe', async ({ page }) => {
+test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag und Schulstufe', async ({ page }) => {
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: 'Projektwoche 2027' }).click()
   await expect(page.getByRole('heading', { name: t.campaign.demand.heading })).toBeVisible()
-  await expect(page.getByRole('row', { name: /Mo., 21.06.2027/ })).toContainText(t.campaign.demand.cell(2, 12))
+  await expect(page.getByRole('row', { name: new RegExp(literally(day('2027-06-21'))) })).toContainText(t.campaign.demand.cell(2, 12))
   await page.getByRole('button', { name: t.campaign.organization.editSettings }).click()
   const form = page.getByRole('form', { name: t.campaign.settings.label })
-  await expect(form.getByLabel(t.campaign.settings.name)).toBeDisabled()
+  await expect(form.getByLabel(t.campaign.settings.name, { exact: true })).toBeDisabled()
   await form.getByLabel(t.campaign.settings.opens, { exact: true }).fill('2027-03-01T08:00')
   await form.getByLabel(t.campaign.settings.closes, { exact: true }).fill('2027-03-08T20:00')
   await form.getByLabel(t.campaign.settings.lateUntil).fill('2027-03-12T20:00')
@@ -95,6 +110,6 @@ test('die Organisation legt das Wahlfenster fest und sieht den Bedarf je Tag und
   await shot(page, '23-wahlfenster')
   await form.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.common.saved)
-  await expect(page.getByText(`${t.campaign.window.opens('Mo., 01.03., 08:00', 'Mo., 08.03., 20:00')}, ${t.campaign.window.late('Fr., 12.03., 20:00')} · ${t.campaign.window.wishes(3)}`)).toBeVisible()
+  await expect(page.getByText(`${t.campaign.window.opens(dayTime('2027-03-01T08:00'), dayTime('2027-03-08T20:00'))}, ${t.campaign.window.late(dayTime('2027-03-12T20:00'))} · ${t.campaign.window.wishes(3)}`)).toBeVisible()
   await signOut(page)
 })

@@ -123,6 +123,8 @@ export const getAdminMailTemplates = { method: 'GET', path: '/api/admin/mail-tem
 
 export const putAdminMailTemplatesByKind = { method: 'PUT', path: '/api/admin/mail-templates/:kind', transport: 'json' } as const satisfies EndpointMetadata
 
+export const deleteAdminMailTemplatesByKind = { method: 'DELETE', path: '/api/admin/mail-templates/:kind', transport: 'json' } as const satisfies EndpointMetadata
+
 export const postAdminMailTemplatesByKindTest = { method: 'POST', path: '/api/admin/mail-templates/:kind/test', transport: 'json' } as const satisfies EndpointMetadata
 
 export const getAdminMailStatus = { method: 'GET', path: '/api/admin/mail/status', transport: 'json' } as const satisfies EndpointMetadata
@@ -140,6 +142,10 @@ export const getAdminRosterCsvTemplate = { method: 'GET', path: '/api/admin/rost
 export const getSettingsPeriods = { method: 'GET', path: '/api/settings/periods', transport: 'json' } as const satisfies EndpointMetadata
 
 export const putAdminSettingsPeriods = { method: 'PUT', path: '/api/admin/settings/periods', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getSettingsLanguage = { method: 'GET', path: '/api/settings/language', transport: 'json' } as const satisfies EndpointMetadata
+
+export const putAdminSettingsLanguage = { method: 'PUT', path: '/api/admin/settings/language', transport: 'json' } as const satisfies EndpointMetadata
 
 export const getAdminClasses = { method: 'GET', path: '/api/admin/classes', transport: 'json' } as const satisfies EndpointMetadata
 

@@ -1,7 +1,7 @@
-// Die Zuteilung: die Organisation beendet die Wahl, berechnet einen Lauf
+// Die Zuteilung: die Organisation beendet die Anmeldung, berechnet die Zuteilung
 // gegen den Solver-Stellvertreter des Testservers und sieht die Prüfung:
-// die Stufen, wer was bekommen hat, die Aktivitäten; dann veröffentlicht
-// sie, die Schülerin sieht ihr Ergebnis, der Klassenvorstand die Plätze
+// die Ziele, wer was bekommen hat, die Aktivitäten; dann veröffentlicht
+// sie, die Schülerin sieht ihre Einteilung, der Klassenvorstand die Plätze
 // seiner Klasse. Baut auf 05-wahl auf (Sara hat gewählt, Tim wurde
 // eingetragen; 5A ist in Wien fix; Bernd ist Klassenvorstand der 5A).
 
@@ -13,7 +13,7 @@ import { openAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
 
-test('die Organisation beendet die Wahl und berechnet eine Zuteilung; die Prüfung zeigt Stufen, Plätze und Aktivitäten', async ({ page }) => {
+test('die Organisation beendet die Anmeldung und berechnet die Zuteilung; die Prüfung zeigt Ziele, Plätze und Aktivitäten', async ({ page }) => {
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: 'Projektwoche 2027' }).click()
   // The daily minimum the run needs was set with the window (04-einstellungen).
@@ -43,7 +43,7 @@ test('die Organisation beendet die Wahl und berechnet eine Zuteilung; die Prüfu
   await signOut(page)
 })
 
-test('die Organisation veröffentlicht den Lauf; die Schülerin sieht ihr Ergebnis, der Klassenvorstand die Plätze seiner Klasse', async ({ page }) => {
+test('die Organisation veröffentlicht die Berechnung; die Schülerin sieht ihre Einteilung, der Klassenvorstand die Plätze seiner Klasse', async ({ page }) => {
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: 'Projektwoche 2027' }).click()
   await page.getByRole('link', { name: t.common.page.allocation }).click()

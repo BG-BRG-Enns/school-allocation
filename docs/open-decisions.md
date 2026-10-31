@@ -141,6 +141,28 @@ Points D-15 left to the implementation:
   role with `DELETE`, switching the guards off for its own transaction with a transaction-local setting
   the guards read first. The runtime role could set the switch and still delete nothing.
 
+## Sharpened by the languages (S6c, S6d, 2026-10-30)
+
+Before the first release, while nothing is frozen:
+
+- **Every word is in one typed catalogue** (`packages/messages`), not an i18n library: `de.ts` is the
+  source, `en.ts` is held to the same keys by the typecheck, and `de-formal.ts` overrides only the
+  words that address staff. Nothing is compiled at runtime, so the CSP needs no `unsafe-eval`. The
+  pages, the workbooks, the notices' values and the mail templates' defaults all read it.
+- **Three languages from v1:** German with du for everyone, as colleagues at an Austrian AHS speak;
+  German with Sie to staff and du to students; English. Both German variants keep the Austrian school
+  words. A Germany-German vocabulary and a per-user language can follow; the keys allow both.
+- **One language per school**, set by an administrator and audited. The server names it in every page
+  it sends (`<meta name="locale">`), so the sign-in page has it too, and reads it for each workbook and
+  each transaction that queues notices.
+- **The mail templates' defaults live in the catalogue**; a row of `mail_template` is only what an
+  organizer saved, kept with the language it was written in, and the reset removes it. Placeholders
+  have English names, as code does.
+- **The words themselves** follow `docs/glossary.md`, approved by the project lead: Anmeldung for a
+  campaign, Einteilung for what students and teachers see and Zuteilung for the organizer's
+  computation, the asterisk for persons, Lehrkraft, Einheit, Kosten, Klassenlisten, and einloggen for
+  signing in.
+
 ## Still open
 
 Nothing from the decision list of 2026-10-27 is open any more. Open from the school's concept

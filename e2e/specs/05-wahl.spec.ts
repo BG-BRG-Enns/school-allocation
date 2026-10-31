@@ -1,7 +1,7 @@
-// Die Wahl: die Organisation öffnet sie, eine Schülerin gibt ihre Wünsche
-// ab und ist vollständig, die Organisation sieht den Wahlstand und gibt
+// Die Anmeldung: die Organisation öffnet sie, eine Schülerin gibt ihre Wünsche
+// ab und ist vollständig, die Organisation sieht den Stand der Anmeldung und gibt
 // für einen Schüler ein, der Klassenvorstand sieht den Stand seiner
-// Klasse, die Mailvorlagen lassen sich ändern. Baut auf 03-katalog und
+// Klasse, die E-Mail-Vorlagen lassen sich ändern. Baut auf 03-katalog und
 // 04-einstellungen auf (Bernd ist Klassenvorstand der 5A).
 
 import { expect, test } from '../support/test.ts'
@@ -13,7 +13,7 @@ import { openAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
 
-test('die Organisation öffnet die Wahl; eine Schülerin gibt ihre Wünsche ab und ist vollständig', async ({ page }) => {
+test('die Organisation öffnet die Anmeldung; eine Schülerin gibt ihre Wünsche ab und ist vollständig', async ({ page }) => {
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: 'Projektwoche 2027' }).click()
   await page.getByRole('button', { name: t.campaign.organization.open }).click()
@@ -64,22 +64,34 @@ test('die Organisation gibt für einen Schüler ein; der Klassenvorstand sieht d
   await signOut(page)
 })
 
-test('die Administration ändert eine Mailvorlage; ein falscher Platzhalter wird abgewiesen', async ({ page }) => {
+test('die Administration ändert eine E-Mail-Vorlage; ein falscher Platzhalter wird abgewiesen, ein Klick fügt einen ein; Zurücksetzen bringt den vorgegebenen Text', async ({ page }) => {
   await openAs(page, ANNA, '/verwaltung')
   await page.getByRole('link', { name: t.common.page.mailTemplates }).click()
   const reminder = t.labels.mailKind.choice_reminder
   await expect(page.getByRole('heading', { name: reminder })).toBeVisible()
   await expect(page.getByText(t.mailTemplates.mailOff)).toBeVisible()
   const section = page.locator('section', { has: page.getByRole('heading', { name: reminder }) })
+  await expect(section.getByText(t.mailTemplates.defaultText)).toBeVisible()
   await section.getByRole('button', { name: t.common.edit }).click()
   const form = page.getByRole('form', { name: t.mailTemplates.editing(reminder) })
-  await form.getByLabel(t.mailTemplates.body).fill('Hallo {{vorname}}, bitte bis {{frist}}: {{link}} ({{klasse}})')
+  await expect(form.getByText(t.mailTemplates.placeholder.deadline)).toBeVisible()
+  const body = form.getByLabel(t.mailTemplates.body)
+  await body.fill('Hallo {{first_name}}, bitte bis {{deadline}}: {{link}} ({{class_name}})')
   await refused(page, 422, () => form.getByRole('button', { name: t.common.save }).click())
-  await expect(page.getByRole('alert')).toContainText(`${t.labels.templateProblem.unknown_placeholder}: klasse`)
-  await form.getByLabel(t.mailTemplates.body).fill('Hallo {{vorname}}, bitte bis {{frist}}: {{link}}')
+  await expect(page.getByRole('alert')).toContainText(`${t.labels.templateProblem.unknown_placeholder}: class_name`)
+  // A placeholder's button puts it where the cursor stands, here at the end of the text.
+  await body.fill('Hallo {{first_name}}, bitte bis {{deadline}}: ')
+  await form.getByRole('button', { name: '{{link}}' }).click()
+  await expect(body).toHaveValue('Hallo {{first_name}}, bitte bis {{deadline}}: {{link}}')
   await form.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.mailTemplates.saved)
-  await expect(section.getByText('Hallo {{vorname}}, bitte bis {{frist}}: {{link}}')).toBeVisible()
+  await expect(section.getByText('Hallo {{first_name}}, bitte bis {{deadline}}: {{link}}')).toBeVisible()
+  await expect(section.getByText(t.mailTemplates.customText)).toBeVisible()
   await shot(page, '28-mailvorlagen')
+  page.once('dialog', (dialog) => void dialog.accept())
+  await section.getByRole('button', { name: t.mailTemplates.reset }).click()
+  await expect(page.getByRole('status')).toHaveText(t.mailTemplates.resetDone)
+  await expect(section.getByText(t.mail.choice_reminder.subject)).toBeVisible()
+  await expect(section.getByText(t.mailTemplates.defaultText)).toBeVisible()
   await signOut(page)
 })

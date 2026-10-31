@@ -42,10 +42,10 @@ export async function buildTestApp(env: Record<string, string> = {}, db: Databas
   return { app, logs: () => captured }
 }
 
-/** A throwaway web build: index.html as Vite writes it, with the base-path tag and one relative asset reference, and that asset. */
+/** A throwaway web build: index.html as Vite writes it, with the language and base-path tags and one relative asset reference, and that asset. */
 export function fakeWebDist(): string {
   const dir = mkdtempSync(path.join(tmpdir(), 'school-allocation-web-'))
-  writeFileSync(path.join(dir, 'index.html'), '<!doctype html><title>app</title><meta name="base-path" content="/"><script type="module" src="./assets/index-abc.js"></script>')
+  writeFileSync(path.join(dir, 'index.html'), '<!doctype html><html lang="de"><title>app</title><meta name="base-path" content="/"><meta name="locale" content="de"><script type="module" src="./assets/index-abc.js"></script></html>')
   mkdirSync(path.join(dir, 'assets'))
   writeFileSync(path.join(dir, 'assets', 'index-abc.js'), 'console.log(1)\n')
   return dir

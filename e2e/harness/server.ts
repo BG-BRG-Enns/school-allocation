@@ -1,6 +1,7 @@
 // Everything the browser journeys need, started as one process: a fresh
 // database on the PostgreSQL server TEST_DATABASE_URL names (as the API
-// tests use it), the migrations, the stand-in for Entra ID with its
+// tests use it), the migrations, the school's language set to E2E_LOCALE
+// (German unless set), the stand-in for Entra ID with its
 // sign-in page, and the real server with the built web app, listening on
 // a loopback origin. Playwright starts it (playwright.config.ts) and
 // stops it; stopping drops the database.
@@ -15,13 +16,14 @@ import { fileURLToPath } from 'node:url'
 import { buildApp } from '../../apps/api/app.ts'
 import { loadConfig } from '../../apps/api/config.ts'
 import { createDatabase } from '../../apps/api/lib/db.ts'
-import { createTestDatabase } from '../../apps/api/test/helpers/db.ts'
+import { createTestDatabase, withClient } from '../../apps/api/test/helpers/db.ts'
 import { SERVER_ENV } from '../../apps/api/test/helpers/env.ts'
 import { startFakeEntra } from '../../apps/api/test/helpers/fake-entra.ts'
 import { startFakeGraph } from '../../apps/api/test/helpers/fake-graph.ts'
 import { startFakeSolver } from '../../apps/api/test/helpers/fake-solver.ts'
 import { ANNA } from '../../apps/api/test/helpers/personas.ts'
 import { BASE_PATH } from '../support/base.ts'
+import { LOCALE } from '../support/messages.ts'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const PORT = Number(process.env.E2E_PORT ?? 3100)
@@ -65,6 +67,8 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
 
 try {
   const testDb = await createTestDatabase(context)
+  // The school speaks the language the journeys read the catalogue in, from the first page on.
+  await withClient(testDb.ownerUrl, (client) => client.query('update school_setting set locale = $1', [LOCALE]))
   const entra = await startFakeEntra({ redirectUri: `${ORIGIN}${BASE_PATH}/api/auth/callback` })
   cleanups.push(() => entra.close())
   // The stand-in for Graph, with the groups the journeys label and read,
@@ -96,7 +100,7 @@ try {
   const app = await buildApp(config, { db, entraAuthority: entra.authority, graphBaseUrl: graph.baseUrl })
   cleanups.push(() => app.close())
   await app.listen({ host: '127.0.0.1', port: PORT })
-  console.log(`e2e server ready at ${ORIGIN}${BASE_PATH} (database ${testDb.name}, sign-in stand-in at ${entra.authority})`)
+  console.log(`e2e server ready at ${ORIGIN}${BASE_PATH} (database ${testDb.name}, language ${LOCALE}, sign-in stand-in at ${entra.authority})`)
 } catch (err) {
   console.error('e2e server failed to start', err)
   await stop(1)

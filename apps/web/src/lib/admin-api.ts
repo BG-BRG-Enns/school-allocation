@@ -4,6 +4,7 @@
 import type { MailKind, Role } from '@school-allocation/api-contracts'
 import { endpointPath } from '@school-allocation/api-contracts/client-endpoint'
 import * as endpoints from '@school-allocation/api-contracts/endpoint-metadata'
+import type { Locale } from '@school-allocation/messages'
 import type { Period } from '@school-allocation/school-core'
 export type { Period } from '@school-allocation/school-core'
 
@@ -28,11 +29,14 @@ export const searchClassGroups = () => apiRequest(endpoints.getAdminRosterGraphG
 export const graphPickerStartPath = endpointPath(endpoints.getAdminRosterGraphStart, { query: { purpose: 'picker' } })
 export const loadPeriods = () => apiRequest(endpoints.getSettingsPeriods, { })
 export const savePeriods = (periods: Period[]) => apiRequest(endpoints.putAdminSettingsPeriods, { body: { periods } })
+export const loadLanguage = () => apiRequest(endpoints.getSettingsLanguage, { })
+export const saveLanguage = (locale: Locale) => apiRequest(endpoints.putAdminSettingsLanguage, { body: { locale } })
 export const loadClasses = () => apiRequest(endpoints.getAdminClasses, { })
 export const searchClassTeachers = (q: string) => apiRequest(endpoints.getAdminClassesTeachers, { query: { q } })
 export const saveClassTeachers = (className: string, teachers: string[]) => apiRequest(endpoints.putAdminClassesByClassNameTeachers, { params: { className: className }, body: { teachers } })
 export const loadMailTemplates = () => apiRequest(endpoints.getAdminMailTemplates, { })
 export const saveMailTemplate = (kind: MailKind, subject: string, body: string) => apiRequest(endpoints.putAdminMailTemplatesByKind, { params: { kind: kind }, body: { subject, body } })
+export const resetMailTemplate = (kind: MailKind) => apiRequest(endpoints.deleteAdminMailTemplatesByKind, { params: { kind: kind } })
 export const sendTestMail = (kind: MailKind) => apiRequest(endpoints.postAdminMailTemplatesByKindTest, { params: { kind: kind } })
 export const loadMailStatus = () => apiRequest(endpoints.getAdminMailStatus, { })
 

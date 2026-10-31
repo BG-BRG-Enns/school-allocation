@@ -45,17 +45,19 @@ export const AUDIT_ACTIONS = [
   'item.returned',
   'item.withdrawn',
   'item.changed',
-  // The school's settings (school scope): the period grid replaced; the
-  // class teachers of a class set.
+  // The school's settings (school scope): the period grid replaced, the
+  // language changed; the class teachers of a class set.
   'settings.periods-changed',
+  'settings.language-changed',
   'class.teachers-changed',
   // The window (campaign scope): an organizer exempts a student from a
   // class activity, or enters a ranking on a student's behalf. A
   // student's own saving is not privileged and keeps its revisions instead.
   'preassignment.exempted',
   'choice.entered-on-behalf',
-  // Mail (school scope): a template changed, a test mail sent.
+  // Mail (school scope): a template changed, reset to the default, a test mail sent.
   'mail.template-changed',
+  'mail.template-reset',
   'mail.test-sent',
   // The allocation (campaign scope): a run started by an organizer and
   // finished by the job on their behalf, with its status; a run left

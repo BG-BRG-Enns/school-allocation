@@ -1,11 +1,11 @@
-// Nach der Veröffentlichung: eine zweite Wahl, mit der Organisation über
-// die API bis zum veröffentlichten Lauf gebracht (ein Projekttag, vier
-// Aktivitäten, das Ummeldefenster offen), dann im Browser: ein Schüler
+// Nach der Veröffentlichung: eine zweite Anmeldung, mit der Organisation über
+// die API bis zur veröffentlichten Einteilung gebracht (ein Projekttag, vier
+// Aktivitäten, die Tauschzeit offen), dann im Browser: ein Schüler
 // sieht die volle Aktivität als voll, eine Schülerin wechselt in eine
 // mit freien Plätzen, der Klassenvorstand teilt den Schüler ohne Platz in
 // eine Lücke zu, die Organisation nimmt mit Begründung heraus und lädt die
-// Arbeitsmappe. Baut auf 01–06 auf (die Personenliste, Bernd als
-// Klassenvorstand der 5A); die Wahl der vorigen Journeys bleibt unberührt.
+// Arbeitsmappe. Baut auf 01–06 auf (die Klassenlisten, Bernd als
+// Klassenvorstand der 5A); die Anmeldung der vorigen Journeys bleibt unberührt.
 
 import { expect, test } from '../support/test.ts'
 import { apiGet, apiPost } from '../support/api.ts'
@@ -28,7 +28,7 @@ async function must<T>(answer: Promise<{ status: number, body: T }>, what: strin
   return a.body
 }
 
-test('die Organisation bringt eine zweite Wahl über die API bis zum veröffentlichten Lauf, mit offenem Ummeldefenster', async ({ page }) => {
+test('die Organisation bringt eine zweite Anmeldung über die API bis zur veröffentlichten Einteilung, mit offener Tauschzeit', async ({ page }) => {
   // Bernd proposes the four activities of the Monday, every one with a fee so the run places nobody as a fallback: two in the morning (one place; five places), two in the afternoon (one place; ten places).
   await openAs(page, ANNA, '/wahlen')
   const campaign = await must(apiPost<{ id: string }>(page, '/api/admin/campaigns', { kind: 'project_week', name: NAME, schoolYear: '2026/27', projectDays: [DAY] }), 'campaign')

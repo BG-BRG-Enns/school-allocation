@@ -1,11 +1,13 @@
-// The catalogue as a workbook for the organizer's and the school's own
-// spreadsheets: one sheet of activities, one of sessions. Columns are typed
-// so the sheet sorts and sums; nothing about students is in it.
+// The workbooks for the organizer's and the school's own spreadsheets: the
+// state of the lists, the catalogue, the attendance, a run. Columns are
+// typed so a sheet sorts and sums. Every builder takes the words it writes
+// (lib/i18n.ts), the school's language at the time of the request; dates
+// are written as text in the school's time and that language.
 
 import type { AttendanceRow } from '@school-allocation/api-contracts/attendance'
 import type { AssignmentChange } from '@school-allocation/api-contracts/publication'
 import writeXlsxFile from 'write-excel-file/node'
-import { INTL_LOCALE, t } from './i18n.ts'
+import type { Words } from './i18n.ts'
 import type { RunReviewResponse } from './models/allocation.ts'
 import type { StudentChoiceState } from './models/choices.ts'
 import type { Item } from './models/items.ts'
@@ -16,19 +18,31 @@ export interface MissingRow extends StudentChoiceState {
   mails: { kind: string, state: string, createdAt: string }[]
 }
 
-const STATE_LABELS: Readonly<Record<string, string>> = t.labels.choiceState
-const field = t.common.field
-const column = t.workbook.column
+/** The words a workbook is written in: the catalogue of the school's language and its Intl locale. */
+export type WorkbookWords = Pick<Words, 't' | 'intl'>
+
+/** How the workbooks write moments and days, as text in the school's time: an Excel date carries no zone and would show UTC. */
+function dateFormats(intl: string) {
+  return {
+    when: new Intl.DateTimeFormat(intl, { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    dayShort: new Intl.DateTimeFormat(intl, { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit' }),
+    whenLong: new Intl.DateTimeFormat(intl, { timeZone: SCHOOL_TIME_ZONE, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+  }
+}
 
 /** Every student with the state of their list, for the organizer's and the class teachers' spreadsheets. */
-export async function missingWorkbook(rows: readonly MissingRow[]): Promise<Buffer> {
+export async function missingWorkbook({ t, intl }: WorkbookWords, rows: readonly MissingRow[]): Promise<Buffer> {
+  const stateLabels: Readonly<Record<string, string>> = t.labels.choiceState
+  const field = t.common.field
+  const column = t.workbook.column
+  const { when } = dateFormats(intl)
   const data = [
     [field.className, field.grade, field.name, field.state, column.window, column.savedAt, field.email, column.mails].map(header),
     ...rows.map((row) => [
       { type: String, value: row.className },
       { type: Number, value: row.grade },
       { type: String, value: row.displayName },
-      { type: String, value: STATE_LABELS[row.state] ?? row.state },
+      { type: String, value: stateLabels[row.state] ?? row.state },
       { type: String, value: row.window === null ? '' : (row.window === 'first' ? t.labels.window.first : t.labels.window.late) },
       { type: String, value: row.updatedAt === null ? '' : when.format(new Date(row.updatedAt)) },
       { type: String, value: row.address ?? '' },
@@ -39,20 +53,21 @@ export async function missingWorkbook(rows: readonly MissingRow[]): Promise<Buff
   return workbook.toBuffer()
 }
 
-const when = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-
 function header(text: string) {
   return { value: text, fontWeight: 'bold' as const }
 }
 
-/** The workbook as bytes; the caller sets the headers. */
-export async function catalogueWorkbook(items: readonly Item[]): Promise<Buffer> {
+/** The catalogue: one sheet of activities, one of sessions; nothing about students is in it. The workbook as bytes; the caller sets the headers. */
+export async function catalogueWorkbook({ t, intl }: WorkbookWords, items: readonly Item[]): Promise<Buffer> {
+  const field = t.common.field
+  const column = t.workbook.column
+  const { when } = dateFormats(intl)
   const activities = [
     [field.number, column.title, field.teachers, column.description, column.location, field.places, column.minParticipants, column.cancellableBelowMinimum, column.fixedClasses, column.grades, column.classes, column.fee, column.feeNote, field.sessions, column.minutes].map(header),
     ...items.map((item) => [
       { type: Number, value: item.number ?? undefined },
       { type: String, value: item.title },
-      { type: String, value: item.teachers.map((t) => t.displayName).join(', ') },
+      { type: String, value: item.teachers.map((teacher) => teacher.displayName).join(', ') },
       { type: String, value: item.description, wrap: true },
       { type: String, value: item.location },
       { type: Number, value: item.places },
@@ -85,13 +100,12 @@ export async function catalogueWorkbook(items: readonly Item[]): Promise<Buffer>
   return workbook.toBuffer()
 }
 
-const SOURCE_LABELS: Readonly<Record<string, string>> = t.workbook.source
-
-const CHANGE_KIND_LABELS: Readonly<Record<string, string>> = t.labels.changeKind
-const ATTENDANCE_LABELS: Readonly<Record<string, string>> = t.labels.attendanceStatus
-
 /** The attendance as a workbook: one row per student and session, with what was recorded; the whole campaign or one class. */
-export async function attendanceWorkbook(rows: readonly AttendanceRow[]): Promise<Buffer> {
+export async function attendanceWorkbook({ t, intl }: WorkbookWords, rows: readonly AttendanceRow[]): Promise<Buffer> {
+  const attendanceLabels: Readonly<Record<string, string>> = t.labels.attendanceStatus
+  const field = t.common.field
+  const column = t.workbook.column
+  const { dayShort, whenLong } = dateFormats(intl)
   const data = [
     [field.day, field.number, field.item, column.from, column.until, field.className, field.name, column.attendance, column.note].map(header),
     ...rows.map((r) => [
@@ -103,7 +117,7 @@ export async function attendanceWorkbook(rows: readonly AttendanceRow[]): Promis
       { type: String, value: whenLong.format(new Date(r.endsAt)) },
       { type: String, value: r.className },
       { type: String, value: r.displayName },
-      { type: String, value: r.status === null ? '' : ATTENDANCE_LABELS[r.status] ?? r.status },
+      { type: String, value: r.status === null ? '' : attendanceLabels[r.status] ?? r.status },
       { type: String, value: r.note },
     ]),
   ]
@@ -118,7 +132,12 @@ export async function attendanceWorkbook(rows: readonly AttendanceRow[]): Promis
  * builder serves a published run, then with the sheet of the changes made
  * since publication (the reason included: the sheet is the organizer's).
  */
-export async function runWorkbook(review: RunReviewResponse, changes?: readonly AssignmentChange[]): Promise<Buffer> {
+export async function runWorkbook({ t, intl }: WorkbookWords, review: RunReviewResponse, changes?: readonly AssignmentChange[]): Promise<Buffer> {
+  const sourceLabels: Readonly<Record<string, string>> = t.workbook.source
+  const changeKindLabels: Readonly<Record<string, string>> = t.labels.changeKind
+  const field = t.common.field
+  const column = t.workbook.column
+  const { dayShort, whenLong } = dateFormats(intl)
   const items = new Map(review.items.map((item) => [item.itemId, item]))
   const label = (itemId: string) => {
     const item = items.get(itemId)
@@ -152,7 +171,7 @@ export async function runWorkbook(review: RunReviewResponse, changes?: readonly 
       { type: String, value: item.title },
       { type: String, value: s.className },
       { type: String, value: s.displayName },
-      { type: String, value: SOURCE_LABELS[e.source] ?? e.source },
+      { type: String, value: sourceLabels[e.source] ?? e.source },
       { type: Number, value: e.rank ?? undefined },
     ]))),
   ]
@@ -189,7 +208,7 @@ export async function runWorkbook(review: RunReviewResponse, changes?: readonly 
             { type: Number, value: c.seq },
             // As text in the school's time: an Excel date carries no zone and would show UTC.
             { type: String, value: whenLong.format(new Date(c.changedAt)) },
-            { type: String, value: CHANGE_KIND_LABELS[c.kind] ?? c.kind },
+            { type: String, value: changeKindLabels[c.kind] ?? c.kind },
             { type: String, value: c.className },
             { type: String, value: c.displayName },
             { type: String, value: c.leftItemIds.map(label).join('; ') },
@@ -209,6 +228,3 @@ export async function runWorkbook(review: RunReviewResponse, changes?: readonly 
   ])
   return workbook.toBuffer()
 }
-
-const dayShort = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit' })
-const whenLong = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: SCHOOL_TIME_ZONE, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })

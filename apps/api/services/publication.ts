@@ -19,7 +19,7 @@ import { campaignStudents } from '../lib/dao/choices.ts'
 import { classTeachersByClass } from '../lib/dao/window.ts'
 import { readSnapshot, type Database, type Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
-import { INTL_LOCALE, t } from '../lib/i18n.ts'
+import { schoolWords, type Words } from '../lib/i18n.ts'
 import { enqueueMail } from '../lib/mail/outbox.ts'
 import type { AllocationRun, StoredRun } from '../lib/models/allocation.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
@@ -33,11 +33,6 @@ import { catalogueItems } from './items.ts'
 import { readTemplate, renderTemplate } from './mail-templates.ts'
 import { firstNameOf, formatWhen } from './window.ts'
 
-const dayShort = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit' })
-const clock = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: SCHOOL_TIME_ZONE, hour: '2-digit', minute: '2-digit' })
-// Two decimals and no grouping, as the notices have always written a fee.
-const amount = new Intl.NumberFormat(INTL_LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })
-
 /** The two lists name the same ids, in any order. */
 function same(a: readonly string[], b: readonly string[]): boolean {
   const left = new Set(a)
@@ -50,36 +45,50 @@ export function itemLabel(item: Pick<Item, 'number' | 'title'>): string {
   return item.number === null ? item.title : `${item.number}. ${item.title}`
 }
 
-/** The item as a line of a student's programme: its number and title, the day and the clock span of each session. */
-function programmeLine(item: Item, source: Assignment['source']): string {
-  const when = item.sessions.map((s) => {
-    const start = new Date(s.startsAt)
-    const end = new Date(s.endsAt)
-    // A trip over the night names both days.
-    return dayShort.format(start) === dayShort.format(end)
-      ? `${dayShort.format(start)} ${clock.format(start)} – ${clock.format(end)}`
-      : `${dayShort.format(start)} ${clock.format(start)} – ${dayShort.format(end)} ${clock.format(end)}`
-  }).join(', ')
-  return `${when}: ${itemLabel(item)}${source === 'fixed' ? ` (${t.notices.programme.fixed})` : ''}${item.feeCents > 0 ? ` – ${t.notices.programme.fee(amount.format(item.feeCents / 100))}` : ''}`
+/**
+ * How the notices write a student's programme, in `words`: built once for
+ * the notices of one transaction, its formats then used for every student.
+ */
+export function programmeWriter({ t, intl }: Words) {
+  const dayShort = new Intl.DateTimeFormat(intl, { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit' })
+  const clock = new Intl.DateTimeFormat(intl, { timeZone: SCHOOL_TIME_ZONE, hour: '2-digit', minute: '2-digit' })
+  // Two decimals and no grouping, as the notices have always written a fee.
+  const amount = new Intl.NumberFormat(intl, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })
+
+  /** The item as a line of a student's programme: its number and title, the day and the clock span of each session. */
+  function line(item: Item, source: Assignment['source']): string {
+    const when = item.sessions.map((s) => {
+      const start = new Date(s.startsAt)
+      const end = new Date(s.endsAt)
+      // A trip over the night names both days.
+      return dayShort.format(start) === dayShort.format(end)
+        ? `${dayShort.format(start)} ${clock.format(start)} – ${clock.format(end)}`
+        : `${dayShort.format(start)} ${clock.format(start)} – ${dayShort.format(end)} ${clock.format(end)}`
+    }).join(', ')
+    return `${when}: ${itemLabel(item)}${source === 'fixed' ? ` (${t.notices.programme.fixed})` : ''}${item.feeCents > 0 ? ` – ${t.notices.programme.fee(amount.format(item.feeCents / 100))}` : ''}`
+  }
+
+  /** The minutes a student still misses, per day, as the notices say it; empty when none. */
+  function missing(explanation: StudentExplanation): string[] {
+    return explanation.days.filter((d) => d.deficit > 0).map((d) => `${dayShort.format(new Date(`${d.date}T12:00:00Z`))} ${t.common.minutes(d.deficit)}`)
+  }
+
+  /** A student's programme as the notices list it: the items in the order of their first session, then what is still missing. */
+  function lines(explanation: StudentExplanation, items: Map<string, Item>): string[] {
+    const result = explanation.items.map((e) => ({ item: items.get(e.itemId), source: e.source })).filter((e): e is { item: Item, source: Assignment['source'] } => e.item !== undefined)
+      .sort((a, b) => (a.item.sessions[0]?.startsAt ?? '').localeCompare(b.item.sessions[0]?.startsAt ?? ''))
+      .map((e) => line(e.item, e.source))
+    const short = missing(explanation)
+    if (short.length > 0) result.push(t.notices.programme.missing(short.join(', ')))
+    return result
+  }
+
+  return { missing, lines }
 }
 
-/** The minutes a student still misses, per day, as the notices say it; empty when none. */
-export function missingLines(explanation: StudentExplanation): string[] {
-  return explanation.days.filter((d) => d.deficit > 0).map((d) => `${dayShort.format(new Date(`${d.date}T12:00:00Z`))} ${t.common.minutes(d.deficit)}`)
-}
-
-/** A student's programme as the notices list it: the items in the order of their first session, then what is still missing. */
-export function programmeLines(explanation: StudentExplanation, items: Map<string, Item>): string[] {
-  const lines = explanation.items.map((e) => ({ item: items.get(e.itemId), source: e.source })).filter((e): e is { item: Item, source: Assignment['source'] } => e.item !== undefined)
-    .sort((a, b) => (a.item.sessions[0]?.startsAt ?? '').localeCompare(b.item.sessions[0]?.startsAt ?? ''))
-    .map((e) => programmeLine(e.item, e.source))
-  const missing = missingLines(explanation)
-  if (missing.length > 0) lines.push(t.notices.programme.missing(missing.join(', ')))
-  return lines
-}
-
-function swapWindowText(campaign: Campaign): string {
-  return campaign.swapFrom !== null && campaign.swapUntil !== null ? t.notices.swapWindow(formatWhen(campaign.swapFrom), formatWhen(campaign.swapUntil)) : ''
+/** The swap window as the notices write it, in `words`; empty without one. */
+function swapWindowText({ t, intl }: Words, campaign: Campaign): string {
+  return campaign.swapFrom !== null && campaign.swapUntil !== null ? t.notices.swapWindow(formatWhen(intl, campaign.swapFrom), formatWhen(intl, campaign.swapUntil)) : ''
 }
 
 /**
@@ -117,41 +126,44 @@ export async function publishRun(db: Database, context: WindowContext, campaign:
 
 /** The notices of a publication, in the publishing transaction; returns how many were queued. */
 async function notifyPublication(client: Queryable, context: WindowContext, campaign: Campaign, run: StoredRun): Promise<number> {
-  // One after another on the transaction's client.
+  // One after another on the transaction's client, in the school's language as the transaction reads it.
+  const words = await schoolWords(client)
+  const programme = programmeWriter(words)
+  const swapWindow = swapWindowText(words, campaign)
   const students = await campaignStudents(client, campaign)
   const rows = await store.listAssignments(client, run.id)
   const items = await catalogueItems(client, campaign.id)
   const byId = new Map(items.map((item) => [item.id, item]))
   let queued = 0
-  const common = (displayName: string) => ({ vorname: firstNameOf(displayName), name: displayName, wahl: campaign.name })
+  const common = (displayName: string) => ({ first_name: firstNameOf(displayName), name: displayName, campaign: campaign.name })
 
-  const result = await readTemplate(client, 'result_published')
+  const result = await readTemplate(client, 'result_published', words.locale)
   const short = new Map<string, { student: CampaignStudent, missing: string[] }>()
   for (const student of students) {
     const explanation = explainStudent(run.snapshot, rows, student.personId)
     if (!explanation) continue
-    const missing = missingLines(explanation)
+    const missing = programme.missing(explanation)
     if (missing.length > 0) short.set(student.personId, { student, missing })
     if (student.address === null) continue
-    const { subject, body } = renderTemplate(result, { ...common(student.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/ergebnis`, zuteilung: programmeLines(explanation, byId).join('\n') || '–', tauschfenster: swapWindowText(campaign) })
+    const { subject, body } = renderTemplate(result, { ...common(student.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/ergebnis`, programme: programme.lines(explanation, byId).join('\n') || '–', swap_period: swapWindow })
     if (await enqueueMail(client, { kind: 'result_published', campaignId: campaign.id, personId: student.personId, to: student.address, subject, body, dedupeKey: `result_published:${campaign.id}:${student.personId}:${run.id}` })) queued += 1
   }
 
   if (short.size > 0) {
-    const template = await readTemplate(client, 'class_unplaced')
+    const template = await readTemplate(client, 'class_unplaced', words.locale)
     const teachers = await classTeachersByClass(client, campaign)
     for (const [className, list] of teachers) {
       const mine = [...short.values()].filter((s) => s.student.className === className)
       if (mine.length === 0) continue
       for (const teacher of list) {
-        const { subject, body } = renderTemplate(template, { ...common(teacher.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/klasse/${encodeURIComponent(className)}`, klasse: className, liste: mine.map((s) => `- ${s.student.displayName}: ${s.missing.join(', ')}`).join('\n') })
+        const { subject, body } = renderTemplate(template, { ...common(teacher.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/klasse/${encodeURIComponent(className)}`, class_name: className, list: mine.map((s) => `- ${s.student.displayName}: ${s.missing.join(', ')}`).join('\n') })
         if (await enqueueMail(client, { kind: 'class_unplaced', campaignId: campaign.id, personId: teacher.personId, to: teacher.address, subject, body, dedupeKey: `class_unplaced:${campaign.id}:${className}:${teacher.personId}:${run.id}` })) queued += 1
       }
     }
   }
 
   if (run.cancelledItemIds.length > 0) {
-    const template = await readTemplate(client, 'item_cancelled')
+    const template = await readTemplate(client, 'item_cancelled', words.locale)
     const cancelled = run.cancelledItemIds.map((id) => byId.get(id)).filter((item): item is Item => item !== undefined)
     const addresses = await store.teacherAddresses(client, campaign.rosterBatchId, cancelled.flatMap((item) => item.teachers.map((t) => t.personId)))
     for (const item of cancelled) {
@@ -159,7 +171,7 @@ async function notifyPublication(client: Queryable, context: WindowContext, camp
       for (const teacher of item.teachers) {
         const address = addresses.get(teacher.personId)
         if (!address) continue
-        const { subject, body } = renderTemplate(template, { ...common(address.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/aktivitaet/${item.id}`, aktivitaet: item.title, anmeldungen: String(wished), minimum: String(item.minParticipants) })
+        const { subject, body } = renderTemplate(template, { ...common(address.displayName), link: `${context.baseUrl}/wahlen/${campaign.id}/aktivitaet/${item.id}`, activity: item.title, wish_count: String(wished), minimum: String(item.minParticipants) })
         if (await enqueueMail(client, { kind: 'item_cancelled', campaignId: campaign.id, personId: teacher.personId, to: address.address, subject, body, dedupeKey: `item_cancelled:${campaign.id}:${item.id}:${teacher.personId}:${run.id}` })) queued += 1
       }
     }

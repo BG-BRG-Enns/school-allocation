@@ -16,7 +16,8 @@ import { Sender } from './lib/mail/sender.ts'
 import { createMailTransport } from './lib/mail/transport.ts'
 import { startScheduler } from './lib/scheduler.ts'
 import { pathOf } from './lib/url.ts'
-import { loadWebIndex, sendWebIndex } from './lib/web-index.ts'
+import { schoolLocale } from './lib/i18n.ts'
+import { loadWebIndex, pageInSchoolLanguage, sendWebIndex } from './lib/web-index.ts'
 import { applyHardening } from './plugins/hardening.ts'
 import { registerSessions } from './plugins/session.ts'
 import { adminRosterRoutes } from './routes/admin-roster.ts'
@@ -136,11 +137,15 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
   if (options.onRoute) app.addHook('onRoute', options.onRoute)
 
   const webDist = existsSync(config.webDistDir) ? config.webDistDir : undefined
-  // The page every page path gets, told the base path (lib/web-index.ts).
+  // The page every page path gets, told the base path once and the
+  // school's language on every request (lib/web-index.ts).
   const webIndex = webDist === undefined ? undefined : await loadWebIndex(webDist, config.basePath)
+  const webPage = webIndex === undefined
+    ? undefined
+    : pageInSchoolLanguage(webIndex, () => schoolLocale(db), (err) => app.log.warn({ err }, 'page: the school\'s language could not be read'))
   // Hooks before routes: a plugin context inherits only the hooks that
   // exist when it is registered, and the sign-in routes are one.
-  applyHardening(app, config, { webIndex })
+  applyHardening(app, config, { webPage })
   // Every route under the base path: at the root of a host there is none.
   const under = config.basePath === '' ? {} : { prefix: config.basePath }
   await registerSessions(app, config)
@@ -205,13 +210,13 @@ export async function buildApp(config: Config, options: AppOptions): Promise<Fas
     }
   })
 
-  if (webDist && webIndex !== undefined) {
+  if (webDist && webPage !== undefined) {
     // The app's start page, with and without the trailing slash; every
     // other page path gets the same page from the not-found handler
     // (plugins/hardening.ts). The static plugin serves the build's files
     // alone: its own index handling would send the page as built, not
-    // told its base path.
-    const page = (_request: FastifyRequest, reply: FastifyReply) => sendWebIndex(reply, webIndex)
+    // told its base path and language.
+    const page = async (_request: FastifyRequest, reply: FastifyReply) => sendWebIndex(reply, await webPage())
     app.get(`${config.basePath}/`, page)
     if (config.basePath !== '') app.get(config.basePath, page)
     await app.register(fastifyStatic, {

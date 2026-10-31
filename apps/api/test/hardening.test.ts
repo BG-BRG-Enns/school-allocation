@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildTestApp, fakeWebDist, ORIGIN } from './helpers/app.ts'
+import { buildTestApp, fakeWebDist, ORIGIN, stubDatabase } from './helpers/app.ts'
 
 test('a state-changing request must come from our own pages: Sec-Fetch-Site, else Origin, else refused', async (t) => {
   const { app } = await buildTestApp()
@@ -50,6 +50,26 @@ test('with a web build, page paths get the page and asset paths stay 404; withou
   const { app: bare } = await buildTestApp()
   t.after(() => bare.close())
   assert.equal((await bare.inject({ method: 'GET', url: '/anmelden' })).statusCode, 404)
+})
+
+test('the page names the school\'s language, read on every page request; the language last read when the database does not answer', async (t) => {
+  let answer: () => Promise<unknown> = () => Promise.resolve({ rows: [{ locale: 'en' }] })
+  const { app, logs } = await buildTestApp({ WEB_DIST_DIR: fakeWebDist() }, stubDatabase(() => answer() as never))
+  t.after(() => app.close())
+  const english = await app.inject({ method: 'GET', url: '/' })
+  assert.match(english.body, /<html lang="en">/)
+  assert.match(english.body, /<meta name="locale" content="en">/)
+  answer = () => Promise.resolve({ rows: [{ locale: 'de-formal' }] })
+  const formal = await app.inject({ method: 'GET', url: '/wahlen' })
+  assert.match(formal.body, /<html lang="de">/, 'the address is not a language')
+  assert.match(formal.body, /<meta name="locale" content="de-formal">/)
+  answer = () => Promise.reject(new Error('connection refused'))
+  const down = await app.inject({ method: 'GET', url: '/' })
+  assert.equal(down.statusCode, 200)
+  assert.match(down.body, /<meta name="locale" content="de-formal">/)
+  assert.match(logs(), /the school's language could not be read/)
+  answer = () => Promise.resolve({ rows: [] })
+  assert.match((await app.inject({ method: 'GET', url: '/' })).body, /<meta name="locale" content="de">/, 'German without a setting')
 })
 
 test('under a base path, routes and the page live below it and nothing answers outside it', async (t) => {

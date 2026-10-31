@@ -20,8 +20,8 @@ declare module 'fastify' {
   }
 }
 
-/** `webIndex` is the web app's page, told the base path (lib/web-index.ts); without a build there is none. */
-export function applyHardening(app: FastifyInstance, config: Config, { webIndex }: { webIndex?: string }): void {
+/** `webPage` gives the web app's page, told the base path and the school's language (lib/web-index.ts); without a build there is none. */
+export function applyHardening(app: FastifyInstance, config: Config, { webPage }: { webPage?: () => Promise<string> }): void {
   const { basePath } = config
   // CSRF: a state-changing request must come from our own pages. Browsers
   // send Sec-Fetch-Site on every request; only "same-origin" passes. Older
@@ -62,14 +62,14 @@ export function applyHardening(app: FastifyInstance, config: Config, { webIndex 
   // gets the page. Nothing under assets/ is a page: a missing build file
   // must stay a 404, not turn into a successful HTML response. A path
   // outside the base path is nobody's.
-  app.setNotFoundHandler((request, reply) => {
+  app.setNotFoundHandler(async (request, reply) => {
     const urlPath = pathOf(request.url)
     const isPage = (request.method === 'GET' || request.method === 'HEAD')
       && isUnder(urlPath, basePath)
       && !isApiPath(urlPath, basePath)
       && !isUnder(urlPath, `${basePath}/assets`)
       && path.extname(urlPath) === ''
-    if (isPage && webIndex !== undefined) return sendWebIndex(reply, webIndex)
+    if (isPage && webPage !== undefined) return sendWebIndex(reply, await webPage())
     return reply.code(404).send({ error: 'not_found' })
   })
 }

@@ -112,7 +112,7 @@ test('a run on a closed campaign: compiled, solved, validated, stored and review
   const xlsx = await s.app.inject({ method: 'GET', url: `/api/admin/campaigns/${id}/runs/${started.body.run.id}/export.xlsx`, headers: { cookie: s.anna.header() } })
   assert.equal(xlsx.statusCode, 200)
   assert.equal(xlsx.headers['content-type'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-  assert.match(String(xlsx.headers['content-disposition']), /zuteilung-lauf-1\.xlsx/)
+  assert.match(String(xlsx.headers['content-disposition']), /zuteilung-berechnung-1\.xlsx/)
 
   const actions = (await readAudit(s.db, id)).map((e) => `${e.action}:${typeof e.metadata.to === 'string' ? e.metadata.to : typeof e.metadata.status === 'string' ? e.metadata.status : ''}`)
   assert.deepEqual(actions.filter((a) => a.startsWith('run.') || a.includes('allocating') || a.includes('review')), ['campaign.transitioned:allocating', 'run.started:', 'run.finished:succeeded', 'campaign.transitioned:review'])

@@ -1,7 +1,8 @@
 // The mail templates and the test mail (docs/domain-and-api.md §4):
 //
-//   GET  /api/admin/mail-templates             every kind with its text and placeholders
-//   PUT  /api/admin/mail-templates/:kind       { subject, body }: checked against the subset and the kind's placeholders, audited
+//   GET  /api/admin/mail-templates             every kind with its text (the school's own, else the default) and placeholders
+//   PUT  /api/admin/mail-templates/:kind       { subject, body }: checked against the subset and the kind's placeholders, stored in the school's language, audited
+//   DELETE /api/admin/mail-templates/:kind     the reset: the school's text removed, the default in the school's language again, audited
 //   POST /api/admin/mail-templates/:kind/test  the kind with sample values, to the caller's own address, audited
 //   GET  /api/admin/mail/status                whether mail is set up, and what waits in the outbox
 //
@@ -17,7 +18,7 @@ import type { Config } from '../config.ts'
 import { actorOf } from '../lib/actor.ts'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { readTemplates, saveTemplate } from '../services/mail-templates.ts'
+import { readTemplates, resetTemplate, saveTemplate } from '../services/mail-templates.ts'
 import { queueTestMail } from '../services/mail.ts'
 
 export interface MailRoutesOptions {
@@ -37,6 +38,10 @@ export async function mailRoutes(app: FastifyInstance, { config, db, guards, wak
 
   registerEndpoint(app, endpoints.putAdminMailTemplatesByKind, { ...organizer }, async (request) => {
     return { template: await saveTemplate(db, request.params.kind, request.body.subject, request.body.body, actorOf(callerOf(request))) }
+  })
+
+  registerEndpoint(app, endpoints.deleteAdminMailTemplatesByKind, { ...organizer }, async (request) => {
+    return { template: await resetTemplate(db, request.params.kind, actorOf(callerOf(request))) }
   })
 
   // The template as it stands, with sample values, to the caller's own

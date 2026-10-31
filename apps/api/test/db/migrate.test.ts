@@ -10,7 +10,8 @@ import { migrate, MigrationError, MIGRATIONS_DIR, ownSchema } from '../../script
 import { checkSchema } from '../../lib/db.ts'
 import { RUNTIME_TABLES } from '../../lib/runtime-privileges.ts'
 import { SQLSTATE, sqlState } from '../../lib/pg-errors.ts'
-import { createTestDatabase, DB, TEST_RUNTIME_PASSWORD, withClient } from '../helpers/db.ts'
+import { LOCALES } from '@school-allocation/messages'
+import { checkedValues, createTestDatabase, DB, migrateTestDatabase, TEST_RUNTIME_PASSWORD, withClient } from '../helpers/db.ts'
 
 const TID = '3f2b8c1d-6e4a-4b7f-9c2d-8a1e5f6b7c90'
 const OID = 'a0000000-0000-4000-8000-00000000000a'
@@ -154,6 +155,36 @@ test('an item past draft is withdrawn rather than removed, keeps its campaign an
   await withClient(db.runtimeUrl, async (c) => {
     await assert.rejects(c.query('delete from campaign'), (err: unknown) => sqlState(err) === SQLSTATE.insufficientPrivilege)
     await assert.rejects(c.query('update campaign set created_by = created_by'), (err: unknown) => sqlState(err) === SQLSTATE.insufficientPrivilege)
+  })
+})
+
+test('0011: the seeded mail templates go, a saved one stays in German with its placeholders renamed in every form; a reset removes a row, nothing truncates the table', DB, async (t) => {
+  const db = await createTestDatabase(t, { until: '0010_retention.sql' })
+  await withClient(db.ownerUrl, async (c) => {
+    assert.equal((await c.query('select 1 from mail_template where updated_by is null')).rowCount, 11, 'the seed: every kind, no author')
+    const { rows: [user] } = await c.query<{ id: string }>('insert into app_user (tid, oid, display_name) values ($1, $2, $3) returning id', [TID, OID, 'Anna'])
+    await c.query('update mail_template set subject = $2, body = $3, updated_at = now(), updated_by = $4 where kind = $1', [
+      'class_missing',
+      '{{ wahl }}: {{klasse}} ({{{fenster}}})',
+      '{{#if vorname}}Hallo {{vorname}}{{else}}Hallo{{/if}},\n{{#if  liste }}{{{ liste }}}{{/if}} {{wahlen}} wahl {{name}} {{link}} {{minimum}}',
+      user?.id,
+    ])
+  })
+  assert.deepEqual(await migrateTestDatabase(db), ['0011_language_and_mail_defaults.sql'])
+  await withClient(db.ownerUrl, async (c) => {
+    assert.deepEqual((await c.query('select kind, subject, body, locale from mail_template')).rows, [{
+      kind: 'class_missing',
+      subject: '{{ campaign }}: {{class_name}} ({{{window}}})',
+      body: '{{#if first_name}}Hallo {{first_name}}{{else}}Hallo{{/if}},\n{{#if  list }}{{{ list }}}{{/if}} {{wahlen}} wahl {{name}} {{link}} {{minimum}}',
+      locale: 'de',
+    }], 'a name is renamed only where it stands whole inside the braces')
+    await assert.rejects(c.query('truncate mail_template'), (err: unknown) => sqlState(err) === SQLSTATE.objectNotInPrerequisiteState, 'not even the owner truncates')
+    await assert.rejects(c.query('update mail_template set updated_by = null'), (err: unknown) => sqlState(err) === '23502', 'a row is a text somebody saved')
+  })
+  assert.deepEqual(await checkedValues(db.ownerUrl, 'mail_template', 'locale'), [...LOCALES])
+  await withClient(db.runtimeUrl, async (c) => {
+    await assert.rejects(c.query('truncate mail_template'), (err: unknown) => sqlState(err) === SQLSTATE.insufficientPrivilege)
+    assert.equal((await c.query('delete from mail_template where kind = $1', ['class_missing'])).rowCount, 1, 'the reset')
   })
 })
 
