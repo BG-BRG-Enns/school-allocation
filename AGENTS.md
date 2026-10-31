@@ -16,7 +16,8 @@ apps/api/                 Fastify on Node 26, raw TypeScript; serves apps/web/di
 apps/api/migrations/      the v1 baseline and forward-only migrations on top of it, applied by apps/api/scripts/migrate.ts
 apps/web/                 Vue 3 + Vite SPA; its words come from packages/messages
 apps/solver/              Python, FastAPI, OR-Tools CP-SAT; stateless, internal network only, speaks the contract in docs/domain-and-api.md §6; its tests in apps/solver/tests (pytest)
-e2e/                      Playwright journeys against the real server: harness, support, specs (playwright.config.ts at the root)
+e2e/                      Playwright journeys against the real server: harness, support, specs (playwright.config.ts at the root); they also cut the handbooks' pictures
+handbook/                 the handbooks for administrators, organizers and teachers: a VitePress site in German and English, with its pictures; published from release tags
 scripts/lint-deps.mjs     pin check: exact versions in every workspace, digests for the Dockerfiles' frontend and the workflows' BuildKit
 scripts/postgres.sh       PostgreSQL for development and CI, the image the deployment follows
 deploy/                   the deployment: Quadlet units for the three containers, the PostgreSQL image, the nightly-update guard, the .env example, the proxy example (nginx) and the operator guide; generic, example.org placeholders only
@@ -40,6 +41,8 @@ npm run dev:api     # API on :3000
 npm run dev:api:fake-entra  # the same API, signing in with a stand-in for Entra ID
 npm run dev:web     # Vite dev server, proxies /api to :3000
 npm run e2e         # Playwright journeys in Chromium; needs TEST_DATABASE_URL and `npm run e2e:install` once
+npm run handbook    # the handbooks' site → handbook/.vitepress/dist
+npm run handbook:shots  # the handbooks' pictures, renewed from the journeys in German and English
 (cd apps/solver && uv run --frozen pytest -q)   # the solver's tests, from uv.lock (CONTRIBUTING.md)
 ```
 
@@ -70,7 +73,7 @@ These take precedence over convenience:
 
 - Dependencies are pinned exactly; Dependabot lands bumps, and the automerge workflow holds them for a one-day quarantine.
 - GitHub Actions are pinned by commit SHA with the version in a comment. Base images are pinned by tag and digest, and so is BuildKit, which runs the image builds (`driver-opts` of the buildx setup in both workflows); the Dockerfiles name no frontend of their own (`# syntax=`), so BuildKit's built-in one reads them. Dependabot does not see the BuildKit pin: it is bumped by hand. `lint:deps` refuses either without a digest.
-- CI runs on pull requests to `main`; a push to `main` runs the tests again for the SonarQube analysis of the default branch and warms the image caches. SonarQube's properties are in `sonar-project.properties`, its coverage the lcov file of `npm run test:coverage`. Images are published to GHCR only on `v*` tags.
+- CI runs on pull requests to `main`; a push to `main` runs the tests again for the SonarQube analysis of the default branch and warms the image caches. SonarQube's properties are in `sonar-project.properties`, its coverage the lcov file of `npm run test:coverage`. Images are published to GHCR only on `v*` tags, and the handbooks to GitHub Pages likewise (`handbook.yml`).
 - `apps/api/migrations/0001_baseline.sql` is the schema of version 1. A change after it is a new migration on top, never an edit of an applied one.
 - The lifecycle's windows (what may change in which state, which state follows which) live in `school-core`'s guards, asked by the route and again under the campaign's lock. Triggers keep only what the stored data must satisfy whoever writes it. A trigger that restates a guard is not added.
 - What the runtime role may do with tables and functions is listed in `apps/api/lib/runtime-privileges.ts`. No migration grants anything; the migrator applies the list on every run. A new table gets no access until it is listed.
@@ -78,3 +81,4 @@ These take precedence over convenience:
 - `deploy/README.md` is the operator guide; update it with any change to configuration, secrets, the units or the update mechanism.
 - Work that must happen in order (audit events chaining to the one before, rows written in one transaction) is a plain loop with `await` in it. SonarCloud's rule against `await` in a loop (typescript:S9382) is ignored in `sonar-project.properties` for that reason; no helper exists to hide such a loop.
 - Code, comments and documentation are in English. The interface's words live in `packages/messages/src/de.ts`, German first, with formal German and English beside it, the mail templates' defaults included: the pages (`apps/web/src/lib/i18n.ts`), the workbooks and the values the server fills into notices (`apps/api/lib/i18n.ts`) read them in the school's language, and the browser journeys find elements by them (`e2e/support/messages.ts`). The words follow `docs/glossary.md`. No word is written into a template or a page's script; ESLint refuses bare text in templates.
+- The handbooks in `handbook/` describe the app in its words, German with du and English; a change to behaviour they describe changes them, in both languages. Their pictures come only from the journeys (`picture` in `e2e/support/screenshot.ts`, `npm run handbook:shots`), and `scripts/handbook.test.mjs` keeps pages and pictures whole.

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// The shell: the app's name, who is signed in, and "Abmelden", around the
-// page. Every page but the sign-in page is for signed-in people: it is
+// The shell: the app's name, the help link to the handbook of the
+// person's role, who is signed in, and "Ausloggen", around the page. Every page but the sign-in page is for signed-in people: it is
 // shown once someone is signed in, so no page asks the API without a
 // session, and without one the shell sends the browser to the sign-in
 // page, which brings it back here afterwards. The sign-in page itself is
@@ -10,12 +10,15 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { signInUrl } from './lib/api-rules.ts'
 import { withBase } from './lib/base.ts'
-import { t } from './lib/i18n.ts'
+import { handbookLink } from './lib/handbook.ts'
+import { LOCALE, t } from './lib/i18n.ts'
 import { isSchoolAdmin, loadSession, session, signOut } from './lib/session.ts'
 
 const route = useRoute()
 const router = useRouter()
 const shown = computed(() => session.value !== undefined && (session.value !== null || route.path === '/anmelden'))
+/** The handbook of the signed-in person's role, in a tab of its own; none for a student. */
+const help = computed(() => session.value ? handbookLink(session.value, LOCALE) : undefined)
 /** The first request did not get an answer (the connection, or a server error): say so, and offer to ask again. */
 const loadFailed = ref(false)
 
@@ -61,6 +64,14 @@ function onSignOut(): void {
         >
           {{ t.common.page.admin }}
         </RouterLink>
+        <a
+          v-if="help"
+          :href="help"
+          target="_blank"
+          rel="noopener"
+        >
+          {{ t.shell.help }}
+        </a>
         <RouterLink
           to="/konto"
           class="who"

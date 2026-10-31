@@ -131,6 +131,8 @@ curl -fsS http://127.0.0.1:3000/api/health
 
 The first start pulls the three images (a few minutes), creates the database, runs every migration, creates the runtime role, and starts the app. The health check reports the release and commit it runs. Then open `PUBLIC_URL` and sign in as a listed first administrator.
 
+The school's administration, organizers and teachers have handbooks of their own at <https://bg-brg-enns.github.io/school-allocation/>, in German and, under `/en/`, in English. They describe the latest release, and the app's **Hilfe** link opens the one of a person's role. Pass the address on with `PUBLIC_URL`; running the host stays in this guide.
+
 ## The proxy and TLS
 
 The app expects a reverse proxy that terminates TLS and forwards to `127.0.0.1:3000` with `Host`, `X-Forwarded-For` and `X-Forwarded-Proto` set; `nginx.example.conf` is a complete site. The proxy adds no security headers and no authorization: both come from the app.

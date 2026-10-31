@@ -1,0 +1,10 @@
+{
+  // The site's configuration, which VitePress loads in Node.
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"]
+  },
+  "include": [".vitepress/config.ts", ".vitepress/pages.ts"]
+}

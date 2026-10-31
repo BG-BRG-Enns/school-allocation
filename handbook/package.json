@@ -1,0 +1,17 @@
+{
+  "name": "@school-allocation/handbook",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The handbooks for administrators, organizers and teachers, in German and English: a VitePress site, published to GitHub Pages from release tags.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "vitepress": "2.0.0-alpha.21"
+  }
+}

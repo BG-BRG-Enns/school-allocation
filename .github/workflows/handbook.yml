@@ -1,0 +1,82 @@
+name: Handbook
+
+# The handbooks (handbook/), built and published to GitHub Pages from a
+# release: a v<major>.<minor>.<patch> tag, or by hand on such a tag. So
+# they describe what schools run, not main. The site builds from the
+# pictures committed in handbook/public/bilder, which `npm run
+# handbook:shots` renews in a pull request (none are committed yet, so
+# until they are, this build fails); no database, browser or journey
+# runs here. A dead link or a missing picture fails the build,
+# which then publishes nothing and leaves the previous handbook online.
+# Pull requests build nothing: `npm run handbook` runs before a handbook
+# change, and scripts/handbook.test.mjs, part of the tests, keeps the
+# pages and pictures whole.
+
+'on':
+  workflow_dispatch: {}
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: read
+
+# One publication at a time; a newer tag waits for the one before.
+concurrency:
+  group: handbook
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the handbook
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Only a release tag, as the images: a run on a branch would publish
+      # an unreleased handbook.
+      - name: Verify release tag
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF_TYPE}" != "tag" ] || ! printf '%s' "${GITHUB_REF_NAME}" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "Refusing to publish: expected a v<major>.<minor>.<patch> tag, got ${GITHUB_REF_TYPE} '${GITHUB_REF_NAME}'" >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No npm cache: a release builds from what the lock file names alone,
+      # never from a cache another run could have filled.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          package-manager-cache: false
+
+      - run: npm ci --ignore-scripts
+
+      # The pages and pictures whole, as every pull request's tests check
+      # them: a page missing in one language fails here, which the build
+      # would not notice.
+      - run: node --throw-deprecation --test scripts/handbook.test.mjs
+
+      - run: npm run handbook
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: handbook/.vitepress/dist
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

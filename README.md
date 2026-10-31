@@ -36,6 +36,10 @@ docker build -t school-allocation-solver:local apps/solver
 
 A release is a `v<major>.<minor>.<patch>` tag; pushing it publishes the three images to `ghcr.io/<owner>/school-allocation`, `…-postgres` and `…-solver`, under the release tag and the line tag `v1`, which deployments follow and pick up with their nightly update. A release that fixes a vulnerability in the app raises the schema version, so that no deployment goes back to an app behind it ([`SECURITY.md`](SECURITY.md)).
 
+## Handbooks
+
+The handbooks for a school's administration, organizers and teachers are at <https://bg-brg-enns.github.io/school-allocation/>, in German and in English, published with each release; in the app, **Hilfe** opens the one of the signed-in person's role. Their source is [`handbook/`](handbook/), with pictures cut from the browser journeys; [CONTRIBUTING.md](CONTRIBUTING.md#handbooks) says how to change them.
+
 ## Deployment
 
 [deploy/README.md](deploy/README.md) is the operator guide: the Entra ID app registration, secret files, rootless podman units for the three containers that update themselves nightly, and the TLS proxy in front, on the host or elsewhere.
