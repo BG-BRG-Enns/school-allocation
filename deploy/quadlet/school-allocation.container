@@ -5,12 +5,18 @@
 # fixed here, so the file is the same on every host.
 [Unit]
 Description=school-allocation
+# A failed start is retried every two minutes for as long as it fails, each
+# time with the newest image of the line (Pull=newer): the update runs
+# without a rollback, and the next release is what repairs a failed one
+# (README.md, Updates).
+StartLimitIntervalSec=0
 Requires=school-allocation-postgres.service
 After=school-allocation-postgres.service
 
 [Container]
 Image=ghcr.io/bg-brg-enns/school-allocation:v1
 AutoUpdate=registry
+Pull=newer
 ContainerName=school-allocation
 Network=school-allocation-internal.network
 Network=school-allocation-egress.network
@@ -51,20 +57,27 @@ Notify=healthy
 
 [Service]
 Restart=always
+RestartSec=120
 # The first start pulls the image and runs every migration.
 TimeoutStartSec=300
-# The migrations, before every start and with the image this unit will
-# run: after an auto-update that is the one just pulled, so the app never
-# starts on an old schema. As the PostgreSQL superuser; a run with nothing
-# to do changes nothing.
-ExecStartPre=/usr/bin/podman run --rm --network school-allocation-internal \
+# The migrations, before every start, with the newest image of the line,
+# which the container then runs as well (both pull with newer): after an
+# auto-update the one just pulled, after a failed start the newest release,
+# so the app never starts on an old schema. Should a release be published
+# between the two pulls, the server finds its migrations missing, refuses,
+# and the next start runs them. As the PostgreSQL superuser; a run with
+# nothing to do changes nothing. The image is named once more here, as
+# MIGRATION_IMAGE, because systemd cannot read Image=: a pinned release
+# sets both (README.md, Pinning a release).
+Environment=MIGRATION_IMAGE=ghcr.io/bg-brg-enns/school-allocation:v1
+ExecStartPre=/usr/bin/podman run --rm --pull=newer --network school-allocation-internal \
   --read-only --cap-drop ALL --security-opt no-new-privileges \
   -e MIGRATION_DATABASE_URL=postgres://postgres@school-allocation-postgres:5432/school_allocation \
   -e MIGRATION_DATABASE_PASSWORD_FILE=/run/secrets/db-owner-password \
   -e DB_RUNTIME_PASSWORD_FILE=/run/secrets/db-runtime-password \
   -v %h/school-allocation/secrets/db-owner-password:/run/secrets/db-owner-password:ro,z \
   -v %h/school-allocation/secrets/db-runtime-password:/run/secrets/db-runtime-password:ro,z \
-  ghcr.io/bg-brg-enns/school-allocation:v1 node apps/api/scripts/migrate.ts
+  ${MIGRATION_IMAGE} node apps/api/scripts/migrate.ts
 
 [Install]
 WantedBy=default.target

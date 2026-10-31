@@ -17,6 +17,10 @@ export interface TableGrant {
 }
 
 export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
+  // The migrator's own bookkeeping: the server reads which migrations ran and
+  // the schema version, and refuses to start on a schema it was not built for
+  // (lib/db.ts checkSchema).
+  schema_migrations: { table: ['SELECT'] },
   // Sign-in records a person and refreshes their name, address and the time;
   // the identity itself is never rewritten, and nobody is deleted. Blocking
   // is an administrator's action through the application.

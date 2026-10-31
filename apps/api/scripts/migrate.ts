@@ -26,6 +26,19 @@ export const MIGRATIONS_DIR = path.resolve(path.dirname(fileURLToPath(import.met
 const LOCK_KEY = 0x5c0e1ec7
 const FILE_NAME = /^\d{4}_[a-z0-9_]+\.sql$/
 
+// The schema version: a migration that code built before it cannot run on
+// (a column dropped or renamed, a constraint the old code would break, a
+// meaning changed) starts with `-- schema-version: N`, one more than the
+// newest before it; an additive one (a table, a column with a default, an
+// index) carries none (AGENTS.md). A release is built for the highest
+// version among its own migrations (schemaVersionOf), and neither its
+// migrator nor its server (lib/db.ts checkSchema) runs on a database at a
+// higher one. A release that fixes a vulnerability raises it too, with a
+// migration that may hold the line alone, so no earlier release starts on
+// a database it migrated, even when a registry serves an earlier signed one.
+const SCHEMA_VERSION = /^-- schema-version:/
+const SCHEMA_VERSION_LINE = /^-- schema-version: ([1-9]\d{0,8})\s*$/
+
 export interface MigrateOptions {
   /** Owner connection string, password included. */
   databaseUrl: string
@@ -65,18 +78,27 @@ export async function migrate(options: MigrateOptions): Promise<string[]> {
       sha256 text not null,
       applied_at timestamptz not null default now()
     )`)
-    const applied = new Map((await client.query<{ filename: string, sha256: string }>(
-      'select filename, sha256 from schema_migrations',
-    )).rows.map((row) => [row.filename, row.sha256]))
+    // Added after the table's first release; a migrator before it inserts
+    // without the column, which records no version.
+    await client.query('alter table schema_migrations add column if not exists schema_version integer')
+    const rows = (await client.query<{ filename: string, sha256: string, schema_version: number | null }>(
+      'select filename, sha256, schema_version from schema_migrations',
+    )).rows
+    const applied = new Map(rows.map((row) => [row.filename, row.sha256]))
 
     // The history is validated before the runtime role is touched.
     const pending = pendingMigrations(files, applied, migrationsDir, until)
     const ahead = aheadOf(files, applied)
+    const builtFor = schemaVersionOf(files)
+    const raised = rows.filter((row) => row.schema_version !== null && row.schema_version > builtFor)
+    if (raised.length > 0) {
+      throw new MigrationError(`the database is at schema version ${Math.max(...raised.map((row) => row.schema_version ?? 0))}, set by a newer release (${raised.map((row) => row.filename).sort(byName).join(', ')}); this release is built for ${builtFor} and does not run on it`)
+    }
     if (ahead.length > 0) {
-      // The rollback case (pendingMigrations): said out loud, since the
-      // privileges reset below grants nothing on what those migrations
-      // created, until the newer release runs again.
-      log(`the database is ahead of this release: ${ahead.join(', ')} applied by a newer release; starting on them`)
+      // A newer release's migrations that keep the schema version: said
+      // out loud, since the privileges reset below grants nothing on what
+      // they created, until the newer release runs again.
+      log(`the database is ahead of this release: ${ahead.join(', ')} applied by a newer release, at the schema version this release is built for; starting on them`)
     }
     const existed = await ensureRuntimeRole(client, runtimePassword)
     for (const file of pending) {
@@ -100,6 +122,19 @@ interface MigrationFile {
   name: string
   sql: string
   sha256: string
+  /** The schema version its first line raises the schema to (SCHEMA_VERSION), or null. */
+  schemaVersion: number | null
+}
+
+/** The schema version a set of migrations is built for: the highest one they raise it to, 0 if none does. */
+export function schemaVersionOf(files: readonly Pick<MigrationFile, 'schemaVersion'>[]): number {
+  return Math.max(0, ...files.map((file) => file.schemaVersion ?? 0))
+}
+
+/** This release's migrations as the server checks the database against them: their names and the schema version they are built for. */
+export async function ownSchema(dir: string = MIGRATIONS_DIR): Promise<{ names: string[], version: number }> {
+  const files = await migrationFiles(dir, undefined)
+  return { names: files.map((file) => file.name), version: schemaVersionOf(files) }
 }
 
 async function assertMigrationRole(client: pg.Client): Promise<void> {
@@ -123,12 +158,10 @@ async function assertMigrationRole(client: pg.Client): Promise<void> {
  * the same files in different orders.
  *
  * One kind of unknown applied file is accepted: those that sort after every
- * file this release has (aheadOf). That is the database a newer release
- * migrated, which the previous image meets when an update fails its health
- * check and is rolled back; a migration is written to work with the
- * release before it, so the old server starts on the new schema. An
- * unknown file that sorts before a known one is a gap in the history, and
- * stops the run.
+ * file this release has (aheadOf), the database a newer release migrated,
+ * as long as none of them raised the schema version beyond this release's
+ * (migrate refuses that). An unknown file that sorts before a known one is
+ * a gap in the history, and stops the run.
  */
 export function pendingMigrations(
   files: readonly MigrationFile[],
@@ -164,7 +197,7 @@ async function applyMigration(client: pg.Client, file: MigrationFile): Promise<v
   await client.query('begin')
   try {
     await client.query(file.sql)
-    await client.query('insert into schema_migrations (filename, sha256) values ($1, $2)', [file.name, file.sha256])
+    await client.query('insert into schema_migrations (filename, sha256, schema_version) values ($1, $2, $3)', [file.name, file.sha256, file.schemaVersion])
     await client.query('commit')
   } catch (err) {
     await client.query('rollback').catch(() => {})
@@ -182,10 +215,26 @@ async function migrationFiles(dir: string, until: string | undefined): Promise<M
   const duplicate = names.find((name, i) => i > 0 && name.slice(0, 4) === names[i - 1]?.slice(0, 4))
   if (duplicate) throw new MigrationError(`migration number ${duplicate.slice(0, 4)} is used more than once`)
   const selected = until === undefined ? names : names.filter((name) => name <= until)
-  return Promise.all(selected.map(async (name) => {
+  const files = await Promise.all(selected.map(async (name) => {
     const sql = await readFile(path.join(dir, name), 'utf8')
-    return { name, sql, sha256: createHash('sha256').update(sql).digest('hex') }
+    return { name, sql, sha256: createHash('sha256').update(sql).digest('hex'), schemaVersion: schemaVersionLine(name, sql.split('\n', 1)[0] ?? '') }
   }))
+  // Each raise goes above the one before it, so the versions follow the files' order.
+  let newest = 0
+  for (const file of files) {
+    if (file.schemaVersion === null) continue
+    if (file.schemaVersion <= newest) throw new MigrationError(`${file.name} sets schema version ${file.schemaVersion}, not above ${newest} of an earlier migration`)
+    newest = file.schemaVersion
+  }
+  return files
+}
+
+/** The version a migration's first line raises the schema to; a line that starts like the marker but is not one stops the run rather than being read as a comment. */
+function schemaVersionLine(name: string, line: string): number | null {
+  if (!SCHEMA_VERSION.test(line)) return null
+  const match = SCHEMA_VERSION_LINE.exec(line)
+  if (!match?.[1]) throw new MigrationError(`${name} starts with a schema version that is not "-- schema-version: N" with N a positive whole number`)
+  return Number(match[1])
 }
 
 // The runtime role logs in with its own password and holds nothing but what

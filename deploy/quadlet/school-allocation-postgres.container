@@ -3,10 +3,14 @@
 # pulls a new v1 and restarts this unit (README.md, Updates).
 [Unit]
 Description=school-allocation PostgreSQL
+# Retried every two minutes while it fails, with the newest image of the
+# line (Pull=newer), as the app is.
+StartLimitIntervalSec=0
 
 [Container]
 Image=ghcr.io/bg-brg-enns/school-allocation-postgres:v1
 AutoUpdate=registry
+Pull=newer
 ContainerName=school-allocation-postgres
 Network=school-allocation-internal.network
 Volume=school-allocation-db.volume:/var/lib/postgresql
@@ -27,6 +31,7 @@ Notify=healthy
 
 [Service]
 Restart=always
+RestartSec=120
 # The first start pulls the image.
 TimeoutStartSec=300
 

@@ -1,6 +1,6 @@
 # Deploying school-allocation
 
-Three containers under a rootless podman user, as systemd user units (Quadlet): the app, its PostgreSQL and the solver. They follow the `v1` line of the images this repository publishes and update themselves every night. TLS terminates in a reverse proxy outside the containers, on this host or on another one. The app serves plain HTTP on the host's loopback and assumes nothing about where the proxy runs.
+Three containers under a rootless podman user, as systemd user units (Quadlet): the app, its PostgreSQL and the solver. They follow the `v1` line of the images this repository publishes and update themselves every night, unless the operator would rather update by hand (Updates). TLS terminates in a reverse proxy outside the containers, on this host or on another one. The app serves plain HTTP on the host's loopback and assumes nothing about where the proxy runs.
 
 Everything a host chooses is in `~/school-allocation/.env` and four secret files. Everything else is fixed in the units, so the files here are the same on every host.
 
@@ -39,7 +39,7 @@ As `allocation`:
 ```bash
 mkdir -p ~/school-allocation/secrets ~/.config/containers/systemd ~/.config/systemd/user/podman-auto-update.service.d ~/.config/containers/registries.d
 cp deploy/quadlet/* ~/.config/containers/systemd/
-cp deploy/systemd/podman-auto-update.service.d/busy.conf ~/.config/systemd/user/podman-auto-update.service.d/
+cp deploy/systemd/podman-auto-update.service.d/*.conf ~/.config/systemd/user/podman-auto-update.service.d/
 cp deploy/not-busy.sh ~/school-allocation/ && chmod +x ~/school-allocation/not-busy.sh
 cp deploy/.env.example ~/school-allocation/.env && chmod 600 ~/school-allocation/.env
 ```
@@ -141,16 +141,56 @@ When the proxy runs on another host, bring the app's port there over a tunnel fr
 
 ## Updates
 
-`podman-auto-update.timer` pulls new `v1` images nightly and restarts the units whose image changed. The app's unit runs the migrations before every start, with the image it is about to run, so the app never starts on an old schema; a migration is written to work with the previous release too, so the automatic rollback after a failed health check is safe.
+### Automatic, the default
 
-The update is skipped, without failing, while a job is executing (an allocation run, a roster import, an outbox flush): `busy.conf` makes `not-busy.sh` the unit's condition, and it asks the health check. Choices and catalogue changes are saved as they are made, so a restart at night loses nothing a person has done.
+`podman-auto-update.timer` pulls new `v1` images nightly and restarts the units whose image changed. A school then gets every release, security fixes included, the night after it is published, without anyone on the host.
 
 ```bash
 systemctl --user enable --now podman-auto-update.timer
 systemctl --user list-timers podman-auto-update.timer
 ```
 
+- **Not during a job.** The update is skipped, without failing, while a job is executing (an allocation run, a roster import, an outbox flush): `busy.conf` makes `not-busy.sh` the update's condition, and it asks the health check. Choices and catalogue changes are saved as they are made, so a restart at night loses nothing a person has done.
+- **The schema the release was built for.** The app's unit runs the migrations before every start, with the image it is about to run, so the app never starts on an old schema. A release refuses a database that a newer release changed in a way it cannot run on (a higher schema version). A release that fixes a vulnerability raises the schema version, so an earlier `v1`, should the registry ever serve one, does not start. The PostgreSQL and solver images have no schema version.
+- **A failed update stays down, and the next release repairs it.** `no-rollback.conf` turns off podman's automatic rollback: a release that fails to start leaves the app down, which `systemctl --user status school-allocation` and the app's address show, instead of putting the previous release back unnoticed. The units retry a failed start every two minutes, each time with the newest image of the line (`Pull=newer`, for the migrations too), so the next release repairs the app within minutes of being published. `podman auto-update` itself only looks at running containers and would not.
+
 A major version (`v2`) changes the line the units follow and is installed by hand with the release notes.
+
+### By hand
+
+An operator who would rather choose when an update happens does not enable the timer, and pins the release the host runs (below): without a pin, every start of a unit, a reboot included, pulls the newest image of the `v1` line. To update, read the release notes, take a backup (Backups), change the pins to the new release and restart the units. Which is safer depends on the staff: by hand, a school runs what someone has looked at, and runs it until someone looks again, security fixes included; automatically, it runs every fix the next night, and a broken release until the next one. Where nobody watches the releases, the automatic update keeps a host closer to its fixes.
+
+### Pinning a release
+
+A drop-in per unit names the release instead of the line. The app needs its image twice, for the container and for its migrations, and the three images name the same release:
+
+```ini
+# ~/.config/containers/systemd/school-allocation.container.d/pin.conf
+[Container]
+Image=ghcr.io/bg-brg-enns/school-allocation:v1.2.3
+
+[Service]
+Environment=MIGRATION_IMAGE=ghcr.io/bg-brg-enns/school-allocation:v1.2.3
+```
+
+```ini
+# ~/.config/containers/systemd/school-allocation-postgres.container.d/pin.conf
+[Container]
+Image=ghcr.io/bg-brg-enns/school-allocation-postgres:v1.2.3
+```
+
+```ini
+# ~/.config/containers/systemd/school-allocation-solver.container.d/pin.conf
+[Container]
+Image=ghcr.io/bg-brg-enns/school-allocation-solver:v1.2.3
+```
+
+```bash
+systemctl --user daemon-reload
+systemctl --user restart school-allocation-postgres school-allocation-solver school-allocation
+```
+
+A pin is also the way back to the previous release while a failed one awaits its fix, as long as the failed release did not raise the schema version. If it did, the previous release refuses the database, and the way back is the backup from before the update. Removing the pins returns the host to the line.
 
 ## Reboots
 

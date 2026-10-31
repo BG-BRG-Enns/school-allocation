@@ -34,7 +34,7 @@ docker build -t school-allocation:local .
 docker build -t school-allocation-solver:local apps/solver
 ```
 
-A release is a `v<major>.<minor>.<patch>` tag; pushing it publishes the three images to `ghcr.io/<owner>/school-allocation`, `…-postgres` and `…-solver`, under the release tag and the line tag `v1`, which deployments follow and pick up with their nightly update.
+A release is a `v<major>.<minor>.<patch>` tag; pushing it publishes the three images to `ghcr.io/<owner>/school-allocation`, `…-postgres` and `…-solver`, under the release tag and the line tag `v1`, which deployments follow and pick up with their nightly update. A release that fixes a vulnerability in the app raises the schema version, so that no deployment goes back to an app behind it ([`SECURITY.md`](SECURITY.md)).
 
 ## Deployment
 

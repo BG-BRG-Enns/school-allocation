@@ -11,7 +11,7 @@ Likelihood and impact: H / M / L.
 | R01 | The allocation outcome is not accepted by students, parents or staff ("why did I get my 4th choice?") | M | H | Lexicographic rule in plain words; per-student explanation; review before publish; manual changes possible; D-20 simulation shown to school leadership beforehand | Organizer |
 | R02 | Runs are not reproducible, so the school cannot explain a result | L | H | Single worker, seed, deterministic time limit, pinned OR-Tools, stored snapshot hash; CI reproducibility test | Developer |
 | R03 | Solver gives `INFEASIBLE`/`UNKNOWN`, or poor results within the limit | M | M | Coverage is soft and reported; level values carry `proven`; organizer can re-run with a larger limit; xlsx fallback to manual allocation | Developer / organizer |
-| R04 | A nightly auto-update breaks the app during an open window | M | H | Expand-only migrations; previous-release-on-new-schema CI job; health-gated rollback; choices saved per change; busy gate during jobs | Developer |
+| R04 | A nightly auto-update breaks the app during an open window | M | M | The tests, the journeys and the image's smoke test before every tag; a release refuses a schema it was not built for; a failed update stays down where it is noticed and the next release fixes it, a few hours in a two-week window; choices saved per change; busy gate during jobs | Developer |
 | R05 | The class groups in Entra are stale or mislabelled (new school year, late transfers) | M | H | Batch age and diff shown; refresh before close; organizer sign-off of the batch; CSV as a correction path | School admin |
 | R06 | A CSV-based binding fails or is wrong (renamed account before first sign-in, typo) | L | M | Exact match only; unmatched queue; audited merge; on-behalf entry; Graph import avoids the problem entirely | School admin |
 | R07 | Notices are not delivered (SMTP not configured, SPF/DKIM of the school's domain, spam filters) | M | M | Test-send in the admin UI; send state visible; non-submitter export for class teachers as the fallback | School admin |
@@ -64,7 +64,7 @@ The evidence column states what has to be shown for sign-off.
 | G1 | A student is recognized by `(tid, oid)` after an e-mail or name change post-binding | API test |
 | G2 | A student missing from the newest roster batch loses choice rights on the next request; their records are kept and flagged | API test |
 | G3 | A Graph, Entra or SMTP outage never widens permissions; the age of the last roster batch is visible | API tests with failing doubles |
-| G4 | The previous release runs on the new schema (auto-update rollback) | CI job |
+| G4 | A release refuses a schema version above the one it was built for, in its migrator and at its server's start | Migrator test |
 | G5 | The app works under its own host and under a sub-path | The browser journeys run under `/wahl` and at the root in CI |
 | G6 | The roster stores only the minimal fields even when Graph returns more; no school ID number, birth date or address exists anywhere in the schema | Schema review + importer test with an over-full Graph double |
 | G7 | Retention rules (D-15) are implemented as an admin-triggered, audited purge per school year | API test |
