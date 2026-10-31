@@ -31,7 +31,7 @@ test('the real solver: the same seed gives the same allocation, validated and st
   for (const [className, grade] of classes) {
     for (let i = 1; i <= 10; i++) rows.push(`s${className.toLowerCase()}${i}@schule.example.org;Kind;${className}-${i};${className};${grade};student;`)
   }
-  rows.push(`${ANNA.email};Anna;Lehrerin;;;teacher;`, `${BERND.email};Bernd;Lehrer;;;teacher;`)
+  rows.push(`${ANNA.email};Anna;Zwexmhofer;;;teacher;`, `${BERND.email};Bernd;Pfnöxlhofer;;;teacher;`)
   const batch = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', { csv: rows.join('\n'), schoolYear: '2026/27' })
   assert.equal(batch.status, 201, JSON.stringify(batch.body))
   const committed = await send<BatchDetail>(h, anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)

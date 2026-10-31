@@ -99,16 +99,16 @@ test('a run is published with its cancellations confirmed: results, notices once
   // Bernd out of the roster in force (a new batch without him): his binding and his item stay, his right to the participants does not.
   const roster = (teachers: string[]) => [
     'email;given_name;family_name;class;grade;kind;class_teacher_email',
-    `${SARA.email};Sara;Schülerin;5A;9;student;${CARLA.email}`, `${TIM.email};Tim;Schüler;5A;9;student;${CARLA.email}`,
+    `${SARA.email};Sara;Pfnäxthuber;5A;9;student;${CARLA.email}`, `${TIM.email};Tim;Gnöxwieser;5A;9;student;${CARLA.email}`,
     ...teachers,
   ].join('\n')
   const commit = async (csv: string) => {
     const batch = await send<{ id: string }>(s, s.anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })
     assert.equal((await send(s, s.anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)).status, 200)
   }
-  await commit(roster([`${ANNA.email};Anna;Lehrerin;;;teacher;`, `${CARLA.email};Carla;Kollegin;;;teacher;`]))
+  await commit(roster([`${ANNA.email};Anna;Zwexmhofer;;;teacher;`, `${CARLA.email};Carla;Knoxbrunner;;;teacher;`]))
   assert.equal((await get(s, s.bernd, `/api/campaigns/${id}/items/${s.items.wien}/participants`)).status, 403, 'a teacher of the item, but no teacher of the roster')
-  await commit(roster([`${ANNA.email};Anna;Lehrerin;;;teacher;`, `${BERND.email};Bernd;Lehrer;;;teacher;`, `${CARLA.email};Carla;Kollegin;;;teacher;`]))
+  await commit(roster([`${ANNA.email};Anna;Zwexmhofer;;;teacher;`, `${BERND.email};Bernd;Pfnöxlhofer;;;teacher;`, `${CARLA.email};Carla;Knoxbrunner;;;teacher;`]))
   assert.equal((await get(s, s.bernd, `/api/campaigns/${id}/items/${s.items.wien}/participants`)).status, 200)
   assert.equal((await get(s, s.anna, `/api/admin/campaigns/00000000-0000-4000-8000-000000000000/export/assignments.xlsx`)).status, 404, 'an unknown campaign, not an unpublished one')
   // A fee changed after publication is not the student's: the result names the run's. Tanz withdrawn after publication:

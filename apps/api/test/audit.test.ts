@@ -9,7 +9,7 @@ import { createDatabase } from '../lib/db.ts'
 import { ControlledClock } from './helpers/clock.ts'
 import { createTestDatabase, DB } from './helpers/db.ts'
 
-const ACTOR = { tid: '3f2b8c1d-6e4a-4b7f-9c2d-8a1e5f6b7c90', oid: 'a0000000-0000-4000-8000-00000000000a', name: 'Anna Lehrerin' }
+const ACTOR = { tid: '3f2b8c1d-6e4a-4b7f-9c2d-8a1e5f6b7c90', oid: 'a0000000-0000-4000-8000-00000000000a', name: 'Anna Zwexmhofer' }
 const CAMPAIGN = '7d1c2b3a-4e5f-4a6b-8c7d-9e0f1a2b3c4d'
 
 test('events chain within their scope, verify, and a change to one breaks verification there', DB, async (t) => {

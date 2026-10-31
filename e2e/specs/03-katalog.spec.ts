@@ -4,7 +4,7 @@
 // Lehrkräfte je Tag, genehmigt und veröffentlicht, und Schüler*innen lesen
 // den nummerierten Katalog mit den Kategorien. Baut
 // auf den Klassenlisten aus 02-stammdaten auf (Anna organisiert als
-// Administratorin, Bernd ist Lehrkraft, Sara Schülerin der 5A).
+// Administratorin, Bernd ist Lehrkraft, Sara Pfnäxthuber der 5A).
 
 import { expect, test } from '../support/test.ts'
 import { ANNA, BERND, SARA } from '../support/personas.ts'

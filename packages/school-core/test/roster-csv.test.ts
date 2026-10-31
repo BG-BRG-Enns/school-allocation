@@ -8,8 +8,8 @@ test('the template parses into one student and one teacher, and the batch passes
   assert.deepEqual(result.fileProblems, [])
   assert.deepEqual(result.problems, [])
   assert.deepEqual(result.entries, [
-    { kind: 'student', displayName: 'Sara Schülerin', mail: 'sara.schuelerin@schule.example.org', className: '5A', grade: 9, classTeacherMail: 'anna.lehrerin@schule.example.org' },
-    { kind: 'teacher', displayName: 'Anna Lehrerin', mail: 'anna.lehrerin@schule.example.org' },
+    { kind: 'student', displayName: 'Sara Pfnäxthuber', mail: 'sara.pfnaexthuber@schule.example.org', className: '5A', grade: 9, classTeacherMail: 'anna.zwexmhofer@schule.example.org' },
+    { kind: 'teacher', displayName: 'Anna Zwexmhofer', mail: 'anna.zwexmhofer@schule.example.org' },
   ])
   assert.deepEqual(checkRoster(result.entries), [])
 })

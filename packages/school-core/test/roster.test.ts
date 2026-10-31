@@ -2,12 +2,12 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { checkEntry, checkRoster, classNameOf, diffRoster, gradeOfClass, isClassGroupName, rosterKey, summarizeDiff, type RosterEntry } from '../src/roster.ts'
 
-const sara: RosterEntry = { kind: 'student', mail: 'Sara.Schuelerin@schule.example.org', displayName: 'Sara Schülerin', className: '5A', grade: 9 }
-const tim: RosterEntry = { kind: 'student', oid: 'E0000000-0000-4000-8000-00000000000E', mail: 'tim@schule.example.org', displayName: 'Tim Schüler', className: '5A', grade: 9 }
-const anna: RosterEntry = { kind: 'teacher', mail: 'anna.lehrerin@schule.example.org', displayName: 'Anna Lehrerin' }
+const sara: RosterEntry = { kind: 'student', mail: 'Sara.Pfnaexthuber@schule.example.org', displayName: 'Sara Pfnäxthuber', className: '5A', grade: 9 }
+const tim: RosterEntry = { kind: 'student', oid: 'E0000000-0000-4000-8000-00000000000E', mail: 'tim@schule.example.org', displayName: 'Tim Gnöxwieser', className: '5A', grade: 9 }
+const anna: RosterEntry = { kind: 'teacher', mail: 'anna.zwexmhofer@schule.example.org', displayName: 'Anna Zwexmhofer' }
 
 test('the key is the object id when there is one, otherwise the address, in lower case', () => {
-  assert.equal(rosterKey(sara), 'sara.schuelerin@schule.example.org')
+  assert.equal(rosterKey(sara), 'sara.pfnaexthuber@schule.example.org')
   assert.equal(rosterKey(tim), 'e0000000-0000-4000-8000-00000000000e')
   assert.equal(rosterKey({ upn: 'Bernd@schule.example.org' }), 'bernd@schule.example.org')
   assert.equal(rosterKey({ mail: 'a@b.cd', upn: 'c@d.ef' }), 'a@b.cd')
@@ -48,13 +48,13 @@ test('a batch with the same person twice, as a student and a teacher, or with on
 test('the diff says who is new, who is gone and what changed, by key and not by name; the user principal name is not roster content', () => {
   const previous = [sara, tim, anna]
   const next: RosterEntry[] = [
-    { ...sara, mail: sara.mail?.toUpperCase(), displayName: 'Sara Schülerin-Neu', className: '5B', classTeacherMail: 'anna.lehrerin@schule.example.org' },
-    { ...anna, upn: 'anna.lehrerin@schule.example.org' },
+    { ...sara, mail: sara.mail?.toUpperCase(), displayName: 'Sara Pfnäxthuber-Neu', className: '5B', classTeacherMail: 'anna.zwexmhofer@schule.example.org' },
+    { ...anna, upn: 'anna.zwexmhofer@schule.example.org' },
     { kind: 'student', mail: 'neu@schule.example.org', displayName: 'Neu Dazu', className: '5A', grade: 9 },
   ]
   const diff = diffRoster(previous, next)
   assert.deepEqual(diff.added.map((e) => e.displayName), ['Neu Dazu'])
-  assert.deepEqual(diff.removed.map((e) => e.displayName), ['Tim Schüler'])
+  assert.deepEqual(diff.removed.map((e) => e.displayName), ['Tim Gnöxwieser'])
   // The case of an address is no change; the class teacher's address is one.
   assert.deepEqual(diff.changed.map((c) => [c.key, c.fields]), [
     [rosterKey(sara), ['displayName', 'className', 'classTeacherMail']],
@@ -70,7 +70,7 @@ test('when the source changes and the key with it, an address both entries carry
   const fromCsv: RosterEntry[] = [sara, anna]
   const fromGraph: RosterEntry[] = [
     { ...sara, oid: 'd0000000-0000-4000-8000-00000000000d', upn: sara.mail },
-    { kind: 'teacher', oid: 'a0000000-0000-4000-8000-00000000000a', mail: 'Anna.Lehrerin@schule.example.org', upn: 'anna.lehrerin@schule.example.org', displayName: 'Anna Lehrerin' },
+    { kind: 'teacher', oid: 'a0000000-0000-4000-8000-00000000000a', mail: 'Anna.Zwexmhofer@schule.example.org', upn: 'anna.zwexmhofer@schule.example.org', displayName: 'Anna Zwexmhofer' },
     tim,
   ]
   assert.deepEqual(summarizeDiff(diffRoster(fromCsv, fromGraph)), { added: 1, removed: 0, changed: 0, unchanged: 2 })

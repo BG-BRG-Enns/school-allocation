@@ -37,8 +37,8 @@ async function school(t: Parameters<typeof harness>[0]): Promise<Ready> {
   const anna = await signIn(h, ANNA)
   const csv = [
     'email;given_name;family_name;class;grade;kind',
-    `${SARA.email};Sara;Schülerin;5A;9;student`,
-    `${ANNA.email};Anna;Lehrerin;;;teacher`, `${BERND.email};Bernd;Lehrer;;;teacher`, `${CARLA.email};Carla;Kollegin;;;teacher`,
+    `${SARA.email};Sara;Pfnäxthuber;5A;9;student`,
+    `${ANNA.email};Anna;Zwexmhofer;;;teacher`, `${BERND.email};Bernd;Pfnöxlhofer;;;teacher`, `${CARLA.email};Carla;Knoxbrunner;;;teacher`,
   ].join('\n')
   const batch = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })
   const committed = await send<BatchDetail>(h, anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)
@@ -183,8 +183,8 @@ test('a teacher an organizer names after the roster froze is named from the rost
   await s.db.query(`update campaign set roster_batch_id = (select id from import_batch where state = 'committed' order by decided_at desc limit 1) where id = $1`, [campaign.id])
   const csv = [
     'email;given_name;family_name;class;grade;kind',
-    `${SARA.email};Sara;Schülerin;5A;9;student`,
-    `${ANNA.email};Anna;Lehrerin;;;teacher`, `${BERND.email};Bernd;Lehrer;;;teacher`, `${CARLA.email};Carla;Kollegin;;;teacher`,
+    `${SARA.email};Sara;Pfnäxthuber;5A;9;student`,
+    `${ANNA.email};Anna;Zwexmhofer;;;teacher`, `${BERND.email};Bernd;Pfnöxlhofer;;;teacher`, `${CARLA.email};Carla;Knoxbrunner;;;teacher`,
     'dora.neu@schule.example.org;Dora;Neu;;;teacher',
   ].join('\n')
   const batch = await send<BatchDetail>(s, s.anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })

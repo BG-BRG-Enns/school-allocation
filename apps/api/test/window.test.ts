@@ -228,17 +228,17 @@ test('a catalogue change after the opening: a ranked item withdrawn is pruned fr
   // A roster committed while the window is open: Tim moves to 5B and is no longer placed, Uli joins 5A and is.
   const csv = [
     'email;given_name;family_name;class;grade;kind;class_teacher_email',
-    `${SARA.email};Sara;Schülerin;5A;9;student;${CARLA.email}`, `${TIM.email};Tim;Schüler;5B;9;student;${CARLA.email}`, `uli@example.org;Uli;Neu;5A;9;student;${CARLA.email}`,
-    `${ANNA.email};Anna;Lehrerin;;;teacher;`, `${BERND.email};Bernd;Lehrer;;;teacher;`, `${CARLA.email};Carla;Kollegin;;;teacher;`,
+    `${SARA.email};Sara;Pfnäxthuber;5A;9;student;${CARLA.email}`, `${TIM.email};Tim;Gnöxwieser;5B;9;student;${CARLA.email}`, `uli@example.org;Uli;Neu;5A;9;student;${CARLA.email}`,
+    `${ANNA.email};Anna;Zwexmhofer;;;teacher;`, `${BERND.email};Bernd;Pfnöxlhofer;;;teacher;`, `${CARLA.email};Carla;Knoxbrunner;;;teacher;`,
   ].join('\n')
   const batch = await send<BatchDetail>(s, s.anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)).status, 200)
   const owner = createDatabase(s.ownerUrl, () => {})
   t.after(() => owner.close())
   const placements = await owner.query<{ name: string }>('select e.display_name as name from pre_assignment p join roster_entry e on e.person_id = p.person_id and e.batch_id = $2 where p.campaign_id = $1 order by 1', [id, batch.body.id])
-  assert.deepEqual(placements.rows.map((r) => r.name), ['Sara Schülerin', 'Uli Neu'])
+  assert.deepEqual(placements.rows.map((r) => r.name), ['Sara Pfnäxthuber', 'Uli Neu'])
   const status = await get<{ students: { displayName: string }[] }>(s, s.anna, `/api/campaigns/${id}/classes/5A/status`)
-  assert.deepEqual(status.body.students.map((st) => st.displayName), ['Sara Schülerin', 'Uli Neu'], 'the class page reads the roster the campaign goes by')
+  assert.deepEqual(status.body.students.map((st) => st.displayName), ['Sara Pfnäxthuber', 'Uli Neu'], 'the class page reads the roster the campaign goes by')
 
   // The trip withdrawn while the window is open: its placements go, Tuesday opens up.
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${s.items.wien}/withdraw`, { reason: 'Bus ausgefallen' })).status, 200)

@@ -37,8 +37,8 @@ Eine Zeile je Person, mit den Spalten der **Vorlage**, die du auf der Seite heru
 
 ```csv
 email;given_name;family_name;class;grade;kind;class_teacher_email
-sara.schuelerin@schule.example.org;Sara;Schülerin;5A;9;student;anna.lehrerin@schule.example.org
-anna.lehrerin@schule.example.org;Anna;Lehrerin;;;teacher;
+sara.pfnaexthuber@schule.example.org;Sara;Pfnäxthuber;5A;9;student;anna.zwexmhofer@schule.example.org
+anna.zwexmhofer@schule.example.org;Anna;Zwexmhofer;;;teacher;
 ```
 
 - `kind` ist `student` oder `teacher`. Lehrkräfte haben weder Klasse noch Schulstufe.
