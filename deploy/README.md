@@ -111,6 +111,7 @@ The app sends its notices (the invitation to a choice window, reminders, the lis
 - `SMTP_PORT`: 587 unless set. `SMTP_SECURE=true` for implicit TLS on 465. `SMTP_REQUIRE_TLS` is `true` unless set, and `false` only for a test server on a private network that offers no TLS.
 - `SMTP_USER`: the account; its password is the file `secrets/smtp-password`.
 - `MAIL_FROM`: the From header, a mailbox such as `SchulWahl <wahl@schule.example.org>`; the sending domain's SPF and DKIM are the school's mail setup. Optionally `MAIL_REPLY_TO` (where answers go) and `MAIL_ENVELOPE_FROM` (a bare address where bounces go; the From address unless set).
+- `MAIL_PER_HOUR`: at most this many mails an hour, 200 unless set, which is also the most allowed. The app sends one mail at a time, evenly spaced (at 200, one every 18 seconds), counted from the last mail the database recorded, so a restart sends no burst. An invitation to 600 students takes about three hours. Set it lower for a slower start, which leaves more time to stop a mistake: an organizer can pause sending in the app.
 
 Every notice is a row of the outbox: who got what, when, and the server's reply or what went wrong; the organizer sees the state per student on the campaign's page. Nothing is logged about recipients or texts. A changed setting takes effect with `systemctl --user restart school-allocation`.
 

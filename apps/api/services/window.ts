@@ -13,7 +13,7 @@ import * as store from '../lib/dao/window.ts'
 import { classTeachersByClass } from '../lib/dao/window.ts'
 import type { Queryable } from '../lib/db.ts'
 import { schoolWords } from '../lib/i18n.ts'
-import { enqueueMail } from '../lib/mail/outbox.ts'
+import { enqueueMail, expireCampaignMails } from '../lib/mail/outbox.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
 import type { StudentChoiceState } from '../lib/models/choices.ts'
 import type { WindowContext } from '../lib/models/window.ts'
@@ -44,16 +44,17 @@ function studentData(context: WindowContext, intl: string, campaign: Campaign): 
   return (student) => ({ first_name: firstNameOf(student.displayName), name: student.displayName, ...shared })
 }
 
-/** Queues `kind` to every student in `students` who has an address, once per dedupe key. Returns how many were queued. */
+/** Queues `kind` to every student in `students` who has an address, once per dedupe key; a reminder expires with the window it reminds of. Returns how many were queued. */
 export async function notifyStudents(client: Queryable, context: WindowContext, campaign: Campaign, kind: MailKind, students: readonly StudentChoiceState[], dedupeSuffix: string): Promise<number> {
   const { locale, intl } = await schoolWords(client)
   const template = await readTemplate(client, kind, locale)
   const dataOf = studentData(context, intl, campaign)
+  const expiresAt = kind === 'choice_reminder' ? campaign.closesAt : kind === 'grace_reminder' ? campaign.lateUntil : null
   let queued = 0
   for (const student of students) {
     if (student.address === null) continue
     const { subject, body } = renderTemplate(template, dataOf(student))
-    if (await enqueueMail(client, { kind, campaignId: campaign.id, personId: student.personId, to: student.address, subject, body, dedupeKey: `${kind}:${campaign.id}:${student.personId}:${dedupeSuffix}` })) queued += 1
+    if (await enqueueMail(client, { kind, campaignId: campaign.id, personId: student.personId, to: student.address, subject, body, dedupeKey: `${kind}:${campaign.id}:${student.personId}:${dedupeSuffix}`, expiresAt })) queued += 1
   }
   return queued
 }
@@ -96,12 +97,16 @@ export async function windowEffects(client: Queryable, context: WindowContext, c
     const invited = await notifyStudents(client, context, after, 'choice_invitation', states, 'open')
     return { preAssigned, invited }
   }
+  // The window that ends takes its queued reminders with it, also when it ends early: one sent afterwards would ask for
+  // wishes that are no longer taken.
+  const ended = campaign.state === 'open' ? 'choice_reminder' : campaign.state === 'grace' ? 'grace_reminder' : null
+  const expiredReminders = ended === null || (to !== 'grace' && to !== 'closed') ? 0 : await expireCampaignMails(client, campaign.id, [ended])
   if (to === 'grace') {
     const states = await choiceStates(client, after)
     const incomplete = states.filter((s) => s.state !== 'complete')
     const invited = await notifyStudents(client, context, after, 'grace_invitation', incomplete, 'grace')
     const classTeachers = await notifyClassTeachers(client, context, after, states, 'first')
-    return { incomplete: incomplete.length, invited, classTeachers }
+    return { incomplete: incomplete.length, invited, classTeachers, expiredReminders }
   }
   if (to === 'closed') {
     // The roster is frozen as it is now; everything after goes by it.
@@ -112,7 +117,7 @@ export async function windowEffects(client: Queryable, context: WindowContext, c
     const incomplete = states.filter((s) => s.state !== 'complete')
     const told = await notifyStudents(client, context, after, 'missed_deadline', incomplete, 'closed')
     const classTeachers = await notifyClassTeachers(client, context, after, states, campaign.state === 'grace' ? 'late' : 'first')
-    return { incomplete: incomplete.length, told, classTeachers }
+    return { incomplete: incomplete.length, told, classTeachers, expiredReminders }
   }
   return {}
 }

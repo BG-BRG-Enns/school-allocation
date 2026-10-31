@@ -2252,6 +2252,25 @@
   },
   {
     "method": "PUT",
+    "url": "/api/admin/mail/paused",
+    "body": {
+      "type": "object",
+      "required": [
+        "paused"
+      ],
+      "properties": {
+        "paused": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": null,
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "PUT",
     "url": "/api/admin/roster/groups",
     "body": {
       "type": "object",

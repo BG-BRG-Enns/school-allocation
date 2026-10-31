@@ -129,6 +129,8 @@ export const postAdminMailTemplatesByKindTest = { method: 'POST', path: '/api/ad
 
 export const getAdminMailStatus = { method: 'GET', path: '/api/admin/mail/status', transport: 'json' } as const satisfies EndpointMetadata
 
+export const putAdminMailPaused = { method: 'PUT', path: '/api/admin/mail/paused', transport: 'json' } as const satisfies EndpointMetadata
+
 export const getAdminRosterGraphStart = { method: 'GET', path: '/api/admin/roster/graph/start', transport: 'redirect' } as const satisfies EndpointMetadata
 
 export const getAdminRosterGraphCallback = { method: 'GET', path: '/api/admin/roster/graph/callback', transport: 'redirect' } as const satisfies EndpointMetadata

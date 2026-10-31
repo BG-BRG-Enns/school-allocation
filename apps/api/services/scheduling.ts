@@ -5,6 +5,7 @@ import { readCampaign } from '../lib/dao/campaigns.ts'
 import { lockReminderCampaign, reminderWindow, scheduledCampaignIds } from '../lib/dao/scheduling.ts'
 import type { Database } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
+import { expireMails } from '../lib/mail/outbox.ts'
 import type { WindowContext } from '../lib/models/window.ts'
 import { dueTransition, transitionCampaign } from './campaigns.ts'
 import { choiceStates } from './choices.ts'
@@ -24,9 +25,10 @@ export interface TickOutcome {
   reminders: number
 }
 
-/** What is due at `now`: transitions and reminders. Each campaign under its own lock, one after another. */
+/** What is due at `now`: transitions and reminders, each campaign under its own lock, one after another; and the reminders past their window expire, which the sender would only find at its next claim, and not at all while mail is off or paused. */
 export async function tick(db: Database, context: WindowContext, now = db.now(), log?: SchedulingLog): Promise<TickOutcome> {
   const outcome: TickOutcome = { transitions: 0, reminders: 0 }
+  await expireMails(db)
   const ids = await scheduledCampaignIds(db)
   for (const id of ids) {
     try {

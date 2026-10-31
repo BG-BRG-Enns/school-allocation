@@ -26,3 +26,13 @@ export async function readLocale(db: Queryable): Promise<string | undefined> {
 export async function updateLocale(db: Queryable, locale: string, actor: Actor) {
   await db.query('update school_setting set locale = $1, updated_at = app_now(), updated_by = $2', [locale, actor.id])
 }
+
+/** Whether sending is paused; the outbox's claims read it too (lib/mail/outbox.ts). */
+export async function readMailPaused(db: Queryable): Promise<boolean> {
+  const { rows } = await db.query<{ paused: boolean }>('select mail_paused as paused from school_setting')
+  return rows[0]?.paused === true
+}
+
+export async function updateMailPaused(db: Queryable, paused: boolean, actor: Actor) {
+  await db.query('update school_setting set mail_paused = $1, updated_at = app_now(), updated_by = $2', [paused, actor.id])
+}

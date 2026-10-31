@@ -27,7 +27,7 @@ export const OutboxMailSchema = StrictObject({
   subject: Type.String(),
   body: Type.String(),
   dedupeKey: Type.String(),
-  state: Literals(['queued', 'sending', 'sent', 'failed'] as const),
+  state: Literals(['queued', 'sending', 'sent', 'failed', 'expired'] as const),
   attempts: Type.Number(),
   detail: Type.Union([Type.String(), Type.Null()]),
   messageId: Type.Union([Type.String(), Type.Null()]),
@@ -44,8 +44,24 @@ export type TemplatesResponse = Static<typeof TemplatesResponse>
 export const TemplateResponse = StrictObject({ template: MailTemplateSchema })
 export type TemplateResponse = Static<typeof TemplateResponse>
 
-export const MailStatusResponse = StrictObject({ mailEnabled: Type.Boolean(), queued: Type.Number() })
+/**
+ * What the outbox holds: the mails waiting by priority (`personal`, one
+ * someone waits for; `staff`; `students`, in bulk) and one in a session,
+ * whether sending is paused, the pace (null while mail is off), and when
+ * the last waiting one goes out at that pace (null while off or paused).
+ */
+export const MailStatusResponse = StrictObject({
+  mailEnabled: Type.Boolean(),
+  paused: Type.Boolean(),
+  perHour: Type.Union([Type.Integer(), Type.Null()]),
+  waiting: StrictObject({ personal: Type.Integer(), staff: Type.Integer(), students: Type.Integer() }),
+  sending: Type.Integer(),
+  expectedEndAt: Type.Union([Type.String(), Type.Null()]),
+})
 export type MailStatusResponse = Static<typeof MailStatusResponse>
+
+export const MailPausedBody = StrictObject({ paused: Type.Boolean() })
+export type MailPausedBody = Static<typeof MailPausedBody>
 
 export const QueuedResponse = StrictObject({ queued: Type.Boolean() })
 export type QueuedResponse = Static<typeof QueuedResponse>

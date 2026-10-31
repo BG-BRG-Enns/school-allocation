@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { ConfigError, loadConfig, parseBootstrapAdmins } from '../config.ts'
-import { ORIGIN, SERVER_ENV } from './helpers/env.ts'
+import { ConfigError, loadConfig, MAX_MAIL_PER_HOUR, parseBootstrapAdmins } from '../config.ts'
+import { ORIGIN, secretFile, SERVER_ENV } from './helpers/env.ts'
 
 test('BOOTSTRAP_ADMINS takes object ids and school addresses, lower-cased and without duplicates; unset means nobody', () => {
   assert.deepEqual(parseBootstrapAdmins(undefined), [])
@@ -37,4 +37,20 @@ test('SOLVER_URL is an http(s) address kept without trailing slashes; unset mean
   for (const bad of ['solver:8000', 'ftp://solver', 'http://user:pw@solver', 'http://solver/?a=1', 'http://solver/#x']) {
     assert.throws(() => solverUrl(bad), (err: unknown) => err instanceof ConfigError && err.message.includes('SOLVER_URL'), bad)
   }
+})
+
+test('MAIL_PER_HOUR is a whole number from 1 to 200, 200 when unset; without SMTP_HOST it is refused', () => {
+  const smtp = { SMTP_HOST: 'smtp.example.org', SMTP_USER: 'wahl', SMTP_PASSWORD_FILE: secretFile('smtp-password', 'x\n'), MAIL_FROM: 'wahl@schule.example.org' }
+  const perHour = (value: string | undefined) => loadConfig({ ...SERVER_ENV, PUBLIC_URL: ORIGIN, ...smtp, MAIL_PER_HOUR: value }).mail?.perHour
+  assert.equal(perHour(undefined), MAX_MAIL_PER_HOUR)
+  assert.equal(perHour(' '), MAX_MAIL_PER_HOUR)
+  assert.equal(perHour('60'), 60)
+  assert.equal(perHour('1'), 1)
+  for (const bad of ['0', '201', '1.5', '-5', '1e2', '0x10', 'fast']) {
+    assert.throws(() => perHour(bad), (err: unknown) => err instanceof ConfigError && err.message.includes('MAIL_PER_HOUR'), bad)
+  }
+  assert.throws(
+    () => loadConfig({ ...SERVER_ENV, PUBLIC_URL: ORIGIN, MAIL_PER_HOUR: '100' }),
+    (err: unknown) => err instanceof ConfigError && err.message.includes('MAIL_PER_HOUR is set but SMTP_HOST is not'),
+  )
 })
