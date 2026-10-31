@@ -7,7 +7,8 @@ import { htmlLang } from '../../packages/messages/src/index.ts'
 import { expect, test } from '../support/test.ts'
 import { refused } from '../support/console.ts'
 import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
-import { shot } from '../support/screenshot.ts'
+import { picture, section, shot } from '../support/screenshot.ts'
+import { sample } from '../support/sample.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
 import { day, dayTime, literally, LOCALE, t } from '../support/messages.ts'
 
@@ -19,6 +20,7 @@ test('die Administration sieht die Sprache der Schule, die auch die Seite nennt;
   const language = page.getByLabel(t.admin.language.label)
   await expect(language).toHaveValue(LOCALE)
   await expect(language.getByRole('option')).toHaveText([t.labels.locale.de, t.labels.locale['de-formal'], t.labels.locale.en])
+  await picture(page, 'verwaltung', page.locator('main'))
   // The same language again: nothing changes, and the page loads anew.
   const reloaded = page.waitForEvent('load')
   await page.getByRole('button', { name: t.common.save }).click()
@@ -34,6 +36,7 @@ test('die Administration passt das Stundenraster an', async ({ page }) => {
   await expect(page.getByRole('row')).toHaveCount(11)
   await expect(page.getByLabel(t.periods.startsOf(2))).toHaveValue('08:30')
   await shot(page, '19-stundenraster')
+  await picture(page, 'stundenraster', page.locator('main form'))
   await page.getByRole('button', { name: t.periods.removeLast }).click()
   await page.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.periods.saved)
@@ -54,19 +57,21 @@ test('die Administration ordnet einen Klassenvorstand zu, der seine Klasse in de
   await panel.getByLabel(t.classTeachers.addTeacher).fill('Bernd')
   await panel.getByRole('button', { name: t.classTeachers.addPerson(BERND.name) }).click()
   await shot(page, '20-klassenvorstand-zuordnen')
+  await picture(page, 'klassenvorstand-zuordnen', page.locator('main'))
   await panel.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.classTeachers.saved)
   await expect(page.getByRole('row', { name: /5A/ })).toContainText(BERND.name)
   await signOut(page)
 
   await openAs(page, BERND, '/wahlen')
-  await page.getByRole('link', { name: 'Projektwoche 2027' }).click()
+  await page.getByRole('link', { name: sample.projectWeek }).click()
   await page.getByRole('link', { name: t.campaign.myClass('5A') }).click()
   await expect(page.getByRole('heading', { name: t.schoolClass.title('5A') })).toBeVisible()
   await expect(page.getByRole('heading', { name: t.schoolClass.students(2) })).toBeVisible()
   await expect(page.getByText(SARA.name)).toBeVisible()
   await expect(page.getByText(TIM.name)).toBeVisible()
   await shot(page, '21-meine-klasse')
+  await picture(page, 'meine-klasse', page.locator('main'))
   await signOut(page)
 })
 
@@ -85,6 +90,7 @@ test('die Administration findet eine Entra-Gruppe über die Suche bei Microsoft'
   await page.getByRole('button', { name: t.roster.picker.allClasses }).click()
   await expect(page.getByRole('button', { name: t.roster.picker.take('7B') })).toBeVisible()
   await shot(page, '22-gruppen-suchen')
+  await picture(page, 'gruppen-suchen', page.locator('.panel', { has: page.getByRole('heading', { name: t.roster.picker.title }) }))
   await page.getByRole('button', { name: t.roster.picker.takeAll(2) }).click()
   await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.className, '7B'))).toHaveValue('7B')
   await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.grade, '7B'))).toHaveValue('11')
@@ -96,9 +102,10 @@ test('die Administration findet eine Entra-Gruppe über die Suche bei Microsoft'
 
 test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag und Schulstufe', async ({ page }) => {
   await openAs(page, ANNA, '/wahlen')
-  await page.getByRole('link', { name: 'Projektwoche 2027' }).click()
+  await page.getByRole('link', { name: sample.projectWeek }).click()
   await expect(page.getByRole('heading', { name: t.campaign.demand.heading })).toBeVisible()
   await expect(page.getByRole('row', { name: new RegExp(literally(day('2027-06-21'))) })).toContainText(t.campaign.demand.cell(2, 12))
+  await picture(page, 'bedarf', section(page, t.campaign.demand.heading))
   await page.getByRole('button', { name: t.campaign.organization.editSettings }).click()
   const form = page.getByRole('form', { name: t.campaign.settings.label })
   await expect(form.getByLabel(t.campaign.settings.name, { exact: true })).toBeDisabled()
@@ -108,6 +115,7 @@ test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag
   await form.getByLabel(t.campaign.settings.wishesPerGroup).fill('3')
   await form.getByLabel(t.campaign.settings.dailyMinimum(9)).fill('240')
   await shot(page, '23-wahlfenster')
+  await picture(page, 'einstellungen', form)
   await form.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.common.saved)
   await expect(page.getByText(`${t.campaign.window.opens(dayTime('2027-03-01T08:00'), dayTime('2027-03-08T20:00'))}, ${t.campaign.window.late(dayTime('2027-03-12T20:00'))} · ${t.campaign.window.wishes(3)}`)).toBeVisible()

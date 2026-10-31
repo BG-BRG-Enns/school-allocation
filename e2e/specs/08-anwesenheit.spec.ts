@@ -1,17 +1,19 @@
 // Anwesenheit und Abschluss: der Klassenvorstand trägt für seine Klasse
 // die Anwesenheit der Sportwoche ein und lädt die Liste; die Organisation
-// schließt die Anmeldung ab. Baut auf 07 auf (die Sportwoche ist veröffentlicht;
-// Sara ist in Bogenschießen, Tim in Werken und Schach).
+// schließt die Anmeldung ab; die Administration sieht, wie lange die Daten
+// des Schuljahrs bleiben. Baut auf 07 auf (die Sportwoche ist
+// veröffentlicht; Sara ist in Bogenschießen, Tim in Werken und Schach).
 
 import { expect, test } from '../support/test.ts'
 import { day, t } from '../support/messages.ts'
 import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
-import { shot } from '../support/screenshot.ts'
+import { picture, section, shot } from '../support/screenshot.ts'
+import { sample } from '../support/sample.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
 
-const NAME = 'Sportwoche 2027'
+const NAME = sample.sportsWeek
 
 test('der Klassenvorstand trägt die Anwesenheit seiner Klasse ein und lädt die Liste', async ({ page }) => {
   await openAs(page, BERND, '/wahlen')
@@ -20,15 +22,16 @@ test('der Klassenvorstand trägt die Anwesenheit seiner Klasse ein und lädt die
   const attendance = t.schoolClass.attendance
   await expect(page.getByRole('heading', { name: attendance.heading })).toBeVisible()
   const monday = page.getByRole('form', { name: attendance.ofDay(day('2027-06-28')) })
-  await monday.getByLabel(attendance.statusOf(SARA.name, 'Bogenschießen')).selectOption('present')
-  await monday.getByLabel(attendance.statusOf(TIM.name, 'Schach')).selectOption('absent')
+  await monday.getByLabel(attendance.statusOf(SARA.name, sample.archery)).selectOption('present')
+  await monday.getByLabel(attendance.statusOf(TIM.name, sample.chess)).selectOption('absent')
   await monday.getByRole('button', { name: attendance.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.schoolClass.attendanceSaved)
-  await expect(monday.getByLabel(attendance.statusOf(TIM.name, 'Schach'))).toHaveValue('absent')
+  await expect(monday.getByLabel(attendance.statusOf(TIM.name, sample.chess))).toHaveValue('absent')
   // Recorded means recorded: the empty choice is gone for these two, and still there for what nobody has marked.
-  await expect(monday.getByLabel(attendance.statusOf(TIM.name, 'Schach')).getByRole('option', { name: '–' })).toBeDisabled()
-  await expect(monday.getByLabel(attendance.statusOf(TIM.name, 'Werken')).getByRole('option', { name: '–' })).toBeEnabled()
+  await expect(monday.getByLabel(attendance.statusOf(TIM.name, sample.chess)).getByRole('option', { name: '–' })).toBeDisabled()
+  await expect(monday.getByLabel(attendance.statusOf(TIM.name, sample.woodwork)).getByRole('option', { name: '–' })).toBeEnabled()
   await shot(page, '38-anwesenheit')
+  await picture(page, 'anwesenheit', section(page, attendance.heading))
   const download = page.waitForEvent('download')
   await page.getByRole('link', { name: attendance.export }).click()
   expect((await download).suggestedFilename()).toBe(t.files.classAttendance('5A', '2026-27'))
@@ -48,7 +51,20 @@ test('die Organisation schließt die Anmeldung ab; danach ist alles nur noch zu 
   await page.getByRole('link', { name: NAME }).click()
   await page.getByRole('link', { name: t.campaign.myClass('5A') }).click()
   await expect(page.getByRole('heading', { name: t.schoolClass.attendance.heading })).toBeVisible()
-  await expect(page.getByLabel(t.schoolClass.attendance.statusOf(SARA.name, 'Bogenschießen'))).toBeDisabled()
+  await expect(page.getByLabel(t.schoolClass.attendance.statusOf(SARA.name, sample.archery))).toBeDisabled()
   await expect(page.getByRole('button', { name: t.schoolClass.attendance.save })).toHaveCount(0)
+  await signOut(page)
+})
+
+test('die Administration sieht die Schuljahre mit ihren Daten; vor dem Ende der Aufbewahrung lässt sich keines löschen', async ({ page }) => {
+  await openAs(page, ANNA, '/verwaltung')
+  await page.getByRole('link', { name: t.common.page.retention }).click()
+  await expect(page.getByRole('heading', { name: t.common.page.retention })).toBeVisible()
+  const year = page.getByRole('row', { name: /^2026\/27/ })
+  await expect(year).toContainText(sample.projectWeek)
+  await expect(year).toContainText(`${NAME} ${t.labels.campaignState.archived}`)
+  // Kept until a year after the school year ends: the year is offered for deletion, but cannot be chosen yet.
+  await expect(page.getByLabel(t.common.field.schoolYear).getByRole('option', { name: `2026/27 – ${t.retention.purge.stillRetained}` })).toBeDisabled()
+  await picture(page, 'aufbewahrung', page.locator('main'))
   await signOut(page)
 })
