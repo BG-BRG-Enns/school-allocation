@@ -39,7 +39,7 @@ export interface AssignmentRow {
   rank: number | null
 }
 
-/** A change of the published run (0008), with the rows it superseded and the names the pages show. */
+/** A change of the published run (assignment_change), with the rows it superseded and the names the pages show. */
 export interface ChangeRow {
   id: string
   seq: number

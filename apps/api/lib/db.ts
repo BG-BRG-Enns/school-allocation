@@ -20,7 +20,7 @@ export type Queryable = Pick<Database, 'query'>
 /**
  * The pool the server works with. Without `clock`, as the server runs, the
  * system's clock answers `db.now()` and the database's own `now()` answers
- * `app_now()` (migration 0012). A test passes a clock of its own: then every
+ * `app_now()` (0001_baseline.sql). A test passes a clock of its own: then every
  * transaction starts by setting `app.now` to its time, which `app_now()`
  * reads, and a statement outside a transaction runs in one of its own, so
  * the database follows the clock too.

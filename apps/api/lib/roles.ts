@@ -1,7 +1,7 @@
 // The privileged roles, and how the first administrators come to hold one.
-// Kind (student or teacher) and eligibility come from the roster, which a
-// later migration adds; these roles are granted in the application, audited,
-// and never derived from Entra (docs/identity-and-roles.md §5).
+// Kind (student or teacher) and eligibility come from the roster; these
+// roles are granted in the application, audited, and never derived from
+// Entra (docs/identity-and-roles.md §5).
 
 import { ROLES } from '@school-allocation/api-contracts/common'
 import { appendAudit, SCHOOL_SCOPE } from './audit.ts'

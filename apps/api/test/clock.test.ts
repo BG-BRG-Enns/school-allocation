@@ -1,4 +1,4 @@
-// One clock (migration 0012, lib/db.ts): without a clock of its own the
+// One clock (app_now(), lib/db.ts): without a clock of its own the
 // application reads the database's now(); with one, everything it writes
 // and compares follows that clock, the tables' defaults, the sign-in's
 // token check, the session's lifetime and the outbox's due times

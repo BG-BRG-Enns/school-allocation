@@ -2,7 +2,7 @@
 // administrator removes the records of a school year once a year has
 // passed since its end, every campaign of it archived, with a reason;
 // audited in the school scope with the counts. The deletion itself is the
-// database's definer function (0010), the one path through the guards; the
+// database's definer function (purge_school_year), the one path through the guards; the
 // teachers' availability on the year's dates, which no guard keeps, goes
 // first, in the same transaction.
 // Nothing is deleted automatically.

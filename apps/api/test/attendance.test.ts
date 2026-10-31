@@ -84,14 +84,14 @@ test('the class teacher records attendance for their class, session by session; 
   assert.equal(relocated.status, 200, JSON.stringify(relocated.body))
   assert.equal((await attendance(carla)).body.days[0]?.rows.find((r) => r.title === 'Tanz')?.status, 'excused', 'a location written in place keeps the session too')
 
-  // The previous release rewrites an item's sessions on every edit, the positions the same: the records, named by item and position, survive at commit.
+  // A rewrite of an item's sessions, the positions the same, as an edit of their times does: the records, named by item and position, survive at commit.
   await owner.query(`do $$ declare r record; begin
     for r in select * from item_session where item_id = $1 loop
       delete from item_session where id = r.id;
       insert into item_session (item_id, position, starts_at, ends_at, location, credits) values (r.item_id, r.position, r.starts_at, r.ends_at, r.location, r.credits);
     end loop; end $$`.replace('$1', `'${s.items.tanz}'`))
   const rewritten = await attendance(carla)
-  assert.equal(rewritten.body.days[0]?.rows.find((r) => r.title === 'Tanz')?.status, 'excused', 'the rewrite of the release before keeps the record')
+  assert.equal(rewritten.body.days[0]?.rows.find((r) => r.title === 'Tanz')?.status, 'excused', 'a rewrite of the sessions keeps the record')
   // The rewritten session has a new id; the record followed the item and the position.
   tanz = rewritten.body.days[0]?.rows.find((r) => r.title === 'Tanz')?.sessionId ?? ''
 

@@ -32,6 +32,8 @@ npm run dev:web                # Vite dev server on http://localhost:5173, /api 
 
 `npm run db:dev` runs `scripts/postgres.sh`, which starts the PostgreSQL image the deployment is built from. Run it again after a reboot: an existing container is started, not recreated. The data lives in the volume `school-allocation-db-data`, so the container survives being removed; for an empty database remove the container and the volume (`docker rm -f school-allocation-db && docker volume rm school-allocation-db-data`) and migrate again.
 
+A development database from before version 1's single baseline (its `schema_migrations` lists `0002_roster.sql` and later) is refused by the migrator, because `0001_baseline.sql` was edited. Recreate it as above. The schema is the same, so its rows can come along: dump them without the migrator's bookkeeping (`pg_dump --data-only --disable-triggers --exclude-table-data=schema_migrations`), migrate the new, empty database, empty its two seeded tables (`delete from period_grid; delete from school_setting;`) and load the dump as the superuser.
+
 The API refuses to start with a missing or unsafe setting and names it. `apps/api/.env.example` lists every setting; secrets are never set inline but read from files named by `*_FILE` variables, kept in the git-ignored `apps/api/.secrets/`. Open the app through the Vite dev server: the API accepts state-changing requests only from the origin of `PUBLIC_URL`.
 
 ### Signing in during development

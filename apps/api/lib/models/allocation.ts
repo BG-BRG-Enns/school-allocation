@@ -26,7 +26,7 @@ export interface RunFinish {
   problems: AllocationProblem[]
 }
 
-/** A change of the published run, as stored (0008): what the log, the workbook and a student's own list read. */
+/** A change of the published run, as stored (assignment_change): what the log, the workbook and a student's own list read. */
 export interface StoredChange {
   id: string
   seq: number
