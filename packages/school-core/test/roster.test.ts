@@ -25,6 +25,9 @@ test('an entry is complete for its kind, and its fields are well-formed', () => 
   assert.deepEqual(checkEntry({ ...sara, className: 'a class name that is far too long' }).map((p) => p.code), ['invalid_class_name'])
   assert.deepEqual(checkEntry({ ...sara, mail: 'not an address' }).map((p) => p.code), ['invalid_address'])
   assert.deepEqual(checkEntry({ ...sara, classTeacherMail: 'nope' }).map((p) => p.code), ['invalid_address'])
+  // A domain needs a dot with something on both sides of it, wherever it stands among others.
+  assert.deepEqual(['sara@mail.schule.example.org', 'sara@schule..example.org'].map((mail) => checkEntry({ ...sara, mail })), [[], []])
+  assert.deepEqual(['sara@schule.', 'sara@.example', 'sara@..', `sara@${'.'.repeat(200)} `].map((mail) => checkEntry({ ...sara, mail }).map((p) => p.code)), [['invalid_address'], ['invalid_address'], ['invalid_address'], ['invalid_address']])
   assert.deepEqual(checkEntry({ ...sara, displayName: ' ' }).map((p) => p.code), ['invalid_name'])
   assert.deepEqual(checkEntry({ ...sara, displayName: 'a\u0000b' }).map((p) => p.code), ['invalid_name'])
   assert.deepEqual(checkEntry({ ...sara, kind: 'parent' as 'student' }).map((p) => p.code), ['invalid_kind'])
