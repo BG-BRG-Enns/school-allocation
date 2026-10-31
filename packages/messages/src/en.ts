@@ -463,6 +463,8 @@ export const en: Messages = {
     unbound: 'Your account is not linked to anyone in the class lists yet. If you are meant to take part in a registration, please contact the administration.',
     roles: 'Roles',
     noRoles: 'No special roles.',
+    /** Followed by the link to the licences of the packages these pages bundle. */
+    licences: 'SchulWahl is free software under the MIT licence. The licences of the libraries these pages contain:',
   },
 
   /** Wahlen.vue: the campaigns the person may see, and the organizer's form for a new one. */
