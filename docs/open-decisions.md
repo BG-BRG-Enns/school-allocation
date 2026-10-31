@@ -79,7 +79,9 @@ track which later release owes the contraction an earlier one deferred, and a ro
 the previous release fails nobody's attention until the next update fails the same way. A failed update
 now stays down where someone notices, and the next release fixes it; a few hours down in a two-week
 choice window are acceptable. A release knows the schema version it was built for and refuses any
-other; only a migration that older code cannot run on raises it.
+other; only a migration that older code cannot run on raises it. An operator who would rather choose
+when to update leaves the timer off and pins a release (`deploy/README.md`, Updates); which is safer
+depends on whether someone at the school watches the releases.
 
 ## Sharpened by the allocation slice (S4, 2026-10-29)
 

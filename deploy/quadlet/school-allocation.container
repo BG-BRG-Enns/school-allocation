@@ -66,7 +66,10 @@ TimeoutStartSec=300
 # so the app never starts on an old schema. Should a release be published
 # between the two pulls, the server finds its migrations missing, refuses,
 # and the next start runs them. As the PostgreSQL superuser; a run with
-# nothing to do changes nothing.
+# nothing to do changes nothing. The image is named once more here, as
+# MIGRATION_IMAGE, because systemd cannot read Image=: a pinned release
+# sets both (README.md, Pinning a release).
+Environment=MIGRATION_IMAGE=ghcr.io/bg-brg-enns/school-allocation:v1
 ExecStartPre=/usr/bin/podman run --rm --pull=newer --network school-allocation-internal \
   --read-only --cap-drop ALL --security-opt no-new-privileges \
   -e MIGRATION_DATABASE_URL=postgres://postgres@school-allocation-postgres:5432/school_allocation \
@@ -74,7 +77,7 @@ ExecStartPre=/usr/bin/podman run --rm --pull=newer --network school-allocation-i
   -e DB_RUNTIME_PASSWORD_FILE=/run/secrets/db-runtime-password \
   -v %h/school-allocation/secrets/db-owner-password:/run/secrets/db-owner-password:ro,z \
   -v %h/school-allocation/secrets/db-runtime-password:/run/secrets/db-runtime-password:ro,z \
-  ghcr.io/bg-brg-enns/school-allocation:v1 node apps/api/scripts/migrate.ts
+  ${MIGRATION_IMAGE} node apps/api/scripts/migrate.ts
 
 [Install]
 WantedBy=default.target
