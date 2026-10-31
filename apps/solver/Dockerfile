@@ -1,11 +1,10 @@
-# syntax=docker/dockerfile:1.7
-#
 # The solver: Python, FastAPI and OR-Tools, non-root, nothing else. The
 # packages are pinned in pyproject.toml and locked with hashes in uv.lock;
 # a build stage exports the lock to a requirements file, and pip installs
 # that with --require-hashes, refusing anything the lock does not name. uv
 # itself never reaches the runtime image. Build arguments APP_VERSION and
-# GIT_SHA record what was built, as for the app.
+# GIT_SHA record what was built, as for the app. No `# syntax=` line, as in
+# the app's Dockerfile: the pinned BuildKit's built-in frontend reads it.
 
 FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
 

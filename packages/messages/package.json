@@ -1,0 +1,15 @@
+{
+  "name": "@school-allocation/messages",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The words of the user interface, the workbooks and the notices: one typed catalogue per language, German first. No I/O, no dependencies.",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  }
+}

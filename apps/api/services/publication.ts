@@ -19,6 +19,7 @@ import { campaignStudents } from '../lib/dao/choices.ts'
 import { classTeachersByClass } from '../lib/dao/window.ts'
 import { readSnapshot, type Database, type Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
+import { INTL_LOCALE, t } from '../lib/i18n.ts'
 import { enqueueMail } from '../lib/mail/outbox.ts'
 import type { AllocationRun, StoredRun } from '../lib/models/allocation.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
@@ -32,8 +33,10 @@ import { catalogueItems } from './items.ts'
 import { readTemplate, renderTemplate } from './mail-templates.ts'
 import { firstNameOf, formatWhen } from './window.ts'
 
-const dayShort = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit' })
-const clock = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, hour: '2-digit', minute: '2-digit' })
+const dayShort = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit' })
+const clock = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: SCHOOL_TIME_ZONE, hour: '2-digit', minute: '2-digit' })
+// Two decimals and no grouping, as the notices have always written a fee.
+const amount = new Intl.NumberFormat(INTL_LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })
 
 /** The two lists name the same ids, in any order. */
 function same(a: readonly string[], b: readonly string[]): boolean {
@@ -57,12 +60,12 @@ function programmeLine(item: Item, source: Assignment['source']): string {
       ? `${dayShort.format(start)} ${clock.format(start)} – ${clock.format(end)}`
       : `${dayShort.format(start)} ${clock.format(start)} – ${dayShort.format(end)} ${clock.format(end)}`
   }).join(', ')
-  return `${when}: ${itemLabel(item)}${source === 'fixed' ? ' (Klasse)' : ''}${item.feeCents > 0 ? ` – Beitrag ${(item.feeCents / 100).toFixed(2).replace('.', ',')} €` : ''}`
+  return `${when}: ${itemLabel(item)}${source === 'fixed' ? ` (${t.notices.programme.fixed})` : ''}${item.feeCents > 0 ? ` – ${t.notices.programme.fee(amount.format(item.feeCents / 100))}` : ''}`
 }
 
 /** The minutes a student still misses, per day, as the notices say it; empty when none. */
 export function missingLines(explanation: StudentExplanation): string[] {
-  return explanation.days.filter((d) => d.deficit > 0).map((d) => `${dayShort.format(new Date(`${d.date}T12:00:00Z`))} ${d.deficit} min`)
+  return explanation.days.filter((d) => d.deficit > 0).map((d) => `${dayShort.format(new Date(`${d.date}T12:00:00Z`))} ${t.common.minutes(d.deficit)}`)
 }
 
 /** A student's programme as the notices list it: the items in the order of their first session, then what is still missing. */
@@ -71,12 +74,12 @@ export function programmeLines(explanation: StudentExplanation, items: Map<strin
     .sort((a, b) => (a.item.sessions[0]?.startsAt ?? '').localeCompare(b.item.sessions[0]?.startsAt ?? ''))
     .map((e) => programmeLine(e.item, e.source))
   const missing = missingLines(explanation)
-  if (missing.length > 0) lines.push(`Noch ohne Platz: ${missing.join(', ')} – dein Klassenvorstand teilt dich zu.`)
+  if (missing.length > 0) lines.push(t.notices.programme.missing(missing.join(', ')))
   return lines
 }
 
 function swapWindowText(campaign: Campaign): string {
-  return campaign.swapFrom !== null && campaign.swapUntil !== null ? `${formatWhen(campaign.swapFrom)} bis ${formatWhen(campaign.swapUntil)}` : ''
+  return campaign.swapFrom !== null && campaign.swapUntil !== null ? t.notices.swapWindow(formatWhen(campaign.swapFrom), formatWhen(campaign.swapUntil)) : ''
 }
 
 /**

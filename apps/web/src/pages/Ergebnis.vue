@@ -14,11 +14,12 @@ import { loadPeriods } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { datesBetween, formatDay, formatFee, formatSpanOnGrid, formatWhenShort, localDateOf } from '../lib/format.ts'
+import { t } from '../lib/i18n.ts'
 import { CHANGE_KIND_LABELS, MOVE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string }>()
-usePageTitle(() => 'Mein Ergebnis')
+usePageTitle(() => t.common.page.result)
 
 const result = ref<MyResultResponse | null>(null)
 const grid = ref<Period[]>([])
@@ -67,11 +68,11 @@ const byDay = computed(() => {
 })
 
 function sourceText(source: string, rank: number | null): string {
-  if (source === 'fixed') return 'mit deiner Klasse'
-  if (source === 'wish') return `dein ${rank}. Wunsch`
-  if (source === 'fallback') return 'zugeteilt, da deine Wünsche hier nicht reichten'
-  if (source === 'swap') return 'dein Tausch'
-  return 'eingeteilt'
+  if (source === 'fixed') return t.result.source.fixed
+  if (source === 'wish') return t.result.source.wish(rank)
+  if (source === 'fallback') return t.result.source.fallback
+  if (source === 'swap') return t.result.source.swap
+  return t.result.source.other
 }
 
 const itemOf = (itemId: string) => result.value?.items.find((i) => i.id === itemId)
@@ -96,25 +97,25 @@ const offersByDay = computed(() => {
       .sort((a, b) => Number(a.problems.length > 0) - Number(b.problems.length > 0) || itemTitle(a.itemId).localeCompare(itemTitle(b.itemId), 'de')),
   })).filter((d) => d.offers.length > 0)
 })
-const offerText = (o: MoveOffer): string => o.problems.length > 0 ? (MOVE_PROBLEM_LABELS[o.problems[0]?.code ?? ''] ?? o.problems[0]?.code ?? '') : `${o.free} ${o.free === 1 ? 'freier Platz' : 'freie Plätze'}`
+const offerText = (o: MoveOffer): string => o.problems.length > 0 ? (MOVE_PROBLEM_LABELS[o.problems[0]?.code ?? ''] ?? o.problems[0]?.code ?? '') : t.result.freePlaces(o.free)
 
 async function onSwap(o: MoveOffer): Promise<void> {
   const leaving = o.leaves.map(itemTitle).join(', ')
-  const question = leaving === '' ? `In „${itemTitle(o.itemId)}“ wechseln?` : `In „${itemTitle(o.itemId)}“ wechseln und „${leaving}“ verlassen?`
+  const question = leaving === '' ? t.result.swapInto(itemTitle(o.itemId)) : t.result.swapLeaving(itemTitle(o.itemId), leaving)
   if (!window.confirm(question)) return
   await action.run(async () => {
     result.value = await swapInto(props.id, o.itemId)
-  }, 'Dein Tausch ist eingetragen.')
+  }, t.result.swapped)
 }
 </script>
 
 <template>
   <p>
     <RouterLink :to="`/wahlen/${props.id}`">
-      ← Zur Wahl
+      ← {{ t.common.backToCampaign }}
     </RouterLink>
   </p>
-  <h1>Mein Ergebnis</h1>
+  <h1>{{ t.common.page.result }}</h1>
   <p
     v-if="loading.error.value"
     role="alert"
@@ -140,11 +141,11 @@ async function onSwap(o: MoveOffer): Promise<void> {
     v-if="notYet"
     class="muted"
   >
-    Das Ergebnis ist noch nicht veröffentlicht. Sobald die Organisation die Zuteilung freigibt, steht es hier.
+    {{ t.result.notYet }}
   </p>
   <template v-if="result">
     <p class="muted">
-      {{ result.campaign.name }} · veröffentlicht {{ formatWhenShort(result.run.publishedAt) }}
+      {{ result.campaign.name }} · {{ t.result.publishedAt(formatWhenShort(result.run.publishedAt)) }}
     </p>
     <section
       v-for="entry in byDay"
@@ -155,7 +156,7 @@ async function onSwap(o: MoveOffer): Promise<void> {
         v-if="entry.entries.length === 0"
         class="muted"
       >
-        An diesem Tag hast du keine Aktivität.
+        {{ t.result.noItem }}
       </p>
       <ul
         v-else
@@ -177,11 +178,11 @@ async function onSwap(o: MoveOffer): Promise<void> {
               </template>
             </li>
             <li v-if="e.item && e.item.teachers.length > 0">
-              {{ e.item.teachers.map((t) => t.displayName).join(', ') }}
+              {{ e.item.teachers.map((teacher) => teacher.displayName).join(', ') }}
             </li>
             <li>
-              {{ e.minutes }} Minuten angerechnet<template v-if="e.item && e.item.feeCents > 0">
-                · Beitrag {{ formatFee(e.item.feeCents) }}
+              {{ t.result.credited(e.minutes) }}<template v-if="e.item && e.item.feeCents > 0">
+                · {{ t.result.fee(formatFee(e.item.feeCents)) }}
               </template>
             </li>
           </ul>
@@ -192,24 +193,24 @@ async function onSwap(o: MoveOffer): Promise<void> {
         class="alert"
         role="status"
       >
-        Hier fehlen dir noch {{ entry.day.deficit }} Minuten: dein Klassenvorstand teilt dich einer Aktivität mit freien Plätzen zu.
+        {{ t.result.deficit(entry.day.deficit) }}
       </p>
     </section>
     <section>
-      <h2>Beitrag</h2>
-      <p>{{ result.feeCents === 0 ? 'Für deine Aktivitäten ist kein Beitrag zu zahlen.' : `Insgesamt ${formatFee(result.feeCents)}; die Schule sagt, wie und bis wann.` }}</p>
+      <h2>{{ t.common.field.fee }}</h2>
+      <p>{{ result.feeCents === 0 ? t.result.noFee : t.result.feeTotal(formatFee(result.feeCents)) }}</p>
     </section>
     <section v-if="result.swapWindow">
-      <h2>Tauschen</h2>
+      <h2>{{ t.result.swap.heading }}</h2>
       <p>
-        Von {{ formatWhenShort(result.swapWindow.from) }} bis {{ formatWhenShort(result.swapWindow.until) }} kannst du in eine Aktivität mit freien Plätzen wechseln. Wer zuerst kommt, bekommt den Platz; eine Aktivität deiner Klasse bleibt, und es dürfen danach nicht mehr Minuten fehlen als jetzt.
+        {{ t.result.swap.window(formatWhenShort(result.swapWindow.from), formatWhenShort(result.swapWindow.until)) }}
       </p>
       <template v-if="result.offers !== null">
         <p
           v-if="offersByDay.length === 0"
           class="muted"
         >
-          Zur Zeit steht keine andere Aktivität für dich zur Wahl.
+          {{ t.result.swap.noOffers }}
         </p>
         <div
           v-for="day in offersByDay"
@@ -233,10 +234,10 @@ async function onSwap(o: MoveOffer): Promise<void> {
                   </template>
                 </li>
                 <li v-if="(itemOf(o.itemId)?.feeCents ?? 0) > 0">
-                  Beitrag {{ formatFee(itemOf(o.itemId)?.feeCents ?? 0) }}
+                  {{ t.result.fee(formatFee(itemOf(o.itemId)?.feeCents ?? 0)) }}
                 </li>
                 <li v-if="o.leaves.length > 0">
-                  Dafür verlässt du: {{ o.leaves.map(itemTitle).join(', ') }}
+                  {{ t.result.swap.leaves(o.leaves.map(itemTitle).join(', ')) }}
                 </li>
               </ul>
               <p class="actions">
@@ -245,7 +246,7 @@ async function onSwap(o: MoveOffer): Promise<void> {
                   :disabled="o.problems.length > 0 || action.busy.value"
                   @click="onSwap(o)"
                 >
-                  Wechseln
+                  {{ t.result.swap.submit }}
                 </button>
               </p>
             </li>
@@ -254,29 +255,29 @@ async function onSwap(o: MoveOffer): Promise<void> {
       </template>
     </section>
     <section v-if="result.changes.length > 0">
-      <h2>Änderungen seit der Veröffentlichung</h2>
+      <h2>{{ t.result.changes }}</h2>
       <ul>
         <li
           v-for="c in result.changes"
           :key="c.changedAt"
         >
           {{ formatWhenShort(c.changedAt) }} · {{ CHANGE_KIND_LABELS[c.kind] ?? c.kind }}<template v-if="c.leftItemIds.length > 0">
-            · nicht mehr {{ c.leftItemIds.map(itemTitle).join(', ') }}
+            · {{ t.result.left(c.leftItemIds.map(itemTitle).join(', ')) }}
           </template><template v-if="c.toItemId !== null">
-            · neu {{ itemTitle(c.toItemId) }}
+            · {{ t.result.entered(itemTitle(c.toItemId)) }}
           </template>
         </li>
       </ul>
     </section>
     <section>
-      <h2>So kam die Zuteilung zustande</h2>
+      <h2>{{ t.result.explanation.heading }}</h2>
       <p>
-        Zuerst sollte niemand ohne volle Woche bleiben, dann sollten so wenige Minuten wie möglich fehlen, dann so wenige Schüler/innen wie möglich überwiegend späte Wünsche bekommen, dann das Ganze so gut wie möglich ausgehen. Wo zwei Zuteilungen gleich gut waren, hat das Los entschieden, mit der aufgezeichneten Zahl {{ result.run.seed }} (Lauf {{ result.run.seq }}).
+        {{ t.result.explanation.rule(result.run.seed, result.run.seq) }}
         <template v-if="result.explanation.window === 'late'">
-          Deine Wünsche kamen in der Nachfrist und wurden nach den anderen zugeteilt.
+          {{ t.result.explanation.late }}
         </template>
         <template v-else-if="result.explanation.window === null && result.explanation.items.some((e) => e.source !== 'fixed')">
-          Du hattest keine Wünsche abgegeben und wurdest auf freie Plätze ohne Beitrag gesetzt.
+          {{ t.result.explanation.noWishes }}
         </template>
       </p>
     </section>

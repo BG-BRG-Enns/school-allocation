@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-#
 # One image: the API, which also serves the built web app from apps/web/dist.
 #
 #   deps      — full dependency tree for building the web app.
@@ -11,11 +9,16 @@
 #
 # Every workspace's package.json is copied before `npm ci`: the lockfile
 # covers all of them, and npm ci refuses a workspace it cannot find.
+#
+# No `# syntax=` line: the built-in frontend of the BuildKit the workflows
+# pin by digest reads this file, so no frontend pulled by a movable tag
+# decides what is built (npm run lint:deps checks both).
 
 FROM docker.io/library/node:26.12.1-trixie-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/school-core/package.json packages/school-core/
+COPY packages/messages/package.json packages/messages/
 COPY packages/api-contracts/package.json packages/api-contracts/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
@@ -25,6 +28,7 @@ RUN --mount=type=cache,target=/root/.npm \
 FROM deps AS web
 COPY tsconfig.base.json ./
 COPY packages/school-core packages/school-core
+COPY packages/messages packages/messages
 COPY packages/api-contracts packages/api-contracts
 COPY apps/web apps/web
 RUN npm run build --workspace apps/web
@@ -33,6 +37,7 @@ FROM docker.io/library/node:26.12.1-trixie-slim@sha256:36793bcbb160a6a16cede1e62
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/school-core/package.json packages/school-core/
+COPY packages/messages/package.json packages/messages/
 COPY packages/api-contracts/package.json packages/api-contracts/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
@@ -54,8 +59,10 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 # "type":"module" to decide ESM vs CJS, and the .ts files only run as ESM.
 COPY package.json ./
 COPY packages/school-core/package.json packages/school-core/
+COPY packages/messages/package.json packages/messages/
 COPY packages/api-contracts/package.json packages/api-contracts/
 COPY packages/school-core/src packages/school-core/src
+COPY packages/messages/src packages/messages/src
 COPY packages/api-contracts/src packages/api-contracts/src
 COPY apps/api apps/api
 # The notices for what the image carries beyond its packages' own licence

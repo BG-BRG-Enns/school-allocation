@@ -7,11 +7,12 @@ import { useRouter } from 'vue-router'
 import { createCampaign, loadCampaigns, type Campaign } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay } from '../lib/format.ts'
+import { t } from '../lib/i18n.ts'
 import { CAMPAIGN_STATE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
-usePageTitle(() => 'Wahlen')
+usePageTitle(() => t.common.page.campaigns)
 const router = useRouter()
 const campaigns = ref<Campaign[] | null>(null)
 const loading = useFeedback()
@@ -44,7 +45,7 @@ async function onCreate(): Promise<void> {
 </script>
 
 <template>
-  <h1>Wahlen</h1>
+  <h1>{{ t.common.page.campaigns }}</h1>
   <p
     v-if="loading.error.value"
     role="alert"
@@ -54,7 +55,7 @@ async function onCreate(): Promise<void> {
   </p>
   <template v-if="campaigns">
     <p v-if="campaigns.length === 0">
-      Noch keine Wahl.
+      {{ t.campaigns.none }}
     </p>
     <table
       v-else
@@ -63,16 +64,16 @@ async function onCreate(): Promise<void> {
       <thead>
         <tr>
           <th scope="col">
-            Wahl
+            {{ t.campaigns.campaign }}
           </th>
           <th scope="col">
-            Schuljahr
+            {{ t.common.field.schoolYear }}
           </th>
           <th scope="col">
-            Projekttage
+            {{ t.campaign.projectDays }}
           </th>
           <th scope="col">
-            Stand
+            {{ t.common.field.state }}
           </th>
         </tr>
       </thead>
@@ -95,20 +96,20 @@ async function onCreate(): Promise<void> {
   </template>
 
   <section v-if="organizes">
-    <h2>Neue Wahl</h2>
+    <h2>{{ t.campaigns.new }}</h2>
     <form @submit.prevent="onCreate">
       <p class="field">
-        <label for="campaign-name">Bezeichnung</label>
+        <label for="campaign-name">{{ t.campaign.settings.name }}</label>
         <input
           id="campaign-name"
           v-model="name"
           required
           maxlength="200"
-          placeholder="Projektwoche 2027"
+          :placeholder="t.campaigns.namePlaceholder"
         >
       </p>
       <p class="field">
-        <label for="campaign-year">Schuljahr</label>
+        <label for="campaign-year">{{ t.common.field.schoolYear }}</label>
         <input
           id="campaign-year"
           v-model="schoolYear"
@@ -119,7 +120,7 @@ async function onCreate(): Promise<void> {
         >
       </p>
       <fieldset class="field">
-        <legend>Projekttage</legend>
+        <legend>{{ t.campaign.projectDays }}</legend>
         <p
           v-for="(_, index) in days"
           :key="index"
@@ -127,7 +128,7 @@ async function onCreate(): Promise<void> {
         >
           <input
             v-model="days[index]"
-            :aria-label="`Projekttag ${index + 1}`"
+            :aria-label="t.campaign.settings.projectDay(index + 1)"
             type="date"
             required
           >
@@ -137,7 +138,7 @@ async function onCreate(): Promise<void> {
             class="ghost"
             @click="removeDay(index)"
           >
-            Entfernen
+            {{ t.common.remove }}
           </button>
         </p>
         <p>
@@ -147,7 +148,7 @@ async function onCreate(): Promise<void> {
             :disabled="days.length >= 10"
             @click="addDay"
           >
-            Tag hinzufügen
+            {{ t.common.addDay }}
           </button>
         </p>
       </fieldset>
@@ -156,7 +157,7 @@ async function onCreate(): Promise<void> {
           type="submit"
           :disabled="creating.busy.value"
         >
-          Wahl anlegen
+          {{ t.campaigns.create }}
         </button>
       </p>
       <p

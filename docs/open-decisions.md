@@ -31,7 +31,8 @@ SchulWahl is an **open-source product for Austrian schools**, not an integration
    runs over the submitted plan. The handoff's "validation considers previous choices" does not apply
    to the normal case.
 4. **Both catalogues are maintained in the app**; the printable catalogue is generated from them.
-5. **Nightly auto-update always**, also during open windows (D-14).
+5. **Nightly auto-update always**, also during open windows (D-14); a failed update stays down until the
+   next release fixes it (revised 2026-10-31).
 6. **No school administration system is integrated** (scope correction above).
 7. **Fixed class activities** (D-24): not every activity is chosen. A teacher may organize one for
    whole classes; those students are assigned automatically and choose only for the remaining time.
@@ -52,7 +53,7 @@ SchulWahl is an **open-source product for Austrian schools**, not an integration
 | D-10 (revised) | **Roster from Entra: class groups via Microsoft Graph, or a CSV upload.** No school ID number is stored. Graph-imported persons are pre-provisioned by `oid`; CSV persons are bound once by exact e-mail/UPN at first sign-in | No app roles needed; kind comes from the roster |
 | D-11 | Every student and teacher has an Entra account; the project lead owns the app registration and secret rotation | — |
 | D-12 (revised) | **Both import paths are first-class**: Graph groups and CSV | The earlier "no CSV" decision assumed a school database; withdrawn |
-| D-14 | **Quadlet stack like school-election, nightly auto-update always.** Own host or sub-path, both supported | Migrations compatible with the previous release; choices saved per change; `busy` only during jobs |
+| D-14 (revised 2026-10-31) | **Quadlet stack like school-election, nightly auto-update always, no automatic rollback.** Own host or sub-path, both supported | A release runs only on the schema it was built for (schema version); a failed update stays down until fixed; choices saved per change; `busy` only during jobs |
 | D-16 | Attendance: project week by the **class teacher (KV)**, WPF by an **admin**. Non-submitters are **notified automatically by e-mail** at the close | KV assignment per class (D-17); mail transport (D-18) |
 | D-17 (revised) | **KV assigned per class in the app** by an organizer or admin, or from an optional CSV column | No external lookup |
 | D-18 (revised) | **SMTP submission** (STARTTLS or implicit TLS, authenticated) as the built-in transport, behind a transactional outbox with a unique dedupe key per notice. The transport is an interface; a school may plug in its own without it being part of the product | Sender address and DKIM/SPF are the school's SMTP setup |
@@ -69,6 +70,18 @@ SchulWahl is an **open-source product for Austrian schools**, not an integration
 | D-20 (2026-10-29) | **Fairness levels as in `domain-and-api.md` §5, in two passes:** the first pass allocates the students who submitted in the first window; the second pass allocates the grace week's submitters and the non-submitters with the first pass fixed. That is "Fenster 1 vor Fenster 2" without a new objective. "Disadvantage on another day" needs no level of its own: L3 already protects the worst-off. The simulation on synthetic data is a pilot task (P.1), not an open decision | The compiler marks each student's submission window and runs the solver twice; the contract takes fixed assignments; the explanation per student names the rule |
 | D-23 (2026-10-29) | **Searchable group picker.** Entering group IDs by hand is the CSV path with extra steps; the picker searches the tenant's groups by name with the administrator's own token | `Group.Read.All` joins the delegated scopes of the roster refresh (D-22); the admin consents once; the labelled groups are stored as before |
 | D-25 (2026-10-29) | **Sessions in the school's period grid.** A school defines its periods once (1. EH 7:35–8:25, 2. EH 8:30–9:20, …, with the long break). A teacher enters a session as "from period *x*, *y* periods long" (default: from the 2nd period) or, for trips, as a clock time and a duration | Stored as instants, as today; the grid is a settings table with a default, not a per-campaign slot list; the catalogue and the ranking view show period labels where a session matches the grid and clock times where it does not; D-05's time groups derive from these spans |
+
+## Revised by the project lead (2026-10-31)
+
+D-14's first consequence was that every migration works with the previous release's code, so that
+`podman auto-update` could roll a failed update back onto the new schema. It is withdrawn. Nobody would
+track which later release owes the contraction an earlier one deferred, and a rollback that quietly runs
+the previous release fails nobody's attention until the next update fails the same way. A failed update
+now stays down where someone notices, and the next release fixes it; a few hours down in a two-week
+choice window are acceptable. A release knows the schema version it was built for and refuses any
+other; only a migration that older code cannot run on raises it. An operator who would rather choose
+when to update leaves the timer off and pins a release (`deploy/README.md`, Updates); which is safer
+depends on whether someone at the school watches the releases.
 
 ## Sharpened by the allocation slice (S4, 2026-10-29)
 

@@ -8,6 +8,7 @@ import { approveItem, catalogueExportPath, deleteItem, loadCampaign, loadClasses
 import { withBase } from '../lib/base.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf } from '../lib/format.ts'
+import { t } from '../lib/i18n.ts'
 import { CAMPAIGN_STATE_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS, MAIL_KIND_LABELS, MAIL_STATE_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
@@ -19,7 +20,7 @@ const demand = ref<DayDemand[]>([])
 const grades = ref<number[]>([])
 const loading = useFeedback()
 const action = useFeedback()
-usePageTitle(() => view.value?.campaign.name ?? 'Wahl')
+usePageTitle(() => view.value?.campaign.name ?? t.campaign.title)
 
 async function load(): Promise<void> {
   await loading.run(async () => {
@@ -67,7 +68,7 @@ const minimumEditable = computed(() => windowEditable.value || (campaign.value !
 /** The swap window's dates may be set until the window has begun: the organizer sets them when publishing. */
 const swapEditable = computed(() => minimumEditable.value || (campaign.value !== undefined && campaign.value.state === 'results' && (campaign.value.swapFrom === null || Date.parse(campaign.value.swapFrom) > Date.now())))
 const settingsEditable = computed(() => minimumEditable.value || swapEditable.value)
-const settingsButton = computed(() => windowEditable.value ? 'Einstellungen ändern' : minimumEditable.value ? 'Mindestminuten und Ummeldefenster ändern' : 'Ummeldefenster ändern')
+const settingsButton = computed(() => windowEditable.value ? t.campaign.organization.editSettings : minimumEditable.value ? t.campaign.organization.editMinimumAndSwap : t.campaign.organization.editSwap)
 /** The grades the demand lists: those of the roster, or those the demand knows. */
 const demandGrades = computed(() => grades.value.length > 0 ? grades.value : [...new Set(demand.value.flatMap((d) => d.grades.map((g) => g.grade)))].sort((a, b) => a - b))
 
@@ -75,14 +76,20 @@ const demandGrades = computed(() => grades.value.length > 0 ? grades.value : [..
 const windowSummary = computed(() => {
   const c = campaign.value
   if (!c || (c.opensAt === null && c.closesAt === null)) return ''
-  const parts = [`Wahl von ${formatWhenShort(c.opensAt)} bis ${formatWhenShort(c.closesAt)}`]
-  if (c.lateUntil !== null) parts.push(`Nachfrist bis ${formatWhenShort(c.lateUntil)}`)
-  if (c.swapFrom !== null) parts.push(`Ummelden von ${formatWhenShort(c.swapFrom)} bis ${formatWhenShort(c.swapUntil)}`)
-  return `${parts.join(', ')} · ${c.wishesPerGroup} Wünsche je Zeitgruppe`
+  const parts = [t.campaign.window.opens(formatWhenShort(c.opensAt), formatWhenShort(c.closesAt))]
+  if (c.lateUntil !== null) parts.push(t.campaign.window.late(formatWhenShort(c.lateUntil)))
+  if (c.swapFrom !== null) parts.push(t.campaign.window.swap(formatWhenShort(c.swapFrom), formatWhenShort(c.swapUntil)))
+  return `${parts.join(', ')} · ${t.campaign.window.wishes(c.wishesPerGroup)}`
 })
 
 function demandOf(day: DayDemand, grade: number): DayDemand['grades'][number] | undefined {
   return day.grades.find((g) => g.grade === grade)
+}
+
+/** A cell of the demand table: who needs a place and what is offered; empty when the day has no entry for the grade. */
+function demandText(day: DayDemand, grade: number): string {
+  const d = demandOf(day, grade)
+  return d ? t.campaign.demand.cell(d.needing, d.offered) : ''
 }
 
 /** An instant as the datetime-local input takes it, in the school's zone; '' for none. */
@@ -152,7 +159,7 @@ async function onSaveSettings(): Promise<void> {
       changes.dailyMinimum = Object.fromEntries(Object.entries(dailyMinimum.value).filter(([, minutes]) => String(minutes).trim() !== '').map(([grade, minutes]) => [grade, Number(minutes)]))
     }
     await updateCampaign(props.id, changes)
-  }, 'Gespeichert.')
+  }, t.common.saved)
   if (ok) {
     editing.value = false
     await load()
@@ -160,7 +167,7 @@ async function onSaveSettings(): Promise<void> {
 }
 async function onTransition(to: 'catalogue' | 'published' | 'open' | 'closed' | 'archived'): Promise<void> {
   // The archive is the end: nothing of the campaign changes afterwards, so it is asked once more.
-  if (to === 'archived' && !window.confirm('Die Wahl abschließen? Danach ändert sich nichts mehr: kein Tausch, keine Zuteilung, keine Anwesenheit.')) return
+  if (to === 'archived' && !window.confirm(t.campaign.organization.archiveConfirm)) return
   const ok = await action.run(async () => {
     await transitionCampaign(props.id, to)
   })
@@ -194,7 +201,7 @@ function onSubmitPending(): void {
 <template>
   <p>
     <RouterLink to="/wahlen">
-      ← Wahlen
+      ← {{ t.common.page.campaigns }}
     </RouterLink>
   </p>
   <p
@@ -208,7 +215,7 @@ function onSubmitPending(): void {
     <h1>{{ campaign.name }}</h1>
     <p>
       <span class="badge">{{ CAMPAIGN_STATE_LABELS[campaign.state] ?? campaign.state }}</span>
-      Schuljahr {{ campaign.schoolYear }} · Projekttage: {{ campaign.projectDays.map(formatDay).join(', ') }}
+      {{ t.campaign.yearAndDays(campaign.schoolYear, campaign.projectDays.map(formatDay).join(', ')) }}
     </p>
     <p
       v-if="windowSummary"
@@ -226,7 +233,7 @@ function onSubmitPending(): void {
         class="button ghost-link"
         :to="`/wahlen/${campaign.id}/klasse/${encodeURIComponent(className)}`"
       >
-        Meine Klasse {{ className }}
+        {{ t.campaign.myClass(className) }}
       </RouterLink>
     </p>
     <p
@@ -245,12 +252,12 @@ function onSubmitPending(): void {
     </p>
 
     <section v-if="organizes">
-      <h2>Organisation</h2>
+      <h2>{{ t.campaign.organization.heading }}</h2>
       <p
         v-if="view.counts"
         class="muted"
       >
-        {{ view.counts.draft }} Entwürfe · {{ view.counts.proposed }} eingereicht · {{ view.counts.approved }} genehmigt · {{ view.counts.withdrawn }} zurückgezogen
+        {{ t.campaign.organization.itemCounts(view.counts) }}
       </p>
       <p class="actions">
         <button
@@ -259,7 +266,7 @@ function onSubmitPending(): void {
           :disabled="action.busy.value"
           @click="onTransition('catalogue')"
         >
-          Aktivitäten sammeln
+          {{ t.campaign.organization.collect }}
         </button>
         <button
           v-if="campaign.state === 'catalogue'"
@@ -267,7 +274,7 @@ function onSubmitPending(): void {
           :disabled="action.busy.value"
           @click="onTransition('published')"
         >
-          Katalog veröffentlichen
+          {{ t.campaign.organization.publish }}
         </button>
         <button
           v-if="campaign.state === 'published'"
@@ -275,7 +282,7 @@ function onSubmitPending(): void {
           :disabled="action.busy.value"
           @click="onTransition('open')"
         >
-          Wahl öffnen
+          {{ t.campaign.organization.open }}
         </button>
         <button
           v-if="campaign.state === 'results'"
@@ -284,7 +291,7 @@ function onSubmitPending(): void {
           :disabled="action.busy.value"
           @click="onTransition('archived')"
         >
-          Wahl abschließen
+          {{ t.campaign.organization.archive }}
         </button>
         <button
           v-if="campaign.state === 'open' || campaign.state === 'grace'"
@@ -293,14 +300,14 @@ function onSubmitPending(): void {
           :disabled="action.busy.value"
           @click="onTransition('closed')"
         >
-          Wahl beenden
+          {{ t.campaign.organization.close }}
         </button>
         <RouterLink
           v-if="['closed', 'allocating', 'review', 'results', 'archived'].includes(campaign.state)"
           class="button"
           :to="`/wahlen/${campaign.id}/zuteilung`"
         >
-          Zuteilung
+          {{ t.common.page.allocation }}
         </RouterLink>
         <button
           v-if="!editing && settingsEditable"
@@ -313,28 +320,28 @@ function onSubmitPending(): void {
         <a
           class="button ghost-link"
           :href="withBase(catalogueExportPath(campaign.id))"
-        >Katalog als Excel</a>
+        >{{ t.campaign.organization.catalogueExport }}</a>
         <RouterLink
           class="button ghost-link"
           to="/verwaltung/klassen"
         >
-          Klassenvorstände
+          {{ t.common.page.classTeachers }}
         </RouterLink>
         <RouterLink
           class="button ghost-link"
           to="/verwaltung/mailvorlagen"
         >
-          Mailvorlagen
+          {{ t.common.page.mailTemplates }}
         </RouterLink>
       </p>
       <form
         v-if="editing"
         class="panel"
-        aria-label="Einstellungen der Wahl"
+        :aria-label="t.campaign.settings.label"
         @submit.prevent="onSaveSettings"
       >
         <p class="field">
-          <label for="edit-name">Bezeichnung</label>
+          <label for="edit-name">{{ t.campaign.settings.name }}</label>
           <input
             id="edit-name"
             v-model="name"
@@ -344,7 +351,7 @@ function onSubmitPending(): void {
           >
         </p>
         <p class="field">
-          <label for="edit-year">Schuljahr</label>
+          <label for="edit-year">{{ t.common.field.schoolYear }}</label>
           <input
             id="edit-year"
             v-model="schoolYear"
@@ -358,7 +365,7 @@ function onSubmitPending(): void {
           class="field"
           :disabled="!setUpEditable"
         >
-          <legend>Projekttage</legend>
+          <legend>{{ t.campaign.projectDays }}</legend>
           <p
             v-for="(_, index) in days"
             :key="index"
@@ -366,7 +373,7 @@ function onSubmitPending(): void {
           >
             <input
               v-model="days[index]"
-              :aria-label="`Projekttag ${index + 1}`"
+              :aria-label="t.campaign.settings.projectDay(index + 1)"
               type="date"
               required
             >
@@ -376,7 +383,7 @@ function onSubmitPending(): void {
               class="ghost"
               @click="days.splice(index, 1)"
             >
-              Entfernen
+              {{ t.common.remove }}
             </button>
           </p>
           <p>
@@ -386,15 +393,15 @@ function onSubmitPending(): void {
               :disabled="days.length >= 10"
               @click="days.push('')"
             >
-              Tag hinzufügen
+              {{ t.common.addDay }}
             </button>
           </p>
         </fieldset>
         <fieldset class="field">
-          <legend>Wahl</legend>
+          <legend>{{ t.campaign.settings.window }}</legend>
           <div class="row">
             <p class="field">
-              <label for="edit-opens">Beginn</label>
+              <label for="edit-opens">{{ t.campaign.settings.opens }}</label>
               <input
                 id="edit-opens"
                 v-model="opensAt"
@@ -403,7 +410,7 @@ function onSubmitPending(): void {
               >
             </p>
             <p class="field">
-              <label for="edit-closes">Ende</label>
+              <label for="edit-closes">{{ t.campaign.settings.closes }}</label>
               <input
                 id="edit-closes"
                 v-model="closesAt"
@@ -412,7 +419,7 @@ function onSubmitPending(): void {
               >
             </p>
             <p class="field">
-              <label for="edit-late">Nachfrist bis</label>
+              <label for="edit-late">{{ t.campaign.settings.lateUntil }}</label>
               <input
                 id="edit-late"
                 v-model="lateUntil"
@@ -423,7 +430,7 @@ function onSubmitPending(): void {
           </div>
           <div class="row">
             <p class="field">
-              <label for="edit-swap-from">Ummelden von</label>
+              <label for="edit-swap-from">{{ t.campaign.settings.swapFrom }}</label>
               <input
                 id="edit-swap-from"
                 v-model="swapFrom"
@@ -432,7 +439,7 @@ function onSubmitPending(): void {
               >
             </p>
             <p class="field">
-              <label for="edit-swap-until">Ummelden bis</label>
+              <label for="edit-swap-until">{{ t.campaign.settings.swapUntil }}</label>
               <input
                 id="edit-swap-until"
                 v-model="swapUntil"
@@ -441,7 +448,7 @@ function onSubmitPending(): void {
               >
             </p>
             <p class="field">
-              <label for="edit-wishes">Wünsche je Zeitgruppe</label>
+              <label for="edit-wishes">{{ t.campaign.settings.wishesPerGroup }}</label>
               <input
                 id="edit-wishes"
                 v-model.number="wishesPerGroup"
@@ -459,7 +466,7 @@ function onSubmitPending(): void {
               :key="grade"
               class="field"
             >
-              <label :for="`edit-min-${grade}`">Mindestminuten je Tag, {{ grade }}. Schulstufe</label>
+              <label :for="`edit-min-${grade}`">{{ t.campaign.settings.dailyMinimum(Number(grade)) }}</label>
               <input
                 :id="`edit-min-${grade}`"
                 v-model="dailyMinimum[String(grade)]"
@@ -477,7 +484,7 @@ function onSubmitPending(): void {
                 :disabled="!windowEditable"
                 type="checkbox"
               >
-              Der Katalog nennt die Lehrkräfte der Aktivitäten
+              {{ t.campaign.settings.showTeachers }}
             </label>
           </p>
         </fieldset>
@@ -486,40 +493,40 @@ function onSubmitPending(): void {
             type="submit"
             :disabled="action.busy.value"
           >
-            Speichern
+            {{ t.common.save }}
           </button>
           <button
             type="button"
             class="ghost"
             @click="editing = false"
           >
-            Abbrechen
+            {{ t.common.cancel }}
           </button>
         </p>
       </form>
     </section>
 
     <section v-if="isStudent && published">
-      <h2>{{ resultsOut ? 'Mein Ergebnis' : 'Meine Wünsche' }}</h2>
+      <h2>{{ resultsOut ? t.common.page.result : t.common.page.wishes }}</h2>
       <p class="actions">
         <RouterLink
           v-if="resultsOut"
           class="button"
           :to="`/wahlen/${campaign.id}/ergebnis`"
         >
-          Mein Ergebnis ansehen
+          {{ t.campaign.student.viewResult }}
         </RouterLink>
         <RouterLink
           :class="resultsOut ? 'button ghost-link' : 'button'"
           :to="`/wahlen/${campaign.id}/wuensche`"
         >
-          {{ resultsOut ? 'Meine Wünsche' : windowOpened ? 'Wünsche abgeben oder ändern' : 'Was zur Wahl steht' }}
+          {{ resultsOut ? t.common.page.wishes : windowOpened ? t.campaign.student.giveWishes : t.campaign.student.offered }}
         </RouterLink>
       </p>
     </section>
 
     <section v-if="organizes && windowOpened">
-      <h2>Wahlstand</h2>
+      <h2>{{ t.campaign.missing.heading }}</h2>
       <p
         v-if="missingLoading.error.value"
         role="alert"
@@ -528,13 +535,13 @@ function onSubmitPending(): void {
         {{ missingLoading.error.value }}
       </p>
       <p class="muted">
-        {{ missing.length }} Schüler/innen, {{ missingCount }} ohne vollständige Wünsche.
+        {{ t.campaign.missing.summary(missing.length, missingCount) }}
       </p>
       <p class="actions">
         <a
           class="button ghost-link"
           :href="withBase(missingExportPath(campaign.id))"
-        >Wahlstand als Excel</a>
+        >{{ t.campaign.missing.export }}</a>
       </p>
       <table
         v-if="missing.length > 0"
@@ -543,19 +550,19 @@ function onSubmitPending(): void {
         <thead>
           <tr>
             <th scope="col">
-              Klasse
+              {{ t.common.field.className }}
             </th>
             <th scope="col">
-              Name
+              {{ t.common.field.name }}
             </th>
             <th scope="col">
-              Stand
+              {{ t.common.field.state }}
             </th>
             <th scope="col">
-              Nachrichten
+              {{ t.campaign.missing.mails }}
             </th>
             <th scope="col">
-              <span class="visually-hidden">Aktionen</span>
+              <span class="visually-hidden">{{ t.common.field.actions }}</span>
             </th>
           </tr>
         </thead>
@@ -579,7 +586,7 @@ function onSubmitPending(): void {
                 class="button ghost-link small"
                 :to="`/wahlen/${campaign.id}/wuensche/${s.personId}`"
               >
-                Eingeben
+                {{ t.campaign.missing.enter }}
               </RouterLink>
             </td>
           </tr>
@@ -588,22 +595,22 @@ function onSubmitPending(): void {
     </section>
 
     <section v-if="view.may.seeDemand && demand.length > 0">
-      <h2>Bedarf</h2>
+      <h2>{{ t.campaign.demand.heading }}</h2>
       <p class="muted">
-        Je Projekttag und Schulstufe: wie viele Schüler/innen einen Platz brauchen (ohne die in einer Klassenaktivität), und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten.
+        {{ t.campaign.demand.intro }}
       </p>
       <table class="table">
         <thead>
           <tr>
             <th scope="col">
-              Tag
+              {{ t.common.field.day }}
             </th>
             <th
               v-for="grade in demandGrades"
               :key="grade"
               scope="col"
             >
-              {{ grade }}. Schulstufe
+              {{ t.common.gradeOrdinal(grade) }}
             </th>
           </tr>
         </thead>
@@ -620,7 +627,7 @@ function onSubmitPending(): void {
               :key="grade"
             >
               <template v-if="demandOf(day, grade)">
-                {{ demandOf(day, grade)?.needing }} brauchen · {{ demandOf(day, grade)?.offered }} angeboten
+                {{ demandText(day, grade) }}
               </template>
             </td>
           </tr>
@@ -629,25 +636,25 @@ function onSubmitPending(): void {
     </section>
 
     <section>
-      <h2>Aktivitäten</h2>
+      <h2>{{ t.campaign.items.heading }}</h2>
       <p class="actions">
         <RouterLink
           v-if="view.may.propose"
           class="button"
           :to="`/wahlen/${campaign.id}/aktivitaet/neu`"
         >
-          Neue Aktivität
+          {{ t.common.page.newItem }}
         </RouterLink>
         <RouterLink
           v-if="published || organizes"
           class="button ghost-link"
           :to="`/wahlen/${campaign.id}/katalog`"
         >
-          Katalog ansehen
+          {{ t.campaign.items.viewCatalogue }}
         </RouterLink>
       </p>
       <p v-if="items.length === 0">
-        Noch keine Aktivitäten.
+        {{ t.campaign.items.none }}
       </p>
       <table
         v-else
@@ -656,25 +663,25 @@ function onSubmitPending(): void {
         <thead>
           <tr>
             <th scope="col">
-              Nr.
+              {{ t.common.field.number }}
             </th>
             <th scope="col">
-              Aktivität
+              {{ t.common.field.item }}
             </th>
             <th scope="col">
-              Lehrkräfte
+              {{ t.common.field.teachers }}
             </th>
             <th scope="col">
-              Termine
+              {{ t.common.field.sessions }}
             </th>
             <th scope="col">
-              Plätze
+              {{ t.common.field.places }}
             </th>
             <th scope="col">
-              Stand
+              {{ t.common.field.state }}
             </th>
             <th scope="col">
-              <span class="visually-hidden">Aktionen</span>
+              <span class="visually-hidden">{{ t.common.field.actions }}</span>
             </th>
           </tr>
         </thead>
@@ -689,7 +696,7 @@ function onSubmitPending(): void {
               <span
                 v-if="item.fixedClasses.length > 0"
                 class="muted"
-              > · fix für {{ item.fixedClasses.join(', ') }}</span>
+              > · {{ t.campaign.items.fixedFor(item.fixedClasses.join(', ')) }}</span>
               <span
                 v-if="item.feeCents > 0"
                 class="muted"
@@ -698,10 +705,10 @@ function onSubmitPending(): void {
                 v-if="item.reviewNote && (own(item) || organizes)"
                 class="muted"
               >
-                Rückmeldung: {{ item.reviewNote }}
+                {{ t.campaign.items.reviewNote(item.reviewNote) }}
               </p>
             </td>
-            <td>{{ item.teachers.map((t) => t.displayName).join(', ') }}</td>
+            <td>{{ item.teachers.map((teacher) => teacher.displayName).join(', ') }}</td>
             <td>
               <ul class="plain">
                 <li
@@ -720,22 +727,22 @@ function onSubmitPending(): void {
                 class="button ghost-link small"
                 :to="`/wahlen/${campaign.id}/aktivitaet/${item.id}`"
               >
-                Bearbeiten
+                {{ t.common.edit }}
               </RouterLink>
               <RouterLink
                 v-if="own(item) && !organizes && resultsOut && item.state !== 'withdrawn'"
                 class="button ghost-link small"
                 :to="`/wahlen/${campaign.id}/aktivitaet/${item.id}`"
               >
-                Teilnehmer/innen
+                {{ t.campaign.items.participants }}
               </RouterLink>
               <button
                 v-if="own(item) && item.state === 'draft' && campaign.state === 'catalogue'"
                 type="button"
                 class="ghost"
-                @click="act(() => proposeItem(item.id), 'Eingereicht.')"
+                @click="act(() => proposeItem(item.id), t.campaign.items.proposed)"
               >
-                Einreichen
+                {{ t.campaign.items.propose }}
               </button>
               <button
                 v-if="own(item) && item.state === 'proposed' && campaign.state === 'catalogue' && !organizes"
@@ -743,22 +750,22 @@ function onSubmitPending(): void {
                 class="ghost"
                 @click="act(() => unproposeItem(item.id))"
               >
-                Zurück zum Entwurf
+                {{ t.campaign.items.unpropose }}
               </button>
               <button
                 v-if="own(item) && item.state === 'draft'"
                 type="button"
                 class="ghost"
-                @click="act(() => deleteItem(item.id), 'Entwurf gelöscht.')"
+                @click="act(() => deleteItem(item.id), t.campaign.items.deleted)"
               >
-                Löschen
+                {{ t.campaign.items.delete }}
               </button>
               <button
                 v-if="organizes && item.state === 'proposed'"
                 type="button"
-                @click="act(() => approveItem(item.id), 'Genehmigt.')"
+                @click="act(() => approveItem(item.id), t.campaign.items.approved)"
               >
-                Genehmigen
+                {{ t.campaign.items.approve }}
               </button>
               <button
                 v-if="organizes && campaign.state === 'catalogue' && (item.state === 'proposed' || item.state === 'approved')"
@@ -766,7 +773,7 @@ function onSubmitPending(): void {
                 class="ghost"
                 @click="ask(item, 'return')"
               >
-                Zurückgeben
+                {{ t.campaign.items.return }}
               </button>
               <button
                 v-if="organizes && item.state !== 'withdrawn' && !(own(item) && item.state === 'draft')"
@@ -774,7 +781,7 @@ function onSubmitPending(): void {
                 class="ghost"
                 @click="ask(item, 'withdraw')"
               >
-                Zurückziehen
+                {{ t.campaign.items.withdraw }}
               </button>
             </td>
           </tr>
@@ -783,12 +790,12 @@ function onSubmitPending(): void {
       <form
         v-if="pending"
         class="panel"
-        :aria-label="pending.kind === 'return' ? `${pending.item.title} zurückgeben` : `${pending.item.title} zurückziehen`"
+        :aria-label="pending.kind === 'return' ? t.campaign.pending.returnTitle(pending.item.title) : t.campaign.pending.withdrawTitle(pending.item.title)"
         @submit.prevent="onSubmitPending"
       >
-        <h3>{{ pending.kind === 'return' ? `${pending.item.title} zurückgeben` : `${pending.item.title} zurückziehen` }}</h3>
+        <h3>{{ pending.kind === 'return' ? t.campaign.pending.returnTitle(pending.item.title) : t.campaign.pending.withdrawTitle(pending.item.title) }}</h3>
         <p class="field">
-          <label for="pending-text">{{ pending.kind === 'return' ? 'Rückmeldung an die Lehrkräfte' : 'Begründung' }}</label>
+          <label for="pending-text">{{ pending.kind === 'return' ? t.campaign.pending.returnNote : t.common.field.reason }}</label>
           <input
             id="pending-text"
             v-model="text"
@@ -801,14 +808,14 @@ function onSubmitPending(): void {
             type="submit"
             :disabled="action.busy.value"
           >
-            {{ pending.kind === 'return' ? 'Zurückgeben' : 'Zurückziehen' }}
+            {{ pending.kind === 'return' ? t.campaign.items.return : t.campaign.items.withdraw }}
           </button>
           <button
             type="button"
             class="ghost"
             @click="pending = null"
           >
-            Abbrechen
+            {{ t.common.cancel }}
           </button>
         </p>
       </form>

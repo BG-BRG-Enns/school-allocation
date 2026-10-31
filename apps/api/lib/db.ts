@@ -1,4 +1,5 @@
 import pg from 'pg'
+import { SQLSTATE, sqlState } from './pg-errors.ts'
 
 /** The unprivileged role the server connects as; created by the migrator. */
 export const RUNTIME_ROLE = 'school_allocation_app'
@@ -86,6 +87,36 @@ export async function checkRuntimeConnection(db: Queryable): Promise<string[]> {
   const { rows: [role] } = await db.query<{ name: string }>('select current_user::text as name')
   if (role?.name !== RUNTIME_ROLE) return [`the server connects as ${role?.name ?? 'an unknown role'}; it must connect as ${RUNTIME_ROLE}`]
   return []
+}
+
+/**
+ * Why the server must not start on this database: a migration of its own
+ * that has not run, or a schema version a newer release raised the schema
+ * to (scripts/migrate.ts, SCHEMA_VERSION). `own` is the release's
+ * migrations and the version they are built for; an empty list means the
+ * database has the schema this release was built for. A newer release's
+ * migrations that keep the version are no reason: they are written so
+ * that older code runs on them.
+ */
+export async function checkSchema(db: Queryable, own: { names: readonly string[], version: number }): Promise<string[]> {
+  let rows: { filename: string, schema_version: number | null }[]
+  try {
+    rows = (await db.query<{ filename: string, schema_version: number | null }>('select filename, schema_version from schema_migrations')).rows
+  } catch (err) {
+    // No bookkeeping yet, or one the migrator of this release has not
+    // brought up to date and granted: its migrations have not run.
+    if ([SQLSTATE.undefinedTable, SQLSTATE.undefinedColumn, SQLSTATE.insufficientPrivilege].some((code) => code === sqlState(err))) {
+      return ['the migrations of this release have not run on the database (apps/api/scripts/migrate.ts)']
+    }
+    throw err
+  }
+  const applied = new Set(rows.map((row) => row.filename))
+  const missing = own.names.filter((name) => !applied.has(name))
+  const version = Math.max(0, ...rows.map((row) => row.schema_version ?? 0))
+  return [
+    ...(missing.length > 0 ? [`${missing.length} migration(s) of this release have not run on the database, the first ${missing[0]} (apps/api/scripts/migrate.ts)`] : []),
+    ...(version > own.version ? [`the database is at schema version ${version}, set by a newer release; this release is built for ${own.version} and does not run on it`] : []),
+  ]
 }
 
 /** user@host:port/database, for log lines: never the password. */

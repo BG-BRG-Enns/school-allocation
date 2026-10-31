@@ -7,6 +7,7 @@ import { ROSTER_CSV_TEMPLATE } from '@school-allocation/school-core'
 import type { FastifyInstance } from 'fastify'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
+import { t } from '../lib/i18n.ts'
 import { importCsvRoster } from '../services/roster-import.ts'
 
 export interface RosterImportsOptions {
@@ -27,7 +28,7 @@ export async function rosterImportsRoutes(app: FastifyInstance, { db, guards }: 
   registerEndpoint(app, endpoints.getAdminRosterCsvTemplate, { ...admin, exposeHeadRoute: false }, (_request, reply) => {
     void reply
       .header('content-type', 'text/csv; charset=utf-8')
-      .header('content-disposition', 'attachment; filename="schulwahl-personen.csv"')
+      .header('content-disposition', `attachment; filename="${t.files.rosterTemplate}"`)
       .send(ROSTER_CSV_TEMPLATE)
   })
 }

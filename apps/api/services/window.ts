@@ -11,6 +11,7 @@ import type { CampaignState } from '@school-allocation/school-core'
 import * as store from '../lib/dao/window.ts'
 import { classTeachersByClass } from '../lib/dao/window.ts'
 import type { Queryable } from '../lib/db.ts'
+import { INTL_LOCALE, t } from '../lib/i18n.ts'
 import { enqueueMail } from '../lib/mail/outbox.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
 import type { StudentChoiceState } from '../lib/models/choices.ts'
@@ -19,8 +20,8 @@ import { SCHOOL_TIME_ZONE } from '../lib/time.ts'
 import { choiceStates, materializePreAssignments } from './choices.ts'
 import { readTemplate, renderTemplate } from './mail-templates.ts'
 
-const whenFormat = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-const dayFormat = new Intl.DateTimeFormat('de-AT', { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+const whenFormat = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+const dayFormat = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
 
 export function formatWhen(iso: string | null): string {
   return iso === null ? '–' : whenFormat.format(new Date(iso))
@@ -70,7 +71,7 @@ export async function notifyClassTeachers(client: Queryable, context: WindowCont
         wahl: campaign.name,
         link: `${context.baseUrl}/wahlen/${campaign.id}/klasse/${encodeURIComponent(className)}`,
         klasse: className,
-        fenster: window === 'first' ? 'Anmeldefenster' : 'Nachfrist',
+        fenster: window === 'first' ? t.labels.window.first : t.labels.window.late,
         liste: missing.map((s) => `- ${s.displayName}`).join('\n'),
       })
       const key = `class_missing:${campaign.id}:${className}:${teacher.personId}:${window}`

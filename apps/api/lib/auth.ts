@@ -18,7 +18,7 @@
 
 import type { PersonKind } from '@school-allocation/school-core'
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import { SESSION_SECONDS, type SessionUser } from '../plugins/session.ts'
+import { SESSION_SECONDS, sessionBound, type SessionUser } from '../plugins/session.ts'
 import { type Caller } from './actor.ts'
 import type { Queryable } from './db.ts'
 import { isRole, type Role } from './roles.ts'
@@ -26,7 +26,7 @@ import { isRole, type Role } from './roles.ts'
 /** The signed-in caller as the cookie has it, or undefined. A session past its lifetime, or without a sign-in time, counts as none. */
 export function currentUser(request: FastifyRequest, now = Date.now()): SessionUser | undefined {
   const user = request.userSession.get('user')
-  if (!user || !withinSeconds(user.issuedAt, SESSION_SECONDS, now)) return undefined
+  if (!user || !withinSeconds(user.issuedAt, SESSION_SECONDS, now) || !sessionBound(request)) return undefined
   return user
 }
 

@@ -7,8 +7,8 @@ Everyone taking part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT
 ## Before you start
 
 - For anything beyond a small fix, open an issue first and describe what you want to change. That avoids work on something that conflicts with the design in [`docs/`](docs/).
-- The invariants in [`AGENTS.md`](AGENTS.md) (Entra ID as the only assumption, the identity as the key, audited roles, reproducible and validated allocations, migrations compatible with the previous release) are not open to trade-offs for convenience.
-- Code, comments and documentation are in English. The user interface is in German.
+- The invariants in [`AGENTS.md`](AGENTS.md) (Entra ID as the only assumption, the identity as the key, audited roles, reproducible and validated allocations, a release only on the schema it was built for) are not open to trade-offs for convenience.
+- Code, comments and documentation are in English. The user interface's words are in the message catalogue, German first (below).
 
 ## Setup
 
@@ -57,6 +57,10 @@ uv run --frozen pytest -q                      # the model against instances wit
 
 A dependency change edits the exact pin in `pyproject.toml` and runs `uv lock`; both files are committed, and Dependabot bumps them together. The image exports the lock to a requirements file at build time and installs it with `pip --require-hashes`, so nothing outside the lock can reach it. CI runs the solver's tests from the same lock (`uv sync --frozen`).
 
+## Words of the interface
+
+Every word the app shows, writes into a workbook or fills into a notice comes from `packages/messages/src/de.ts`. Outside it on purpose: the mail templates, which an organizer edits and the database stores; the names the audit log records for the clock and the server's start (`Zeitsteuerung`, `Systemstart`), which are part of its hashed chain; the CSV roster's format (its example row and the kinds it accepts); and `lang` and `<title>` in `index.html`. A new string goes there, under an English key in the group of its page (Wahl.vue's words are in `campaign`), or in `common` when several pages say the same thing; a value that depends on a number or a name is a function of it. Pages read it as `t.<group>.<key>` from `apps/web/src/lib/i18n.ts`, the API from `apps/api/lib/i18n.ts`, and the browser journeys look elements up by the same entries, so a change of wording is a change of that one file. ESLint refuses bare text in a template.
+
 ## Checks
 
 Run these before pushing. CI runs the same ones on every pull request. The database tests need `TEST_DATABASE_URL`, a superuser connection to a second server, started with `npm run db:test` on port 5433; each test creates and drops its own database there. Not the development server: the tests set the runtime role's password, which is the server's, and would lock the development API out of its database. The tests refuse the server `apps/api/.env` names. Without `TEST_DATABASE_URL` they are skipped locally, and in CI they fail.
@@ -72,6 +76,8 @@ npm test
 npm run build
 ```
 
+A deprecation warning fails the tests and the browser journeys (`--throw-deprecation`); change the call that causes it.
+
 Formatting is enforced by ESLint; there is no separate formatter. `npx eslint . --fix` fixes most style findings.
 
 ## Pull requests
@@ -80,7 +86,8 @@ Formatting is enforced by ESLint; there is no separate formatter. `npx eslint . 
 - Write commit messages and pull request titles in the [Conventional Commits](https://www.conventionalcommits.org/) style, for example `feat(roster): import class groups from Graph` or `fix(api): refuse a ranking outside the window`.
 - Add or update tests for behaviour changes. Changes to completeness, the allocation model or its validator need tests that cover the boundary cases.
 - Explain in the description why the change is needed, not only what it does.
-- A migration works with the previous release's code. Deployments update themselves nightly and roll back automatically; the schema has to carry both.
+- A migration that older code cannot run on (a column dropped or renamed, a constraint the old code would break, a meaning changed) starts with `-- schema-version: N`, one more than the newest before it. An additive one (a table, a column with a default, an index, a foreign key the code already keeps) carries none. No release has to keep working on a newer schema: a release refuses a schema version above the one it was built for, and a failed update stays down until the next release fixes it.
+- A release that ships the fix of a vulnerability in the app (in the code, the base image or a dependency) raises the schema version, with a migration that may hold the `-- schema-version: N` line alone. Add it with the fix, or in the release's pull request when the fix came in as a dependency update. No earlier release then starts on a database it migrated, so a host never goes back behind the fix.
 
 ## Dependencies
 

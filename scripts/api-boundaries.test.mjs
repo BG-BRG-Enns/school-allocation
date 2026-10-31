@@ -52,6 +52,18 @@ test('the scheduler is a timer adapter and browser wrappers use descriptor URLs'
   assert.deepEqual(await violations('apps/web/src/lib/campaigns-api.ts', 'apiRequest(getCampaigns, {})'), [])
 })
 
+test('the message catalogue is pure as school-core is: nothing from outside its src, no clock, no randomness, no environment', async () => {
+  for (const code of [
+    'import { readFileSync } from \'node:fs\'',
+    'import { ref } from \'vue\'',
+    'import { CAMPAIGN_STATES } from \'@school-allocation/school-core\'',
+    'const today = new Date()',
+    'const pick = Math.random()',
+    'const language = process.env.LANG',
+  ]) assert.ok((await violations('packages/messages/src/de.ts', code)).length, code)
+  assert.deepEqual(await violations('packages/messages/src/de.ts', 'const plural = new Intl.PluralRules(\'de\')'), [])
+})
+
 test('endpoint modules import schemas directly from their feature, never the package barrel', async () => {
   assert.ok((await violations('packages/api-contracts/src/campaigns-endpoints.ts', 'import { CampaignSchema } from \'./index.ts\'')).length)
   assert.deepEqual(await violations('packages/api-contracts/src/campaigns-endpoints.ts', 'import { CampaignSchema } from \'./campaigns.ts\''), [])

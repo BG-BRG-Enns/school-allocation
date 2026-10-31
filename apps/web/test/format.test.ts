@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { DEFAULT_PERIODS } from '@school-allocation/school-core'
-import { formatFee, formatSpanOnGrid, instantInSchoolZone, localDateOf, localTimeOf, periodLabel, touchedDates } from '../src/lib/format.ts'
+import { formatFee, formatSpanOnGrid, instantInSchoolZone, localDateOf, localTimeOf, periodLabel, periodsOnGrid, touchedDates } from '../src/lib/format.ts'
 
 test('a session on the grid is labelled by its periods; off the grid, or over two days, the clock times stand', () => {
   const at = (date: string, time: string) => instantInSchoolZone(date, time)
@@ -9,6 +9,9 @@ test('a session on the grid is labelled by its periods; off the grid, or over tw
   assert.equal(periodLabel(DEFAULT_PERIODS, at('2027-06-21', '11:25'), at('2027-06-21', '12:15')), '5. EH')
   assert.equal(periodLabel(DEFAULT_PERIODS, at('2027-06-21', '07:30'), at('2027-06-21', '13:10')), null)
   assert.equal(periodLabel(DEFAULT_PERIODS, at('2027-06-22', '08:30'), at('2027-06-23', '10:15')), null)
+  // The numbers behind the label, which the activity's form reads back.
+  assert.deepEqual(periodsOnGrid(DEFAULT_PERIODS, at('2027-06-21', '08:30'), at('2027-06-21', '10:15')), { from: 2, to: 3 })
+  assert.equal(periodsOnGrid(DEFAULT_PERIODS, at('2027-06-21', '07:30'), at('2027-06-21', '13:10')), null)
   assert.equal(formatSpanOnGrid(DEFAULT_PERIODS, at('2027-06-21', '08:30'), at('2027-06-21', '10:15')), 'Mo., 21.06.2027, 2.–3. EH (08:30 – 10:15)')
   assert.match(formatSpanOnGrid(DEFAULT_PERIODS, at('2027-06-21', '07:30'), at('2027-06-21', '13:10')), /^Mo\., 21\.06\., 07:30 – 13:10$/)
 })

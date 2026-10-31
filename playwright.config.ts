@@ -7,6 +7,7 @@
 
 import { defineConfig, devices } from '@playwright/test'
 import { BASE_PATH } from './e2e/support/base.ts'
+import { INTL_LOCALE } from './e2e/support/messages.ts'
 
 const PORT = Number(process.env.E2E_PORT ?? 3100)
 // The app's address with its base path and a trailing slash, so that the
@@ -26,7 +27,7 @@ export default defineConfig({
   reporter: ci ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL,
-    locale: 'de-AT',
+    locale: INTL_LOCALE,
     timezoneId: 'Europe/Vienna',
     trace: 'retain-on-failure',
     video: 'retain-on-failure',
@@ -42,9 +43,11 @@ export default defineConfig({
   // database the harness creates, and whatever answers on the port before
   // the run is a harness left behind or another process altogether. A
   // busy port fails the run instead. At the end the harness gets SIGTERM,
-  // not the default SIGKILL, so that it drops its database.
+  // not the default SIGKILL, so that it drops its database. A deprecation
+  // in the server throws (--throw-deprecation), so a journey that reaches
+  // deprecated code fails instead of printing a warning past the report.
   webServer: {
-    command: 'npm run build && node e2e/harness/server.ts',
+    command: 'npm run build && node --throw-deprecation e2e/harness/server.ts',
     url: `${baseURL}api/health`,
     reuseExistingServer: false,
     gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },

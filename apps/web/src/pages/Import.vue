@@ -5,11 +5,12 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { commitBatch, discardBatch, loadBatch, type BatchDetail, type StoredEntry } from '../lib/admin-api.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
+import { t } from '../lib/i18n.ts'
 import { BATCH_STATE_LABELS, FIELD_LABELS, KIND_LABELS, PROBLEM_LABELS, SOURCE_LABELS, WARNING_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string }>()
-usePageTitle(() => 'Import')
+usePageTitle(() => t.rosterImport.title)
 
 const batch = ref<BatchDetail | null>(null)
 const loading = useFeedback()
@@ -26,13 +27,13 @@ watch(() => props.id, load)
 async function onCommit(): Promise<void> {
   await decision.run(async () => {
     batch.value = await commitBatch(props.id)
-  }, 'Die Liste gilt jetzt.')
+  }, t.rosterImport.changes.committed)
 }
 
 async function onDiscard(): Promise<void> {
   await decision.run(async () => {
     batch.value = await discardBatch(props.id)
-  }, 'Der Import wurde verworfen.')
+  }, t.rosterImport.changes.discarded)
 }
 
 /** A name a problem's key belongs to, where the batch has the entry; the key itself otherwise. */
@@ -61,10 +62,10 @@ function field(entry: StoredEntry, name: string): string {
 <template>
   <p>
     <RouterLink to="/verwaltung/stammdaten">
-      ← Stammdaten
+      ← {{ t.common.page.roster }}
     </RouterLink>
   </p>
-  <h1>Import</h1>
+  <h1>{{ t.rosterImport.title }}</h1>
   <p
     v-if="loading.error.value"
     role="alert"
@@ -74,18 +75,18 @@ function field(entry: StoredEntry, name: string): string {
   </p>
   <template v-if="batch">
     <dl>
-      <dt>Stand</dt>
+      <dt>{{ t.common.field.state }}</dt>
       <dd><span :class="['badge', `badge-${batch.state}`]">{{ BATCH_STATE_LABELS[batch.state] ?? batch.state }}</span></dd>
-      <dt>Quelle</dt>
+      <dt>{{ t.roster.source }}</dt>
       <dd>{{ SOURCE_LABELS[batch.source] ?? batch.source }}</dd>
-      <dt>Schuljahr</dt>
+      <dt>{{ t.common.field.schoolYear }}</dt>
       <dd>{{ batch.schoolYear }}</dd>
-      <dt>Gelesen</dt>
-      <dd>{{ formatWhen(batch.fetchedAt) }} von {{ batch.triggeredBy }}</dd>
-      <dt>Personen</dt>
+      <dt>{{ t.roster.fetched }}</dt>
+      <dd>{{ t.rosterImport.fetchedBy(formatWhen(batch.fetchedAt), batch.triggeredBy) }}</dd>
+      <dt>{{ t.roster.persons }}</dt>
       <dd>{{ batch.rowCount }}</dd>
       <dt v-if="batch.decidedAt">
-        Entschieden
+        {{ t.rosterImport.decided }}
       </dt>
       <dd v-if="batch.decidedAt">
         {{ formatWhen(batch.decidedAt) }}
@@ -93,15 +94,15 @@ function field(entry: StoredEntry, name: string): string {
     </dl>
 
     <section v-if="batch.problems.length > 0">
-      <h2>Probleme</h2>
-      <p>Die Liste wurde abgelehnt. Beheben Sie die Probleme in der Quelle und importieren Sie noch einmal.</p>
+      <h2>{{ t.rosterImport.problems.title }}</h2>
+      <p>{{ t.rosterImport.problems.rejected }}</p>
       <ul>
         <li
           v-for="(problem, i) in batch.problems"
           :key="i"
         >
           {{ PROBLEM_LABELS[problem.code] ?? problem.code }}<template v-if="problem.line !== undefined">
-            – Zeile {{ problem.line }}
+            – {{ t.rosterImport.problems.line(problem.line) }}
           </template><template v-if="problem.key !== undefined">
             – {{ names.get(problem.key) ?? problem.key }}
           </template>
@@ -110,7 +111,7 @@ function field(entry: StoredEntry, name: string): string {
     </section>
 
     <section v-if="batch.warnings.length > 0">
-      <h2>Hinweise</h2>
+      <h2>{{ t.rosterImport.warnings }}</h2>
       <ul>
         <li
           v-for="(warning, i) in batch.warnings"
@@ -122,9 +123,9 @@ function field(entry: StoredEntry, name: string): string {
     </section>
 
     <section v-if="batch.state !== 'rejected'">
-      <h2>Änderungen gegenüber der aktuellen Liste</h2>
+      <h2>{{ t.rosterImport.changes.title }}</h2>
       <p>
-        {{ batch.summary.added }} neu, {{ batch.summary.removed }} entfernt, {{ batch.summary.changed }} geändert, {{ batch.summary.unchanged }} unverändert.
+        {{ t.rosterImport.changes.summary(batch.summary) }}
       </p>
       <p
         v-if="batch.state === 'pending'"
@@ -135,7 +136,7 @@ function field(entry: StoredEntry, name: string): string {
           :disabled="decision.busy.value"
           @click="onCommit"
         >
-          Übernehmen
+          {{ t.rosterImport.changes.commit }}
         </button>
         <button
           type="button"
@@ -143,7 +144,7 @@ function field(entry: StoredEntry, name: string): string {
           :disabled="decision.busy.value"
           @click="onDiscard"
         >
-          Verwerfen
+          {{ t.rosterImport.changes.discard }}
         </button>
       </p>
       <p
@@ -162,7 +163,7 @@ function field(entry: StoredEntry, name: string): string {
       </p>
 
       <h3 v-if="batch.diff.added.length > 0">
-        Neu
+        {{ t.rosterImport.changes.added }}
       </h3>
       <table
         v-if="batch.diff.added.length > 0"
@@ -171,13 +172,13 @@ function field(entry: StoredEntry, name: string): string {
         <thead>
           <tr>
             <th scope="col">
-              Name
+              {{ t.common.field.name }}
             </th>
             <th scope="col">
-              Art, Klasse
+              {{ t.rosterImport.changes.kindAndClass }}
             </th>
             <th scope="col">
-              E-Mail
+              {{ t.common.field.email }}
             </th>
           </tr>
         </thead>
@@ -194,7 +195,7 @@ function field(entry: StoredEntry, name: string): string {
       </table>
 
       <h3 v-if="batch.diff.removed.length > 0">
-        Entfernt
+        {{ t.rosterImport.changes.removed }}
       </h3>
       <table
         v-if="batch.diff.removed.length > 0"
@@ -203,13 +204,13 @@ function field(entry: StoredEntry, name: string): string {
         <thead>
           <tr>
             <th scope="col">
-              Name
+              {{ t.common.field.name }}
             </th>
             <th scope="col">
-              Art, Klasse
+              {{ t.rosterImport.changes.kindAndClass }}
             </th>
             <th scope="col">
-              E-Mail
+              {{ t.common.field.email }}
             </th>
           </tr>
         </thead>
@@ -226,7 +227,7 @@ function field(entry: StoredEntry, name: string): string {
       </table>
 
       <h3 v-if="batch.diff.changed.length > 0">
-        Geändert
+        {{ t.rosterImport.changes.changed }}
       </h3>
       <table
         v-if="batch.diff.changed.length > 0"
@@ -235,10 +236,10 @@ function field(entry: StoredEntry, name: string): string {
         <thead>
           <tr>
             <th scope="col">
-              Name
+              {{ t.common.field.name }}
             </th>
             <th scope="col">
-              Änderung
+              {{ t.rosterImport.changes.change }}
             </th>
           </tr>
         </thead>

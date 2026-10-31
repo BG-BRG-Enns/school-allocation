@@ -9,11 +9,12 @@ import type { Role } from '@school-allocation/api-contracts'
 import { computed, onMounted, ref } from 'vue'
 import { bindAccount, blockAccount, grantRole, loadAccounts, loadGrants, revokeGrant, searchPersons, unblockAccount, type Account, type Grant, type RosterPerson } from '../lib/admin-api.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
+import { t } from '../lib/i18n.ts'
 import { KIND_LABELS, ROLE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
-usePageTitle(() => 'Konten und Rollen')
+usePageTitle(() => t.common.page.people)
 
 const accounts = ref<Account[]>([])
 const grants = ref<Grant[]>([])
@@ -112,18 +113,13 @@ async function onRevoke(): Promise<void> {
 const actionTitle = computed(() => {
   if (!active.value) return ''
   const name = active.value.account.displayName
-  return {
-    bind: `${name} einer Person zuordnen`,
-    block: `${name} sperren`,
-    unblock: `${name} entsperren`,
-    grant: `${name} eine Rolle erteilen`,
-  }[active.value.action]
+  return t.people.title[active.value.action](name)
 })
 
 function personText(account: Account): string {
   const person = account.person
-  if (!person) return 'Nicht zugeordnet'
-  if (person.kind === null) return 'Nicht in der aktuellen Liste'
+  if (!person) return t.people.accounts.unbound
+  if (person.kind === null) return t.people.accounts.notInRoster
   const kind = KIND_LABELS[person.kind] ?? person.kind
   return person.kind === 'student' && person.className ? `${kind}, ${person.className}` : kind
 }
@@ -131,7 +127,7 @@ function personText(account: Account): string {
 function describePerson(person: RosterPerson): string {
   const kind = KIND_LABELS[person.kind] ?? person.kind
   const where = person.kind === 'student' && person.className ? `, ${person.className}` : ''
-  const now = person.account === null ? '' : ` – derzeit Konto „${person.account}“, das dabei gelöst wird`
+  const now = person.account === null ? '' : ` – ${t.people.currentAccount(person.account)}`
   return `${person.displayName} (${kind}${where}${person.mail ? `, ${person.mail}` : ''})${now}`
 }
 
@@ -139,7 +135,7 @@ const isSelf = (account: Account) => account.id === session.value?.id
 </script>
 
 <template>
-  <h1>Konten und Rollen</h1>
+  <h1>{{ t.common.page.people }}</h1>
   <p
     v-if="loading.error.value"
     role="alert"
@@ -149,12 +145,12 @@ const isSelf = (account: Account) => account.id === session.value?.id
   </p>
 
   <section>
-    <h2>Konten</h2>
+    <h2>{{ t.people.accounts.title }}</h2>
     <form
       class="filters"
       @submit.prevent="load"
     >
-      <label for="account-filter">Name oder E-Mail</label>
+      <label for="account-filter">{{ t.people.accounts.filter }}</label>
       <input
         id="account-filter"
         v-model="q"
@@ -167,17 +163,17 @@ const isSelf = (account: Account) => account.id === session.value?.id
           type="checkbox"
           @change="load"
         >
-        nur ohne Zuordnung
+        {{ t.people.accounts.unboundOnly }}
       </label>
       <button
         type="submit"
         class="ghost"
       >
-        Filtern
+        {{ t.people.accounts.apply }}
       </button>
     </form>
     <p v-if="accounts.length === 0">
-      Keine Konten gefunden.
+      {{ t.people.accounts.none }}
     </p>
     <table
       v-else
@@ -186,22 +182,22 @@ const isSelf = (account: Account) => account.id === session.value?.id
       <thead>
         <tr>
           <th scope="col">
-            Name
+            {{ t.common.field.name }}
           </th>
           <th scope="col">
-            E-Mail
+            {{ t.common.field.email }}
           </th>
           <th scope="col">
-            Letzte Anmeldung
+            {{ t.people.accounts.lastSignIn }}
           </th>
           <th scope="col">
-            Person
+            {{ t.people.accounts.person }}
           </th>
           <th scope="col">
-            Rollen
+            {{ t.people.roles }}
           </th>
           <th scope="col">
-            <span class="visually-hidden">Aktionen</span>
+            <span class="visually-hidden">{{ t.common.field.actions }}</span>
           </th>
         </tr>
       </thead>
@@ -215,7 +211,7 @@ const isSelf = (account: Account) => account.id === session.value?.id
             <span
               v-if="account.blocked"
               class="badge badge-rejected"
-            >gesperrt</span>
+            >{{ t.people.accounts.blocked }}</span>
           </td>
           <td>{{ account.email ?? '–' }}</td>
           <td>{{ formatWhen(account.lastSignInAt) }}</td>
@@ -235,14 +231,14 @@ const isSelf = (account: Account) => account.id === session.value?.id
               class="ghost"
               @click="open(account, 'bind')"
             >
-              Zuordnen
+              {{ t.people.open.bind }}
             </button>
             <button
               type="button"
               class="ghost"
               @click="open(account, 'grant')"
             >
-              Rolle
+              {{ t.people.open.grant }}
             </button>
             <button
               v-if="!account.blocked && !isSelf(account)"
@@ -250,7 +246,7 @@ const isSelf = (account: Account) => account.id === session.value?.id
               class="ghost"
               @click="open(account, 'block')"
             >
-              Sperren
+              {{ t.people.open.block }}
             </button>
             <button
               v-if="account.blocked"
@@ -258,7 +254,7 @@ const isSelf = (account: Account) => account.id === session.value?.id
               class="ghost"
               @click="open(account, 'unblock')"
             >
-              Entsperren
+              {{ t.people.open.unblock }}
             </button>
           </td>
         </tr>
@@ -274,18 +270,18 @@ const isSelf = (account: Account) => account.id === session.value?.id
       <h3>{{ actionTitle }}</h3>
       <template v-if="active.action === 'bind'">
         <p class="field">
-          <label for="person-search">Person der Schule</label>
+          <label for="person-search">{{ t.people.personSearch }}</label>
           <input
             id="person-search"
             v-model="personQuery"
             type="search"
             maxlength="100"
-            placeholder="Name, Klasse oder E-Mail"
+            :placeholder="t.people.personSearchPlaceholder"
             @input="findPersons"
           >
         </p>
         <p v-if="persons.length === 0">
-          Keine Person gefunden.
+          {{ t.people.noPerson }}
         </p>
         <ul
           v-else
@@ -311,7 +307,7 @@ const isSelf = (account: Account) => account.id === session.value?.id
         v-if="active.action === 'grant'"
         class="field"
       >
-        <label for="role">Rolle</label>
+        <label for="role">{{ t.common.field.role }}</label>
         <select
           id="role"
           v-model="role"
@@ -326,7 +322,7 @@ const isSelf = (account: Account) => account.id === session.value?.id
         </select>
       </p>
       <p class="field">
-        <label for="reason">Begründung</label>
+        <label for="reason">{{ t.common.field.reason }}</label>
         <input
           id="reason"
           v-model="reason"
@@ -339,14 +335,14 @@ const isSelf = (account: Account) => account.id === session.value?.id
           type="submit"
           :disabled="action.busy.value || (active.action === 'bind' && chosenPerson === null)"
         >
-          {{ { bind: 'Zuordnen', block: 'Sperren', unblock: 'Entsperren', grant: 'Rolle erteilen' }[active.action] }}
+          {{ t.people.submit[active.action] }}
         </button>
         <button
           type="button"
           class="ghost"
           @click="close"
         >
-          Abbrechen
+          {{ t.common.cancel }}
         </button>
       </p>
       <p
@@ -360,9 +356,9 @@ const isSelf = (account: Account) => account.id === session.value?.id
   </section>
 
   <section>
-    <h2>Rollen</h2>
+    <h2>{{ t.people.roles }}</h2>
     <p v-if="grants.length === 0">
-      Niemand hat eine besondere Rolle.
+      {{ t.people.grants.none }}
     </p>
     <table
       v-else
@@ -371,19 +367,19 @@ const isSelf = (account: Account) => account.id === session.value?.id
       <thead>
         <tr>
           <th scope="col">
-            Name
+            {{ t.common.field.name }}
           </th>
           <th scope="col">
-            Rolle
+            {{ t.common.field.role }}
           </th>
           <th scope="col">
-            Erteilt
+            {{ t.people.grants.granted }}
           </th>
           <th scope="col">
-            Begründung
+            {{ t.common.field.reason }}
           </th>
           <th scope="col">
-            <span class="visually-hidden">Aktionen</span>
+            <span class="visually-hidden">{{ t.common.field.actions }}</span>
           </th>
         </tr>
       </thead>
@@ -394,7 +390,7 @@ const isSelf = (account: Account) => account.id === session.value?.id
         >
           <td>{{ grant.displayName }}</td>
           <td>{{ ROLE_LABELS[grant.role] ?? grant.role }}</td>
-          <td>{{ formatWhen(grant.grantedAt) }} von {{ grant.grantedBy }}</td>
+          <td>{{ t.people.grants.grantedBy(formatWhen(grant.grantedAt), grant.grantedBy) }}</td>
           <td>{{ grant.reason }}</td>
           <td class="row-actions">
             <button
@@ -403,7 +399,7 @@ const isSelf = (account: Account) => account.id === session.value?.id
               :disabled="grant.role === 'school_admin' && grant.userId === session?.id"
               @click="revoking = grant; revokeReason = ''"
             >
-              Entziehen
+              {{ t.people.grants.revoke }}
             </button>
           </td>
         </tr>
@@ -412,12 +408,12 @@ const isSelf = (account: Account) => account.id === session.value?.id
     <form
       v-if="revoking"
       class="panel"
-      :aria-label="`${revoking.displayName}: ${ROLE_LABELS[revoking.role] ?? revoking.role} entziehen`"
+      :aria-label="t.people.grants.revokeTitle(revoking.displayName, ROLE_LABELS[revoking.role] ?? revoking.role)"
       @submit.prevent="onRevoke"
     >
-      <h3>{{ revoking.displayName }}: {{ ROLE_LABELS[revoking.role] ?? revoking.role }} entziehen</h3>
+      <h3>{{ t.people.grants.revokeTitle(revoking.displayName, ROLE_LABELS[revoking.role] ?? revoking.role) }}</h3>
       <p class="field">
-        <label for="revoke-reason">Begründung</label>
+        <label for="revoke-reason">{{ t.common.field.reason }}</label>
         <input
           id="revoke-reason"
           v-model="revokeReason"
@@ -430,14 +426,14 @@ const isSelf = (account: Account) => account.id === session.value?.id
           type="submit"
           :disabled="revoke.busy.value"
         >
-          Entziehen
+          {{ t.people.grants.revoke }}
         </button>
         <button
           type="button"
           class="ghost"
           @click="revoking = null"
         >
-          Abbrechen
+          {{ t.common.cancel }}
         </button>
       </p>
       <p
