@@ -12,15 +12,10 @@
 import { AVAILABILITY_STATUSES, type AvailabilityStatus } from './planning.ts'
 import { parseCsv, type CsvProblem } from './roster-csv.ts'
 import { isAddress } from './roster.ts'
-import { checkRows, SHORT_NAME_MAX } from './teacher-csv.ts'
+import { checkRows, isBlank, own, SHORT_NAME_MAX } from './teacher-csv.ts'
 
 /** The most characters a note has. */
 export const NOTE_MAX = 200
-
-/** A table's own entry for `key`, never one inherited from Object (a cell saying "constructor" is no status). */
-function own<T>(table: Readonly<Record<string, T>>, key: string): T | undefined {
-  return Object.hasOwn(table, key) ? table[key] : undefined
-}
 
 /** A header's spellings, lower case, for the columns that are not days. */
 const ALIASES: Readonly<Record<string, 'email' | 'short_name' | 'note' | 'ignored'>> = {
@@ -191,6 +186,7 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
     return value === undefined || value === '' ? undefined : value
   }
   records.forEach((fields, i) => {
+    if (isBlank(fields)) return
     const line = i + 2
     const email = cell(fields, columns.get('email'))?.toLowerCase()
     const shortName = cell(fields, columns.get('short_name'))

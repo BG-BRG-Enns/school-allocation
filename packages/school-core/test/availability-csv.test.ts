@@ -45,6 +45,9 @@ test('an unknown column, a weekday the registration has twice or not at all, no 
   assert.deepEqual(parseAvailabilityCsv('Name;Leitung\nZwA;N\n', DAYS).fileProblems, [{ code: 'missing_column', column: '2034-07-03' }])
   assert.deepEqual(parseAvailabilityCsv('Longname;Forename\nZwexmhofer;Anna\n', DAYS).fileProblems, [{ code: 'no_header' }])
   assert.deepEqual(parseAvailabilityCsv('Name;MO\n', DAYS).fileProblems, [{ code: 'empty' }])
+  assert.deepEqual(parseAvailabilityCsv('Name;MO\n;\n\n', DAYS).fileProblems, [{ code: 'empty' }])
+  // A blank record, as a spreadsheet leaves it, is skipped with the line numbers kept.
+  assert.deepEqual(parseAvailabilityCsv('Name;MO\n;\nZwA;N\n', DAYS).rows, [{ line: 3, shortName: 'ZwA', days: { '2034-07-03': 'unavailable' } }])
   // The weekday and its date: one would silently win over the other.
   assert.deepEqual(parseAvailabilityCsv('email;MO;2034-07-03\nanna.zwexmhofer@schule.example.org;N;\n', DAYS).fileProblems, [{ code: 'duplicate_column', column: '2034-07-03' }])
   // Headers and cells that are Object's own words are nothing the tables know.

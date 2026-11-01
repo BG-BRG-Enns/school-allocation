@@ -68,7 +68,11 @@ export async function availabilityTemplate(db: Database, rawId: string): Promise
   const addressOf = new Map((await detailStore.rosterTeacherAddresses(db, CURRENT_BATCH_ID)).map((teacher) => [teacher.personId, teacher.address]))
   for (const teacher of await detailStore.rosterTeacherAddresses(db, campaignRosterBatch(campaign))) addressOf.set(teacher.personId, teacher.address)
   const limited = new Map((await planningStore.limitedDays(db, campaign.projectDays, teachers.map((teacher) => teacher.personId))).map((d) => [`${d.personId}|${d.date}`, d.status]))
-  const field = (value: string): string => (/[";\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value)
+  // RFC 4180 quoting; a note a spreadsheet would read as a formula gets an apostrophe first, so it stays text when opened.
+  const field = (value: string): string => {
+    const text = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+    return /[";\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+  }
   const lines = [['email', 'short_name', ...campaign.projectDays, 'note'].join(';')]
   for (const teacher of teachers) {
     const cells = [addressOf.get(teacher.personId) ?? '', teacher.shortName ?? '', ...campaign.projectDays.map((date) => AVAILABILITY_CSV_VALUES[limited.get(`${teacher.personId}|${date}`) ?? 'available']), teacher.note ?? '']
