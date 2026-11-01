@@ -13,7 +13,7 @@ Innerhalb dieser Bedingungen verfolgt die Berechnung ihre Ziele, in dieser Reihe
 
 Reichen die Wünsche einer Person nicht, für die Minuten oder eine Regel, bekommt sie einen **Restplatz**: einen freien Platz in einer Aktivität ohne Kosten. Eine Aktivität mit „Fällt aus, wenn zu wenige kommen“ kann ausfallen, wenn sich zu wenige für ihre Mindestzahl finden. Wünsche aus der Nachfrist kommen in einer zweiten **Runde** dran, nach allen anderen.
 
-Vor der ersten Berechnung brauchen alle Schulstufen der Anmeldung ihre Mindestminuten je Tag ([Einstellungen](./einstellungen)).
+Vor der ersten Berechnung müssen für alle Schulstufen der Anmeldung die Mindestminuten je Tag eingetragen sein ([Einstellungen](./einstellungen)).
 
 ## Berechnen
 

@@ -30,6 +30,6 @@ SchulWahl teilt die Schüler\*innen einer Schule auf die Aktivitäten ihrer Proj
 - Wer Anmeldungen **organisiert**, liest das Handbuch [Organisation](/organisation/).
 - **Lehrkräfte** und Klassenvorstände lesen das Handbuch [Lehrkräfte](/lehrkraefte/).
 
-Schüler\*innen brauchen kein Handbuch: Ihre Seiten erklären sich selbst. Was sie sehen, zeigt das Handbuch der Organisation. In SchulWahl öffnet der Link **Hilfe** oben auf jeder Seite das Handbuch deiner Rolle.
+Für Schüler\*innen gibt es kein Handbuch: Ihre Seiten erklären sich selbst. Was sie sehen, zeigt das Handbuch der Organisation. In SchulWahl öffnet der Link **Hilfe** oben auf jeder Seite das Handbuch deiner Rolle.
 
 Den Betrieb, also den Server, die Einrichtung in Microsoft Entra und die Updates, beschreibt die [Betriebsanleitung](https://github.com/BG-BRG-Enns/school-allocation/blob/main/deploy/README.md). Diese Handbücher beschreiben die zuletzt veröffentlichte Version von SchulWahl.

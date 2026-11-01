@@ -1,6 +1,6 @@
 # Lehrkräfte
 
-Als Lehrkraft reichst du Aktivitäten für die Projektwoche ein und siehst nach der Einteilung, wer bei dir ist. Als Klassenvorstand begleitest du dazu deine Klasse. Eine Rolle brauchst du dafür nicht: Die Klassenlisten der Schule sagen SchulWahl, dass du Lehrkraft bist.
+Als Lehrkraft reichst du Aktivitäten für die Projektwoche ein und siehst nach der Einteilung, wer bei dir ist. Als Klassenvorstand begleitest du dazu deine Klasse. Eine Rolle ist dafür nicht nötig: Die Klassenlisten der Schule sagen SchulWahl, dass du Lehrkraft bist.
 
 ## Einloggen
 

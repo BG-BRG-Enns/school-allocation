@@ -29,7 +29,7 @@ Eine Anmeldung hat höchstens 20 Regeln. Klassenaktivitäten zählen mit: Fährt
 
 ## Was die Regeln bewirken
 
-- **Plätze und Bedarf** zeigt je Regel und Schulstufe, wie viel die Schüler\*innen nach ihren Klassenaktivitäten noch brauchen und wie viel die Plätze der Kategorie höchstens bringen. Reicht das nicht, ist die Regel markiert; dann fehlen Aktivitäten der Kategorie.
+- **Plätze und Bedarf** zeigt je Regel und Schulstufe, wie viel den Schüler\*innen nach ihren Klassenaktivitäten noch fehlt und wie viel die Plätze der Kategorie höchstens bringen. Reicht das nicht, ist die Regel markiert; dann fehlen Aktivitäten der Kategorie.
 - Bei den **Wünschen** sehen die Schüler\*innen die Regeln und wie weit ihre Wünsche reichen. Vollständig sind die Wünsche erst, wenn sie jede Regel erreichen, so weit der Katalog es zulässt. Lassen die Wünsche je Zeitblock nicht für jede Regel Platz, reicht es, wenn kein anderer Wunsch eine Regel näher brächte, ohne eine andere zu verfehlen. Die Seite zeigt dann „mehr geht neben den anderen Regeln nicht“.
 - Die **Zuteilung** erfüllt die Regeln nach den Mindestminuten und vor den Wünschen ([Zuteilung](./zuteilung)). Eine Regel ist kein Muss: Wo es nicht geht, zeigt die Berechnung, wem sie fehlt. Reichen die Wünsche einer Person nicht, bekommt sie für eine Regel auch einen Restplatz ohne Kosten.
 - **Nach der Veröffentlichung** lehnt der Tausch einen Wechsel ab, nach dem eine Regel nicht mehr erfüllt wäre oder ihr noch mehr fehlte. Der Klassenvorstand teilt ein, wem eine Regel fehlt. Du kannst eine Regel beim Ändern von Hand übergehen ([Nach der Veröffentlichung](./nach-der-veroeffentlichung)).

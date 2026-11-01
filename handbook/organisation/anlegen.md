@@ -26,9 +26,9 @@ Die Tabelle zeigt jede Aktivität mit Lehrkräften, Terminen, Plätzen, Kosten u
 
 ## Plätze und Bedarf
 
-![Plätze und Bedarf: je Projekttag und Schulstufe, wie viele Schüler\*innen einen Platz brauchen, das Ziel und wie viele die Aktivitäten anbieten](/bilder/de/bedarf.png)
+![Plätze und Bedarf: je Projekttag und Schulstufe, wie viele Schüler\*innen noch einen Platz suchen, das Ziel und wie viele die Aktivitäten anbieten](/bilder/de/bedarf.png)
 
-Je Projekttag und Schulstufe steht hier, wie viele Schüler\*innen einen Platz brauchen, das **Ziel** und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Wer schon mit der ganzen Klasse in einer Klassenaktivität ist, zählt nicht mit. Das Ziel liegt um die **Plätze über dem Bedarf** darüber, 20 %, wenn du in den [Einstellungen](./einstellungen) nichts anderes einträgst: So haben die Wünsche Platz. Eine Schulstufe unter dem Ziel ist markiert; dort fehlen noch Aktivitäten. Die Lehrkräfte sehen diese Tabelle auch, solange Angebote gesammelt werden.
+Je Projekttag und Schulstufe steht hier, wie viele Schüler\*innen noch einen Platz suchen, das **Ziel** und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Wer schon mit der ganzen Klasse in einer Klassenaktivität ist, zählt nicht mit. Das Ziel liegt um die **Plätze über dem Bedarf** darüber, 20 %, wenn du in den [Einstellungen](./einstellungen) nichts anderes einträgst: So haben die Wünsche Platz. Eine Schulstufe unter dem Ziel ist markiert; dort fehlen noch Aktivitäten. Die Lehrkräfte sehen diese Tabelle auch, solange Angebote gesammelt werden.
 
 ## Lehrkräfte je Tag
 

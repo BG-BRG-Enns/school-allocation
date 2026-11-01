@@ -1,6 +1,6 @@
 # Konten und Rollen
 
-Ein **Konto** entsteht, wenn sich jemand zum ersten Mal mit seinem Microsoft-Konto der Schule einloggt. Eine **Person** ist ein Eintrag in den [Klassenlisten](./klassenlisten). SchulWahl ordnet jedes Konto einmal einer Person zu und erkennt es danach immer wieder, auch wenn sich Name oder Adresse ändern. Eine **Rolle** gibt einem Konto besondere Rechte. Wer Schüler\*in oder Lehrkraft ist, sagen die Klassenlisten; dafür braucht es keine Rolle.
+Ein **Konto** entsteht, wenn sich jemand zum ersten Mal mit seinem Microsoft-Konto der Schule einloggt. Eine **Person** ist ein Eintrag in den [Klassenlisten](./klassenlisten). SchulWahl ordnet jedes Konto einmal einer Person zu und erkennt es danach immer wieder, auch wenn sich Name oder Adresse ändern. Eine **Rolle** gibt einem Konto besondere Rechte. Wer Schüler\*in oder Lehrkraft ist, sagen die Klassenlisten; eine Rolle ist dafür nicht nötig.
 
 ## Konten
 

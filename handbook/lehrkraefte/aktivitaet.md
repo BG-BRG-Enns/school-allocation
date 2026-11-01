@@ -18,14 +18,14 @@ Ist eine der Lehrkräfte an einem Tag der Termine nicht verfügbar oder nur, wen
 
 Ein Termin liegt in den Einheiten der Schule: Wähle den **Tag**, **ab Einheit** und die **Anzahl Einheiten**; SchulWahl zeigt die Uhrzeit dazu. Für einen Ausflug oder anderes außerhalb des Stundenrasters wählst du bei **Angabe in** die **Uhrzeit** und gibst Beginn und Ende an.
 
-**Minuten am** jedem Projekttag sind die Minuten, die der Termin den Schüler\*innen an diesem Tag anrechnet. Anreise und Pausen zählen nicht. Die angerechneten Minuten füllen die Mindestminuten, die Schüler\*innen je Tag brauchen. Mit **Termin hinzufügen** bekommt eine Aktivität mehrere Termine, etwa an zwei Tagen.
+**Minuten am** jedem Projekttag sind die Minuten, die der Termin den Schüler\*innen an diesem Tag anrechnet. Anreise und Pausen zählen nicht. Die angerechneten Minuten füllen die Mindestminuten, die für Schüler\*innen je Tag gelten. Mit **Termin hinzufügen** bekommt eine Aktivität mehrere Termine, etwa an zwei Tagen.
 
 ## Teilnahme
 
 ![Die Teilnahme: ganze Klassen, Plätze, Mindestzahl, ob die Aktivität ausfallen darf, für welche Schulstufen und Klassen sie angeboten wird, darunter die Kosten](/bilder/de/aktivitaet-teilnahme.png)
 
 - **Plätze**: wie viele Schüler\*innen höchstens teilnehmen.
-- **Mindestzahl**: wie viele es mindestens braucht.
+- **Mindestzahl**: unter wie vielen Teilnehmer\*innen die Aktivität nicht stattfindet.
 - **Fällt aus, wenn zu wenige kommen**: Mit diesem Häkchen darf die Aktivität ausfallen, wenn sich zu wenige für die Mindestzahl finden. Ohne das Häkchen findet sie statt, und die Zuteilung muss die Mindestzahl erreichen.
 - **Angeboten für Schulstufen** und **für Klassen**: Ohne Auswahl ist die Aktivität für alle.
 
@@ -54,6 +54,6 @@ Gibt die Organisation deine Aktivität zurück, ist sie wieder ein Entwurf, und 
 
 ## Plätze und Bedarf
 
-![Plätze und Bedarf: je Projekttag und Schulstufe, wie viele Schüler\*innen einen Platz brauchen, das Ziel und wie viele angeboten sind](/bilder/de/bedarf.png)
+![Plätze und Bedarf: je Projekttag und Schulstufe, wie viele Schüler\*innen noch einen Platz suchen, das Ziel und wie viele angeboten sind](/bilder/de/bedarf.png)
 
-Solange Angebote gesammelt werden, zeigt die Seite der Anmeldung je Projekttag und Schulstufe, wie viele Schüler\*innen einen Platz brauchen, das **Ziel** und wie viele Plätze die eingereichten und genehmigten Aktivitäten anbieten. Das Ziel liegt um einen Anteil über dem Bedarf, den die Organisation festlegt, meist 20 %: So haben die Wünsche Platz. Eine Schulstufe unter dem Ziel ist markiert; dort hilft eine weitere Aktivität am meisten.
+Solange Angebote gesammelt werden, zeigt die Seite der Anmeldung je Projekttag und Schulstufe, wie viele Schüler\*innen noch einen Platz suchen, das **Ziel** und wie viele Plätze die eingereichten und genehmigten Aktivitäten anbieten. Das Ziel liegt um einen Anteil über dem Bedarf, den die Organisation festlegt, meist 20 %: So haben die Wünsche Platz. Eine Schulstufe unter dem Ziel ist markiert; dort hilft eine weitere Aktivität am meisten.

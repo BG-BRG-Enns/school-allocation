@@ -5,7 +5,7 @@ Solange bei einer Anmeldung **Angebote gesammelt** werden, trägst du ein, an we
 Für jeden Projekttag wählst du:
 
 - **verfügbar**: Das gilt, solange du nichts einträgst.
-- **nicht verfügbar**: etwa an einem freien Tag oder wenn du an diesem Tag anderswo gebraucht wirst.
+- **nicht verfügbar**: etwa an einem freien Tag oder wenn du an diesem Tag anderswo eingeteilt bist.
 - **nur wenn nötig**: Du bist da, wenn es ohne dich nicht geht.
 
 SchulWahl speichert deine Wahl sofort. Einen Grund gibst du nicht an.
