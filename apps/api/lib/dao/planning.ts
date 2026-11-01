@@ -46,8 +46,8 @@ export async function campaignsTakingProposals(db: Queryable): Promise<{ id: str
  * one of `itemIds` names, by name: the campaign's roster's, else the
  * current roster's, where an organizer added a teacher after the freeze.
  */
-export async function planningTeachers(db: Queryable, campaignId: string, itemIds: readonly string[]): Promise<{ personId: string, displayName: string }[]> {
-  const { rows } = await db.query<{ person_id: string, display_name: string }>(
+export async function planningTeachers(db: Queryable, campaignId: string, itemIds: readonly string[]): Promise<{ personId: string, displayName: string, shortName: string | null, note: string | null }[]> {
+  const { rows } = await db.query<{ person_id: string, display_name: string, short_name: string | null, note: string | null }>(
     `with batch as (select ${CAMPAIGN_BATCH_ID} as id),
      named as (
        select e.person_id from roster_entry e, batch where e.batch_id = batch.id and e.kind = 'teacher' and e.person_id is not null
@@ -56,9 +56,10 @@ export async function planningTeachers(db: Queryable, campaignId: string, itemId
      )
      select n.person_id,
             coalesce((select e.display_name from roster_entry e, batch where e.batch_id = batch.id and e.person_id = n.person_id),
-                     (select e.display_name from roster_entry e where e.batch_id = ${CURRENT_BATCH_ID} and e.person_id = n.person_id), '?') as display_name
-       from named n order by 2, 1`,
+                     (select e.display_name from roster_entry e where e.batch_id = ${CURRENT_BATCH_ID} and e.person_id = n.person_id), '?') as display_name,
+            d.short_name, d.note
+       from named n left join teacher_detail d on d.person_id = n.person_id order by 2, 1`,
     [campaignId, itemIds],
   )
-  return rows.map((row) => ({ personId: row.person_id, displayName: row.display_name }))
+  return rows.map((row) => ({ personId: row.person_id, displayName: row.display_name, shortName: row.short_name, note: row.note }))
 }

@@ -65,6 +65,17 @@ export {
   type TeacherCsvRow,
 } from './teacher-csv.ts'
 
+export {
+  AVAILABILITY_CSV_PROBLEM_CODES,
+  AVAILABILITY_CSV_VALUES,
+  NOTE_MAX,
+  parseAvailabilityCsv,
+  type AvailabilityCsvProblem,
+  type AvailabilityCsvProblemCode,
+  type AvailabilityCsvResult,
+  type AvailabilityCsvRow,
+} from './availability-csv.ts'
+
 export { SCHOOL_YEAR, isSchoolYear, retentionEndsAt, schoolYearOf, yearsOf } from './school-year.ts'
 
 export {

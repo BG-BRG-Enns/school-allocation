@@ -173,6 +173,16 @@ export const de = {
       teacher_unknown: 'Keine Lehrkraft der Klassenlisten mit dieser Adresse',
       class_unknown: 'Diese Klasse gibt es in den Klassenlisten nicht',
     },
+    /** Why a row of an availability list is not applied (api-contracts AVAILABILITY_IMPORT_PROBLEM_CODES). */
+    availabilityImportProblem: {
+      key_missing: 'Weder E-Mail-Adresse noch Kürzel',
+      email_invalid: 'Keine E-Mail-Adresse',
+      short_name_too_long: 'Kürzel länger als 8 Zeichen',
+      status_invalid: 'Weder leer noch N noch F',
+      note_too_long: 'Anmerkung länger als 200 Zeichen',
+      teacher_unknown: 'Keine Lehrkraft dieser Anmeldung mit dieser Adresse oder diesem Kürzel',
+      key_conflict: 'Adresse und Kürzel gehören zu zwei Lehrkräften',
+    },
     /** What is wrong with a CSV file as a whole (school-core CSV_PROBLEM_CODES). */
     csvFileProblem: {
       no_header: 'Keine Kopfzeile mit den erwarteten Spalten',
@@ -182,6 +192,8 @@ export const de = {
       too_many_rows: 'Zu viele Zeilen',
       malformed_quote: 'Ein Anführungszeichen schließt nicht',
       empty: 'Die Datei hat keine Zeilen',
+      unknown_column: 'Eine Spalte, die der Import nicht kennt',
+      day_ambiguous: 'Diesen Wochentag gibt es in der Anmeldung zweimal; bitte das Datum als Spaltenname',
     },
     rosterProblem: {
       empty_roster: 'Die Liste enthält niemanden',
@@ -488,6 +500,7 @@ export const de = {
     class_unknown: 'Diese Klasse gibt es in den Klassenlisten nicht.',
     teacher_unknown: 'Eine Lehrkraft steht nicht in den Klassenlisten.',
     teacher_list_invalid: 'Die Liste lässt sich so nicht übernehmen; die Zeilen mit Problemen stehen in der Prüfung.',
+    availability_import_invalid: 'Die Liste lässt sich so nicht übernehmen; die Zeilen mit Problemen stehen in der Prüfung.',
     graph_not_authorized: 'Für die Gruppensuche musst du dich bei Microsoft einloggen.',
     graph_forbidden: 'Microsoft Graph verweigert das Lesen der Gruppen. Fehlt die Berechtigung oder die Zustimmung der IT?',
     graph_failed: 'Microsoft Graph hat nicht geantwortet. Bitte später noch einmal versuchen.',
@@ -784,6 +797,24 @@ export const de = {
     statusOf: (name: string, day: string) => `Verfügbarkeit von ${name} am ${day}`,
     saved: 'Verfügbarkeit gespeichert.',
     export: 'Lehrkräfte je Tag als Excel',
+    /** The import of an availability list on the teachers-by-day page. */
+    csv: {
+      title: 'Verfügbarkeit aus einer CSV-Datei',
+      intro: 'Eine Zeile je Lehrkraft, benannt mit der E-Mail-Adresse oder dem Kürzel, und eine Spalte je Projekttag, mit dem Datum oder dem Wochentag als Namen (MO, DI, MI): leer heißt verfügbar, N nicht verfügbar, F nur wenn nötig. Eine Spalte „Anmerkung“ wird zur Notiz, eine Spalte „Leitung“ übergangen; jede andere Spalte ist ein Fehler, damit kein Tag unbemerkt verloren geht. Übernommen wird, was in der Datei steht; Lehrkräfte und Tage, die nicht darin stehen, bleiben.',
+      template: 'Vorlage mit dem Stand von heute',
+      file: 'Datei',
+      paste: 'oder den Inhalt hier einfügen',
+      check: 'Prüfen',
+      apply: 'Übernehmen',
+      ignored: (columns: string) => `Nicht gelesen: ${columns}`,
+      problems: 'Diese Zeilen werden nicht übernommen:',
+      fileProblems: 'Die Datei lässt sich nicht lesen:',
+      line: (line: number) => `Zeile ${line}`,
+      nothing: 'Die Datei ändert nichts.',
+      noteHead: 'Notiz',
+      none: '–',
+      applied: (days: number, notes: number) => `Übernommen: ${days} Tage geändert, ${notes} Notizen.`,
+    },
   },
 
   /** Wuensche.vue: a student's wishes, or an organizer's entry on a student's behalf. */
@@ -1515,6 +1546,7 @@ export const de = {
     planning: (schoolYear: string) => `lehrkraefte-${schoolYear}.xlsx`,
     rosterTemplate: 'schulwahl-klassenlisten.csv',
     teacherListTemplate: 'schulwahl-lehrkraefte.csv',
+    availabilityTemplate: 'schulwahl-verfuegbarkeit.csv',
   },
 
   /**

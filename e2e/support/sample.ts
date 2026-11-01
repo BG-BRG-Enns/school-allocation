@@ -23,6 +23,8 @@ const de = {
   /** The school's category the project week's rule asks for. */
   sport: 'Sport',
   teachersGroup: 'Lehrkräfte',
+  /** The remark the organizer's availability list carries for Carla. */
+  reserveOnly: 'Nur Reserve',
   reason: {
     otherAccount: 'Anderes Konto als in der Liste',
     organizes: 'Organisiert die Projektwoche',
@@ -48,6 +50,7 @@ const en: typeof de = {
   chess: 'Chess',
   sport: 'Sport',
   teachersGroup: 'Teachers',
+  reserveOnly: 'Reserve only',
   reason: {
     otherAccount: 'Signs in with another account than the list has',
     organizes: 'Organises the project week',

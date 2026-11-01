@@ -79,7 +79,7 @@ export async function campaignAvailability(db: Database, campaign: Campaign, cal
 type PlannedItem = PlanningResponse['teachers'][number]['days'][number]['leads'][number]
 
 /** The activities the planning counts: those that may still take place. One the published run cancelled is nobody's work, though it stays approved in the catalogue. */
-async function plannedItems(client: Queryable, campaign: Campaign): Promise<Item[]> {
+export async function plannedItems(client: Queryable, campaign: Campaign): Promise<Item[]> {
   const cancelled = new Set((await readPublishedRun(client, campaign.id))?.cancelledItemIds ?? [])
   return (await listCampaignItems(client, campaign.id)).filter((item) => mayTakePlace(item.state, campaign.state) && !cancelled.has(item.id))
 }

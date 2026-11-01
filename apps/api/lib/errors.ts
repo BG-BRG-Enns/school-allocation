@@ -1,5 +1,6 @@
 import type { CatalogueProblem, MoveProblemCode, PeriodProblemCode, RankingProblem, RuleProblem } from '@school-allocation/school-core'
 import type { TeacherListProblem } from '@school-allocation/api-contracts/settings'
+import type { AvailabilityImportProblem } from '@school-allocation/api-contracts/planning'
 import type { TemplateProblem } from './models/mail-templates.ts'
 
 /** Stable refusal codes shared by application operations. HTTP status mapping belongs to the adapter. */
@@ -70,6 +71,16 @@ export class TeacherListInvalid extends Error {
   readonly problems: TeacherListProblem[]
   constructor(problems: TeacherListProblem[]) {
     super('teacher_list_invalid')
+    this.problems = problems
+  }
+}
+
+/** The availability list as uploaded cannot be applied; the problems say which rows. */
+export class AvailabilityImportInvalid extends Error {
+  override name = 'AvailabilityImportInvalid'
+  readonly problems: AvailabilityImportProblem[]
+  constructor(problems: AvailabilityImportProblem[]) {
+    super('availability_import_invalid')
     this.problems = problems
   }
 }

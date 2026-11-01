@@ -83,3 +83,11 @@ export async function rosterTeacherAddresses(db: Queryable): Promise<RosterTeach
   )
   return rows.map((row) => ({ personId: row.person_id, displayName: row.display_name, address: row.address, shortName: row.short_name }))
 }
+
+/** The persons holding each of the abbreviations given (lower case), with the abbreviation as stored. */
+export async function findByShortName(db: Queryable, shortNames: readonly string[]): Promise<Map<string, { personId: string, shortName: string }>> {
+  const { rows } = await db.query<{ short_name: string, person_id: string }>(
+    'select short_name, person_id from teacher_detail where lower(short_name) = any($1::text[])', [shortNames],
+  )
+  return new Map(rows.map((row) => [row.short_name.toLowerCase(), { personId: row.person_id, shortName: row.short_name }]))
+}

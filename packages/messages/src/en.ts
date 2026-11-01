@@ -170,6 +170,16 @@ export const en: Messages = {
       teacher_unknown: 'No teacher of the class lists has this address',
       class_unknown: 'This class is not in the class lists',
     },
+    /** Why a row of an availability list is not applied (api-contracts AVAILABILITY_IMPORT_PROBLEM_CODES). */
+    availabilityImportProblem: {
+      key_missing: 'Neither an e-mail address nor an abbreviation',
+      email_invalid: 'Not an e-mail address',
+      short_name_too_long: 'Abbreviation longer than 8 characters',
+      status_invalid: 'Neither empty nor N nor F',
+      note_too_long: 'Note longer than 200 characters',
+      teacher_unknown: 'No teacher of this registration has this address or abbreviation',
+      key_conflict: 'The address and the abbreviation belong to two teachers',
+    },
     /** What is wrong with a CSV file as a whole (school-core CSV_PROBLEM_CODES). */
     csvFileProblem: {
       no_header: 'No header line with the expected columns',
@@ -179,6 +189,8 @@ export const en: Messages = {
       too_many_rows: 'Too many rows',
       malformed_quote: 'A quote does not close',
       empty: 'The file has no rows',
+      unknown_column: 'A column the import does not know',
+      day_ambiguous: 'The registration has this weekday twice; please name the column by its date',
     },
     rosterProblem: {
       empty_roster: 'The list contains no one',
@@ -485,6 +497,7 @@ export const en: Messages = {
     class_unknown: 'This class is not in the class lists.',
     teacher_unknown: 'A teacher is not in the class lists.',
     teacher_list_invalid: 'The list cannot be applied as it is; the rows with problems are in the check.',
+    availability_import_invalid: 'The list cannot be applied as it is; the rows with problems are in the check.',
     graph_not_authorized: 'You need to sign in to Microsoft to search for groups.',
     graph_forbidden: 'Microsoft Graph refuses to read the groups. Is permission or IT consent missing?',
     graph_failed: 'Microsoft Graph did not respond. Please try again later.',
@@ -778,6 +791,24 @@ export const en: Messages = {
     statusOf: (name: string, day: string) => `Availability of ${name} on ${day}`,
     saved: 'Availability saved.',
     export: 'Teachers by day as Excel',
+    /** The import of an availability list on the teachers-by-day page. */
+    csv: {
+      title: 'Availability from a CSV file',
+      intro: 'One row per teacher, named by e-mail address or abbreviation, and one column per project day, headed by the date or the weekday (MO, DI, MI or Mon, Tue, Wed): empty means available, N not available, F only if necessary. A column “Anmerkung” or “note” becomes the note, a column “Leitung” is skipped; any other column is an error, so that no day is lost unnoticed. What the file says is applied; teachers and days not in it stay as they are.',
+      template: 'Template as of today',
+      file: 'File',
+      paste: 'or paste the content here',
+      check: 'Check',
+      apply: 'Apply',
+      ignored: (columns: string) => `Not read: ${columns}`,
+      problems: 'These rows are not applied:',
+      fileProblems: 'The file cannot be read:',
+      line: (line: number) => `Line ${line}`,
+      nothing: 'The file changes nothing.',
+      noteHead: 'Note',
+      none: '–',
+      applied: (days: number, notes: number) => `Applied: ${days} days changed, ${notes} notes.`,
+    },
   },
 
   /** Wuensche.vue: a student's wishes, or an organizer's entry on a student's behalf. */
@@ -1497,6 +1528,7 @@ export const en: Messages = {
     planning: (schoolYear: string) => `teachers-${schoolYear}.xlsx`,
     rosterTemplate: 'schulwahl-class-lists.csv',
     teacherListTemplate: 'schulwahl-teachers.csv',
+    availabilityTemplate: 'schulwahl-availability.csv',
   },
 
   /**

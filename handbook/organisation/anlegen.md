@@ -38,6 +38,10 @@ Je Projekttag und Schulstufe steht hier, wie viele Schüler\*innen noch einen Pl
 
 Ihre Verfügbarkeit tragen die Lehrkräfte selbst ein, solange Angebote gesammelt werden ([Verfügbarkeit](/lehrkraefte/verfuegbarkeit)). Hier änderst du sie für jede Lehrkraft, bis die Anmeldung abgeschlossen ist; jede Änderung wird festgehalten. **Lehrkräfte je Tag als Excel** liefert die Übersicht als Tabelle ([Excel-Dateien](./excel)).
 
+![Verfügbarkeit aus einer CSV-Datei: die eingefügte Liste, darunter die Prüfung mit den Tagen je Lehrkraft, bisher und neu, und dem Knopf Übernehmen](/bilder/de/verfuegbarkeit-import.png)
+
+Hat die Schule die Verfügbarkeit schon in einer Liste, lädst du sie unter **Verfügbarkeit aus einer CSV-Datei** hoch: eine Zeile je Lehrkraft, benannt mit der E-Mail-Adresse oder dem Kürzel ([Klassenvorstände](/verwaltung/klassenvorstaende)), und eine Spalte je Projekttag, mit dem Datum oder dem Wochentag als Namen (`MO`, `DI`, `MI`). Leer heißt verfügbar, `N` nicht verfügbar, `F` nur wenn nötig. Eine Spalte `Anmerkung` wird zur Notiz, die neben dem Namen steht; eine Spalte `Leitung` wird übergangen; jede andere Spalte lehnt der Import ab, damit kein Tag unbemerkt verloren geht. Die **Vorlage mit dem Stand von heute** enthält alle Lehrkräfte mit Adresse, Kürzel, Tagen und Notiz. **Prüfen** zeigt je Lehrkraft und Tag bisher und neu; erst **Übernehmen** schreibt, für alle in der Datei auf einmal und als ein Eintrag im Protokoll. Lehrkräfte und Tage, die nicht in der Datei stehen, bleiben, wie sie sind.
+
 ## Den Katalog veröffentlichen
 
 **Katalog veröffentlichen** schließt die Einreichung. Die genehmigten Aktivitäten bekommen ihre Nummern und bilden den Katalog, den ab jetzt alle sehen, auch die Schüler\*innen. Bezeichnung, Schuljahr und Projekttage stehen ab jetzt fest.

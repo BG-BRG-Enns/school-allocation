@@ -14,4 +14,4 @@ SchulWahl saves your choice at once. You give no reason.
 
 When someone names you as a teacher of an activity, the form shows on which of its days you are unavailable or available only if needed ([Proposing an activity](./aktivitaet)). It can be submitted all the same; the organisation decides.
 
-Once activities are no longer being collected, the days leave your list. If something changes after that, tell the organisation: it changes the availability until the registration is closed.
+Once activities are no longer being collected, the days leave your list. If something changes after that, tell the organisation: it changes the availability until the registration is closed. If the school has everyone's availability in a list, the organisation can also read it in at once; what you entered yourself is overwritten by it.
