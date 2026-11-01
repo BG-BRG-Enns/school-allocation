@@ -152,8 +152,9 @@ export interface Scenario {
   }
   /** The administrator: Anna, whose address is in BOOTSTRAP_ADMINS. */
   admin: string
-  /** The teacher granted the organizer role. */
+  /** The teacher granted the organizer role, and the reason the administrator gives. */
   organizer: string
+  organizerReason: string
   classes: ScenarioClass[]
   /** 8A and 8B: in the tenant until they leave in May, never labelled, so never in the roster. */
   leavers: ScenarioClass[]
@@ -339,6 +340,7 @@ export function scenario(seed = SCENARIO_SEED): Scenario {
     },
     admin: ANNA.oid,
     organizer,
+    organizerReason: 'Organisation der Projekttage',
     classes,
     leavers,
     teachers,
