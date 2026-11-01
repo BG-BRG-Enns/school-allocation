@@ -155,7 +155,7 @@ export type DemandResponse = Static<typeof DemandResponse>
 export const RosterClassesResponse = StrictObject({ classes: Type.Array(StrictObject({ className: Type.String(), grade: Type.Number() })) })
 export type RosterClassesResponse = Static<typeof RosterClassesResponse>
 
-export const TeachersResponse = StrictObject({ teachers: Type.Array(StrictObject({ personId: Type.String(), displayName: Type.String() })) })
+export const TeachersResponse = StrictObject({ teachers: Type.Array(StrictObject({ personId: Type.String(), displayName: Type.String(), shortName: Type.Union([Type.String(), Type.Null()]) })) })
 export type TeachersResponse = Static<typeof TeachersResponse>
 
 export type ItemInvalidBody = Static<typeof import('./catalogue.ts').ItemInvalidResponse>

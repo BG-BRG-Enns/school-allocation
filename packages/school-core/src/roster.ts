@@ -115,6 +115,11 @@ const ADDRESS = /^[^\s@\p{Cc}\p{Cs}]+@[^\s@\p{Cc}\p{Cs}][^\s@.\p{Cc}\p{Cs}]*\.[^
 const NAME = /^(?=.*\S)[^\p{Cc}\p{Cs}\p{Zl}\p{Zp}]{1,256}$/u
 const MAX_ADDRESS = 254
 
+/** Whether `text` is an e-mail address as the roster accepts one. */
+export function isAddress(text: string): boolean {
+  return text.length <= MAX_ADDRESS && ADDRESS.test(text)
+}
+
 /** The problems of one entry, without regard to the others. */
 export function checkEntry(entry: RosterEntry): RosterProblem[] {
   const key = rosterKey(entry)

@@ -10,7 +10,7 @@
 import { htmlLang } from '../../packages/messages/src/index.ts'
 import { expect, test } from '../support/test.ts'
 import { refused } from '../support/console.ts'
-import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
+import { ANNA, BERND, CARLA, SARA, TIM } from '../support/personas.ts'
 import { picture, section, shot } from '../support/screenshot.ts'
 import { sample } from '../support/sample.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
@@ -58,9 +58,17 @@ test('die Administration ordnet einen Klassenvorstand zu, der seine Klasse in de
   await openAs(page, ANNA, '/verwaltung/klassen')
   await expect(page.getByRole('heading', { name: t.common.page.classTeachers })).toBeVisible()
   await expect(page.getByRole('row', { name: /5A/ })).toContainText('–')
+  // The school's abbreviations from a pasted list: checked, then applied; the search knows them afterwards.
+  const csv = page.getByRole('form', { name: t.classTeachers.csv.title })
+  await csv.getByLabel(t.classTeachers.csv.paste).fill(['email;short_name', `${ANNA.email};ZwA`, `${BERND.email};PfB`, `${CARLA.email};KnC`].join('\n'))
+  await csv.getByRole('button', { name: t.classTeachers.csv.check }).click()
+  await expect(page.getByText(`${BERND.name}: – → PfB`)).toBeVisible()
+  await picture(page, 'klassenvorstaende-csv', section(page, t.classTeachers.csv.title))
+  await page.getByRole('button', { name: t.classTeachers.csv.apply }).click()
+  await expect(page.getByRole('status')).toHaveText(t.classTeachers.csv.applied(3, 0))
   await page.getByRole('row', { name: /5A/ }).getByRole('button', { name: t.classTeachers.assign }).click()
   const panel = page.getByRole('form', { name: t.classTeachers.assignTo('5A') })
-  await panel.getByLabel(t.classTeachers.addTeacher).fill('Bernd')
+  await panel.getByLabel(t.classTeachers.addTeacher).fill('PfB')
   await panel.getByRole('button', { name: t.classTeachers.addPerson(BERND.name) }).click()
   await shot(page, '20-klassenvorstand-zuordnen')
   // From 5A's row down to the form below the 25 classes.

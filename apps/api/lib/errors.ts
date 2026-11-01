@@ -1,4 +1,5 @@
 import type { CatalogueProblem, MoveProblemCode, PeriodProblemCode, RankingProblem, RuleProblem } from '@school-allocation/school-core'
+import type { TeacherListProblem } from '@school-allocation/api-contracts/settings'
 import type { TemplateProblem } from './models/mail-templates.ts'
 
 /** Stable refusal codes shared by application operations. HTTP status mapping belongs to the adapter. */
@@ -59,6 +60,16 @@ export class PeriodsInvalid extends Error {
   readonly problems: PeriodProblemCode[]
   constructor(problems: PeriodProblemCode[]) {
     super('period_grid_invalid')
+    this.problems = problems
+  }
+}
+
+/** The teacher list as uploaded cannot be applied; the problems say which rows. */
+export class TeacherListInvalid extends Error {
+  override name = 'TeacherListInvalid'
+  readonly problems: TeacherListProblem[]
+  constructor(problems: TeacherListProblem[]) {
+    super('teacher_list_invalid')
     this.problems = problems
   }
 }

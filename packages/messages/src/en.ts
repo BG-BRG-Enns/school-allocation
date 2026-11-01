@@ -159,6 +159,17 @@ export const en: Messages = {
       rejected: 'Rejected',
     },
     /** Why a batch or a row was refused (school-core ROSTER_PROBLEM_CODES). */
+    /** Why a row of a teacher list is not applied (api-contracts TEACHER_LIST_PROBLEM_CODES). */
+    teacherListProblem: {
+      email_invalid: 'Not an e-mail address',
+      short_name_too_long: 'Abbreviation longer than 8 characters',
+      short_name_inconsistent: 'Two abbreviations for the same teacher',
+      short_name_taken: 'The same abbreviation for two teachers',
+      short_name_held: 'Another teacher already has this abbreviation',
+      class_invalid: 'Not a valid class name',
+      teacher_unknown: 'No teacher of the class lists has this address',
+      class_unknown: 'This class is not in the class lists',
+    },
     rosterProblem: {
       empty_roster: 'The list contains no one',
       no_key: 'Neither object ID nor email address',
@@ -462,6 +473,7 @@ export const en: Messages = {
     no_roster: 'There are no class lists yet.',
     class_unknown: 'This class is not in the class lists.',
     teacher_unknown: 'A teacher is not in the class lists.',
+    teacher_list_invalid: 'The list cannot be applied as it is; the rows with problems are in the check.',
     graph_not_authorized: 'You need to sign in to Microsoft to search for groups.',
     graph_forbidden: 'Microsoft Graph refuses to read the groups. Is permission or IT consent missing?',
     graph_failed: 'Microsoft Graph did not respond. Please try again later.',
@@ -1246,6 +1258,27 @@ export const en: Messages = {
     removeTeacher: (name: string) => `Remove ${name}`,
     addTeacher: 'Add teacher',
     addPerson: (name: string) => `Add ${name}`,
+    /** The import of a teacher list on the class-teachers page. */
+    csv: {
+      title: 'From a CSV file',
+      intro: 'One row per teacher: the e-mail address, the abbreviation and the class they are class teacher of (two rows for two classes). A list from the school\'s administration software with the columns “Address Email”, “Name” and “Kv Von” is read just the same; other columns are left out. For every class in the file, its class teachers are then exactly those of the file; what the class list names stays alongside.',
+      template: 'Template as of today',
+      file: 'File',
+      paste: 'or paste the content here',
+      check: 'Check',
+      apply: 'Apply',
+      ignored: (columns: string) => `Not read: ${columns}`,
+      problems: 'These rows are not applied:',
+      line: (line: number) => `Line ${line}`,
+      shortNames: 'Abbreviations',
+      classes: 'Class teachers',
+      before: 'before',
+      after: 'new',
+      none: '–',
+      nothing: 'The file changes nothing.',
+      withShortName: (name: string, shortName: string) => `${name} (${shortName})`,
+      applied: (shortNames: number, classes: number) => `Applied: ${shortNames} abbreviations, ${classes} classes changed.`,
+    },
   },
 
   /** Zeiten.vue: the school's period grid. */
@@ -1451,6 +1484,7 @@ export const en: Messages = {
     classAttendance: (className: string, schoolYear: string) => `attendance-${className.toLowerCase()}-${schoolYear}.xlsx`,
     planning: (schoolYear: string) => `teachers-${schoolYear}.xlsx`,
     rosterTemplate: 'schulwahl-class-lists.csv',
+    teacherListTemplate: 'schulwahl-teachers.csv',
   },
 
   /**

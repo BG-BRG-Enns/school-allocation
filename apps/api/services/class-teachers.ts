@@ -45,27 +45,32 @@ export async function replaceClassTeachers(db: Database, className: string, pers
     await lockScope(client, SCHOOL_SCOPE)
     const schoolYear = await currentSchoolYear(client)
     if (schoolYear === undefined) throw new ApplicationError('no_roster')
-    const known = await store.countClassStudents(client, className)
-    if (known === 0) throw new ApplicationError('class_unknown')
-    const wanted = [...new Set(personIds)]
-    const teachers = await store.findRosterTeachers(client, wanted)
-    if (teachers.length !== wanted.length) throw new ApplicationError('teacher_unknown')
-    const current = await store.listAssignments(client, schoolYear, className)
-    const have = new Set(current.map((row) => row.personId))
-    for (const row of current) {
-      if (!wanted.includes(row.personId)) await store.revokeAssignment(client, row, actor)
+    await replaceClassTeachersIn(client, schoolYear, className, personIds, actor)
+  })
+}
+
+/** replaceClassTeachers inside a transaction that holds the school's lock and knows the school year. */
+export async function replaceClassTeachersIn(client: Queryable, schoolYear: string, className: string, personIds: readonly string[], actor: Actor): Promise<void> {
+  const known = await store.countClassStudents(client, className)
+  if (known === 0) throw new ApplicationError('class_unknown')
+  const wanted = [...new Set(personIds)]
+  const teachers = await store.findRosterTeachers(client, wanted)
+  if (teachers.length !== wanted.length) throw new ApplicationError('teacher_unknown')
+  const current = await store.listAssignments(client, schoolYear, className)
+  const have = new Set(current.map((row) => row.personId))
+  for (const row of current) {
+    if (!wanted.includes(row.personId)) await store.revokeAssignment(client, row, actor)
+  }
+  for (const personId of wanted) {
+    if (!have.has(personId)) {
+      await store.insertAssignment(client, schoolYear, className, personId, actor)
     }
-    for (const personId of wanted) {
-      if (!have.has(personId)) {
-        await store.insertAssignment(client, schoolYear, className, personId, actor)
-      }
-    }
-    await appendAudit(client, {
-      scopeId: SCHOOL_SCOPE,
-      actor: { tid: actor.tid, oid: actor.oid, name: actor.name },
-      action: 'class.teachers-changed',
-      metadata: { schoolYear, className, teachers: wanted.length },
-    })
+  }
+  await appendAudit(client, {
+    scopeId: SCHOOL_SCOPE,
+    actor: { tid: actor.tid, oid: actor.oid, name: actor.name },
+    action: 'class.teachers-changed',
+    metadata: { schoolYear, className, teachers: wanted.length },
   })
 }
 

@@ -124,7 +124,7 @@ test('class teachers come from the roster\'s address column and from the app; a 
   const s = await school(t)
   const classes = await get<{ classes: ClassWithTeachers[] }>(s, s.anna, '/api/admin/classes')
   assert.equal(classes.status, 200)
-  assert.deepEqual(classes.body.classes, [{ className: '5A', grade: 9, students: 2, teachers: [{ personId: s.carlaPerson, displayName: CARLA.name, source: 'roster' }] }])
+  assert.deepEqual(classes.body.classes, [{ className: '5A', grade: 9, students: 2, teachers: [{ personId: s.carlaPerson, displayName: CARLA.name, shortName: null, source: 'roster' }] }])
   assert.equal((await get(s, s.bernd, '/api/admin/classes')).status, 403)
   assert.equal((await get(s, s.bernd, '/api/admin/classes/teachers?q=Carla')).status, 403)
 
@@ -135,8 +135,8 @@ test('class teachers come from the roster\'s address column and from the app; a 
   const assigned = await send<{ classes: ClassWithTeachers[] }>(s, s.anna, 'PUT', '/api/admin/classes/5A/teachers', { teachers: [s.berndPerson.toUpperCase()] })
   assert.equal(assigned.status, 200, JSON.stringify(assigned.body))
   assert.deepEqual(assigned.body.classes[0]?.teachers, [
-    { personId: s.berndPerson, displayName: BERND.name, source: 'app' },
-    { personId: s.carlaPerson, displayName: CARLA.name, source: 'roster' },
+    { personId: s.berndPerson, displayName: BERND.name, shortName: null, source: 'app' },
+    { personId: s.carlaPerson, displayName: CARLA.name, shortName: null, source: 'roster' },
   ])
 
   const created = await send<Campaign>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'Projektwoche 2027', schoolYear: '2026/27', projectDays: DAYS })

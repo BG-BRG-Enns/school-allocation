@@ -20,12 +20,18 @@ import type { Guards } from '../lib/auth.ts'
 import { callerOf } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { replaceClassTeachers } from '../services/class-teachers.ts'
+import { schoolWords } from '../lib/i18n.ts'
+import { applyTeacherList, previewTeacherList } from '../services/teacher-list.ts'
+import { teacherListTemplate } from '../services/teacher-list-template.ts'
 import { replaceLanguage, replacePeriods } from '../services/settings.ts'
 
 export interface SettingsRoutesOptions {
   db: Database
   guards: Guards
 }
+
+/** The JSON around a CSV of CSV_LIMITS.rows rows of long fields. */
+const CSV_BODY_LIMIT = 12 * 1024 * 1024
 
 export async function settingsRoutes(app: FastifyInstance, { db, guards }: SettingsRoutesOptions): Promise<void> {
   const signedIn = { preHandler: guards.requireSession }
@@ -60,5 +66,22 @@ export async function settingsRoutes(app: FastifyInstance, { db, guards }: Setti
     // Ids as PostgreSQL returns them, so a spelling in upper case is the same teacher.
     await replaceClassTeachers(db, request.params.className, request.body.teachers.map((id) => id.toLowerCase()), actorOf(callerOf(request)))
     return classDirectory(db)
+  })
+
+  // The teacher list: read and matched, shown as what it would change, applied in one go; the template is today's state.
+  registerEndpoint(app, endpoints.postAdminClassesImportPreview, { ...organizer, bodyLimit: CSV_BODY_LIMIT }, async (request) => {
+    return previewTeacherList(db, request.body.csv)
+  })
+
+  registerEndpoint(app, endpoints.postAdminClassesImport, { ...organizer, bodyLimit: CSV_BODY_LIMIT }, async (request) => {
+    return applyTeacherList(db, request.body.csv, actorOf(callerOf(request)))
+  })
+
+  registerEndpoint(app, endpoints.getAdminClassesImportTemplate, { ...organizer, exposeHeadRoute: false }, async (_request, reply) => {
+    const { t } = await schoolWords(db)
+    return reply
+      .header('content-type', 'text/csv; charset=utf-8')
+      .header('content-disposition', `attachment; filename="${t.files.teacherListTemplate}"`)
+      .send(await teacherListTemplate(db))
   })
 }

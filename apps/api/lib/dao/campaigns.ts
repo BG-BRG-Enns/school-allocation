@@ -43,14 +43,15 @@ export async function rosterClassSizes(db: Queryable): Promise<ClassSize[]> {
 
 export async function rosterTeachers(db: Queryable, q: string): Promise<RosterTeacher[]> {
   const pattern = `%${q.replaceAll(/[\\%_]/g, (c) => `\\${c}`)}%`
-  const { rows } = await db.query<{ person_id: string, display_name: string }>(
-    `select e.person_id, e.display_name from roster_entry e
+  const { rows } = await db.query<{ person_id: string, display_name: string, short_name: string | null }>(
+    `select e.person_id, e.display_name, d.short_name from roster_entry e
        join ${CURRENT_BATCH_ID} c on c.id = e.batch_id
-      where e.kind = 'teacher' and e.person_id is not null and ($1 = '' or e.display_name ilike $2)
+       left join teacher_detail d on d.person_id = e.person_id
+      where e.kind = 'teacher' and e.person_id is not null and ($1 = '' or e.display_name ilike $2 or d.short_name ilike $2)
       order by e.display_name limit 200`,
     [q, pattern],
   )
-  return rows.map((row) => ({ personId: row.person_id, displayName: row.display_name }))
+  return rows.map((row) => ({ personId: row.person_id, displayName: row.display_name, shortName: row.short_name }))
 }
 
 // Dates come back as text: the driver would otherwise make them Dates at

@@ -371,6 +371,14 @@
   },
   {
     "method": "GET",
+    "url": "/api/admin/classes/import/template",
+    "body": null,
+    "params": null,
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/admin/classes/teachers",
     "body": null,
     "params": null,
@@ -1680,6 +1688,48 @@
     "params": null,
     "querystring": null,
     "bodyLimit": null
+  },
+  {
+    "method": "POST",
+    "url": "/api/admin/classes/import",
+    "body": {
+      "type": "object",
+      "required": [
+        "csv"
+      ],
+      "properties": {
+        "csv": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10280000
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": null,
+    "querystring": null,
+    "bodyLimit": 12582912
+  },
+  {
+    "method": "POST",
+    "url": "/api/admin/classes/import/preview",
+    "body": {
+      "type": "object",
+      "required": [
+        "csv"
+      ],
+      "properties": {
+        "csv": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10280000
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": null,
+    "querystring": null,
+    "bodyLimit": 12582912
   },
   {
     "method": "POST",

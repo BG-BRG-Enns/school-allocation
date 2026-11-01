@@ -37,6 +37,7 @@ export {
   type RosterEntry,
   type RosterProblem,
   type RosterProblemCode,
+  isAddress,
 } from './roster.ts'
 
 export {
@@ -50,6 +51,19 @@ export {
   type CsvProblemCode,
   type RosterCsvResult,
 } from './roster-csv.ts'
+
+export {
+  SHORT_NAME_MAX,
+  TEACHER_CSV_COLUMNS,
+  TEACHER_CSV_PROBLEM_CODES,
+  TEACHER_CSV_TEMPLATE,
+  parseTeacherCsv,
+  type TeacherCsvColumn,
+  type TeacherCsvProblem,
+  type TeacherCsvProblemCode,
+  type TeacherCsvResult,
+  type TeacherCsvRow,
+} from './teacher-csv.ts'
 
 export { SCHOOL_YEAR, isSchoolYear, retentionEndsAt, schoolYearOf, yearsOf } from './school-year.ts'
 
