@@ -101,7 +101,7 @@ The app image runs as uid 10001, the app and the migrator alike, so the migrator
 
 The allocation is computed by the solver container (`school-allocation-solver`), OR-Tools CP-SAT behind a small HTTP service on the internal network: it holds no data and no credentials, has no way out, and sees nothing but small integers; the app checks every answer against the rules before it stores a run. The app's unit sets `SOLVER_URL=http://school-allocation-solver:8000`; without it the organizer's page says that no solver is set up and no run can start. A run is a job: the health check says `busy` while it executes, so the nightly update waits for it, and a run interrupted by a restart is marked so and started again by hand.
 
-A run's time limit is per level of the objective, in CP-SAT's deterministic seconds, which the organizer sets on the page (5 unless changed, 60 at most); one of them is several seconds of wall-clock time on a small machine, so a school-sized run takes a minute or a few. The solver runs on one core; the same seed and limit give the same allocation on the same release. The host needs about half a gigabyte of memory for it.
+A run's time limit is per level of the objective, in CP-SAT's deterministic seconds, which the organizer sets on the page (5 unless changed, 60 at most); one of them is several seconds of wall-clock time on a small machine, so a school of 600 students takes two or three minutes at 5 s and a quarter of an hour at 30 s. The solver runs on one core in this release. The host needs about half a gigabyte of memory for it.
 
 ## Mail
 

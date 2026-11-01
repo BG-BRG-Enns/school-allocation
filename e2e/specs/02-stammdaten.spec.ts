@@ -15,10 +15,10 @@ test.describe.configure({ mode: 'serial' })
 
 const CSV = [
   'email;given_name;family_name;class;grade;kind',
-  `${SARA.email};Sara;Schülerin;5A;9;student`,
-  `${ANNA.email};Anna;Lehrerin;;;teacher`,
-  `${BERND.email};Bernd;Lehrer;;;teacher`,
-  'carla.anders@schule.example.org;Carla;Kollegin;;;teacher',
+  `${SARA.email};Sara;Pfnäxthuber;5A;9;student`,
+  `${ANNA.email};Anna;Zwexmhofer;;;teacher`,
+  `${BERND.email};Bernd;Pfnöxlhofer;;;teacher`,
+  'carla.anders@schule.example.org;Carla;Knoxbrunner;;;teacher',
 ].join('\n')
 
 test('die Administratorin importiert eine CSV-Datei, sieht die Änderungen und übernimmt die Liste', async ({ page }) => {
@@ -69,8 +69,8 @@ test('wer in der Liste steht, ist nach der Anmeldung zugeordnet; wer nicht, wird
   await expect(carlaRow).toContainText(t.people.accounts.unbound)
   await carlaRow.getByRole('button', { name: t.people.open.bind }).click()
   const panel = page.getByRole('form', { name: t.people.title.bind(CARLA.name) })
-  await panel.getByLabel(t.people.personSearch).fill('Kollegin')
-  await panel.getByRole('radio', { name: /Carla Kollegin/ }).check()
+  await panel.getByLabel(t.people.personSearch).fill('Knoxbrunner')
+  await panel.getByRole('radio', { name: /Carla Knoxbrunner/ }).check()
   await panel.getByLabel(t.common.field.reason).fill(sample.reason.otherAccount)
   await shot(page, '08-konto-zuordnen')
   await picture(page, 'konto-zuordnen', section(page, t.people.accounts.title))

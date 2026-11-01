@@ -493,9 +493,9 @@ jobs:
       - run: uv run --frozen --no-build pytest -q
 
   # The API against the real solver image (apps/api/test/allocation-solver.test.ts):
-  # a synthetic campaign run twice with one seed gives identical rows and
-  # level values, the reproducibility the design promises (PW4). The test
-  # runs only with SOLVER_URL set; the other API tests use the stand-in.
+  # a synthetic campaign's run comes back validated and stored, with its
+  # record (PW4). The test runs only with SOLVER_URL set; the other API
+  # tests use the stand-in.
   allocation-integration:
     name: Allocation with the real solver
     needs: [lint, test]

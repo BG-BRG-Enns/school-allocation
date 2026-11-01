@@ -24,7 +24,7 @@ Before the first calculation, every year in the registration needs its minimum m
 - **Draw number (blank: drawn for you)**: This decides how ties are settled. If left blank, SchulWahl draws one.
 - **Computing time per goal (1–60)**: More computing time is more likely to find the best allocation, but takes longer.
 
-**Calculate allocation** starts the calculation; after a few seconds it appears in the **Calculations** list. The same draw number with the same computing time gives the same allocation, as long as nothing in the registration has changed; **Repeat** calculates it again in this way. You can make as many calculations as you like, for example with different draw numbers, and compare them.
+**Calculate allocation** starts the calculation; after a few minutes, depending on the computing time and the size of the school, it appears in the **Calculations** list. **Repeat** starts a calculation again with the same draw number and computing time; it may come out differently. You can make as many calculations as you like, for example with different draw numbers, and compare them.
 
 If the page says that allocation calculation is not configured on this server or that the calculation service is not responding, that is the operator's responsibility.
 

@@ -19,8 +19,8 @@ type Column = typeof CSV_COLUMNS[number]
 /** The file a school starts from: the header and two rows that show every column. */
 export const ROSTER_CSV_TEMPLATE = [
   'email;given_name;family_name;class;grade;kind;class_teacher_email',
-  'sara.schuelerin@schule.example.org;Sara;Schülerin;5A;9;student;anna.lehrerin@schule.example.org',
-  'anna.lehrerin@schule.example.org;Anna;Lehrerin;;;teacher;',
+  'sara.pfnaexthuber@schule.example.org;Sara;Pfnäxthuber;5A;9;student;anna.zwexmhofer@schule.example.org',
+  'anna.zwexmhofer@schule.example.org;Anna;Zwexmhofer;;;teacher;',
   '',
 ].join('\r\n')
 

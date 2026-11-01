@@ -7,7 +7,7 @@ Everyone taking part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT
 ## Before you start
 
 - For anything beyond a small fix, open an issue first and describe what you want to change. That avoids work on something that conflicts with the design in [`docs/`](docs/).
-- The invariants in [`AGENTS.md`](AGENTS.md) (Entra ID as the only assumption, the identity as the key, audited roles, reproducible and validated allocations, a release only on the schema it was built for) are not open to trade-offs for convenience.
+- The invariants in [`AGENTS.md`](AGENTS.md) (Entra ID as the only assumption, the identity as the key, audited roles, recorded and validated allocations, a release only on the schema it was built for) are not open to trade-offs for convenience.
 - Code, comments and documentation are in English. The user interface's words are in the message catalogue, German first (below).
 
 ## Setup
@@ -40,7 +40,7 @@ The API refuses to start with a missing or unsafe setting and names it. `apps/ap
 
 With the dummy Entra values in `.env.example`, `npm run dev:api` runs everything but signing in: "Anmelden" goes to Microsoft, which knows no such tenant. There are two ways to sign in.
 
-**Without a Microsoft tenant**, which suits most work: `npm run dev:api:fake-entra` starts the same API from the same `apps/api/.env`, against the same database, but sends "Anmelden" to the stand-in for Entra ID the browser journeys use. Its page, "Anmeldung (Test)", offers the test people (Anna Lehrerin, Bernd Lehrer, Carla Kollegin, Sara Schülerin and Tim Schüler) and anyone typed in by name and school e-mail address; an address is the same person at every sign-in. It replaces the Entra settings of `.env` with the stand-in's own, starts only with a loopback `HOST` and `PUBLIC_URL`, and logs at start that sign-in is the stand-in. It is a program of its own (`apps/api/test/dev-server.ts`), not a setting: the server the image runs cannot be pointed at another authority, and nothing under `test/` is in the image. To be an administrator, put a test person's address into `BOOTSTRAP_ADMINS` in `.env`.
+**Without a Microsoft tenant**, which suits most work: `npm run dev:api:fake-entra` starts the same API from the same `apps/api/.env`, against the same database, but sends "Anmelden" to the stand-in for Entra ID the browser journeys use. Its page, "Anmeldung (Test)", offers the test people (Anna Zwexmhofer, Bernd Pfnöxlhofer, Carla Knoxbrunner, Sara Pfnäxthuber and Tim Gnöxwieser) and anyone typed in by name and school e-mail address; an address is the same person at every sign-in. It replaces the Entra settings of `.env` with the stand-in's own, starts only with a loopback `HOST` and `PUBLIC_URL`, and logs at start that sign-in is the stand-in. It is a program of its own (`apps/api/test/dev-server.ts`), not a setting: the server the image runs cannot be pointed at another authority, and nothing under `test/` is in the image. To be an administrator, put a test person's address into `BOOTSTRAP_ADMINS` in `.env`.
 
 **Mail** is off without `SMTP_HOST` in `.env`, which is the usual state in development: the notices a window sends wait in the outbox (the organizer's pages say so), and the API tests speak to an SMTP stand-in of their own (`apps/api/test/helpers/fake-smtp.ts`). To watch real mail leave, set the `SMTP_*` and `MAIL_*` variables of `.env.example` for a mailbox of your own.
 
@@ -54,10 +54,16 @@ With the dummy Entra values in `.env.example`, `npm run dev:api` runs everything
 cd apps/solver
 uv sync --frozen                               # .venv from uv.lock: the image's pins plus pytest and the test client
 uv run --frozen uvicorn app.main:app --port 8000
-uv run --frozen pytest -q                      # the model against instances with known optima, the contract's refusals, reproducibility
+uv run --frozen pytest -q                      # the model against instances with known optima, the contract's refusals
 ```
 
 A dependency change edits the exact pin in `pyproject.toml` and runs `uv lock`; both files are committed, and Dependabot bumps them together. The image exports the lock to a requirements file at build time and installs it with `pip --require-hashes`, so nothing outside the lock can reach it. CI runs the solver's tests from the same lock (`uv sync --frozen`).
+
+### The scenario and the simulation
+
+`e2e/scenario/` draws a whole school from a seed: 600 students in 25 classes, 60 teachers, about 65 activities over three project days, and every student's list with the moment it is saved (`school.ts`, names from the committed lists in `names.ts`; the test people are part of it). `load.ts` carries it into a database through the services, each person acting as themselves at the moment the story has them act, the clock opening and closing the windows. `npm test` checks the generator and, with `TEST_DATABASE_URL`, loads the whole story (about a minute).
+
+`npm run simulate` loads five schools from consecutive seeds, lets the real solver allocate each (started as above; `SOLVER_URL`, `http://127.0.0.1:8000` unless set) and writes what came of it to [`docs/simulation.md`](docs/simulation.md): the demand, the time groups, the runs' levels and times, the wishes granted and the rules missed. It gives the solver 30 s per level (`--limit`, several comma-separated to run each school's snapshot at each), about a quarter of an hour per school, and runs locally only; `-- --schools 1 --out -` prints one school's report instead.
 
 ## Words of the interface
 

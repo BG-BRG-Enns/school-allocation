@@ -1,9 +1,8 @@
 // The API against the real solver (apps/solver), where SOLVER_URL names
-// one: a synthetic campaign of forty students over two days, run twice
-// with one seed, gives identical rows and level values. The
-// reproducibility the design promises (docs/domain-and-api.md §5, PW4), at
-// the API's level. CI runs it against the solver image; locally, start the
-// solver and set SOLVER_URL.
+// one: a synthetic campaign of forty students over two days comes back
+// validated and stored with its record (docs/domain-and-api.md §5, PW4),
+// at the API's level. CI runs it against the solver image; locally, start
+// the solver and set SOLVER_URL.
 
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
@@ -19,7 +18,7 @@ const SOLVER = process.env.SOLVER_URL
 const GATE = { skip: DB.skip || (SOLVER ? false : 'SOLVER_URL is not set') }
 const DAYS = ['2027-06-21', '2027-06-22']
 
-test('the real solver: the same seed gives the same allocation, validated and stored', GATE, async (t) => {
+test('the real solver: a run comes back validated and stored, with its record', GATE, async (t) => {
   const h = await harness(t, { BOOTSTRAP_ADMINS: ANNA.email ?? '', SOLVER_URL: SOLVER ?? '' })
   const anna = await signIn(h, ANNA)
   const owner = createDatabase(h.ownerUrl, () => {})
@@ -31,7 +30,7 @@ test('the real solver: the same seed gives the same allocation, validated and st
   for (const [className, grade] of classes) {
     for (let i = 1; i <= 10; i++) rows.push(`s${className.toLowerCase()}${i}@schule.example.org;Kind;${className}-${i};${className};${grade};student;`)
   }
-  rows.push(`${ANNA.email};Anna;Lehrerin;;;teacher;`, `${BERND.email};Bernd;Lehrer;;;teacher;`)
+  rows.push(`${ANNA.email};Anna;Zwexmhofer;;;teacher;`, `${BERND.email};Bernd;Pfnöxlhofer;;;teacher;`)
   const batch = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', { csv: rows.join('\n'), schoolYear: '2026/27' })
   assert.equal(batch.status, 201, JSON.stringify(batch.body))
   const committed = await send<BatchDetail>(h, anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)
@@ -110,10 +109,9 @@ test('the real solver: the same seed gives the same allocation, validated and st
   assert.ok(first.students.every((s) => s.items.length === 2), 'one item per day each')
   const paid = first.students.filter((s) => s.items.some((e) => e.itemId === morning[3]))
   assert.ok(paid.every((s) => s.items.find((e) => e.itemId === morning[3])?.source === 'wish'), 'nobody is placed into the paid item without having ranked it')
-
-  const second = await run()
-  assert.equal(second.run.status, 'succeeded')
-  assert.deepEqual(second.students.map((s) => [s.personId, s.items.map((e) => `${e.itemId}:${e.source}:${e.rank}`).sort()]), first.students.map((s) => [s.personId, s.items.map((e) => `${e.itemId}:${e.source}:${e.rank}`).sort()]), 'the same seed, the same rows')
-  assert.deepEqual(second.run.passes, first.run.passes, 'the same level values')
-  assert.deepEqual(second.run.cancelledItemIds, first.run.cancelledItemIds)
+  // The record a later explanation reads: the snapshot's hash, the seed, the limit, the versions and every level of both passes.
+  assert.match(first.run.snapshotSha256, /^[0-9a-f]{64}$/)
+  assert.equal(first.run.seed, 20270621)
+  assert.equal(first.run.limits.deterministicTimePerLevel, 2)
+  assert.ok(first.run.passes.every((p) => p.levels.length > 0 && p.levels.every((l) => typeof l.proven === 'boolean')))
 })

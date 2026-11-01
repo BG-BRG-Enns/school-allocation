@@ -38,8 +38,8 @@ async function school(t: Parameters<typeof harness>[0]): Promise<Ready> {
   const anna = await signIn(h, ANNA)
   const csv = [
     'email;given_name;family_name;class;grade;kind',
-    `${SARA.email};Sara;Schülerin;5A;9;student`, `${TIM.email};Tim;Schüler;5A;9;student`,
-    `${ANNA.email};Anna;Lehrerin;;;teacher`, `${BERND.email};Bernd;Lehrer;;;teacher`, `${CARLA.email};Carla;Kollegin;;;teacher`,
+    `${SARA.email};Sara;Pfnäxthuber;5A;9;student`, `${TIM.email};Tim;Gnöxwieser;5A;9;student`,
+    `${ANNA.email};Anna;Zwexmhofer;;;teacher`, `${BERND.email};Bernd;Pfnöxlhofer;;;teacher`, `${CARLA.email};Carla;Knoxbrunner;;;teacher`,
   ].join('\n')
   const batch = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })
   const committed = await send<BatchDetail>(h, anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)
@@ -106,7 +106,7 @@ test('a teacher proposes within the rules, the organizer returns, approves and p
   // Pickers for the form.
   const classes = await get<{ classes: { className: string, grade: number }[] }>(s, s.bernd, `/api/campaigns/${campaign.id}/classes`)
   assert.deepEqual(classes.body.classes, [{ className: '5A', grade: 9 }])
-  const teachers = await get<{ teachers: { personId: string, displayName: string }[] }>(s, s.bernd, `/api/campaigns/${campaign.id}/teachers?q=ko`)
+  const teachers = await get<{ teachers: { personId: string, displayName: string }[] }>(s, s.bernd, `/api/campaigns/${campaign.id}/teachers?q=kn`)
   assert.deepEqual(teachers.body.teachers.map((x) => x.displayName), [CARLA.name])
   assert.equal((await get(s, s.sara, `/api/campaigns/${campaign.id}/classes`)).status, 404, 'students do not see a campaign taking proposals')
 

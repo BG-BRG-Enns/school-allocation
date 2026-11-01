@@ -98,7 +98,7 @@ test('a Graph roster after a CSV roster keeps the persons and binds them; a memb
   const h = await harness(t, ADMIN)
   const anna = await signIn(h, ANNA)
   await send(h, anna, 'PUT', '/api/admin/roster/groups', { groups: GROUPS })
-  const csv = ['email;given_name;family_name;class;grade;kind', `${SARA.email};Sara;Schülerin;5A;9;student`, `${TIM.email};Tim;Schüler;5A;9;student`, `${ANNA.email};Anna;Lehrerin;;;teacher`].join('\n')
+  const csv = ['email;given_name;family_name;class;grade;kind', `${SARA.email};Sara;Pfnäxthuber;5A;9;student`, `${TIM.email};Tim;Gnöxwieser;5A;9;student`, `${ANNA.email};Anna;Zwexmhofer;;;teacher`].join('\n')
   const first = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', { csv, schoolYear: '2026/27' })
   await send(h, anna, 'POST', `/api/admin/roster/batches/${first.body.id}/commit`)
   // Sara signs in and is bound by address; Tim never does.

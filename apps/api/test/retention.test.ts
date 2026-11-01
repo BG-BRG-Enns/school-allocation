@@ -22,7 +22,7 @@ import { DB, get, harness, send, signIn } from './helpers/harness.ts'
 import { ANNA, BERND, CARLA, SARA, TIM } from './helpers/personas.ts'
 
 const MAX = 'max.muster@schule.example.org'
-const teachers = [`${ANNA.email};Anna;Lehrerin;;;teacher;`, `${BERND.email};Bernd;Lehrer;;;teacher;`, `${CARLA.email};Carla;Kollegin;;;teacher;`]
+const teachers = [`${ANNA.email};Anna;Zwexmhofer;;;teacher;`, `${BERND.email};Bernd;Pfnöxlhofer;;;teacher;`, `${CARLA.email};Carla;Knoxbrunner;;;teacher;`]
 const csv = (rows: string[]) => ['email;given_name;family_name;class;grade;kind;class_teacher_email', ...rows].join('\n')
 
 test('a school year past its retention is purged whole; the next year, its people and the school\'s chain stay; the runtime role cannot delete', DB, async (t) => {
@@ -40,7 +40,7 @@ test('a school year past its retention is purged whole; the next year, its peopl
     return committed.body
   }
   // 2023/24: Sara, Tim and Max in 5A with Carla as class teacher; Sara and Tim sign in, Max never does.
-  const old = await commit('2023/24', [`${SARA.email};Sara;Schülerin;5A;9;student;${CARLA.email}`, `${TIM.email};Tim;Schüler;5A;9;student;${CARLA.email}`, `${MAX};Max;Muster;5A;9;student;${CARLA.email}`, ...teachers])
+  const old = await commit('2023/24', [`${SARA.email};Sara;Pfnäxthuber;5A;9;student;${CARLA.email}`, `${TIM.email};Tim;Gnöxwieser;5A;9;student;${CARLA.email}`, `${MAX};Max;Muster;5A;9;student;${CARLA.email}`, ...teachers])
   const person = (name: string) => old.diff.added.find((e) => e.displayName === name)?.personId ?? ''
   const bernd = await signIn(h, BERND)
   const carla = await signIn(h, CARLA)
@@ -106,7 +106,7 @@ test('a school year past its retention is purged whole; the next year, its peopl
   const kept = await send<{ error?: string, removed: { relation: string, count: number }[] }>(h, anna, 'POST', '/api/admin/purge', { schoolYear: '2023/24', reason: 'Probe' })
   assert.equal(kept.status, 200, JSON.stringify(kept.body))
   assert.deepEqual(kept.body.removed.filter((r) => ['import_batch', 'roster_entry', 'class_teacher', 'person', 'campaign'].includes(r.relation)).map((r) => [r.relation, r.count]), [['campaign', 1], ['roster_entry', 0], ['import_batch', 0], ['class_teacher', 0], ['person', 0]], 'the campaign went; the roster in force and its class teachers stayed')
-  await commit('2026/27', [`${SARA.email};Sara;Schülerin;8A;12;student;${CARLA.email}`, ...teachers])
+  await commit('2026/27', [`${SARA.email};Sara;Pfnäxthuber;8A;12;student;${CARLA.email}`, ...teachers])
 
   // The overview: both years, the old one past its retention, the new one not.
   const overview = await get<{ years: { schoolYear: string, reached: boolean, campaigns: { state: string }[], batches: number }[] }>(h, anna, '/api/admin/retention')

@@ -911,7 +911,7 @@ export const de = {
       seed: 'Losnummer (leer: wird gezogen)',
       seedExample: 'z. B. 4711',
       limit: 'Rechenzeit je Ziel (1–60)',
-      limitHint: 'Mehr Rechenzeit findet eher die beste Einteilung, dauert aber länger (eine Sekunde hier sind auf dem Server mehrere). Dieselbe Losnummer mit derselben Rechenzeit ergibt dieselbe Einteilung.',
+      limitHint: 'Mehr Rechenzeit findet eher die beste Einteilung, dauert aber länger (eine Sekunde hier sind auf dem Server mehrere).',
       submit: 'Zuteilung berechnen',
       running: 'Die Zuteilung wird gerade berechnet …',
     },
@@ -926,7 +926,7 @@ export const de = {
       deficit: 'Fehlende Minuten',
       notCovered: 'Nicht alle Tage',
       published: 'veröffentlicht',
-      repeatHint: (seed: number, limit: number) => `Mit Losnummer ${seed} und Rechenzeit ${limit} noch einmal berechnen: dieselbe Einteilung, solange sich nichts geändert hat`,
+      repeatHint: (seed: number, limit: number) => `Mit Losnummer ${seed} und Rechenzeit ${limit} noch einmal berechnen`,
       repeat: 'Wiederholen',
     },
     /** The review of one run. */

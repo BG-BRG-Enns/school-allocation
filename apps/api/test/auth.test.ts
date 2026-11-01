@@ -68,10 +68,10 @@ test('a person signs in, is known by their identity afterwards, and signs out', 
 
   // Signing in again is the same person: one row, refreshed.
   const again = new CookieJar()
-  await signIn(h, again, { ...ANNA, name: 'Anna Lehrerin-Neu' })
+  await signIn(h, again, { ...ANNA, name: 'Anna Zwexmhofer-Neu' })
   assert.equal((await me(h.app, again)).json<{ id: string }>().id, body.id)
   const rows = await withClient(h.ownerUrl, (c) => c.query<{ n: string, name: string }>('select count(*)::text as n, min(display_name) as name from app_user'))
-  assert.deepEqual(rows.rows[0], { n: '1', name: 'Anna Lehrerin-Neu' })
+  assert.deepEqual(rows.rows[0], { n: '1', name: 'Anna Zwexmhofer-Neu' })
 
   const logout = await h.app.inject({ method: 'POST', url: '/api/auth/logout', headers: { 'cookie': jar.header(), 'sec-fetch-site': 'same-origin' } })
   assert.equal(logout.statusCode, 204)

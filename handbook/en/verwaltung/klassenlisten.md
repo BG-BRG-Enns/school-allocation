@@ -37,8 +37,8 @@ One row per person, with the columns from the **Template** you download on the p
 
 ```csv
 email;given_name;family_name;class;grade;kind;class_teacher_email
-sara.schuelerin@schule.example.org;Sara;Schülerin;5A;9;student;anna.lehrerin@schule.example.org
-anna.lehrerin@schule.example.org;Anna;Lehrerin;;;teacher;
+sara.pfnaexthuber@schule.example.org;Sara;Pfnäxthuber;5A;9;student;anna.zwexmhofer@schule.example.org
+anna.zwexmhofer@schule.example.org;Anna;Zwexmhofer;;;teacher;
 ```
 
 - `kind` is `student` or `teacher`. Teachers have neither a class nor a year.

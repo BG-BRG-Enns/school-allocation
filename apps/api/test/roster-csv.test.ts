@@ -97,7 +97,7 @@ test('the next batch keeps the persons, shows what changed, and a person who lef
   const saraPerson = (await me(h, sara)).body.person?.id
 
   const second = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', {
-    csv: [HEADER, row(SARA.email, 'Sara Schülerin-Neu', '6A', '10', 'student'), row(ANNA.email, ANNA.name, '', '', 'teacher'), row(CARLA.email, CARLA.name, '', '', 'teacher')].join('\n'),
+    csv: [HEADER, row(SARA.email, 'Sara Pfnäxthuber-Neu', '6A', '10', 'student'), row(ANNA.email, ANNA.name, '', '', 'teacher'), row(CARLA.email, CARLA.name, '', '', 'teacher')].join('\n'),
     schoolYear: '2027/28',
   })
   assert.equal(second.status, 201)
@@ -109,7 +109,7 @@ test('the next batch keeps the persons, shows what changed, and a person who lef
 
   const committed = await send<BatchDetail>(h, anna, 'POST', `/api/admin/roster/batches/${second.body.id}/commit`)
   assert.equal(committed.status, 200)
-  assert.equal(personIdOf(committed.body, 'Sara Schülerin-Neu'), saraPerson, 'the same key is the same person')
+  assert.equal(personIdOf(committed.body, 'Sara Pfnäxthuber-Neu'), saraPerson, 'the same key is the same person')
   assert.deepEqual((await me(h, sara)).body.person, { id: saraPerson, kind: 'student', className: '6A', grade: 10 })
   // Tim's binding stands, but the roster in force does not list him.
   const timNow = (await me(h, tim)).body.person
@@ -166,7 +166,7 @@ test('a batch that is not a roster is stored as rejected with the problems; a fi
   const unholdable = await send<BatchDetail>(h, anna, 'POST', '/api/admin/roster/csv', {
     csv: [
       HEADER,
-      row(SARA.email, 'Sa\u0000ra Schülerin', '5A', '9', 'student'),
+      row(SARA.email, 'Sa\u0000ra Pfnäxthuber', '5A', '9', 'student'),
       row(TIM.email, 'Tim \uD800Schüler', '5A', '9', 'student'),
       row('bernd\u0000@schule.example.org', BERND.name, '', '', 'teacher'),
     ].join('\n'),
@@ -224,7 +224,7 @@ test('an administrator binds an unmatched account to a person, and rebinding clo
   // finds her among the unbound accounts and the persons without an account.
   const carla = await signIn(h, CARLA)
   const carlaId = (await me(h, carla)).body.id
-  const persons = await get<{ persons: { personId: string, displayName: string, account: string | null }[] }>(h, anna, `/api/admin/roster/persons?q=${encodeURIComponent('schüler')}`)
+  const persons = await get<{ persons: { personId: string, displayName: string, account: string | null }[] }>(h, anna, `/api/admin/roster/persons?q=5a`)
   assert.deepEqual(persons.body.persons.map((p) => [p.displayName, p.account]), [[SARA.name, null], [TIM.name, null]])
   // Anna signed in before the commit; once she signs in again, her account shows on her entry.
   await signIn(h, ANNA)

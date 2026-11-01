@@ -7,13 +7,13 @@ test('BOOTSTRAP_ADMINS takes object ids and school addresses, lower-cased and wi
   assert.deepEqual(parseBootstrapAdmins(undefined), [])
   assert.deepEqual(parseBootstrapAdmins(' '), [])
   assert.deepEqual(
-    parseBootstrapAdmins(' Anna.Lehrerin@Schule.example.org, A0000000-0000-4000-8000-00000000000A ,anna.lehrerin@schule.example.org'),
-    ['anna.lehrerin@schule.example.org', 'a0000000-0000-4000-8000-00000000000a'],
+    parseBootstrapAdmins(' Anna.Zwexmhofer@Schule.example.org, A0000000-0000-4000-8000-00000000000A ,anna.zwexmhofer@schule.example.org'),
+    ['anna.zwexmhofer@schule.example.org', 'a0000000-0000-4000-8000-00000000000a'],
   )
 })
 
 test('an entry that is neither an object id nor an address is refused by name, as is a long list', () => {
-  assert.throws(() => parseBootstrapAdmins('anna.lehrerin, b@x.org'), (err: unknown) => err instanceof ConfigError && err.message.includes('anna.lehrerin') && !err.message.includes('b@x.org'))
+  assert.throws(() => parseBootstrapAdmins('anna.zwexmhofer, b@x.org'), (err: unknown) => err instanceof ConfigError && err.message.includes('anna.zwexmhofer') && !err.message.includes('b@x.org'))
   assert.throws(() => parseBootstrapAdmins('bad entry@x.org'), ConfigError)
   for (const entry of ['anna@schule.', 'anna@.example', `anna@${'.'.repeat(200)}x y`]) assert.throws(() => parseBootstrapAdmins(entry), ConfigError, entry)
   assert.deepEqual(parseBootstrapAdmins('anna@mail.schule.example.org'), ['anna@mail.schule.example.org'])

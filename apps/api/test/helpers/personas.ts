@@ -13,11 +13,11 @@ export interface Person {
   roles?: string[]
 }
 
-export const ANNA: Person = { oid: 'a0000000-0000-4000-8000-00000000000a', name: 'Anna Lehrerin', email: 'anna.lehrerin@schule.example.org' }
-export const BERND: Person = { oid: 'b0000000-0000-4000-8000-00000000000b', name: 'Bernd Lehrer', email: 'bernd.lehrer@schule.example.org' }
-export const CARLA: Person = { oid: 'c0000000-0000-4000-8000-00000000000c', name: 'Carla Kollegin', email: 'carla.kollegin@schule.example.org' }
-export const SARA: Person = { oid: 'd0000000-0000-4000-8000-00000000000d', name: 'Sara Schülerin', email: 'sara.schuelerin@schule.example.org' }
-export const TIM: Person = { oid: 'e0000000-0000-4000-8000-00000000000e', name: 'Tim Schüler', email: 'tim.schueler@schule.example.org' }
+export const ANNA: Person = { oid: 'a0000000-0000-4000-8000-00000000000a', name: 'Anna Zwexmhofer', email: 'anna.zwexmhofer@schule.example.org' }
+export const BERND: Person = { oid: 'b0000000-0000-4000-8000-00000000000b', name: 'Bernd Pfnöxlhofer', email: 'bernd.pfnoexlhofer@schule.example.org' }
+export const CARLA: Person = { oid: 'c0000000-0000-4000-8000-00000000000c', name: 'Carla Knoxbrunner', email: 'carla.knoxbrunner@schule.example.org' }
+export const SARA: Person = { oid: 'd0000000-0000-4000-8000-00000000000d', name: 'Sara Pfnäxthuber', email: 'sara.pfnaexthuber@schule.example.org' }
+export const TIM: Person = { oid: 'e0000000-0000-4000-8000-00000000000e', name: 'Tim Gnöxwieser', email: 'tim.gnoexwieser@schule.example.org' }
 
 export const PERSONAS: readonly Person[] = [ANNA, BERND, CARLA, SARA, TIM]
 
