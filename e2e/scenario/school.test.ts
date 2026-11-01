@@ -59,25 +59,37 @@ test('every full name and address once; addresses in plain letters; some names w
   assert.ok(everyone.some((p) => /[éë]/.test(p.name)))
 })
 
-test('about 65 activities; leads free on their days; nobody in two at once; a class activity led by its class teacher', () => {
-  assert.ok(s.items.length >= 60 && s.items.length <= 70, `${s.items.length} activities`)
-  assert.equal(new Set(s.items.map((i) => i.key)).size, s.items.length)
+/** Every teacher of every activity is available and in nothing else that day, and a class activity's class teachers lead it. */
+function assertStaffing(school: ReturnType<typeof scenario>): void {
   const onDay = new Map<string, string>()
-  for (const item of s.items) {
+  for (const item of school.items) {
     const dates = [...new Set(item.sessions.map((x) => x.date))]
     for (const oid of item.teachers) {
-      const teacher = s.teachers.find((t) => t.oid === oid)
+      const teacher = school.teachers.find((t) => t.oid === oid)
       assert.ok(teacher, `${item.key}: ${oid}`)
       for (const d of dates) {
-        assert.equal(teacher.availability[d], undefined, `${item.key}: ${teacher.name} is not available on ${d}`)
-        assert.equal(onDay.get(`${oid}:${d}`), undefined, `${teacher.name} is in ${onDay.get(`${oid}:${d}`)} and ${item.key} on ${d}`)
+        assert.equal(teacher.availability[d], undefined, `${school.seed}, ${item.key}: ${teacher.name} is not available on ${d}`)
+        assert.equal(onDay.get(`${oid}:${d}`), undefined, `${school.seed}: ${teacher.name} is in ${onDay.get(`${oid}:${d}`)} and ${item.key} on ${d}`)
         onDay.set(`${oid}:${d}`, item.key)
       }
     }
-    for (const className of item.fixedClasses) assert.ok(item.teachers.includes(s.classes.find((c) => c.name === className)?.classTeacher ?? ''), item.key)
+    for (const className of item.fixedClasses) assert.ok(item.teachers.includes(school.classes.find((c) => c.name === className)?.classTeacher ?? ''), item.key)
+  }
+}
+
+test('about 65 activities; leads free on their days; nobody in two at once; a class activity led by its class teacher', () => {
+  assert.ok(s.items.length >= 60 && s.items.length <= 70, `${s.items.length} activities`)
+  assert.equal(new Set(s.items.map((i) => i.key)).size, s.items.length)
+  assertStaffing(s)
+  for (const item of s.items) {
     assert.ok(item.proposedAt < STORY.proposalsEnd && item.proposedAt >= STORY.starts.slice(0, 10), item.key)
     assert.ok(item.approvedAt > item.proposedAt && item.approvedAt < STORY.published, item.key)
   }
+})
+
+test('other seeds staff their activities as soundly: a companion drawn early is never a class teacher led later that day', () => {
+  // 20331113 drew 1C's museum companion as 1D's cave lead, both Tuesday morning, before the leads were reserved first.
+  for (const seed of [20331108, 20331109, 20331110, 20331111, 20331112, 20331113, 20331114, 20331115, 20331116]) assertStaffing(scenario(seed))
 })
 
 test('no two activities in one room at once, but the meeting point at the main entrance', () => {

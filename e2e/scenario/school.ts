@@ -444,19 +444,17 @@ function itemsOf(classes: readonly ScenarioClass[], teachers: readonly ScenarioT
     take(candidate, dates)
     return candidate
   }
+  const datesOf = (spec: ItemSpec) => [...new Set(spec.sessions.map((s) => s.date))]
+  const leadsOf = (spec: ItemSpec) => [...new Set((spec.fixed ?? []).map((className) => classes.find((c) => c.name === className)?.classTeacher).filter((oid): oid is string => oid !== null && oid !== undefined))]
   // Class activities first: their class teachers lead them (as their proposals come first); then the rest in catalogue order.
   const ordered = [...CATALOGUE.filter((s) => s.fixed), ...CATALOGUE.filter((s) => !s.fixed)]
+  // Every class teacher's days are spoken for before any companion is drawn: drawn earlier, a companion could be
+  // the lead of a class activity later in the order on the same day (seed 20331113 did that).
+  for (const spec of ordered) for (const lead of leadsOf(spec)) take(lead, datesOf(spec))
   const items = new Map<string, ScenarioItem>()
   for (const spec of ordered) {
-    const dates = [...new Set(spec.sessions.map((s) => s.date))]
-    const teachersOf: string[] = []
-    for (const className of spec.fixed ?? []) {
-      const lead = classes.find((c) => c.name === className)?.classTeacher
-      if (lead && !teachersOf.includes(lead)) {
-        take(lead, dates)
-        teachersOf.push(lead)
-      }
-    }
+    const dates = datesOf(spec)
+    const teachersOf = leadsOf(spec)
     if (teachersOf.length === 0) teachersOf.push(drawTeacher(dates))
     for (let i = 0; i < (spec.companions ?? 0); i++) teachersOf.push(drawTeacher(dates))
     const proposedAt = spec.fixed
