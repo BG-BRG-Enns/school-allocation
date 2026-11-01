@@ -37,13 +37,13 @@ export async function applyTeacherList(db: Database, csv: string, actor: Actor):
     if (preview.fileProblems.length > 0) throw new ApplicationError('csv_invalid', preview.fileProblems.map((p) => `${p.code}${p.line === undefined ? '' : ` (line ${p.line})`}`).join('; '))
     if (!preview.applicable) throw new TeacherListInvalid(preview.problems)
     const current = await store.readDetails(client, [...details.keys()])
-    for (const [personId, { shortName }] of details) {
-      await store.writeDetail(client, personId, { shortName, note: current.get(personId)?.note ?? null })
-    }
+    // Released first, then given: two teachers exchanging their abbreviations would otherwise meet the unique index.
+    for (const [personId] of details) await store.writeDetail(client, personId, { shortName: null, note: current.get(personId)?.note ?? null })
+    for (const [personId, { shortName }] of details) await store.writeDetail(client, personId, { shortName, note: current.get(personId)?.note ?? null })
     let classesChanged = 0
     for (const [className, personIds] of classes) {
-      const before = preview.classes.find((c) => c.className === className)
-      if (before && before.before.join('\n') === before.after.join('\n')) continue
+      const change = preview.classes.find((c) => c.className === className)
+      if (change && sameTeachers(change.before, change.after)) continue
       await replaceClassTeachersIn(client, schoolYear, className, personIds, actor)
       classesChanged++
     }
@@ -55,6 +55,12 @@ export async function applyTeacherList(db: Database, csv: string, actor: Actor):
     })
     return { classes: await listClasses(client), teachers: preview.teachers.length, shortNames: details.size, classesChanged }
   })
+}
+
+/** Whether two lists name the same people, whatever their order or names. */
+function sameTeachers(a: readonly { personId: string }[], b: readonly { personId: string }[]): boolean {
+  const ids = (list: readonly { personId: string }[]) => [...new Set(list.map((x) => x.personId))].sort().join('\n')
+  return ids(a) === ids(b)
 }
 
 async function resolve(db: Queryable, csv: string): Promise<Resolved> {
@@ -110,7 +116,12 @@ async function resolve(db: Queryable, csv: string): Promise<Resolved> {
     const all = await listClasses(db)
     for (const [className, personIds] of classes) {
       const assigned = all.find((c) => c.className === className)?.teachers.filter((t) => t.source === 'app') ?? []
-      preview.classes.push({ className, before: assigned.map((t) => t.displayName).sort(), after: personIds.map((id) => names.get(id) ?? id).sort() })
+      const byName = (x: { displayName: string }, y: { displayName: string }) => x.displayName.localeCompare(y.displayName, 'de')
+      preview.classes.push({
+        className,
+        before: assigned.map((t) => ({ personId: t.personId, displayName: t.displayName })).sort(byName),
+        after: personIds.map((id) => ({ personId: id, displayName: names.get(id) ?? id })).sort(byName),
+      })
     }
   }
   preview.applicable = preview.problems.length === 0 && rows.length > 0

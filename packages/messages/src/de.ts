@@ -173,6 +173,16 @@ export const de = {
       teacher_unknown: 'Keine Lehrkraft der Klassenlisten mit dieser Adresse',
       class_unknown: 'Diese Klasse gibt es in den Klassenlisten nicht',
     },
+    /** What is wrong with a CSV file as a whole (school-core CSV_PROBLEM_CODES). */
+    csvFileProblem: {
+      no_header: 'Keine Kopfzeile mit den erwarteten Spalten',
+      missing_column: 'Eine Spalte fehlt',
+      field_count: 'Eine Zeile hat mehr oder weniger Felder als die Kopfzeile',
+      field_too_long: 'Ein Feld ist zu lang',
+      too_many_rows: 'Zu viele Zeilen',
+      malformed_quote: 'Ein Anführungszeichen schließt nicht',
+      empty: 'Die Datei hat keine Zeilen',
+    },
     rosterProblem: {
       empty_roster: 'Die Liste enthält niemanden',
       no_key: 'Weder Objekt-ID noch E-Mail-Adresse',
@@ -1286,6 +1296,7 @@ export const de = {
       apply: 'Übernehmen',
       ignored: (columns: string) => `Nicht gelesen: ${columns}`,
       problems: 'Diese Zeilen werden nicht übernommen:',
+      fileProblems: 'Die Datei lässt sich nicht lesen:',
       line: (line: number) => `Zeile ${line}`,
       shortNames: 'Kürzel',
       classes: 'Klassenvorstände',

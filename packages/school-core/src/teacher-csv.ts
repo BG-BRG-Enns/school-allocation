@@ -37,6 +37,11 @@ const ALIASES: Readonly<Record<string, TeacherCsvColumn>> = {
 /** The most letters an abbreviation has. */
 export const SHORT_NAME_MAX = 8
 
+/** A table's own entry for `key`, never one inherited from Object (a header saying "constructor" is no column). */
+export function own<T>(table: Readonly<Record<string, T>>, key: string): T | undefined {
+  return Object.hasOwn(table, key) ? table[key] : undefined
+}
+
 /** The file a school starts from: the header and rows that show every column. */
 export const TEACHER_CSV_TEMPLATE = [
   'email;short_name;class',
@@ -95,7 +100,7 @@ export function readHeader(header: readonly string[], required: readonly Teacher
   const index = new Map<TeacherCsvColumn, number>()
   const ignored: string[] = []
   header.forEach((name, i) => {
-    const column = ALIASES[name.trim().toLowerCase()]
+    const column = own(ALIASES, name.trim().toLowerCase())
     if (column !== undefined && !index.has(column)) index.set(column, i)
     else if (name.trim() !== '') ignored.push(name.trim())
   })

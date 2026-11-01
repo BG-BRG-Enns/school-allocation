@@ -79,8 +79,9 @@ export const TeacherListPreview = StrictObject({
   })),
   classes: Type.Array(StrictObject({
     className: Type.String(),
-    before: Type.Array(Type.String()),
-    after: Type.Array(Type.String()),
+    /** The class teachers assigned in the app, by identity; the names are for the page. */
+    before: Type.Array(StrictObject({ personId: Type.String(), displayName: Type.String() })),
+    after: Type.Array(StrictObject({ personId: Type.String(), displayName: Type.String() })),
   })),
   /** True when nothing stands in the way: no problem of any kind, and at least one row. */
   applicable: Type.Boolean(),

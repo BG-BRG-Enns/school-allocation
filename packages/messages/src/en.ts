@@ -170,6 +170,16 @@ export const en: Messages = {
       teacher_unknown: 'No teacher of the class lists has this address',
       class_unknown: 'This class is not in the class lists',
     },
+    /** What is wrong with a CSV file as a whole (school-core CSV_PROBLEM_CODES). */
+    csvFileProblem: {
+      no_header: 'No header line with the expected columns',
+      missing_column: 'A column is missing',
+      field_count: 'A row has more or fewer fields than the header',
+      field_too_long: 'A field is too long',
+      too_many_rows: 'Too many rows',
+      malformed_quote: 'A quote does not close',
+      empty: 'The file has no rows',
+    },
     rosterProblem: {
       empty_roster: 'The list contains no one',
       no_key: 'Neither object ID nor email address',
@@ -1269,6 +1279,7 @@ export const en: Messages = {
       apply: 'Apply',
       ignored: (columns: string) => `Not read: ${columns}`,
       problems: 'These rows are not applied:',
+      fileProblems: 'The file cannot be read:',
       line: (line: number) => `Line ${line}`,
       shortNames: 'Abbreviations',
       classes: 'Class teachers',

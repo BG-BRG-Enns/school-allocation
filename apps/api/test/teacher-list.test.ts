@@ -46,7 +46,7 @@ test('a teacher list is previewed as what it changes, applied with the abbreviat
   assert.deepEqual(preview.body.problems, [])
   assert.deepEqual(preview.body.ignoredColumns, ['Longname'])
   assert.deepEqual(preview.body.teachers.map((x) => [x.displayName, x.shortName]), [[ANNA.name, { before: null, after: 'ZwA' }], [BERND.name, { before: null, after: 'PfB' }], [CARLA.name, { before: null, after: 'KnC' }]])
-  assert.deepEqual(preview.body.classes, [{ className: '5A', before: [], after: [BERND.name] }])
+  assert.deepEqual(preview.body.classes, [{ className: '5A', before: [], after: [{ personId: s.berndPerson, displayName: BERND.name }] }])
   assert.equal(preview.body.applicable, true)
   // Nothing is written by a preview.
   assert.deepEqual((await get<{ classes: ClassWithTeachers[] }>(s, s.anna, '/api/admin/classes')).body.classes[0]?.teachers.map((x) => x.source), ['roster'])
@@ -66,9 +66,15 @@ test('a teacher list is previewed as what it changes, applied with the abbreviat
   // The same file again changes nothing: no class is rewritten, no abbreviation reported as new.
   const again = await send<TeacherListPreview>(s, s.anna, 'POST', '/api/admin/classes/import/preview', { csv: list })
   assert.deepEqual(again.body.teachers.map((x) => x.shortName), [null, null, null])
-  assert.deepEqual(again.body.classes, [{ className: '5A', before: [BERND.name], after: [BERND.name] }])
+  assert.deepEqual(again.body.classes, [{ className: '5A', before: [{ personId: s.berndPerson, displayName: BERND.name }], after: [{ personId: s.berndPerson, displayName: BERND.name }] }])
   const same = await send<TeacherListApplied>(s, s.anna, 'POST', '/api/admin/classes/import', { csv: list })
   assert.equal(same.body.classesChanged, 0)
+
+  // Two teachers exchange their abbreviations in one file: released first, then given, so the unique index is not met.
+  const swapped = await send<TeacherListApplied>(s, s.anna, 'POST', '/api/admin/classes/import', { csv: `email;short_name\n${BERND.email};KnC\n${CARLA.email};PfB\n` })
+  assert.equal(swapped.status, 200, JSON.stringify(swapped.body))
+  assert.deepEqual((await get<{ teachers: { displayName: string, shortName: string | null }[] }>(s, s.anna, '/api/admin/classes/teachers?q=knc')).body.teachers.map((x) => x.displayName), [BERND.name])
+  assert.equal((await send(s, s.anna, 'POST', '/api/admin/classes/import', { csv: `email;short_name\n${BERND.email};PfB\n${CARLA.email};KnC\n` })).status, 200)
 
   // The template carries the state: every teacher, the abbreviations, Bernd's class.
   const template = await s.app.inject({ method: 'GET', url: '/api/admin/classes/import/template', headers: { cookie: s.anna.header() } })

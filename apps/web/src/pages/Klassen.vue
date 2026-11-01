@@ -3,7 +3,7 @@
 // ones the roster names by address, which stay as the roster says, and
 // the ones assigned here by an administrator or an organizer, audited.
 
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import type { TeacherListPreview } from '@school-allocation/api-contracts'
 import { applyTeacherList, loadClasses, previewTeacherList, saveClassTeachers, searchClassTeachers, teacherListTemplatePath, type ClassWithTeachers } from '../lib/admin-api.ts'
 import { withBase } from '../lib/base.ts'
@@ -38,12 +38,23 @@ function teacherNames(c: ClassWithTeachers): string {
   }).join(', ')
 }
 
-// The teacher list: a file or pasted text, checked first, then applied.
+// The teacher list: a file or pasted text, checked first, then the checked text applied.
 const csvText = ref('')
+const checkedCsv = ref('')
 const preview = ref<TeacherListPreview | null>(null)
 const checking = useFeedback()
 const applying = useFeedback()
 const PROBLEM_LABELS: Readonly<Record<string, string>> = t.labels.teacherListProblem
+const FILE_PROBLEM_LABELS: Readonly<Record<string, string>> = t.labels.csvFileProblem
+let latestCheck = 0
+
+// A text edited after the check is not the one checked: the preview goes until the next check, and a check still
+// pending answers for a text no longer shown, so its answer is dropped too.
+watch(csvText, (text) => {
+  if (text === checkedCsv.value) return
+  preview.value = null
+  latestCheck++
+})
 
 function onFile(event: Event): void {
   const file = (event.target as HTMLInputElement).files?.[0]
@@ -51,22 +62,27 @@ function onFile(event: Event): void {
   const reader = new FileReader()
   reader.onload = () => {
     csvText.value = typeof reader.result === 'string' ? reader.result : ''
-    preview.value = null
   }
   reader.readAsText(file)
 }
 
 async function onCheck(): Promise<void> {
+  const text = csvText.value
+  const check = ++latestCheck
   preview.value = null
   await checking.run(async () => {
-    preview.value = await previewTeacherList(csvText.value)
+    const result = await previewTeacherList(text)
+    if (check !== latestCheck || text !== csvText.value) return
+    checkedCsv.value = text
+    preview.value = result
   })
 }
 
 async function onApply(): Promise<void> {
+  const text = checkedCsv.value
   let applied = { shortNames: 0, classesChanged: 0 }
   const ok = await applying.run(async () => {
-    const result = await applyTeacherList(csvText.value)
+    const result = await applyTeacherList(text)
     classes.value = result.classes
     applied = { shortNames: result.shortNames, classesChanged: result.classesChanged }
   })
@@ -74,11 +90,14 @@ async function onApply(): Promise<void> {
     applying.notice.value = t.classTeachers.csv.applied(applied.shortNames, applied.classesChanged)
     preview.value = null
     csvText.value = ''
+    checkedCsv.value = ''
   }
 }
 
+/** The people of a class's list, as a key: the same people in any order or spelling are no change. */
+const peopleOf = (list: readonly { personId: string }[]) => [...new Set(list.map((x) => x.personId))].sort().join('\n')
 /** Whether the preview would change anything at all. */
-const previewChanges = computed(() => (preview.value?.teachers.some((x) => x.shortName !== null) ?? false) || (preview.value?.classes.some((c) => c.before.join('\n') !== c.after.join('\n')) ?? false))
+const previewChanges = computed(() => (preview.value?.teachers.some((x) => x.shortName !== null) ?? false) || (preview.value?.classes.some((c) => peopleOf(c.before) !== peopleOf(c.after)) ?? false))
 
 function startEditing(c: ClassWithTeachers): void {
   editing.value = { className: c.className, teachers: c.teachers.filter((t) => t.source === 'app').map((t) => ({ personId: t.personId, displayName: t.displayName })) }
@@ -322,6 +341,26 @@ async function onSave(): Promise<void> {
         >
           {{ t.classTeachers.csv.ignored(preview.ignoredColumns.join(', ')) }}
         </p>
+        <template v-if="preview.fileProblems.length > 0">
+          <p
+            role="alert"
+            class="alert"
+          >
+            {{ t.classTeachers.csv.fileProblems }}
+          </p>
+          <ul>
+            <li
+              v-for="(problem, i) in preview.fileProblems"
+              :key="i"
+            >
+              {{ FILE_PROBLEM_LABELS[problem.code] ?? problem.code }}<template v-if="problem.column !== undefined">
+                – {{ problem.column }}
+              </template><template v-if="problem.line !== undefined">
+                ({{ t.classTeachers.csv.line(problem.line) }})
+              </template>
+            </li>
+          </ul>
+        </template>
         <template v-if="preview.problems.length > 0">
           <p
             role="alert"
@@ -340,7 +379,7 @@ async function onSave(): Promise<void> {
             </li>
           </ul>
         </template>
-        <p v-if="!previewChanges && preview.problems.length === 0">
+        <p v-if="!previewChanges && preview.problems.length === 0 && preview.fileProblems.length === 0">
           {{ t.classTeachers.csv.nothing }}
         </p>
         <template v-if="preview.teachers.some((x) => x.shortName !== null)">
@@ -378,8 +417,8 @@ async function onSave(): Promise<void> {
                 :key="c.className"
               >
                 <td>{{ c.className }}</td>
-                <td>{{ c.before.join(', ') || t.classTeachers.csv.none }}</td>
-                <td>{{ c.after.join(', ') || t.classTeachers.csv.none }}</td>
+                <td>{{ c.before.map((x) => x.displayName).join(', ') || t.classTeachers.csv.none }}</td>
+                <td>{{ c.after.map((x) => x.displayName).join(', ') || t.classTeachers.csv.none }}</td>
               </tr>
             </tbody>
           </table>

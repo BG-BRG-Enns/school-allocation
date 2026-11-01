@@ -36,6 +36,8 @@ test('only the address is required; a file without it, without a header or with 
   assert.deepEqual(parseTeacherCsv('Longname;Forename\nZwexmhofer;Anna\n').fileProblems, [{ code: 'no_header' }])
   assert.deepEqual(parseTeacherCsv('').fileProblems, [{ code: 'no_header' }])
   assert.deepEqual(parseTeacherCsv('email;short_name\n').fileProblems, [{ code: 'empty' }])
+  // A header that is one of Object's own words is no column the import knows.
+  assert.deepEqual(parseTeacherCsv('constructor;toString\nx;y\n').fileProblems, [{ code: 'no_header' }])
   assert.deepEqual(parseTeacherCsv('email;short_name\na@schule.example.org;ZwA;extra\n').fileProblems, [{ code: 'field_count', line: 2 }])
 })
 
