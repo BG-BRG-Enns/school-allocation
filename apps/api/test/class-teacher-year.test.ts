@@ -87,7 +87,7 @@ test('a class teacher\'s right is the school year\'s: next year\'s teacher of a 
   // The next school year: a roster in which Bernd is 5A's class teacher by the column and Carla a teacher without a class.
   const roster = (teachers: string[]) => [
     'email;given_name;family_name;class;grade;kind;class_teacher_email',
-    `${SARA.email};Sara;Schülerin;5A;10;student;${BERND.email}`, `${TIM.email};Tim;Schüler;5A;10;student;${BERND.email}`,
+    `${SARA.email};Sara;Pfnäxthuber;5A;10;student;${BERND.email}`, `${TIM.email};Tim;Gnöxwieser;5A;10;student;${BERND.email}`,
     ...teachers,
   ].join('\n')
   const commit = async (csv: string) => {
@@ -95,7 +95,7 @@ test('a class teacher\'s right is the school year\'s: next year\'s teacher of a 
     assert.ok(batch.body.id, JSON.stringify(batch.body))
     assert.equal((await send(s, s.anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)).status, 200)
   }
-  await commit(roster([`${ANNA.email};Anna;Lehrerin;;;teacher;`, `${BERND.email};Bernd;Lehrer;;;teacher;`, `${CARLA.email};Carla;Kollegin;;;teacher;`]))
+  await commit(roster([`${ANNA.email};Anna;Zwexmhofer;;;teacher;`, `${BERND.email};Bernd;Pfnöxlhofer;;;teacher;`, `${CARLA.email};Carla;Knoxbrunner;;;teacher;`]))
 
   // Campaign A is 2026/27's: Bernd's new right is 2027/28's, not the earlier cohort's; Carla's stands, she is a teacher of the roster in force still.
   await reads(s.bernd, 403, 'class teacher of the 5A of 2027/28, not of the 5A of 2026/27')
@@ -127,7 +127,7 @@ test('a class teacher\'s right is the school year\'s: next year\'s teacher of a 
   await reads(s.bernd, 403, 'archived, closed to next year\'s class teacher')
 
   // Out of the roster in force: Carla's binding and her class-teacher address of 2026/27 stay, her right does not.
-  await commit(roster([`${ANNA.email};Anna;Lehrerin;;;teacher;`, `${BERND.email};Bernd;Lehrer;;;teacher;`]))
+  await commit(roster([`${ANNA.email};Anna;Zwexmhofer;;;teacher;`, `${BERND.email};Bernd;Pfnöxlhofer;;;teacher;`]))
   await reads(carla, 403, 'no teacher of the roster in force')
   assert.deepEqual((await may(carla)).body.may.classTeacherOf, [])
 })
