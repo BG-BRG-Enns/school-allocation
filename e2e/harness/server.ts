@@ -21,6 +21,10 @@
 // E2E_SOLVER=real the harness starts the real one (apps/solver, with uv)
 // on a free port, for the handbook's pictures.
 //
+// Mail is set up, against the API tests' SMTP stand-in, so the pages show
+// the sending as a school with mail sees it; no sender runs, so every
+// notice waits in the outbox.
+//
 // Nothing here is a production knob: the stand-ins and the clock are passed
 // to the app as the API tests pass them, and no environment variable of
 // the server could point a deployed server at another authority or time.
@@ -38,9 +42,10 @@ import { tick } from '../../apps/api/services/scheduling.ts'
 import { ControlledClock } from '../../apps/api/test/helpers/clock.ts'
 import { createTestDatabase, withClient } from '../../apps/api/test/helpers/db.ts'
 import { SERVER_ENV } from '../../apps/api/test/helpers/env.ts'
-import { TENANT_ID } from '../../apps/api/test/helpers/env.ts'
+import { secretFile, TENANT_ID } from '../../apps/api/test/helpers/env.ts'
 import { startFakeEntra } from '../../apps/api/test/helpers/fake-entra.ts'
 import { CLASS_5A_GROUP, startFakeGraph, TEACHERS_GROUP } from '../../apps/api/test/helpers/fake-graph.ts'
+import { startFakeSmtp } from '../../apps/api/test/helpers/fake-smtp.ts'
 import { startFakeSolver } from '../../apps/api/test/helpers/fake-solver.ts'
 import { ANNA, SARA, TIM } from '../../apps/api/test/helpers/personas.ts'
 import { scenarioLoader, stockTenant } from '../scenario/load.ts'
@@ -109,6 +114,8 @@ try {
   }
   cleanups.push(() => graph.close())
   const solverUrl = process.env.E2E_SOLVER === 'real' ? await startRealSolver() : await startStandIn()
+  const smtp = await startFakeSmtp()
+  cleanups.push(() => smtp.close())
   const db = createDatabase(testDb.runtimeUrl, (err) => console.error('database client failed', err), clock)
   cleanups.push(() => db.close())
   const config = loadConfig({
@@ -118,6 +125,13 @@ try {
     PORT: String(PORT),
     WEB_DIST_DIR: path.join(ROOT, 'apps', 'web', 'dist'),
     SOLVER_URL: solverUrl,
+    SMTP_HOST: '127.0.0.1',
+    SMTP_PORT: String(smtp.port),
+    SMTP_SECURE: 'false',
+    SMTP_REQUIRE_TLS: 'false',
+    SMTP_USER: 'wahl',
+    SMTP_PASSWORD_FILE: secretFile('smtp-password', 'e2e-password\n'),
+    MAIL_FROM: 'SchulWahl <wahl@schule.example.org>',
     // Anna administers the school in the journeys.
     BOOTSTRAP_ADMINS: ANNA.email ?? '',
   })

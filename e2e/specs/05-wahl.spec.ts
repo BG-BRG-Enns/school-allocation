@@ -128,7 +128,17 @@ test('die Administration ändert eine E-Mail-Vorlage; ein falscher Platzhalter w
   await page.getByRole('link', { name: t.common.page.mailTemplates }).click()
   const reminder = t.labels.mailKind.choice_reminder
   await expect(page.getByRole('heading', { name: reminder })).toBeVisible()
-  await expect(page.getByText(t.mailTemplates.mailOff)).toBeVisible()
+  // The sending: the reminders wait in the queue, as the journeys' server sends nothing; holding it and going on.
+  const sending = section(page, t.mailTemplates.sending.heading)
+  await expect(sending).toContainText(t.mailTemplates.sending.pace(200))
+  await expect(sending).toContainText(t.mailTemplates.sending.pauseHint)
+  await picture(page, 'e-mail-versand', sending)
+  await sending.getByRole('button', { name: t.mailTemplates.sending.pause }).click()
+  await expect(page.getByRole('status')).toHaveText(t.mailTemplates.sending.pausedDone)
+  await expect(sending).toContainText(t.mailTemplates.sending.paused)
+  await sending.getByRole('button', { name: t.mailTemplates.sending.resume }).click()
+  await expect(page.getByRole('status')).toHaveText(t.mailTemplates.sending.resumedDone)
+  await expect(sending).toContainText(t.mailTemplates.sending.pauseHint)
   const template = section(page, reminder)
   await expect(template.getByText(t.mailTemplates.defaultText)).toBeVisible()
   await template.getByRole('button', { name: t.common.edit }).click()
