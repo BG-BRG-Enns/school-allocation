@@ -52,7 +52,7 @@ test('every full name and address once; addresses in plain letters; some names w
   assert.equal(new Set(everyone.map((p) => p.name)).size, everyone.length)
   assert.equal(new Set(everyone.map((p) => p.email)).size, everyone.length)
   assert.equal(new Set(everyone.map((p) => p.oid)).size, everyone.length)
-  assert.ok(everyone.every((p) => new RegExp(`^[a-z0-9.-]+@${DOMAIN.replaceAll('.', '\\.')}$`).test(p.email)), 'ASCII addresses')
+  assert.ok(everyone.every((p) => /^[a-z0-9.-]+$/.test(p.email.slice(0, p.email.indexOf('@'))) && p.email.slice(p.email.indexOf('@') + 1) === DOMAIN), 'ASCII addresses')
   assert.ok(everyone.every((p) => /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(p.oid) || PERSONAS.some((x) => x.oid === p.oid)))
   assert.ok(everyone.some((p) => /[äöü]/.test(p.name)))
   assert.ok(everyone.some((p) => /ß/.test(p.name)))
