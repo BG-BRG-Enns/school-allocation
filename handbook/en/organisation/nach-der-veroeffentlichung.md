@@ -28,6 +28,8 @@ Below, you can change the allocation yourself: choose the person, the activity t
 
 You can still change an activity's title, description and location. Sessions, places, minimum, cost and who it is offered to stay as they are: they were used to calculate the allocation.
 
+If you withdraw an activity after publication, it does not take place: everyone allocated to it is removed from it, each as a change by hand with your reason, and receives an email. Their gap shows on the class page and the allocation, where the class teacher or you fill it.
+
 ## Attendance
 
 During project week, class teachers record their class's attendance ([As class teacher](/en/lehrkraefte/klassenvorstand#attendance)). **Attendance as Excel** on the Allocation page provides it for all classes.

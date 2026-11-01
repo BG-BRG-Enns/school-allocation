@@ -157,6 +157,30 @@ export async function placeStudent(db: Database, context: WindowContext, campaig
   })
 }
 
+/**
+ * An item withdrawn after publication takes nobody anywhere: every current
+ * row in it is superseded by a `remove` change with the withdrawal's
+ * reason, the student told as after any change by hand, each audited. Under
+ * the campaign's lock the withdrawal holds. The rows go unchecked: there is
+ * nothing to check against an item that is gone, a class activity's rows
+ * included (`leaves_fixed` protects a class's place, not a cancelled trip).
+ * Returns how many students were removed.
+ */
+export async function removeFromWithdrawn(client: Queryable, context: WindowContext, campaignId: string, itemId: string, reason: string, actor: Actor): Promise<number> {
+  const locked = await lock(client, campaignId)
+  const rows = locked.rows.filter((row) => row.itemId === itemId)
+  if (rows.length === 0) return 0
+  const students = new Map((await campaignStudents(client, locked.campaign)).map((s) => [s.personId, s]))
+  for (const row of rows) {
+    const move: Move = { personId: row.personId, toItemId: null, leaves: [itemId] }
+    const change = await write(client, locked, move, 'remove', reason, false, actor)
+    const student = students.get(row.personId)
+    if (student) await notify(client, context, locked, student, move, change.id, 'organizer')
+    await appendAudit(client, { scopeId: campaignId, actor: auditActor(actor), action: 'assignment.changed', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId: row.personId, kind: 'remove', toItemId: null, fromItemId: itemId, forced: false, withdrawn: true } })
+  }
+  return rows.length
+}
+
 export interface ManualChange {
   personId: string
   itemId?: string

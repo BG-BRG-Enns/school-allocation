@@ -88,11 +88,17 @@ function standings(input: AllocationInput, student: AllocationStudent, itemIds: 
   return ruleStandings(input.rules, student, itemIds.map((id) => items.get(id)).filter((item): item is AllocationItem => item !== undefined), input.projectDays)
 }
 
-/** Whether the student may enter the item at all: approved and not cancelled, eligible for them, no class activity of theirs and overlapping none. */
+/**
+ * Whether the student may enter the item at all: approved and not
+ * cancelled, eligible for them, no class activity of theirs and overlapping
+ * none of theirs that still takes place. A class activity cancelled by the
+ * run or withdrawn since (`unavailable`) holds no time of theirs any more:
+ * the frozen input still names it, the replacement for its day may overlap it.
+ */
 function offered(input: AllocationInput, student: AllocationStudent, item: AllocationItem | undefined, unavailable: ReadonlySet<string>): item is AllocationItem {
   if (item === undefined || unavailable.has(item.id) || !isEligible(student, item.rules)) return false
   const items = new Map(input.items.map((i) => [i.id, i]))
-  return !student.fixedItemIds.some((id) => itemsOverlap(item, items.get(id)))
+  return !student.fixedItemIds.some((id) => !unavailable.has(id) && itemsOverlap(item, items.get(id)))
 }
 
 /** Every problem of a move against the rows as they stand; empty means it may be written. */

@@ -111,26 +111,59 @@ test('a run is published with its cancellations confirmed: results, notices once
   await commit(roster([`${ANNA.email};Anna;Lehrerin;;;teacher;`, `${BERND.email};Bernd;Lehrer;;;teacher;`, `${CARLA.email};Carla;Kollegin;;;teacher;`]))
   assert.equal((await get(s, s.bernd, `/api/campaigns/${id}/items/${s.items.wien}/participants`)).status, 200)
   assert.equal((await get(s, s.anna, `/api/admin/campaigns/00000000-0000-4000-8000-000000000000/export/assignments.xlsx`)).status, 404, 'an unknown campaign, not an unpublished one')
-  // Tanz withdrawn after publication, its fee changed: Sara's result still names it, and owes the fee the run froze, not the new one.
-  await owner.query('update catalog_item set fee_cents = 500 where id = $1', [s.items.tanz])
-  await owner.query('update catalog_item set state = \'withdrawn\', withdrawn_at = now(), withdrawn_by = (select id from app_user limit 1), withdraw_reason = \'Test\' where id = $1', [s.items.tanz])
+  // A fee changed after publication is not the student's: the result names the run's. Tanz withdrawn after publication:
+  // Sara is removed from it as a change by hand with the withdrawal's reason, told; the result, the participants and the
+  // class page agree that it does not take place, and Monday is a gap with what would fill it.
+  await owner.query('update catalog_item set fee_cents = 500 where id = $1', [s.items.wien])
+  // Tim ranked nothing; the solver fills his Monday with Tanz or with Klettern, and the test takes it as it comes.
+  const inTanz = (await get<ParticipantsResponse>(s, s.anna, `/api/campaigns/${id}/items/${s.items.tanz}/participants`)).body.participants.map((p) => p.personId)
+  const timInTanz = inTanz.includes(s.timPerson)
+  assert.ok(inTanz.includes(s.saraPerson))
+  const withdrawn = await send<{ error?: string }>(s, s.anna, 'POST', `/api/admin/items/${s.items.tanz}/withdraw`, { reason: 'Tanzsaal gesperrt' })
+  assert.equal(withdrawn.status, 200, JSON.stringify(withdrawn.body))
   const after = await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)
-  assert.deepEqual(after.body.items.map((i) => i.title).sort(), ['Tanz', 'Wien'])
+  assert.deepEqual(after.body.explanation.items.map((e) => e.itemId), [s.items.wien], 'Tanz is no place of hers any more')
+  assert.deepEqual(after.body.items.map((i) => i.title).sort(), ['Tanz', 'Wien'], 'the page still names the item the change left')
   assert.equal(after.body.feeCents, 0, 'the fee as it was when the run was made, as the workbook sums it')
-  assert.equal(after.body.items.find((i) => i.title === 'Tanz')?.feeCents, 0)
-  assert.equal((await get<ParticipantsResponse>(s, s.anna, `/api/campaigns/${id}/items/${s.items.tanz}/participants`)).status, 200)
+  assert.equal(after.body.items.find((i) => i.title === 'Wien')?.feeCents, 0)
+  assert.deepEqual(after.body.changes.map((c) => [c.kind, c.leftItemIds, c.toItemId]), [['remove', [s.items.tanz], null]])
+  assert.deepEqual(after.body.explanation.days.map((d) => [d.date, d.deficit]), [['2027-06-21', 200], ['2027-06-22', 0]])
+  assert.deepEqual((await get<ParticipantsResponse>(s, s.anna, `/api/campaigns/${id}/items/${s.items.tanz}/participants`)).body.participants, [])
+  // Everyone who was in Tanz is told, once each.
+  const removal = (await owner.query<{ to_address: string, body: string }>('select to_address, body from outbox_mail where campaign_id = $1 and kind = \'assignment_changed\' order by to_address', [id])).rows
+  assert.deepEqual(removal.map((m) => m.to_address), (timInTanz ? [SARA.email, TIM.email] : [SARA.email]).sort())
+  assert.match(removal[0]?.body ?? '', /nicht mehr .*Tanz/)
+  assert.doesNotMatch(removal[0]?.body ?? '', /Tanzsaal gesperrt/, 'the reason stays with the organizer')
 
-  // The class page carries the places now.
-  const status = await get<{ students: { displayName: string, placement: { items: { title: string }[], deficit: number } | null }[] }>(s, carla, `/api/campaigns/${id}/classes/5A/status`)
+  // The class page carries the places now, and Sara's gap with what would fill it.
+  const status = await get<{ students: { displayName: string, placement: { items: { title: string }[], deficit: number, offers: { title: string }[] } | null }[] }>(s, carla, `/api/campaigns/${id}/classes/5A/status`)
   assert.equal(status.status, 200, JSON.stringify(status.body))
-  assert.deepEqual(status.body.students.map((st) => [st.displayName, st.placement?.items.map((i) => i.title).sort(), st.placement?.deficit]), [[SARA.name, ['Tanz', 'Wien'], 0], [TIM.name, [TIM.name === TIM.name ? 'Klettern' : '', 'Wien'].sort(), 0]].map((row) => (row[0] === TIM.name ? [TIM.name, status.body.students.find((st) => st.displayName === TIM.name)?.placement?.items.map((i) => i.title).sort(), 0] : row)))
+  const saraPlaced = status.body.students.find((st) => st.displayName === SARA.name)?.placement
+  assert.deepEqual([saraPlaced?.items.map((i) => i.title), saraPlaced?.deficit], [['Wien'], 200])
+  assert.ok(saraPlaced?.offers.some((o) => o.title === 'Klettern'), `Klettern fills Monday: ${JSON.stringify(saraPlaced?.offers)}`)
+  const timPlaced = status.body.students.find((st) => st.displayName === TIM.name)?.placement
+  assert.deepEqual([timPlaced?.items.map((i) => i.title).sort(), timPlaced?.deficit], timInTanz ? [['Wien'], 200] : [['Klettern', 'Wien'], 0], 'Tim as the solver placed him, less Tanz')
+
+  // A class activity withdrawn after publication removes the class's rows too (nothing protects a cancelled trip), and Tuesday is everyone's gap.
+  assert.equal((await send<{ error?: string }>(s, s.anna, 'POST', `/api/admin/items/${s.items.wien}/withdraw`, { reason: 'Bus ausgefallen' })).status, 200)
+  const noTrip = await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)
+  assert.deepEqual(noTrip.body.explanation.items, [])
+  assert.deepEqual(noTrip.body.explanation.days.map((d) => d.deficit), [200, 200])
+  assert.deepEqual(noTrip.body.changes.map((c) => [c.kind, c.leftItemIds]), [['remove', [s.items.tanz]], ['remove', [s.items.wien]]])
+  assert.deepEqual((await get<ParticipantsResponse>(s, s.anna, `/api/campaigns/${id}/items/${s.items.wien}/participants`)).body.participants, [])
 
   // The workbook, and the audit trail.
   const xlsx = await s.app.inject({ method: 'GET', url: `/api/admin/campaigns/${id}/export/assignments.xlsx`, headers: { cookie: s.anna.header() } })
   assert.equal(xlsx.statusCode, 200)
   assert.match(String(xlsx.headers['content-disposition']), /einteilung-2026-27\.xlsx/)
-  const actions = (await readAudit(s.db, id)).map((e) => e.action)
+  const events = await readAudit(s.db, id)
+  const actions = events.map((e) => e.action)
   assert.ok(actions.includes('run.published'))
+  assert.deepEqual(events.filter((e) => e.action === 'item.withdrawn').map((e) => e.metadata), [
+    { itemId: s.items.tanz, from: 'approved', reason: 'Tanzsaal gesperrt', removed: inTanz.length },
+    { itemId: s.items.wien, from: 'approved', reason: 'Bus ausgefallen', removed: 2 },
+  ])
+  assert.equal(events.filter((e) => e.action === 'assignment.changed' && e.metadata.withdrawn === true).length, inTanz.length + 2)
   assert.equal(actions.filter((a) => a === 'campaign.transitioned').at(-1), 'campaign.transitioned')
 })
 

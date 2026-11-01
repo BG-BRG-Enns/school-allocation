@@ -9,14 +9,19 @@ import type { Database } from '../lib/db.ts'
 import { isOrganizer, mayPropose } from '../lib/policies.ts'
 import { itemInput } from '../services/catalogue-input.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
-import { approveItem, createItem, deleteDraft, proposeItem, returnItem, unproposeItem, updateItem, withdrawItem, withVisibleItem } from '../services/items.ts'
+import { approveItem, createItem, deleteDraft, proposeItem, returnItem, unproposeItem, updateItem, withVisibleItem } from '../services/items.ts'
+import { withdrawItem } from '../services/withdrawal.ts'
 
 export interface ItemsRoutesOptions {
   db: Database
   guards: Guards
+  /** Where the link in a removed student's notice points. */
+  baseUrl: string
+  /** Told after a withdrawal in results, so the notices go out without waiting for the next poll. */
+  wakeSender?: () => void
 }
 
-export async function itemsRoutes(app: FastifyInstance, { db, guards }: ItemsRoutesOptions): Promise<void> {
+export async function itemsRoutes(app: FastifyInstance, { db, guards, baseUrl, wakeSender }: ItemsRoutesOptions): Promise<void> {
   const signedIn = { preHandler: guards.requireSession }
 
   const organizer = { preHandler: guards.requireRole('campaign_organizer', 'school_admin') }
@@ -63,6 +68,8 @@ export async function itemsRoutes(app: FastifyInstance, { db, guards }: ItemsRou
 
   registerEndpoint(app, endpoints.postAdminItemsByIdWithdraw, { ...organizer }, async (request) => {
     const caller = callerOf(request)
-    return withVisibleItem(db, request.params.id, caller, () => withdrawItem(db, request.params.id, request.body.reason, caller))
+    const item = await withVisibleItem(db, request.params.id, caller, () => withdrawItem(db, { baseUrl }, request.params.id, request.body.reason, caller))
+    wakeSender?.()
+    return item
   })
 }

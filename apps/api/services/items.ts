@@ -207,13 +207,29 @@ export async function returnItem(db: Database, id: string, note: string, caller:
   })
 }
 
-/** An organizer withdraws an item, with a reason, audited; it stays in the record. */
-export async function withdrawItem(db: Database, id: string, reason: string, caller: Caller): Promise<Item> {
+/**
+ * What becomes of a withdrawn item's assignments after publication: every
+ * student currently in it is removed from it as a change by hand with the
+ * withdrawal's reason, told, each audited; returns how many. Supplied by
+ * services/withdrawal.ts from assignment-changes, so this module stays
+ * below it. Runs inside the withdrawal's transaction, under the campaign's
+ * lock, before the withdrawal is recorded.
+ */
+export type WithdrawalCascade = (client: Queryable, item: Item, reason: string) => Promise<number>
+
+/**
+ * An organizer withdraws an item, with a reason, audited; it stays in the
+ * record. After publication nobody is left in it: `cascade` removes its
+ * students (the result, the class page and the attendance then agree that
+ * it does not take place), and the event carries how many.
+ */
+export async function withdrawItem(db: Database, id: string, reason: string, caller: Caller, cascade: WithdrawalCascade): Promise<Item> {
   return moveItem(db, id, 'withdrawn', caller, true, async (client, current, campaignState) => {
     await store.withdrawItem(client, id, caller, reason)
     // A class activity withdrawn while the window is open frees its classes: the placements by class go (D-24), as after an edit.
     if (current.state === 'approved' && (campaignState === 'open' || campaignState === 'grace')) await reconcilePreAssignments(client, current.campaignId, id)
-    await appendAudit(client, { scopeId: current.campaignId, actor: actorOf(caller), action: 'item.withdrawn', metadata: { itemId: id, from: current.state, reason } })
+    const removed = current.state === 'approved' && campaignState === 'results' ? await cascade(client, current, reason) : 0
+    await appendAudit(client, { scopeId: current.campaignId, actor: actorOf(caller), action: 'item.withdrawn', metadata: { itemId: id, from: current.state, reason, ...(campaignState === 'results' ? { removed } : {}) } })
   })
 }
 
@@ -221,6 +237,10 @@ export async function withdrawItem(db: Database, id: string, reason: string, cal
 // the transition school-core allows, then the change itself.
 async function moveItem(db: Database, id: string, to: ItemState, caller: Caller, organizer: boolean, move: Move): Promise<Item> {
   await db.tx(async (client) => {
+    // The campaign's scope lock before its rows, in the order every change of the published run takes them (assignment-changes lock).
+    const seen = await readItem(client, id)
+    if (!seen) throw new ApplicationError('not_found')
+    await lockScope(client, seen.campaignId)
     const current = await lockedItem(client, id)
     if (!current) throw new ApplicationError('not_found')
     const campaign = await store.lockCampaignForMove(client, current)

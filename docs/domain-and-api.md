@@ -114,7 +114,9 @@ transition that was missed during a restart is applied on start.
    reason, from publication to the archive; the organizer moves or removes with a reason, and may
    override a full item, a minimum or a rule falling short (recorded as `forced`), never the other
    rules. A removal alone may cost minutes and rules without an override: the student leaves the
-   item either way, and the gap shows on the review and the class page. The swap window's dates may be set until the window has
+   item either way, and the gap shows on the review and the class page. An item withdrawn after
+   publication removes every student in it the same way, a class activity's included, with the
+   withdrawal's reason. The swap window's dates may be set until the window has
    begun, so the organizer can set them when publishing.
 
 **Credited minutes** are given by the teacher per session and local date (`Europe/Vienna`). They are
@@ -387,7 +389,7 @@ it deliberately with `npm run contracts:update:routes` and review the diff.
 | `POST /api/campaigns/:id/items` · `PATCH /api/items/:id` · `DELETE /api/items/:id` · `POST …/propose` · `POST …/unpropose` | teacher (own), organizer | Draft, edit, remove, propose and take back an activity with its teachers, sessions, places, fixed classes, eligibility and categories (`categories` left out keeps the ones it has; 422 `category_unknown`); a 422 names the rules broken. From publication on, an approved item's times, places, minimum, fee, eligibility and categories are fixed (409 `campaign_state`); its words may still change |
 | `GET /api/categories` | any | The school's categories by name |
 | `GET /api/admin/categories` · `POST …` · `PATCH …/:id` · `DELETE …/:id` | organizer, admin | The categories with how many items and rules name each; add (`{ name }`, trimmed; 409 `category_exists`, `too_many_categories`), rename (the same name records nothing) and remove (409 `category_in_use`); each answers with the list, audited in the school scope |
-| `POST /api/admin/items/:id/approve` · `POST …/return` · `POST …/withdraw` | organizer | Review, audited: approve, return to draft with a note, withdraw with a reason |
+| `POST /api/admin/items/:id/approve` · `POST …/return` · `POST …/withdraw` | organizer | Review, audited: approve, return to draft with a note, withdraw with a reason. Withdrawn after publication, the item takes nobody anywhere: every student currently in it is removed from it, a `remove` change each with the withdrawal's reason, told as after any change by hand; the result, the class page and the attendance then agree, and the gaps show where a class teacher or the organizer fills them |
 | `POST /api/admin/campaigns` · `PATCH …/:id` · `POST …/:id/transition` | organizer | Campaign set-up (name, school year, project days, the window's settings and the rules, `rules` replacing the list as a whole until the window opens; 422 `rules_invalid` with `problems: [{ code, rule? }]`) and lifecycle; this release moves to `catalogue` and `published`, which numbers the approved items |
 | `GET /api/admin/campaigns/:id/export/catalogue.xlsx` | organizer, auditor | The catalogue as a workbook: activities and sessions |
 | `GET /api/admin/roster` · `PUT /api/admin/roster/groups` | admin | The roster in force, recent batches; label Entra groups (students/teachers, class, grade) |

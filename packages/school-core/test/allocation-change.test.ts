@@ -59,6 +59,11 @@ test('a move is refused for what the rules say, each by its code', () => {
   assert.deepEqual(swap('tim', 'dance'), ['already_placed'])
   assert.deepEqual(swap('tim', 'nothing'), ['not_offered'])
   assert.deepEqual(swap('tim', 'reading', { unavailable: new Set(['reading']) }), ['not_offered'], 'cancelled or withdrawn')
+  // The class trip withdrawn after publication (its rows removed): it bars nothing on Tuesday any more, and darts fills Tim's Tuesday.
+  const withoutTrip = ROWS.filter((r) => !(r.personId === 'tim' && r.itemId === 'vienna'))
+  assert.deepEqual(codes(checkMove(INPUT, withoutTrip, { personId: 'tim', toItemId: 'darts', leaves: [] }, { unavailable: new Set(['vienna']) })), [], 'the withdrawn class activity holds no time')
+  assert.ok(moveOffers(INPUT, withoutTrip, 'tim', 'place', new Set(['vienna'])).some((o) => o.itemId === 'darts' && o.problems.length === 0), 'and is offered as a placement')
+  assert.deepEqual(codes(checkMove(INPUT, withoutTrip, { personId: 'tim', toItemId: 'darts', leaves: [] })), ['not_offered'], 'while it takes place, it bars its time')
   assert.deepEqual(swap('sara', 'reading'), ['coverage_lost'], 'reading credits 120 where dance credited 180: Monday would miss 60 minutes')
   assert.deepEqual(swap('tim', 'reading'), ['coverage_lost'], 'already short, and shorter after')
   assert.deepEqual(swap('lena', 'pottery'), [], 'Lena fills her afternoon')
