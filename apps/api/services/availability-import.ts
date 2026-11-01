@@ -10,9 +10,10 @@ import { createHash } from 'node:crypto'
 import type { AvailabilityImportApplied, AvailabilityImportPreview } from '@school-allocation/api-contracts/planning'
 import { AVAILABILITY_CSV_VALUES, parseAvailabilityCsv, type AvailabilityCsvRow, type AvailabilityStatus } from '@school-allocation/school-core'
 import type { Actor } from '../lib/actor.ts'
-import { appendAudit, lockScope } from '../lib/audit.ts'
+import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { lockedCampaign } from '../lib/dao/campaigns.ts'
 import * as planningStore from '../lib/dao/planning.ts'
+import { campaignRosterBatch, CURRENT_BATCH_ID } from '../lib/dao/roster-selection.ts'
 import * as detailStore from '../lib/dao/teacher-detail.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError, AvailabilityImportInvalid } from '../lib/errors.ts'
@@ -36,6 +37,8 @@ export async function previewAvailabilityImport(db: Database, rawId: string, csv
 export async function applyAvailabilityImport(db: Database, rawId: string, csv: string, actor: Actor): Promise<AvailabilityImportApplied> {
   const id = canonicalId(rawId)
   const counts = await db.tx(async (client) => {
+    // The notes live in teacher_detail, the school's: its lock first, then the registration's (AGENTS.md, API boundaries).
+    await lockScope(client, SCHOOL_SCOPE)
     await lockScope(client, id)
     const campaign = await lockedCampaign(client, id)
     if (!campaign) throw new ApplicationError('not_found')
@@ -61,8 +64,9 @@ export async function availabilityTemplate(db: Database, rawId: string): Promise
   const campaign = await requireCampaign(db, canonicalId(rawId))
   const items = await plannedItems(db, campaign)
   const teachers = await planningStore.planningTeachers(db, campaign.id, items.map((item) => item.id))
-  const addresses = await detailStore.rosterTeacherAddresses(db)
-  const addressOf = new Map(addresses.map((teacher) => [teacher.personId, teacher.address]))
+  // Addresses from the registration's roster, which may be frozen; a teacher named after the freeze from the one in force.
+  const addressOf = new Map((await detailStore.rosterTeacherAddresses(db, CURRENT_BATCH_ID)).map((teacher) => [teacher.personId, teacher.address]))
+  for (const teacher of await detailStore.rosterTeacherAddresses(db, campaignRosterBatch(campaign))) addressOf.set(teacher.personId, teacher.address)
   const limited = new Map((await planningStore.limitedDays(db, campaign.projectDays, teachers.map((teacher) => teacher.personId))).map((d) => [`${d.personId}|${d.date}`, d.status]))
   const field = (value: string): string => (/[";\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value)
   const lines = [['email', 'short_name', ...campaign.projectDays, 'note'].join(';')]
@@ -81,7 +85,10 @@ async function resolve(db: Queryable, campaign: Campaign, csv: string): Promise<
   const items = await plannedItems(db, campaign)
   const teachers = await planningStore.planningTeachers(db, campaign.id, items.map((item) => item.id))
   const byId = new Map(teachers.map((teacher) => [teacher.personId, teacher]))
-  const byAddress = await detailStore.findTeachersByAddress(db, [...new Set(parsed.rows.flatMap((row) => (row.email === undefined ? [] : [row.email])))])
+  // The registration's roster first, which may be frozen; then the one in force, for a teacher named after the freeze.
+  const addresses = [...new Set(parsed.rows.flatMap((row) => (row.email === undefined ? [] : [row.email])))]
+  const byAddress = await detailStore.findTeachersByAddress(db, addresses, campaignRosterBatch(campaign))
+  for (const [address, teacher] of await detailStore.findTeachersByAddress(db, addresses.filter((a) => !byAddress.has(a)), CURRENT_BATCH_ID)) byAddress.set(address, teacher)
   const byShortName = await detailStore.findByShortName(db, [...new Set(parsed.rows.flatMap((row) => (row.shortName === undefined ? [] : [row.shortName.toLowerCase()])))])
   const resolved: (AvailabilityCsvRow & { personId: string })[] = []
   for (const row of parsed.rows) {

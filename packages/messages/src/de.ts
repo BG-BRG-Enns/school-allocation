@@ -194,6 +194,7 @@ export const de = {
       empty: 'Die Datei hat keine Zeilen',
       unknown_column: 'Eine Spalte, die der Import nicht kennt',
       day_ambiguous: 'Diesen Wochentag gibt es in der Anmeldung zweimal; bitte das Datum als Spaltenname',
+      duplicate_column: 'Zwei Spalten für denselben Tag',
     },
     rosterProblem: {
       empty_roster: 'Die Liste enthält niemanden',

@@ -17,6 +17,11 @@ import { checkRows, SHORT_NAME_MAX } from './teacher-csv.ts'
 /** The most characters a note has. */
 export const NOTE_MAX = 200
 
+/** A table's own entry for `key`, never one inherited from Object (a cell saying "constructor" is no status). */
+function own<T>(table: Readonly<Record<string, T>>, key: string): T | undefined {
+  return Object.hasOwn(table, key) ? table[key] : undefined
+}
+
 /** A header's spellings, lower case, for the columns that are not days. */
 const ALIASES: Readonly<Record<string, 'email' | 'short_name' | 'note' | 'ignored'>> = {
   'email': 'email',
@@ -146,7 +151,7 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
   header.forEach((raw, i) => {
     const name = raw.trim()
     const lower = name.toLowerCase()
-    const known = ALIASES[lower]
+    const known = own(ALIASES, lower)
     if (known === 'ignored') {
       ignored.push(name)
       return
@@ -155,14 +160,19 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
       if (!columns.has(known)) columns.set(known, i)
       return
     }
+    // A day named twice (the weekday and its date, say) would let one column silently win: refused instead.
+    const dayColumn = (date: string) => {
+      if (dayColumns.has(date)) fileProblems.push({ code: 'duplicate_column', column: name })
+      else dayColumns.set(date, i)
+    }
     if (projectDays.includes(lower)) {
-      dayColumns.set(lower, i)
+      dayColumn(lower)
       return
     }
-    const weekday = WEEKDAYS[lower]
+    const weekday = own(WEEKDAYS, lower)
     if (weekday !== undefined) {
       const matching = projectDays.filter((date) => weekdayOf(date) === weekday)
-      if (matching.length === 1) dayColumns.set(matching[0] as string, i)
+      if (matching.length === 1) dayColumn(matching[0] as string)
       else fileProblems.push({ code: matching.length === 0 ? 'unknown_column' : 'day_ambiguous', column: name })
       return
     }
@@ -200,7 +210,7 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
     let sound = true
     for (const [date, index] of dayColumns) {
       const raw = (fields[index] ?? '').trim()
-      const status = VALUES[raw.toLowerCase()]
+      const status = own(VALUES, raw.toLowerCase())
       if (status === undefined) {
         problems.push({ code: 'status_invalid', line, key: raw })
         sound = false

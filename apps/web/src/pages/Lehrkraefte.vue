@@ -68,9 +68,12 @@ const IMPORT_PROBLEM_LABELS: Readonly<Record<string, string>> = t.labels.availab
 const FILE_PROBLEM_LABELS: Readonly<Record<string, string>> = t.labels.csvFileProblem
 let latestCheck = 0
 
-// A text edited after the check is not the one checked: the preview goes until the next check.
+// A text edited after the check is not the one checked: the preview goes until the next check, and a check still
+// pending answers for a text no longer shown, so its answer is dropped too.
 watch(csvText, (text) => {
-  if (text !== checkedCsv.value) preview.value = null
+  if (text === checkedCsv.value) return
+  preview.value = null
+  latestCheck++
 })
 
 function onFile(event: Event): void {
@@ -89,7 +92,7 @@ async function onCheck(): Promise<void> {
   preview.value = null
   await checking.run(async () => {
     const result = await previewAvailabilityImport(props.id, text)
-    if (check !== latestCheck) return
+    if (check !== latestCheck || text !== csvText.value) return
     checkedCsv.value = text
     preview.value = result
   })

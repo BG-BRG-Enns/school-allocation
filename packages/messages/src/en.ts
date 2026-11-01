@@ -191,6 +191,7 @@ export const en: Messages = {
       empty: 'The file has no rows',
       unknown_column: 'A column the import does not know',
       day_ambiguous: 'The registration has this weekday twice; please name the column by its date',
+      duplicate_column: 'Two columns for the same day',
     },
     rosterProblem: {
       empty_roster: 'The list contains no one',

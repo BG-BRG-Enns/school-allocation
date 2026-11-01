@@ -45,6 +45,11 @@ test('an unknown column, a weekday the registration has twice or not at all, no 
   assert.deepEqual(parseAvailabilityCsv('Name;Leitung\nZwA;N\n', DAYS).fileProblems, [{ code: 'missing_column', column: '2034-07-03' }])
   assert.deepEqual(parseAvailabilityCsv('Longname;Forename\nZwexmhofer;Anna\n', DAYS).fileProblems, [{ code: 'no_header' }])
   assert.deepEqual(parseAvailabilityCsv('Name;MO\n', DAYS).fileProblems, [{ code: 'empty' }])
+  // The weekday and its date: one would silently win over the other.
+  assert.deepEqual(parseAvailabilityCsv('email;MO;2034-07-03\nanna.zwexmhofer@schule.example.org;N;\n', DAYS).fileProblems, [{ code: 'duplicate_column', column: '2034-07-03' }])
+  // Headers and cells that are Object's own words are nothing the tables know.
+  assert.deepEqual(parseAvailabilityCsv('email;constructor\nanna.zwexmhofer@schule.example.org;\n', DAYS).fileProblems, [{ code: 'unknown_column', column: 'constructor' }, { code: 'missing_column', column: '2034-07-03' }])
+  assert.deepEqual(parseAvailabilityCsv('email;MO\nanna.zwexmhofer@schule.example.org;__proto__\n', DAYS).problems, [{ code: 'status_invalid', line: 2, key: '__proto__' }])
 })
 
 test('a row without a key, with a bad address, a value none of the three, or a note too long is reported with its line and left out', () => {
