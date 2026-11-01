@@ -48,6 +48,9 @@ test('an unknown column, a weekday the registration has twice or not at all, no 
   assert.deepEqual(parseAvailabilityCsv('Name;MO\n;\n\n', DAYS).fileProblems, [{ code: 'empty' }])
   // A blank record, as a spreadsheet leaves it, is skipped with the line numbers kept.
   assert.deepEqual(parseAvailabilityCsv('Name;MO\n;\nZwA;N\n', DAYS).rows, [{ line: 3, shortName: 'ZwA', days: { '2034-07-03': 'unavailable' } }])
+  // A column without a header: a trailing separator is nothing, a value under it is a column the import does not know.
+  assert.deepEqual(parseAvailabilityCsv('Name;MO;\nZwA;N;\n', DAYS).rows, [{ line: 2, shortName: 'ZwA', days: { '2034-07-03': 'unavailable' } }])
+  assert.deepEqual(parseAvailabilityCsv('Name;MO;\nZwA;N;x\n', DAYS).fileProblems, [{ code: 'unknown_column', column: '#3' }])
   // Two headers for the note, or for the key: one would silently win over the other.
   assert.deepEqual(parseAvailabilityCsv('email;MO;note;Anmerkung\nanna.zwexmhofer@schule.example.org;N;;x\n', DAYS).fileProblems, [{ code: 'duplicate_column', column: 'Anmerkung' }])
   // The weekday and its date: one would silently win over the other.
@@ -80,4 +83,6 @@ test('a row without a key, with a bad address, a value none of the three, or a n
 test('a value the template protected with an apostrophe comes back as it was, an address too; an apostrophe of the note\'s own stays', () => {
   const rows = parseAvailabilityCsv(`email;MO;note\nanna.zwexmhofer@schule.example.org;;'=nur Reserve\nbernd.pfnoexlhofer@schule.example.org;;'s Kind\n'+carla.knoxbrunner@schule.example.org;;${'-'.repeat(200)}\n`, DAYS).rows
   assert.deepEqual(rows.map((r) => [r.email, r.note]), [['anna.zwexmhofer@schule.example.org', '=nur Reserve'], ['bernd.pfnoexlhofer@schule.example.org', '\'s Kind'], ['+carla.knoxbrunner@schule.example.org', '-'.repeat(200)]])
+  // A status cell with a spreadsheet's text marker in front reads as the status.
+  assert.deepEqual(parseAvailabilityCsv('Name;MO;DI\nZwA;\'N;\'-\n', DAYS).rows, [{ line: 2, shortName: 'ZwA', days: { '2034-07-03': 'unavailable', '2034-07-04': 'unavailable' } }])
 })

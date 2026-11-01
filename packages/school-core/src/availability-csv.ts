@@ -143,6 +143,8 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
   const dayColumns = new Map<string, number>()
   const ignored: string[] = []
   const fileProblems: CsvProblem[] = []
+  // Columns without a header: tolerated while empty (a trailing separator), refused once a record has anything in one.
+  const unnamed: number[] = []
   header.forEach((raw, i) => {
     const name = raw.trim()
     const lower = name.toLowerCase()
@@ -173,7 +175,8 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
       else fileProblems.push({ code: matching.length === 0 ? 'unknown_column' : 'day_ambiguous', column: name })
       return
     }
-    if (name !== '') fileProblems.push({ code: 'unknown_column', column: name })
+    if (name === '') unnamed.push(i)
+    else fileProblems.push({ code: 'unknown_column', column: name })
   })
   if (columns.size === 0 && dayColumns.size === 0) return none([{ code: 'no_header' }], ignored)
   if (!columns.has('email') && !columns.has('short_name')) fileProblems.push({ code: 'missing_column', column: 'email' })
@@ -181,6 +184,8 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
   if (fileProblems.length > 0) return none(fileProblems, ignored)
   const shapeProblems = checkRows(records, header.length)
   if (shapeProblems.length > 0) return none(shapeProblems, ignored)
+  const filledUnnamed = unnamed.filter((i) => records.some((fields) => (fields[i] ?? '').trim() !== ''))
+  if (filledUnnamed.length > 0) return none(filledUnnamed.map((i) => ({ code: 'unknown_column' as const, column: `#${i + 1}` })), ignored)
   const rows: AvailabilityCsvRow[] = []
   const problems: AvailabilityCsvProblem[] = []
   // Every cell without the apostrophe the template puts before a value that starts like a formula: an address, an
@@ -206,7 +211,8 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
     const days: Record<string, AvailabilityStatus> = {}
     let sound = true
     for (const [date, index] of dayColumns) {
-      const raw = (fields[index] ?? '').trim()
+      // A status cell has a fixed vocabulary, so a leading apostrophe (a spreadsheet's text marker) is never part of it.
+      const raw = (fields[index] ?? '').trim().replace(/^'/, '')
       const status = own(VALUES, raw.toLowerCase())
       if (status === undefined) {
         problems.push({ code: 'status_invalid', line, key: raw })
