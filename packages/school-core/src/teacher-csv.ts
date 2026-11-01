@@ -55,9 +55,9 @@ export const TEACHER_CSV_PROBLEM_CODES = [
   'email_invalid',
   /** An abbreviation longer than SHORT_NAME_MAX. */
   'short_name_too_long',
-  /** One person with two different abbreviations in the file. */
+  /** One teacher with two different abbreviations in the file (judged by the API, by identity). */
   'short_name_inconsistent',
-  /** One abbreviation for two different people in the file. */
+  /** One abbreviation for two different teachers in the file (judged by the API, by identity). */
   'short_name_taken',
   /** A class name the roster could not have. */
   'class_invalid',
@@ -110,12 +110,19 @@ export function readHeader(header: readonly string[], required: readonly Teacher
   return { index, ignored, problems }
 }
 
-/** The shape problems every row-based file shares: the count of rows and fields, the length of a field. */
+/** A record a spreadsheet leaves behind: no field with anything in it. Skipped, with its line number kept for the rest. */
+export function isBlank(fields: readonly string[]): boolean {
+  return fields.every((field) => field.trim() === '')
+}
+
+/** The shape problems every row-based file shares: the count of rows and fields, the length of a field; blank records do not count. */
 export function checkRows(rows: readonly (readonly string[])[], width: number): CsvProblem[] {
-  if (rows.length === 0) return [{ code: 'empty' }]
-  if (rows.length > CSV_LIMITS.rows) return [{ code: 'too_many_rows' }]
+  const filled = rows.filter((fields) => !isBlank(fields))
+  if (filled.length === 0) return [{ code: 'empty' }]
+  if (filled.length > CSV_LIMITS.rows) return [{ code: 'too_many_rows' }]
   const problems: CsvProblem[] = []
   rows.forEach((fields, i) => {
+    if (isBlank(fields)) return
     const line = i + 2
     if (fields.length !== width) problems.push({ code: 'field_count', line })
     else if (fields.some((field) => field.length > CSV_LIMITS.field)) problems.push({ code: 'field_too_long', line })
@@ -125,9 +132,11 @@ export function checkRows(rows: readonly (readonly string[])[], width: number): 
 
 /**
  * Parses the teacher list. A row names a teacher by address; what else it
- * says is optional: the abbreviation, the class. The same address may come
- * again with another class (a class teacher of two classes); its
- * abbreviation must then be the same.
+ * says is optional: the abbreviation, the class. The same teacher may come
+ * again with another class (a class teacher of two classes). Whether the
+ * abbreviations agree per teacher and are each one teacher's is judged
+ * after the addresses are resolved (a teacher may be named by mail and by
+ * UPN), so by the API, with this module's codes.
  */
 export function parseTeacherCsv(text: string): TeacherCsvResult {
   const none = (fileProblems: CsvProblem[]): TeacherCsvResult => ({ rows: [], fileProblems, problems: [], ignoredColumns: [], columns: [] })
@@ -146,9 +155,8 @@ export function parseTeacherCsv(text: string): TeacherCsvResult {
   }
   const rows: TeacherCsvRow[] = []
   const problems: TeacherCsvProblem[] = []
-  const shortNameOf = new Map<string, string>()
-  const ownerOf = new Map<string, string>()
   records.forEach((fields, i) => {
+    if (isBlank(fields)) return
     const line = i + 2
     const email = field(fields, 'email')?.toLowerCase()
     if (email === undefined || !isAddress(email)) {
@@ -158,32 +166,15 @@ export function parseTeacherCsv(text: string): TeacherCsvResult {
     const shortName = field(fields, 'short_name')
     const className = field(fields, 'class')
     let sound = true
-    if (shortName !== undefined) {
-      if (shortName.length > SHORT_NAME_MAX) {
-        problems.push({ code: 'short_name_too_long', line, key: shortName })
-        sound = false
-      } else {
-        const before = shortNameOf.get(email)
-        if (before !== undefined && before.toLowerCase() !== shortName.toLowerCase()) {
-          problems.push({ code: 'short_name_inconsistent', line, key: email })
-          sound = false
-        }
-        const owner = ownerOf.get(shortName.toLowerCase())
-        if (owner !== undefined && owner !== email) {
-          problems.push({ code: 'short_name_taken', line, key: shortName })
-          sound = false
-        }
-      }
+    if (shortName !== undefined && shortName.length > SHORT_NAME_MAX) {
+      problems.push({ code: 'short_name_too_long', line, key: shortName })
+      sound = false
     }
     if (className !== undefined && !CLASS_NAME.test(className)) {
       problems.push({ code: 'class_invalid', line, key: className })
       sound = false
     }
     if (!sound) return
-    if (shortName !== undefined) {
-      shortNameOf.set(email, shortName)
-      ownerOf.set(shortName.toLowerCase(), email)
-    }
     rows.push({ line, email, ...(shortName === undefined ? {} : { shortName }), ...(className === undefined ? {} : { className }) })
   })
   return { rows, fileProblems: [], problems, ignoredColumns: ignored, columns: [...index.keys()].filter((c) => c !== 'email') }

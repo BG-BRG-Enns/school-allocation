@@ -41,7 +41,15 @@ test('only the address is required; a file without it, without a header or with 
   assert.deepEqual(parseTeacherCsv('email;short_name\na@schule.example.org;ZwA;extra\n').fileProblems, [{ code: 'field_count', line: 2 }])
 })
 
-test('a row with a bad address, an abbreviation too long, two abbreviations for one person, one for two, or a class name the roster could not have is reported with its line and left out; the rest is read', () => {
+test('blank records, as a spreadsheet leaves them, are skipped with the line numbers kept; a file of blank records alone is empty', () => {
+  const result = parseTeacherCsv('email;short_name;class\r\n;;\r\nanna.zwexmhofer@schule.example.org;ZwA;\r\n\r\n;;\r\n')
+  assert.deepEqual(result.fileProblems, [])
+  assert.deepEqual(result.problems, [])
+  assert.deepEqual(result.rows, [{ line: 3, email: 'anna.zwexmhofer@schule.example.org', shortName: 'ZwA' }])
+  assert.deepEqual(parseTeacherCsv('email;short_name\n;\n\n').fileProblems, [{ code: 'empty' }])
+})
+
+test('a row with a bad address, an abbreviation too long, or a class name the roster could not have is reported with its line and left out; the rest is read, abbreviations agreeing or not', () => {
   const text = [
     'email;short_name;class',
     'not-an-address;ZwA;',
@@ -57,12 +65,12 @@ test('a row with a bad address, an abbreviation too long, two abbreviations for 
   assert.deepEqual(result.problems, [
     { code: 'email_invalid', line: 2, key: 'not-an-address' },
     { code: 'short_name_too_long', line: 3, key: 'Zwexmhofer' },
-    { code: 'short_name_inconsistent', line: 5, key: 'bernd.pfnoexlhofer@schule.example.org' },
-    { code: 'short_name_taken', line: 6, key: 'pfb' },
     { code: 'class_invalid', line: 7, key: '5A/B/C/D/E/F/G/H/I/J' },
   ])
   assert.deepEqual(result.rows, [
     { line: 4, email: 'bernd.pfnoexlhofer@schule.example.org', shortName: 'PfB', className: '5A' },
+    { line: 5, email: 'bernd.pfnoexlhofer@schule.example.org', shortName: 'PfX', className: '6A' },
+    { line: 6, email: 'carla.knoxbrunner@schule.example.org', shortName: 'pfb' },
     { line: 8, email: 'sara.pfnaexthuber@schule.example.org', className: '5A' },
   ])
 })

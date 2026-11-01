@@ -107,6 +107,12 @@ test('a list with an unknown address, an unknown class or an abbreviation anothe
     { code: 'short_name_held', line: 2, key: 'KnC' },
   ])
   assert.equal(preview.body.applicable, false)
+  // Two abbreviations for one teacher, one abbreviation for two: judged after the addresses are resolved.
+  const disagreeing = await send<TeacherListPreview>(s, s.anna, 'POST', '/api/admin/classes/import/preview', { csv: `email;short_name\n${BERND.email};PfB\n${BERND.email};PfX\n${ANNA.email};pfb\n` })
+  assert.deepEqual(disagreeing.body.problems, [
+    { code: 'short_name_inconsistent', line: 3, key: BERND.email },
+    { code: 'short_name_taken', line: 4, key: 'pfb' },
+  ])
   const refused = await send<{ error: string, problems: unknown[] }>(s, s.anna, 'POST', '/api/admin/classes/import', { csv: list })
   assert.equal(refused.status, 422)
   assert.equal(refused.body.error, 'teacher_list_invalid')

@@ -10,6 +10,7 @@ import { parseTeacherCsv, type TeacherCsvRow } from '@school-allocation/school-c
 import type { Actor } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { currentSchoolYear, listClasses } from '../lib/dao/class-teachers.ts'
+import * as classStore from '../lib/dao/class-teachers.ts'
 import * as store from '../lib/dao/teacher-detail.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError, TeacherListInvalid } from '../lib/errors.ts'
@@ -84,8 +85,30 @@ async function resolve(db: Queryable, csv: string): Promise<Resolved> {
     }
     rows.push({ ...row, ...teacher })
   }
-  // An abbreviation already held by someone the file does not rename is not taken from them.
-  const wanted = new Map(rows.filter((row) => row.shortName !== undefined).map((row) => [row.personId, row.shortName as string]))
+  // The abbreviations, by identity: a teacher named by mail and by UPN is one teacher. One abbreviation per teacher,
+  // one teacher per abbreviation, in the file; and one already held by someone the file does not rename is not taken.
+  const wanted = new Map<string, string>()
+  const claimed = new Map<string, string>()
+  const unsound = new Set<string>()
+  for (const row of rows) {
+    if (row.shortName === undefined) continue
+    const lower = row.shortName.toLowerCase()
+    const before = wanted.get(row.personId)
+    if (before !== undefined && before.toLowerCase() !== lower) {
+      preview.problems.push({ code: 'short_name_inconsistent', line: row.line, key: row.email })
+      unsound.add(row.personId)
+      continue
+    }
+    const claimant = claimed.get(lower)
+    if (claimant !== undefined && claimant !== row.personId) {
+      preview.problems.push({ code: 'short_name_taken', line: row.line, key: row.shortName })
+      unsound.add(row.personId)
+      continue
+    }
+    wanted.set(row.personId, row.shortName)
+    claimed.set(lower, row.personId)
+  }
+  for (const personId of unsound) wanted.delete(personId)
   const owners = await store.shortNameOwners(db, [...new Set([...wanted.values()].map((name) => name.toLowerCase()))])
   for (const row of rows) {
     if (row.shortName === undefined) continue
@@ -113,13 +136,17 @@ async function resolve(db: Queryable, csv: string): Promise<Resolved> {
   }
   if (classes.size > 0) {
     const names = new Map(rows.map((row) => [row.personId, row.displayName]))
+    // The assignments themselves, not the class list's view of them: a teacher no longer in the roster keeps an
+    // assignment the list does not show, and a file without them must still take it away.
+    const schoolYear = await currentSchoolYear(db)
     const all = await listClasses(db)
+    for (const c of all) for (const teacher of c.teachers) names.set(teacher.personId, teacher.displayName)
     for (const [className, personIds] of classes) {
-      const assigned = all.find((c) => c.className === className)?.teachers.filter((t) => t.source === 'app') ?? []
+      const assigned = schoolYear === undefined ? [] : await classStore.listAssignments(db, schoolYear, className)
       const byName = (x: { displayName: string }, y: { displayName: string }) => x.displayName.localeCompare(y.displayName, 'de')
       preview.classes.push({
         className,
-        before: assigned.map((t) => ({ personId: t.personId, displayName: t.displayName })).sort(byName),
+        before: assigned.map((a) => ({ personId: a.personId, displayName: names.get(a.personId) ?? a.personId })).sort(byName),
         after: personIds.map((id) => ({ personId: id, displayName: names.get(id) ?? id })).sort(byName),
       })
     }
