@@ -65,7 +65,7 @@ test('die Administration ordnet einen Klassenvorstand zu, der seine Klasse in de
   await expect(page.getByText(`${BERND.name}: – → PfB`)).toBeVisible()
   await picture(page, 'klassenvorstaende-csv', section(page, t.classTeachers.csv.title))
   await page.getByRole('button', { name: t.classTeachers.csv.apply }).click()
-  await expect(page.getByRole('status')).toHaveText(t.classTeachers.csv.applied(3, 0))
+  await expect(section(page, t.classTeachers.csv.title).getByRole('status')).toHaveText(t.classTeachers.csv.applied(3, 0))
   await page.getByRole('row', { name: /5A/ }).getByRole('button', { name: t.classTeachers.assign }).click()
   const panel = page.getByRole('form', { name: t.classTeachers.assignTo('5A') })
   await panel.getByLabel(t.classTeachers.addTeacher).fill('PfB')
@@ -74,7 +74,8 @@ test('die Administration ordnet einen Klassenvorstand zu, der seine Klasse in de
   // From 5A's row down to the form below the 25 classes.
   await picture(page, 'klassenvorstand-zuordnen', [page.getByRole('row', { name: /5A/ }), panel])
   await panel.getByRole('button', { name: t.common.save }).click()
-  await expect(page.getByRole('status')).toHaveText(t.classTeachers.saved)
+  // Two statuses on the page now: the import's and this one.
+  await expect(page.getByText(t.classTeachers.saved)).toBeVisible()
   await expect(page.getByRole('row', { name: /5A/ })).toContainText(BERND.name)
   await signOut(page)
 
