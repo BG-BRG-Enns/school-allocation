@@ -1,7 +1,8 @@
+import { Type } from 'typebox'
 import { ErrorResponse, IdParams } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
 import * as metadata from './endpoint-metadata.ts'
-import { AvailabilityBody, CampaignAvailabilityResponse, DateParams, MyAvailabilityResponse, PersonDateParams, PlanningResponse } from './planning.ts'
+import { AvailabilityBody, CampaignAvailabilityResponse, DateParams, MyAvailabilityResponse, PersonDateParams, PlanningResponse, AvailabilityImportApplied, AvailabilityImportBody, AvailabilityImportInvalidResponse, AvailabilityImportPreview } from './planning.ts'
 
 /** A teacher's own availability on the days of the registrations taking proposals. */
 export const getMyAvailability = defineEndpoint({ ...metadata.getMyAvailability, schema: { response: { '200': MyAvailabilityResponse, '4xx': ErrorResponse } } })
@@ -14,3 +15,9 @@ export const getAdminCampaignsByIdPlanning = defineEndpoint({ ...metadata.getAdm
 /** An organizer sets anyone's availability on one of the registration's days, audited in its chain. */
 export const putAdminCampaignsByIdAvailabilityByPersonIdByDate = defineEndpoint({ ...metadata.putAdminCampaignsByIdAvailabilityByPersonIdByDate, schema: { params: PersonDateParams, body: AvailabilityBody, response: { '200': PlanningResponse, '4xx': ErrorResponse } } })
 export const getAdminCampaignsByIdExportPlanningXlsx = defineEndpoint({ ...metadata.getAdminCampaignsByIdExportPlanningXlsx, schema: { params: IdParams, response: { '4xx': ErrorResponse } } })
+
+export const postAdminCampaignsByIdAvailabilityImportPreview = defineEndpoint({ ...metadata.postAdminCampaignsByIdAvailabilityImportPreview, schema: { params: IdParams, body: AvailabilityImportBody, response: { '200': AvailabilityImportPreview, '4xx': ErrorResponse } } })
+
+export const postAdminCampaignsByIdAvailabilityImport = defineEndpoint({ ...metadata.postAdminCampaignsByIdAvailabilityImport, schema: { params: IdParams, body: AvailabilityImportBody, response: { '200': AvailabilityImportApplied, '422': Type.Union([AvailabilityImportInvalidResponse, ErrorResponse]), '4xx': ErrorResponse } } })
+
+export const getAdminCampaignsByIdAvailabilityImportTemplate = defineEndpoint({ ...metadata.getAdminCampaignsByIdAvailabilityImportTemplate, schema: { params: IdParams, response: { '4xx': ErrorResponse } } })

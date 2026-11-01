@@ -38,6 +38,10 @@ For each project day and year, this shows how many students need a place, the **
 
 Teachers enter their own availability while activities are being collected ([Availability](/en/lehrkraefte/verfuegbarkeit)). Here you change it for any teacher until the registration is closed; every change is recorded. **Teachers by day as Excel** gives the overview as a spreadsheet ([Excel files](./excel)).
 
+![Availability from a CSV file: the pasted list, followed by the check with each teacher's days, before and new, and the Apply button](/bilder/en/verfuegbarkeit-import.png)
+
+If the school already has the availability in a list, upload it under **Availability from a CSV file**: one row per teacher, named by e-mail address or abbreviation ([Class teachers](/en/verwaltung/klassenvorstaende)), and one column per project day, headed by the date or the weekday (`MO`, `DI`, `MI` or `Mon`, `Tue`, `Wed`). Empty means available, `N` not available, `F` only if necessary. A column `Anmerkung` or `note` becomes the note shown next to the name; a column `Leitung` is skipped; any other column is refused, so that no day is lost unnoticed. The **Template as of today** holds every teacher with address, abbreviation, days and note. **Check** shows each teacher's days before and new; only **Apply** writes, for everyone in the file at once and as one entry in the log. Teachers and days not in the file stay as they are.
+
 ## Publishing the catalogue
 
 **Publish catalogue** closes submissions. The approved activities get their numbers and form the catalogue, which everyone can now see, including students. The name, school year and project days are now fixed.

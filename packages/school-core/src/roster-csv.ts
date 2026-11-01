@@ -61,6 +61,12 @@ export const CSV_PROBLEM_CODES = [
   'malformed_quote',
   /** The file holds no rows. */
   'empty',
+  /** A header the import does not know and must not drop silently (the availability list). */
+  'unknown_column',
+  /** A weekday two of the registration's project days share: the date is needed (the availability list). */
+  'day_ambiguous',
+  /** Two headers naming the same thing, a weekday and its date, say (the availability list). */
+  'duplicate_column',
 ] as const
 export type CsvProblemCode = typeof CSV_PROBLEM_CODES[number]
 

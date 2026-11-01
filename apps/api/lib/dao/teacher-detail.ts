@@ -14,12 +14,12 @@ export interface RosterTeacherByAddress {
   displayName: string
 }
 
-/** The teachers of the roster in force whose mail or UPN is one of `addresses` (lower case), by that address. */
-export async function findTeachersByAddress(db: Queryable, addresses: readonly string[]): Promise<Map<string, RosterTeacherByAddress>> {
+/** The teachers of a roster (`batch`, a SQL fragment: the one in force unless given) whose mail or UPN is one of `addresses` (lower case), by that address. */
+export async function findTeachersByAddress(db: Queryable, addresses: readonly string[], batch: string = CURRENT_BATCH_ID): Promise<Map<string, RosterTeacherByAddress>> {
   const { rows } = await db.query<{ person_id: string, display_name: string, mail: string | null, upn: string | null }>(
     `select e.person_id, e.display_name, lower(e.mail) as mail, lower(e.upn) as upn
        from roster_entry e
-      where e.batch_id = ${CURRENT_BATCH_ID} and e.kind = 'teacher' and e.person_id is not null
+      where e.batch_id = ${batch} and e.kind = 'teacher' and e.person_id is not null
         and (lower(e.mail) = any($1::text[]) or lower(e.upn) = any($1::text[]))`,
     [addresses],
   )
@@ -73,13 +73,21 @@ export interface RosterTeacherAddress {
   shortName: string | null
 }
 
-/** Every teacher of the roster in force with an address, by name, with the abbreviation known. */
-export async function rosterTeacherAddresses(db: Queryable): Promise<RosterTeacherAddress[]> {
+/** Every teacher of a roster (`batch`, a SQL fragment: the one in force unless given) with an address, by name, with the abbreviation known. */
+export async function rosterTeacherAddresses(db: Queryable, batch: string = CURRENT_BATCH_ID): Promise<RosterTeacherAddress[]> {
   const { rows } = await db.query<{ person_id: string, display_name: string, address: string, short_name: string | null }>(
     `select e.person_id, e.display_name, lower(coalesce(e.mail, e.upn)) as address, d.short_name
        from roster_entry e left join teacher_detail d on d.person_id = e.person_id
-      where e.batch_id = ${CURRENT_BATCH_ID} and e.kind = 'teacher' and e.person_id is not null and coalesce(e.mail, e.upn) is not null
+      where e.batch_id = ${batch} and e.kind = 'teacher' and e.person_id is not null and coalesce(e.mail, e.upn) is not null
       order by e.display_name, e.person_id`,
   )
   return rows.map((row) => ({ personId: row.person_id, displayName: row.display_name, address: row.address, shortName: row.short_name }))
+}
+
+/** The persons holding each of the abbreviations given (lower case), with the abbreviation as stored. */
+export async function findByShortName(db: Queryable, shortNames: readonly string[]): Promise<Map<string, { personId: string, shortName: string }>> {
+  const { rows } = await db.query<{ short_name: string, person_id: string }>(
+    'select short_name, person_id from teacher_detail where lower(short_name) = any($1::text[])', [shortNames],
+  )
+  return new Map(rows.map((row) => [row.short_name.toLowerCase(), { personId: row.person_id, shortName: row.short_name }]))
 }

@@ -91,6 +91,8 @@ export const AUDIT_ACTIONS = [
   'attendance.recorded',
   // Planning (campaign scope): an organizer sets a teacher's availability on one of the registration's days.
   'availability.changed',
+  // Planning (campaign scope): an organizer imported an availability list, with the file's hash and the counts.
+  'availability.imported',
   // Retention (school scope): an administrator purged a school year's records, with the reason and the counts.
   'retention.purged',
 ] as const

@@ -49,3 +49,6 @@ export const loadCampaignAvailability = (id: string) => apiRequest(endpoints.get
 export const loadPlanning = (id: string) => apiRequest(endpoints.getAdminCampaignsByIdPlanning, { params: { id } })
 export const setAvailabilityFor = (id: string, personId: string, date: string, status: AvailabilityStatus) => apiRequest(endpoints.putAdminCampaignsByIdAvailabilityByPersonIdByDate, { params: { id, personId, date }, body: { status } })
 export const planningExportPath = (id: string) => endpointPath(endpoints.getAdminCampaignsByIdExportPlanningXlsx, { params: { id } })
+export const previewAvailabilityImport = (id: string, csv: string) => apiRequest(endpoints.postAdminCampaignsByIdAvailabilityImportPreview, { params: { id }, body: { csv } })
+export const applyAvailabilityImport = (id: string, csv: string) => apiRequest(endpoints.postAdminCampaignsByIdAvailabilityImport, { params: { id }, body: { csv } })
+export const availabilityTemplatePath = (id: string) => endpointPath(endpoints.getAdminCampaignsByIdAvailabilityImportTemplate, { params: { id } })

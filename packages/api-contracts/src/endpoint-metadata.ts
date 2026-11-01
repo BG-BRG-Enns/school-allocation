@@ -178,6 +178,12 @@ export const getAdminCampaignsByIdPlanning = { method: 'GET', path: '/api/admin/
 
 export const putAdminCampaignsByIdAvailabilityByPersonIdByDate = { method: 'PUT', path: '/api/admin/campaigns/:id/availability/:personId/:date', transport: 'json' } as const satisfies EndpointMetadata
 
+export const postAdminCampaignsByIdAvailabilityImportPreview = { method: 'POST', path: '/api/admin/campaigns/:id/availability/import/preview', transport: 'json' } as const satisfies EndpointMetadata
+
+export const postAdminCampaignsByIdAvailabilityImport = { method: 'POST', path: '/api/admin/campaigns/:id/availability/import', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getAdminCampaignsByIdAvailabilityImportTemplate = { method: 'GET', path: '/api/admin/campaigns/:id/availability/import/template', transport: 'download' } as const satisfies EndpointMetadata
+
 export const getAdminCampaignsByIdExportPlanningXlsx = { method: 'GET', path: '/api/admin/campaigns/:id/export/planning.xlsx', transport: 'download' } as const satisfies EndpointMetadata
 
 export const getAdminRetention = { method: 'GET', path: '/api/admin/retention', transport: 'json' } as const satisfies EndpointMetadata

@@ -14,4 +14,4 @@ SchulWahl speichert deine Wahl sofort. Einen Grund gibst du nicht an.
 
 Trägt dich jemand bei einer Aktivität als Lehrkraft ein, zeigt das Formular, an welchen ihrer Tage du nicht oder nur wenn nötig verfügbar bist ([Eine Aktivität einreichen](./aktivitaet)). Einreichen lässt sie sich trotzdem; die Organisation entscheidet.
 
-Werden keine Angebote mehr gesammelt, verschwinden die Tage aus deiner Liste. Ändert sich danach etwas, sag es der Organisation: Sie ändert die Verfügbarkeit, bis die Anmeldung abgeschlossen ist.
+Werden keine Angebote mehr gesammelt, verschwinden die Tage aus deiner Liste. Ändert sich danach etwas, sag es der Organisation: Sie ändert die Verfügbarkeit, bis die Anmeldung abgeschlossen ist. Hat die Schule die Verfügbarkeit aller in einer Liste, kann die Organisation sie auch auf einmal einlesen; was du selbst eingetragen hast, wird dabei überschrieben.

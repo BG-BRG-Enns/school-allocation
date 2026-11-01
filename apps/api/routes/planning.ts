@@ -16,6 +16,7 @@ import { schoolWords } from '../lib/i18n.ts'
 import { planningWorkbook } from '../lib/xlsx.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
 import { campaignAvailability, myAvailability, planning, setAvailabilityFor, setMyAvailability } from '../services/planning.ts'
+import { applyAvailabilityImport, availabilityTemplate, previewAvailabilityImport } from '../services/availability-import.ts'
 
 export interface PlanningRoutesOptions {
   db: Database
@@ -26,6 +27,8 @@ export async function planningRoutes(app: FastifyInstance, { db, guards }: Plann
   const signedIn = { preHandler: guards.requireSession }
   const organizer = { preHandler: guards.requireRole('campaign_organizer', 'school_admin') }
   const reader = { preHandler: guards.requireRole('campaign_organizer', 'school_admin', 'read_only_auditor') }
+  /** The JSON around a CSV of CSV_LIMITS.rows rows of long fields. */
+  const csvBodyLimit = 12 * 1024 * 1024
 
   registerEndpoint(app, endpoints.getMyAvailability, { ...signedIn }, async (request) => {
     return myAvailability(db, callerOf(request))
@@ -57,5 +60,23 @@ export async function planningRoutes(app: FastifyInstance, { db, guards }: Plann
       .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
       .header('content-disposition', `attachment; filename="${words.t.files.planning(campaign.schoolYear.replace('/', '-'))}"`)
       .send(bytes)
+  })
+
+  // The availability list: read against the registration's days, shown as what it would change, applied in one go; the
+  // template is today's state.
+  registerEndpoint(app, endpoints.postAdminCampaignsByIdAvailabilityImportPreview, { ...organizer, bodyLimit: csvBodyLimit }, async (request) => {
+    return previewAvailabilityImport(db, request.params.id, request.body.csv)
+  })
+
+  registerEndpoint(app, endpoints.postAdminCampaignsByIdAvailabilityImport, { ...organizer, bodyLimit: csvBodyLimit }, async (request) => {
+    return applyAvailabilityImport(db, request.params.id, request.body.csv, actorOf(callerOf(request)))
+  })
+
+  registerEndpoint(app, endpoints.getAdminCampaignsByIdAvailabilityImportTemplate, { ...organizer, exposeHeadRoute: false }, async (request, reply) => {
+    const { t } = await schoolWords(db)
+    return reply
+      .header('content-type', 'text/csv; charset=utf-8')
+      .header('content-disposition', `attachment; filename="${t.files.availabilityTemplate}"`)
+      .send(await availabilityTemplate(db, request.params.id))
   })
 }
