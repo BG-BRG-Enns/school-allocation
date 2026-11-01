@@ -34,6 +34,8 @@ For each project day and year, this shows how many students need a place, the **
 
 **Teachers by day** in the Organisation section shows, for each teacher and project day, whether they are available, what they lead and what they accompany, or that they are free. A day on which someone is unavailable or available only if needed is marked. Above it, it names who leads nothing on any day. It counts the activities that can still take place: approved ones, unless the allocation cancels them; submitted ones until registration opens; drafts while activities are being collected.
 
+![Teachers by day: for each teacher and project day the availability and what they lead or accompany](/bilder/en/lehrkraefte-je-tag.png)
+
 Teachers enter their own availability while activities are being collected ([Availability](/en/lehrkraefte/verfuegbarkeit)). Here you change it for any teacher until the registration is closed; every change is recorded. **Teachers by day as Excel** gives the overview as a spreadsheet ([Excel files](./excel)).
 
 ## Publishing the catalogue

@@ -69,6 +69,7 @@ test('eine Lehrkraft trägt ein, an welchen Projekttagen sie da ist', async ({ p
   await expect(page.getByText(t.availability.saved)).toBeVisible()
   await page.reload()
   await expect(page.getByLabel(t.availability.statusOn(day('2034-07-04')))).toHaveValue('unavailable')
+  await picture(page, 'verfuegbarkeit', page.locator('main'))
   await signOut(page)
 })
 
@@ -139,6 +140,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(page.getByText(t.planning.saved)).toBeVisible()
   await expect(tuesday).toHaveValue('if_needed')
   await expect(page.getByRole('link', { name: t.planning.export })).toBeVisible()
+  await picture(page, 'lehrkraefte-je-tag', page.locator('main'))
   await page.getByRole('link', { name: `← ${t.common.backToCampaign}` }).click()
   await page.getByRole('button', { name: t.campaign.organization.publish }).click()
   await expect(page.getByText(t.labels.campaignState.published)).toBeVisible()

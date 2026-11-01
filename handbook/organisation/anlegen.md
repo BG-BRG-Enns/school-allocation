@@ -34,6 +34,8 @@ Je Projekttag und Schulstufe steht hier, wie viele Schüler\*innen einen Platz b
 
 **Lehrkräfte je Tag** im Abschnitt Organisation zeigt für jede Lehrkraft und jeden Projekttag, ob sie verfügbar ist, was sie leitet und was sie begleitet, oder dass sie frei ist. Ein Tag, an dem jemand nicht oder nur wenn nötig verfügbar ist, ist markiert. Darüber steht, wer an keinem Tag etwas leitet. Es zählen die Aktivitäten, die noch stattfinden können: genehmigte, außer die Einteilung sagt sie ab; eingereichte, bis die Anmeldung öffnet; Entwürfe, solange Angebote gesammelt werden.
 
+![Lehrkräfte je Tag: je Lehrkraft und Projekttag die Verfügbarkeit und was sie leitet oder begleitet](/bilder/de/lehrkraefte-je-tag.png)
+
 Ihre Verfügbarkeit tragen die Lehrkräfte selbst ein, solange Angebote gesammelt werden ([Verfügbarkeit](/lehrkraefte/verfuegbarkeit)). Hier änderst du sie für jede Lehrkraft, bis die Anmeldung abgeschlossen ist; jede Änderung wird festgehalten. **Lehrkräfte je Tag als Excel** liefert die Übersicht als Tabelle ([Excel-Dateien](./excel)).
 
 ## Den Katalog veröffentlichen

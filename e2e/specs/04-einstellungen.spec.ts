@@ -144,6 +144,7 @@ test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag
   for (const grade of sport.grades) {
     if (!careers.grades.includes(grade)) await second.getByLabel(t.common.gradeOrdinal(grade)).uncheck()
   }
+  await picture(page, 'regeln', [rule, second])
   await form.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.common.saved)
   await expect(page.getByText(`${t.campaign.window.opens(dayTime('2034-03-06T08:00'), dayTime('2034-03-12T20:00'))}, ${t.campaign.window.late(dayTime('2034-03-19T20:00'))} · ${t.campaign.window.wishes(3)}`)).toBeVisible()
@@ -157,5 +158,11 @@ test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag
   await expect(page.getByRole('row', { name: new RegExp(literally(asksCareers)) })).toHaveCount(careers.grades.length)
   await expect(page.getByRole('row', { name: new RegExp(literally(asksCareers)) })).toContainText('7.')
   await expect(page.getByRole('row').filter({ hasText: t.campaign.demand.ruleShort })).toHaveCount(0)
+  // The school's categories, now each used by activities and Sport by a rule: the scenario's sport activities and the climbing (03-katalog).
+  await page.getByRole('link', { name: t.common.page.categories }).click()
+  await expect(page.getByRole('heading', { name: t.common.page.categories })).toBeVisible()
+  const sports = SCHOOL.items.filter((i) => i.categories.includes(sample.sport)).length + 1
+  await expect(page.getByRole('row').filter({ hasText: sample.sport })).toContainText(t.categories.usage(sports, 1))
+  await picture(page, 'kategorien', page.locator('main'))
   await signOut(page)
 })

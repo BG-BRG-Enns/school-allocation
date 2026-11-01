@@ -10,6 +10,8 @@ Für jeden Projekttag wählst du:
 
 SchulWahl speichert deine Wahl sofort. Einen Grund gibst du nicht an.
 
+![Meine Verfügbarkeit: je Projekttag eine Auswahl, hier am Dienstag nicht verfügbar](/bilder/de/verfuegbarkeit.png)
+
 Trägt dich jemand bei einer Aktivität als Lehrkraft ein, zeigt das Formular, an welchen ihrer Tage du nicht oder nur wenn nötig verfügbar bist ([Eine Aktivität einreichen](./aktivitaet)). Einreichen lässt sie sich trotzdem; die Organisation entscheidet.
 
 Werden keine Angebote mehr gesammelt, verschwinden die Tage aus deiner Liste. Ändert sich danach etwas, sag es der Organisation: Sie ändert die Verfügbarkeit, bis die Anmeldung abgeschlossen ist.
