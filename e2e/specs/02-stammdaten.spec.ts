@@ -1,7 +1,11 @@
 // Klassenlisten: die Administratorin liest die Klassenlisten ein, aus einer
 // CSV-Datei und aus den Entra-Gruppen, prüft die Änderungen und übernimmt
 // sie; wer in der Liste steht, ist nach dem Einloggen zugeordnet, wer nicht,
-// wird von der Administratorin zugeordnet; Rollen werden erteilt.
+// wird von der Administratorin zugeordnet; Rollen werden erteilt. Die
+// Entra-Gruppen sind die der ganzen Schule (e2e/support/scenario.ts): die
+// Journey benennt die 5A und die Lehrkräfte, die anderen Klassen benennt
+// der Stand-in, und danach die Klassenvorstände und die Organisation der
+// Projekttage.
 
 import { expect, test } from '../support/test.ts'
 import { ANNA, BERND, CARLA, SARA, TIM } from '../support/personas.ts'
@@ -9,6 +13,7 @@ import { picture, section, shot } from '../support/screenshot.ts'
 import { sample } from '../support/sample.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
 import { t } from '../support/messages.ts'
+import { loadStage, PEOPLE } from '../support/scenario.ts'
 import { CLASS_5A_GROUP, TEACHERS_GROUP } from '../../apps/api/test/helpers/fake-graph.ts'
 
 test.describe.configure({ mode: 'serial' })
@@ -128,14 +133,16 @@ test('die Administratorin liest die Klassenlisten aus den Entra-Gruppen mit ihre
   await expect(page.getByRole('status')).toHaveText(t.roster.groups.saved)
   await shot(page, '11-entra-gruppen')
   await picture(page, 'entra-gruppen', section(page, t.roster.groups.title))
+  // The school's other classes, labelled alike.
+  await loadStage(page, 'groups')
 
   await page.getByRole('link', { name: t.roster.refresh.start }).click()
   await expect(page.getByRole('heading', { name: 'Anmeldung (Test)' })).toBeVisible()
   await page.getByRole('button', { name: ANNA.name }).click()
   await expect(page.getByRole('heading', { name: t.rosterImport.title })).toBeVisible()
   await expect(page).toHaveURL(/\/verwaltung\/stammdaten\/import\/[0-9a-f-]+$/)
-  // Tim is new; Carla's list entry carried another address, so her group member is new too and the old entry goes.
-  await expect(page.getByText(t.rosterImport.changes.summary({ added: 2, removed: 1, changed: 0, unchanged: 3 }))).toBeVisible()
+  // Sara, Anna and Bernd are as the list had them; everyone else is new, Carla too: her list entry carried another address, and the old entry goes.
+  await expect(page.getByText(t.rosterImport.changes.summary({ added: PEOPLE - 3, removed: 1, changed: 0, unchanged: 3 }))).toBeVisible()
   await expect(page.getByRole('row', { name: new RegExp(TIM.name) })).toBeVisible()
   await shot(page, '12-import-entra')
   await picture(page, 'import-pruefen', page.locator('main'))
@@ -147,4 +154,6 @@ test('die Administratorin liest die Klassenlisten aus den Entra-Gruppen mit ihre
   await openAs(page, TIM, '/konto')
   await expect(page.getByText(t.account.student(t.labels.kind.student, '5A', 9))).toBeVisible()
   await signOut(page)
+  // The class teachers of the other classes, and the organizer of the school's project days.
+  await loadStage(page, 'staff')
 })

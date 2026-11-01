@@ -1,7 +1,11 @@
 // Die Einstellungen der Schule und der Anmeldung: die Sprache, das Stundenraster, die
 // Klassenvorstände (die ihre Klasse in der Anmeldung sehen), die Gruppensuche
 // bei Microsoft für die Klassenlisten, der Anmeldezeitraum und der Bedarf je
-// Tag und Schulstufe. Baut auf 02-stammdaten und 03-katalog auf.
+// Tag und Schulstufe. Baut auf 02-stammdaten und 03-katalog auf: die
+// Schule hat 25 Klassen, deren Klassenvorstände bis auf den der 5A
+// zugeordnet sind, und die Projektwoche ihre Aktivitäten. Der
+// Anmeldezeitraum und die Regeln sind die der Schule
+// (e2e/support/scenario.ts).
 
 import { htmlLang } from '../../packages/messages/src/index.ts'
 import { expect, test } from '../support/test.ts'
@@ -11,6 +15,8 @@ import { picture, section, shot } from '../support/screenshot.ts'
 import { sample } from '../support/sample.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
 import { day, dayTime, literally, LOCALE, t } from '../support/messages.ts'
+import { classSize, demandOf, SCHOOL } from '../support/scenario.ts'
+import { MONDAY } from '../scenario/school.ts'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -67,7 +73,7 @@ test('die Administration ordnet einen Klassenvorstand zu, der seine Klasse in de
   await page.getByRole('link', { name: sample.projectWeek }).click()
   await page.getByRole('link', { name: t.campaign.myClass('5A') }).click()
   await expect(page.getByRole('heading', { name: t.schoolClass.title('5A') })).toBeVisible()
-  await expect(page.getByRole('heading', { name: t.schoolClass.students(2) })).toBeVisible()
+  await expect(page.getByRole('heading', { name: t.schoolClass.students(classSize('5A')) })).toBeVisible()
   await expect(page.getByText(SARA.name)).toBeVisible()
   await expect(page.getByText(TIM.name)).toBeVisible()
   await shot(page, '21-meine-klasse')
@@ -81,22 +87,26 @@ test('die Administration findet eine Entra-Gruppe über die Suche bei Microsoft'
   await expect(page.getByRole('heading', { name: 'Anmeldung (Test)' })).toBeVisible()
   await page.getByRole('button', { name: ANNA.name }).click()
   await expect(page.getByRole('heading', { name: t.roster.picker.title })).toBeVisible()
-  await page.getByLabel(t.roster.picker.query).fill('Klasse 6')
-  await page.getByRole('button', { name: t.roster.picker.take('Klasse 6A') }).click()
-  await expect(page.getByLabel(t.roster.groups.fieldOf(t.roster.groups.id, 'Klasse 6A'))).toHaveValue('33333333-3333-4333-8333-333333333333')
-  await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.className, 'Klasse 6A'))).toHaveValue('6A')
-  await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.grade, 'Klasse 6A'))).toHaveValue('10')
+  // The groups of the 8th classes, who leave in May, are the ones nobody has labelled: the search finds them, and the form takes one in.
+  const leaver = SCHOOL.leavers.find((c) => c.name === '8A')
+  await page.getByLabel(t.roster.picker.query).fill('Klasse 8')
+  await page.getByRole('button', { name: t.roster.picker.take('Klasse 8A') }).click()
+  await expect(page.getByLabel(t.roster.groups.fieldOf(t.roster.groups.id, 'Klasse 8A'))).toHaveValue(leaver?.groupId ?? '')
+  await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.className, 'Klasse 8A'))).toHaveValue('8A')
+  await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.grade, 'Klasse 8A'))).toHaveValue('12')
   // All the groups named after a class at once, class and Schulstufe filled in.
   await page.getByRole('button', { name: t.roster.picker.allClasses }).click()
   await expect(page.getByRole('button', { name: t.roster.picker.take('7B') })).toBeVisible()
   await shot(page, '22-gruppen-suchen')
   await picture(page, 'gruppen-suchen', page.locator('.panel', { has: page.getByRole('heading', { name: t.roster.picker.title }) }))
   await page.getByRole('button', { name: t.roster.picker.takeAll(2) }).click()
-  await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.className, '7B'))).toHaveValue('7B')
-  await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.grade, '7B'))).toHaveValue('11')
-  await expect(page.getByLabel(t.roster.groups.fieldOf(t.roster.groups.id, '8C'))).toHaveValue('55555555-5555-4555-8555-555555555555')
-  await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.grade, '8C'))).toHaveValue('12')
+  // Exactly: "Klasse 7B" is a group the school labelled long ago, too.
+  await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.className, '7B'), { exact: true })).toHaveValue('7B')
+  await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.grade, '7B'), { exact: true })).toHaveValue('11')
+  await expect(page.getByLabel(t.roster.groups.fieldOf(t.roster.groups.id, '8C'), { exact: true })).toHaveValue('55555555-5555-4555-8555-555555555555')
+  await expect(page.getByLabel(t.roster.groups.fieldOf(t.common.field.grade, '8C'), { exact: true })).toHaveValue('12')
   await expect(page.getByRole('button', { name: t.roster.picker.allClasses })).toBeVisible()
+  // Left unsaved: the leavers stay out of the roster.
   await signOut(page)
 })
 
@@ -104,33 +114,48 @@ test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
   await expect(page.getByRole('heading', { name: t.campaign.demand.heading })).toBeVisible()
-  await expect(page.getByRole('row', { name: new RegExp(literally(day('2034-07-03'))) })).toContainText(t.campaign.demand.cell(2, 3, 12))
+  await expect(page.getByRole('row', { name: new RegExp(literally(day(MONDAY))) })).toContainText(t.campaign.demand.cell(...demandOf(MONDAY, 9)))
   await picture(page, 'bedarf', section(page, t.campaign.demand.heading))
   await page.getByRole('button', { name: t.campaign.organization.editSettings }).click()
   const form = page.getByRole('form', { name: t.campaign.settings.label })
   await expect(form.getByLabel(t.campaign.settings.name, { exact: true })).toBeDisabled()
   await form.getByLabel(t.campaign.settings.opens, { exact: true }).fill('2034-03-06T08:00')
-  await form.getByLabel(t.campaign.settings.closes, { exact: true }).fill('2034-03-13T20:00')
-  await form.getByLabel(t.campaign.settings.lateUntil).fill('2034-03-17T20:00')
-  await form.getByLabel(t.campaign.settings.wishesPerGroup).fill('3')
-  await form.getByLabel(t.campaign.settings.dailyMinimum(9)).fill('240')
+  await form.getByLabel(t.campaign.settings.closes, { exact: true }).fill('2034-03-12T20:00')
+  await form.getByLabel(t.campaign.settings.lateUntil).fill('2034-03-19T20:00')
+  await form.getByLabel(t.campaign.settings.wishesPerGroup).fill(String(SCHOOL.campaign.wishesPerGroup))
+  // The minutes a day: 100 for the lower school, 200 from the 9th grade on.
+  for (const [grade, minutes] of Object.entries(SCHOOL.campaign.dailyMinimum)) await form.getByLabel(t.campaign.settings.dailyMinimum(Number(grade))).fill(String(minutes))
   await shot(page, '23-wahlfenster')
   await picture(page, 'einstellungen', form)
-  // A rule: every student of the 9th grade at least one sport activity, the form's defaults but for the category.
+  // Two rules: every student at least one sport activity, the form's defaults but for the category; the 7th grade 200 minutes of careers guidance.
+  const [sport, careers] = SCHOOL.campaign.rules
+  if (!sport || !careers || sport.category !== sample.sport) throw new Error('the scenario\'s rules are sport and careers guidance')
   await form.getByRole('button', { name: t.campaign.rulesEditor.add }).click()
   const rule = form.getByRole('group', { name: t.campaign.rulesEditor.rule(1) })
   await expect(rule.getByLabel(t.rules.category)).toHaveValue(/.+/)
   await rule.getByLabel(t.rules.category).selectOption({ label: sample.sport })
-  await expect(rule.getByLabel(t.common.gradeOrdinal(9))).toBeChecked()
+  for (const grade of sport.grades) await expect(rule.getByLabel(t.common.gradeOrdinal(grade))).toBeChecked()
   await expect(rule.getByLabel(t.campaign.rulesEditor.minimum)).toHaveValue('1')
+  await form.getByRole('button', { name: t.campaign.rulesEditor.add }).click()
+  const second = form.getByRole('group', { name: t.campaign.rulesEditor.rule(2) })
+  await second.getByLabel(t.rules.category).selectOption({ label: careers.category })
+  await second.getByLabel(t.campaign.rulesEditor.unit).selectOption(careers.unit)
+  await second.getByLabel(t.campaign.rulesEditor.minimum).fill(String(careers.minimum))
+  for (const grade of sport.grades) {
+    if (!careers.grades.includes(grade)) await second.getByLabel(t.common.gradeOrdinal(grade)).uncheck()
+  }
   await form.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.common.saved)
-  await expect(page.getByText(`${t.campaign.window.opens(dayTime('2034-03-06T08:00'), dayTime('2034-03-13T20:00'))}, ${t.campaign.window.late(dayTime('2034-03-17T20:00'))} · ${t.campaign.window.wishes(3)}`)).toBeVisible()
+  await expect(page.getByText(`${t.campaign.window.opens(dayTime('2034-03-06T08:00'), dayTime('2034-03-12T20:00'))}, ${t.campaign.window.late(dayTime('2034-03-19T20:00'))} · ${t.campaign.window.wishes(3)}`)).toBeVisible()
   const asks = t.rules.asks(sample.sport, 1, 'items')
-  await expect(section(page, t.campaign.organization.heading)).toContainText(`${asks} · ${t.rules.scope([9], [])}`)
-  // The demand per rule: both students need one sport activity, climbing's places could bring it to both.
+  const asksCareers = t.rules.asks(careers.category, careers.minimum, careers.unit)
+  await expect(section(page, t.campaign.organization.heading)).toContainText(`${asks} · ${t.rules.scope(sport.grades, [])}`)
+  await expect(section(page, t.campaign.organization.heading)).toContainText(`${asksCareers} · ${t.rules.scope(careers.grades, [])}`)
+  // The demand per rule, a row for each grade it asks of: what the grade needs against what the catalogue offers it, which suffices.
   await expect(page.getByText(t.campaign.demand.rulesIntro)).toBeVisible()
-  await expect(page.getByRole('row', { name: new RegExp(literally(asks)) })).toContainText('9.')
-  await expect(page.getByRole('row', { name: new RegExp(literally(asks)) })).not.toContainText(t.campaign.demand.ruleShort)
+  await expect(page.getByRole('row', { name: new RegExp(literally(asks)) })).toHaveCount(sport.grades.length)
+  await expect(page.getByRole('row', { name: new RegExp(literally(asksCareers)) })).toHaveCount(careers.grades.length)
+  await expect(page.getByRole('row', { name: new RegExp(literally(asksCareers)) })).toContainText('7.')
+  await expect(page.getByRole('row').filter({ hasText: t.campaign.demand.ruleShort })).toHaveCount(0)
   await signOut(page)
 })
