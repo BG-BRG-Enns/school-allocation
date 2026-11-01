@@ -1,36 +1,35 @@
 name: Handbook
 
 # The handbooks (handbook/), built and published to GitHub Pages from a
-# release: a v<major>.<minor>.<patch> tag, or by hand on such a tag. So
-# they describe what schools run, not main. The site builds from the
-# pictures committed in handbook/public/bilder, which `npm run
-# handbook:shots` renews in a pull request (none are committed yet, so
-# until they are, this build fails); no database, browser or journey
-# runs here. A dead link or a missing picture fails the build,
+# release: called by publish-image.yml once the release's images are out
+# (a v<major>.<minor>.<patch> tag on main), or run by hand on such a tag
+# for a handbook-only republish. So they describe what schools run, not
+# main, and never a release whose images did not come out. The site
+# builds from the pictures committed in handbook/public/bilder, which
+# `npm run handbook:shots` renews in a pull request; no database, browser
+# or journey runs here. A dead link or a missing picture fails the build,
 # which then publishes nothing and leaves the previous handbook online.
 # Pull requests build nothing: `npm run handbook` runs before a handbook
 # change, and scripts/handbook.test.mjs, part of the tests, keeps the
 # pages and pictures whole.
 
 'on':
+  workflow_call: {}
   workflow_dispatch: {}
-  push:
-    tags:
-      - 'v[0-9]*'
 
 permissions:
   contents: read
-
-# One publication at a time; a newer tag waits for the one before.
-concurrency:
-  group: handbook
-  cancel-in-progress: false
 
 jobs:
   build:
     name: Build the handbook
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # One publication at a time; a newer tag waits for the one before (on the jobs: a called workflow has no
+    # concurrency of its own at the top).
+    concurrency:
+      group: handbook-build
+      cancel-in-progress: false
     steps:
       # Only a release tag, as the images: a run on a branch would publish
       # an unreleased handbook.
@@ -88,6 +87,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: handbook
+      cancel-in-progress: false
     permissions:
       pages: write
       id-token: write
