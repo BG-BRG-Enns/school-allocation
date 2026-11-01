@@ -115,6 +115,10 @@ test('a run is published with its cancellations confirmed: results, notices once
   // Sara is removed from it as a change by hand with the withdrawal's reason, told; the result, the participants and the
   // class page agree that it does not take place, and Monday is a gap with what would fill it.
   await owner.query('update catalog_item set fee_cents = 500 where id = $1', [s.items.wien])
+  // Tim ranked nothing; the solver fills his Monday with Tanz or with Klettern, and the test takes it as it comes.
+  const inTanz = (await get<ParticipantsResponse>(s, s.anna, `/api/campaigns/${id}/items/${s.items.tanz}/participants`)).body.participants.map((p) => p.personId)
+  const timInTanz = inTanz.includes(s.timPerson)
+  assert.ok(inTanz.includes(s.saraPerson))
   const withdrawn = await send<{ error?: string }>(s, s.anna, 'POST', `/api/admin/items/${s.items.tanz}/withdraw`, { reason: 'Tanzsaal gesperrt' })
   assert.equal(withdrawn.status, 200, JSON.stringify(withdrawn.body))
   const after = await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)
@@ -125,9 +129,9 @@ test('a run is published with its cancellations confirmed: results, notices once
   assert.deepEqual(after.body.changes.map((c) => [c.kind, c.leftItemIds, c.toItemId]), [['remove', [s.items.tanz], null]])
   assert.deepEqual(after.body.explanation.days.map((d) => [d.date, d.deficit]), [['2027-06-21', 200], ['2027-06-22', 0]])
   assert.deepEqual((await get<ParticipantsResponse>(s, s.anna, `/api/campaigns/${id}/items/${s.items.tanz}/participants`)).body.participants, [])
-  // Tim was in Tanz too (the solver filled his Monday): both are told, once each.
+  // Everyone who was in Tanz is told, once each.
   const removal = (await owner.query<{ to_address: string, body: string }>('select to_address, body from outbox_mail where campaign_id = $1 and kind = \'assignment_changed\' order by to_address', [id])).rows
-  assert.deepEqual(removal.map((m) => m.to_address), [SARA.email, TIM.email].sort())
+  assert.deepEqual(removal.map((m) => m.to_address), (timInTanz ? [SARA.email, TIM.email] : [SARA.email]).sort())
   assert.match(removal[0]?.body ?? '', /nicht mehr .*Tanz/)
   assert.doesNotMatch(removal[0]?.body ?? '', /Tanzsaal gesperrt/, 'the reason stays with the organizer')
 
@@ -138,7 +142,7 @@ test('a run is published with its cancellations confirmed: results, notices once
   assert.deepEqual([saraPlaced?.items.map((i) => i.title), saraPlaced?.deficit], [['Wien'], 200])
   assert.ok(saraPlaced?.offers.some((o) => o.title === 'Klettern'), `Klettern fills Monday: ${JSON.stringify(saraPlaced?.offers)}`)
   const timPlaced = status.body.students.find((st) => st.displayName === TIM.name)?.placement
-  assert.deepEqual([timPlaced?.items.map((i) => i.title), timPlaced?.deficit], [['Wien'], 200], 'Tim too')
+  assert.deepEqual([timPlaced?.items.map((i) => i.title).sort(), timPlaced?.deficit], timInTanz ? [['Wien'], 200] : [['Klettern', 'Wien'], 0], 'Tim as the solver placed him, less Tanz')
 
   // A class activity withdrawn after publication removes the class's rows too (nothing protects a cancelled trip), and Tuesday is everyone's gap.
   assert.equal((await send<{ error?: string }>(s, s.anna, 'POST', `/api/admin/items/${s.items.wien}/withdraw`, { reason: 'Bus ausgefallen' })).status, 200)
@@ -156,10 +160,10 @@ test('a run is published with its cancellations confirmed: results, notices once
   const actions = events.map((e) => e.action)
   assert.ok(actions.includes('run.published'))
   assert.deepEqual(events.filter((e) => e.action === 'item.withdrawn').map((e) => e.metadata), [
-    { itemId: s.items.tanz, from: 'approved', reason: 'Tanzsaal gesperrt', removed: 2 },
+    { itemId: s.items.tanz, from: 'approved', reason: 'Tanzsaal gesperrt', removed: inTanz.length },
     { itemId: s.items.wien, from: 'approved', reason: 'Bus ausgefallen', removed: 2 },
   ])
-  assert.equal(events.filter((e) => e.action === 'assignment.changed' && e.metadata.withdrawn === true).length, 4)
+  assert.equal(events.filter((e) => e.action === 'assignment.changed' && e.metadata.withdrawn === true).length, inTanz.length + 2)
   assert.equal(actions.filter((a) => a === 'campaign.transitioned').at(-1), 'campaign.transitioned')
 })
 
