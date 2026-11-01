@@ -27,6 +27,8 @@ export interface RosterClass {
 export interface RosterTeacher {
   personId: string
   displayName: string
+  /** The abbreviation the school knows the teacher by, once imported. */
+  shortName: string | null
 }
 
 export const CAMPAIGN_KINDS = ['project_week', 'wpf'] as const

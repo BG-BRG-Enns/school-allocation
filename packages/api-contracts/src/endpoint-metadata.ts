@@ -155,6 +155,12 @@ export const getAdminClassesTeachers = { method: 'GET', path: '/api/admin/classe
 
 export const putAdminClassesByClassNameTeachers = { method: 'PUT', path: '/api/admin/classes/:className/teachers', transport: 'json' } as const satisfies EndpointMetadata
 
+export const postAdminClassesImportPreview = { method: 'POST', path: '/api/admin/classes/import/preview', transport: 'json' } as const satisfies EndpointMetadata
+
+export const postAdminClassesImport = { method: 'POST', path: '/api/admin/classes/import', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getAdminClassesImportTemplate = { method: 'GET', path: '/api/admin/classes/import/template', transport: 'download' } as const satisfies EndpointMetadata
+
 export const getCampaignsByIdMyChoice = { method: 'GET', path: '/api/campaigns/:id/my-choice', transport: 'json' } as const satisfies EndpointMetadata
 
 export const putCampaignsByIdMyChoice = { method: 'PUT', path: '/api/campaigns/:id/my-choice', transport: 'json' } as const satisfies EndpointMetadata

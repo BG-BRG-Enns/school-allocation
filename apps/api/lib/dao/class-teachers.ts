@@ -26,15 +26,16 @@ export async function listClasses(db: Queryable): Promise<ClassWithTeachers[]> {
          from roster_entry e where e.batch_id = ${CURRENT_BATCH_ID} and e.kind = 'student' and e.class_name is not null and e.grade is not null
         group by e.class_name, e.grade),
      teachers as (
-       select e.person_id, e.display_name, lower(e.mail) as mail, lower(e.upn) as upn
-         from roster_entry e where e.batch_id = ${CURRENT_BATCH_ID} and e.kind = 'teacher' and e.person_id is not null)
+       select e.person_id, e.display_name, d.short_name, lower(e.mail) as mail, lower(e.upn) as upn
+         from roster_entry e left join teacher_detail d on d.person_id = e.person_id
+        where e.batch_id = ${CURRENT_BATCH_ID} and e.kind = 'teacher' and e.person_id is not null)
      select s.class_name, s.grade, s.students::text as students,
-            coalesce((select json_agg(json_build_object('personId', t.person_id, 'displayName', t.display_name, 'source', t.source) order by t.display_name)
-                        from (select a.person_id, t.display_name, 'app' as source
+            coalesce((select json_agg(json_build_object('personId', t.person_id, 'displayName', t.display_name, 'shortName', t.short_name, 'source', t.source) order by t.display_name)
+                        from (select a.person_id, t.display_name, t.short_name, 'app' as source
                                 from class_teacher a join teachers t on t.person_id = a.person_id
                                where a.school_year = $1 and a.class_name = s.class_name and a.revoked_at is null
                               union
-                              select t.person_id, t.display_name, 'roster' as source
+                              select t.person_id, t.display_name, t.short_name, 'roster' as source
                                 from teachers t
                                where t.mail = any(s.kv_mails) or t.upn = any(s.kv_mails)) t), '[]') as teachers
        from students s

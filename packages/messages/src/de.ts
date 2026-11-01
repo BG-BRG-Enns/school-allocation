@@ -162,6 +162,27 @@ export const de = {
       rejected: 'Abgelehnt',
     },
     /** Why a batch or a row was refused (school-core ROSTER_PROBLEM_CODES). */
+    /** Why a row of a teacher list is not applied (api-contracts TEACHER_LIST_PROBLEM_CODES). */
+    teacherListProblem: {
+      email_invalid: 'Keine E-Mail-Adresse',
+      short_name_invalid: 'Kein Kürzel: bis zu 8 Buchstaben oder Ziffern, Punkt oder Bindestrich',
+      short_name_inconsistent: 'Zwei Kürzel für dieselbe Lehrkraft',
+      short_name_taken: 'Dasselbe Kürzel für zwei Lehrkräfte',
+      short_name_held: 'Dieses Kürzel hat schon eine andere Lehrkraft',
+      class_invalid: 'Kein gültiger Klassenname',
+      teacher_unknown: 'Keine Lehrkraft der Klassenlisten mit dieser Adresse',
+      class_unknown: 'Diese Klasse gibt es in den Klassenlisten nicht',
+    },
+    /** What is wrong with a CSV file as a whole (school-core CSV_PROBLEM_CODES). */
+    csvFileProblem: {
+      no_header: 'Keine Kopfzeile mit den erwarteten Spalten',
+      missing_column: 'Eine Spalte fehlt',
+      field_count: 'Eine Zeile hat mehr oder weniger Felder als die Kopfzeile',
+      field_too_long: 'Ein Feld ist zu lang',
+      too_many_rows: 'Zu viele Zeilen',
+      malformed_quote: 'Ein Anführungszeichen schließt nicht',
+      empty: 'Die Datei hat keine Zeilen',
+    },
     rosterProblem: {
       empty_roster: 'Die Liste enthält niemanden',
       no_key: 'Weder Objekt-ID noch E-Mail-Adresse',
@@ -427,6 +448,7 @@ export const de = {
     request_failed: 'Das hat nicht geklappt. Bitte versuch es noch einmal.',
     // The roster
     csv_invalid: 'Die Datei ist keine Klassenliste im erwarteten Format. Bitte nimm die Vorlage.',
+    csv_file_invalid: 'Die CSV-Datei lässt sich so nicht lesen; die Prüfung sagt, woran es liegt.',
     invalid_school_year: 'Das Schuljahr wird als 2026/27 geschrieben.',
     batch_not_pending: 'Über diesen Import wurde schon entschieden.',
     batch_superseded: 'Seit diesem Import wurde ein anderer übernommen. Bitte lies die Klassenlisten noch einmal ein.',
@@ -465,6 +487,7 @@ export const de = {
     no_roster: 'Es gibt noch keine Klassenlisten.',
     class_unknown: 'Diese Klasse gibt es in den Klassenlisten nicht.',
     teacher_unknown: 'Eine Lehrkraft steht nicht in den Klassenlisten.',
+    teacher_list_invalid: 'Die Liste lässt sich so nicht übernehmen; die Zeilen mit Problemen stehen in der Prüfung.',
     graph_not_authorized: 'Für die Gruppensuche musst du dich bei Microsoft einloggen.',
     graph_forbidden: 'Microsoft Graph verweigert das Lesen der Gruppen. Fehlt die Berechtigung oder die Zustimmung der IT?',
     graph_failed: 'Microsoft Graph hat nicht geantwortet. Bitte später noch einmal versuchen.',
@@ -1263,6 +1286,28 @@ export const de = {
     removeTeacher: (name: string) => `${name} entfernen`,
     addTeacher: 'Lehrkraft hinzufügen',
     addPerson: (name: string) => `${name} hinzufügen`,
+    /** The import of a teacher list on the class-teachers page. */
+    csv: {
+      title: 'Aus einer CSV-Datei',
+      intro: 'Eine Zeile je Lehrkraft: die E-Mail-Adresse, das Kürzel und die Klasse, deren Klassenvorstand sie ist (bei zwei Klassen zwei Zeilen). Eine Liste aus dem Schulverwaltungsprogramm mit den Spalten „Address Email“, „Name“ und „Kv Von“ wird genauso gelesen; andere Spalten lässt der Import aus. Für jede Klasse, die in der Datei steht, gelten danach genau ihre Klassenvorstände aus der Datei; was die Klassenliste nennt, bleibt daneben.',
+      template: 'Vorlage mit dem Stand von heute',
+      file: 'Datei',
+      paste: 'oder den Inhalt hier einfügen',
+      check: 'Prüfen',
+      apply: 'Übernehmen',
+      ignored: (columns: string) => `Nicht gelesen: ${columns}`,
+      problems: 'Diese Zeilen werden nicht übernommen:',
+      fileProblems: 'Die Datei lässt sich nicht lesen:',
+      line: (line: number) => `Zeile ${line}`,
+      shortNames: 'Kürzel',
+      classes: 'Klassenvorstände',
+      before: 'bisher',
+      after: 'neu',
+      none: '–',
+      nothing: 'Die Datei ändert nichts.',
+      withShortName: (name: string, shortName: string) => `${name} (${shortName})`,
+      applied: (shortNames: number, classes: number) => `Übernommen: ${shortNames} Kürzel, ${classes} Klassen geändert.`,
+    },
   },
 
   /** Zeiten.vue: the school's period grid. */
@@ -1469,6 +1514,7 @@ export const de = {
     classAttendance: (className: string, schoolYear: string) => `anwesenheit-${className}-${schoolYear}.xlsx`,
     planning: (schoolYear: string) => `lehrkraefte-${schoolYear}.xlsx`,
     rosterTemplate: 'schulwahl-klassenlisten.csv',
+    teacherListTemplate: 'schulwahl-lehrkraefte.csv',
   },
 
   /**

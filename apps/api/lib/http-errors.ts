@@ -1,4 +1,4 @@
-import { ApplicationError, type ApplicationErrorCode, ChoiceInvalid, ItemInvalid, PeriodsInvalid, RulesInvalid, TemplateInvalid } from './errors.ts'
+import { ApplicationError, type ApplicationErrorCode, ChoiceInvalid, ItemInvalid, PeriodsInvalid, RulesInvalid, TeacherListInvalid, TemplateInvalid } from './errors.ts'
 
 /** Every new application code must choose its HTTP status at compile time. */
 export const APPLICATION_ERROR_STATUS = {
@@ -21,6 +21,7 @@ export const APPLICATION_ERROR_STATUS = {
   class_unknown: 404,
   coverage_lost: 422,
   csv_invalid: 422,
+  csv_file_invalid: 422,
   daily_minimum_missing: 422,
   duplicate_group: 422,
   fills_nothing: 422,
@@ -76,6 +77,7 @@ export function applicationFailure(error: unknown): { status: number, body: obje
   if (error instanceof ChoiceInvalid) return { status: 422, body: { error: 'ranking_invalid', problems: error.problems } }
   if (error instanceof RulesInvalid) return { status: 422, body: { error: 'rules_invalid', problems: error.problems } }
   if (error instanceof PeriodsInvalid) return { status: 422, body: { error: 'period_grid_invalid', problems: error.problems } }
+  if (error instanceof TeacherListInvalid) return { status: 422, body: { error: 'teacher_list_invalid', problems: error.problems } }
   if (error instanceof TemplateInvalid) return { status: 422, body: { error: 'template_invalid', problems: error.problems } }
   if (!(error instanceof ApplicationError)) return undefined
   const status = APPLICATION_ERROR_STATUS[error.code]

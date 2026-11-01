@@ -29,7 +29,7 @@ import { createCampaign, listCampaigns, requireCampaign, transitionCampaign, upd
 import { itemInput } from '../../apps/api/services/catalogue-input.ts'
 import { categories, createCategory } from '../../apps/api/services/categories.ts'
 import { callerStudent, choiceView, saveRanking } from '../../apps/api/services/choices.ts'
-import { replaceClassTeachers } from '../../apps/api/services/class-teachers.ts'
+import { applyTeacherList } from '../../apps/api/services/teacher-list.ts'
 import { approveItem, createItem, proposeItem } from '../../apps/api/services/items.ts'
 import { setMyAvailability } from '../../apps/api/services/planning.ts'
 import { replaceGroups } from '../../apps/api/services/roster-groups.ts'
@@ -159,16 +159,13 @@ export function scenarioLoader(world: ScenarioWorld, s: Scenario, log: (message:
     return new Map((await entriesOf(db, batch.id)).filter((e) => e.oid && e.personId).map((e) => [e.oid as string, e.personId as string]))
   }
 
-  /** The administrator assigns the class teachers (but of the classes in `except`) and grants the organizer's role. */
+  /** The administrator imports the class teachers as a teacher list (but of the classes in `except`) and grants the organizer's role. */
   async function assignStaff(except: ReadonlySet<string> = new Set()): Promise<Caller> {
     const admin = await signIn(s.admin, true)
-    const ids = await personIds()
-    let assigned = 0
-    for (const c of s.classes) {
-      if (c.classTeacher === null || except.has(c.name)) continue
-      await replaceClassTeachers(db, c.name, [must(ids, c.classTeacher)], actorOf(admin))
-      assigned++
-    }
+    const byOid = new Map(s.teachers.map((teacher) => [teacher.oid, teacher]))
+    const rows = s.classes.filter((c) => c.classTeacher !== null && !except.has(c.name)).map((c) => `${must(byOid, c.classTeacher as string).email};${c.name}`)
+    const applied = await applyTeacherList(db, ['email;class', ...rows, ''].join('\n'), actorOf(admin))
+    const assigned = applied.classesChanged
     const organizerUser = await signIn(s.organizer)
     await grantRole(db, organizerUser.id, 'campaign_organizer', s.organizerReason, actorOf(admin))
     log(`staff: ${assigned} class teachers, the organizer`)

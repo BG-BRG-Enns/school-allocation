@@ -1,8 +1,9 @@
 import type { CatalogueProblem, MoveProblemCode, PeriodProblemCode, RankingProblem, RuleProblem } from '@school-allocation/school-core'
+import type { TeacherListProblem } from '@school-allocation/api-contracts/settings'
 import type { TemplateProblem } from './models/mail-templates.ts'
 
 /** Stable refusal codes shared by application operations. HTTP status mapping belongs to the adapter. */
-export type ApplicationErrorCode = 'no_groups' | 'validation_failed' | 'duplicate_group' | 'group_label_incomplete' | 'invalid_date' | 'project_day_twice' | 'invalid_school_year' | 'csv_invalid' | 'mail_off' | 'no_address' | 'already_blocked' | 'already_bound' | 'already_exempted' | 'already_granted' | 'already_revoked' | 'batch_not_pending' | 'batch_superseded' | 'campaign_state' | 'cannot_block_self' | 'cannot_revoke_self' | 'class_unknown' | 'forbidden' | 'grace_order' | 'invalid_instant' | 'invalid_item_transition' | 'invalid_transition' | 'item_state' | 'last_admin' | 'no_roster' | 'not_a_student' | 'not_blocked' | 'not_due' | 'not_found' | 'sessions_outside_days' | 'swap_order' | 'teacher_unknown' | 'transition_not_available' | 'window_order'
+export type ApplicationErrorCode = 'no_groups' | 'validation_failed' | 'duplicate_group' | 'group_label_incomplete' | 'invalid_date' | 'project_day_twice' | 'invalid_school_year' | 'csv_invalid' | 'csv_file_invalid' | 'mail_off' | 'no_address' | 'already_blocked' | 'already_bound' | 'already_exempted' | 'already_granted' | 'already_revoked' | 'batch_not_pending' | 'batch_superseded' | 'campaign_state' | 'cannot_block_self' | 'cannot_revoke_self' | 'class_unknown' | 'forbidden' | 'grace_order' | 'invalid_instant' | 'invalid_item_transition' | 'invalid_transition' | 'item_state' | 'last_admin' | 'no_roster' | 'not_a_student' | 'not_blocked' | 'not_due' | 'not_found' | 'sessions_outside_days' | 'swap_order' | 'teacher_unknown' | 'transition_not_available' | 'window_order'
   | 'solver_off' | 'run_in_progress' | 'daily_minimum_missing' | 'no_students' | 'fixed_items_overlap'
   | 'run_not_publishable' | 'run_stale' | 'cancelled_mismatch' | 'not_published'
   | 'swap_closed' | 'fully_placed' | 'no_change' | MoveProblemCode
@@ -59,6 +60,16 @@ export class PeriodsInvalid extends Error {
   readonly problems: PeriodProblemCode[]
   constructor(problems: PeriodProblemCode[]) {
     super('period_grid_invalid')
+    this.problems = problems
+  }
+}
+
+/** The teacher list as uploaded cannot be applied; the problems say which rows. */
+export class TeacherListInvalid extends Error {
+  override name = 'TeacherListInvalid'
+  readonly problems: TeacherListProblem[]
+  constructor(problems: TeacherListProblem[]) {
+    super('teacher_list_invalid')
     this.problems = problems
   }
 }

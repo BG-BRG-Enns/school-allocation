@@ -69,8 +69,8 @@ export interface CsvProblem {
   code: CsvProblemCode
   /** The line, counted from 1. */
   line?: number
-  /** The column a `missing_column` is about. */
-  column?: Column
+  /** The column a `missing_column` is about: a roster column, or a teacher list's (teacher-csv.ts). */
+  column?: string
 }
 
 export interface RosterCsvResult {
