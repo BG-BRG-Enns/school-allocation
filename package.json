@@ -36,7 +36,7 @@
     "e2e:screenshots": "SCREENSHOT_DIR=docs/anleitung/bilder/full-size playwright test",
     "handbook": "npm run build --workspace handbook",
     "handbook:dev": "npm run dev --workspace handbook",
-    "handbook:shots": "rm -rf handbook/public/bilder && HANDBOOK_SHOTS=1 E2E_LOCALE=de playwright test && HANDBOOK_SHOTS=1 E2E_LOCALE=en playwright test",
+    "handbook:shots": "rm -rf handbook/public/bilder && HANDBOOK_SHOTS=1 E2E_SOLVER=real E2E_LOCALE=de playwright test && HANDBOOK_SHOTS=1 E2E_SOLVER=real E2E_LOCALE=en playwright test",
     "contracts:update:routes": "node apps/api/scripts/update-route-fixture.ts"
   },
   "engines": {
