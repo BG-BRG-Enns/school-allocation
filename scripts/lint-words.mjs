@@ -41,19 +41,22 @@ function* files(path) {
   } else yield path
 }
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  let count = 0
-  for (const entry of SCOPE) {
+/** Every offending line under `root` in `scope`: the file relative to the root, the line, the text. */
+export function scan(root, scope = SCOPE) {
+  const hits = []
+  for (const entry of scope) {
     for (const file of files(join(root, entry))) {
-      for (const hit of offending(readFileSync(file, 'utf8'))) {
-        count++
-        console.error(`${relative(root, file)}:${hit.line}: ${hit.text}`)
-      }
+      for (const hit of offending(readFileSync(file, 'utf8'))) hits.push({ file: relative(root, file), ...hit })
     }
   }
-  if (count > 0) {
-    console.error(`${count} line(s) use a word the German texts do without (scripts/lint-words.mjs)`)
+  return hits
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const hits = scan(resolve(dirname(fileURLToPath(import.meta.url)), '..'))
+  for (const hit of hits) console.error(`${hit.file}:${hit.line}: ${hit.text}`)
+  if (hits.length > 0) {
+    console.error(`${hits.length} line(s) use a word the German texts do without (scripts/lint-words.mjs)`)
     process.exit(1)
   }
 }
