@@ -165,7 +165,7 @@ export const de = {
     /** Why a row of a teacher list is not applied (api-contracts TEACHER_LIST_PROBLEM_CODES). */
     teacherListProblem: {
       email_invalid: 'Keine E-Mail-Adresse',
-      short_name_too_long: 'Kürzel länger als 8 Zeichen',
+      short_name_invalid: 'Kein Kürzel: bis zu 8 Buchstaben oder Ziffern, Punkt oder Bindestrich',
       short_name_inconsistent: 'Zwei Kürzel für dieselbe Lehrkraft',
       short_name_taken: 'Dasselbe Kürzel für zwei Lehrkräfte',
       short_name_held: 'Dieses Kürzel hat schon eine andere Lehrkraft',

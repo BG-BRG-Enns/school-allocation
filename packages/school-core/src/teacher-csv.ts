@@ -37,6 +37,9 @@ const ALIASES: Readonly<Record<string, TeacherCsvColumn>> = {
 /** The most letters an abbreviation has. */
 export const SHORT_NAME_MAX = 8
 
+/** An abbreviation: letters, digits, a dot or a hyphen, starting with a letter or digit, up to SHORT_NAME_MAX; nothing a spreadsheet would read as a formula, nothing a database refuses. */
+export const SHORT_NAME = /^[\p{L}\p{N}][\p{L}\p{N}.-]{0,7}$/u
+
 /** A table's own entry for `key`, never one inherited from Object (a header saying "constructor" is no column). */
 export function own<T>(table: Readonly<Record<string, T>>, key: string): T | undefined {
   return Object.hasOwn(table, key) ? table[key] : undefined
@@ -53,8 +56,8 @@ export const TEACHER_CSV_TEMPLATE = [
 export const TEACHER_CSV_PROBLEM_CODES = [
   /** The e-mail field is empty or no address. */
   'email_invalid',
-  /** An abbreviation longer than SHORT_NAME_MAX. */
-  'short_name_too_long',
+  /** An abbreviation that is not one: longer than SHORT_NAME_MAX, or with characters other than letters, digits, dot and hyphen. */
+  'short_name_invalid',
   /** One teacher with two different abbreviations in the file (judged by the API, by identity). */
   'short_name_inconsistent',
   /** One abbreviation for two different teachers in the file (judged by the API, by identity). */
@@ -166,8 +169,8 @@ export function parseTeacherCsv(text: string): TeacherCsvResult {
     const shortName = field(fields, 'short_name')
     const className = field(fields, 'class')
     let sound = true
-    if (shortName !== undefined && shortName.length > SHORT_NAME_MAX) {
-      problems.push({ code: 'short_name_too_long', line, key: shortName })
+    if (shortName !== undefined && !SHORT_NAME.test(shortName)) {
+      problems.push({ code: 'short_name_invalid', line, key: shortName })
       sound = false
     }
     if (className !== undefined && !CLASS_NAME.test(className)) {

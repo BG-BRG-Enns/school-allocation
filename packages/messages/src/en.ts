@@ -162,7 +162,7 @@ export const en: Messages = {
     /** Why a row of a teacher list is not applied (api-contracts TEACHER_LIST_PROBLEM_CODES). */
     teacherListProblem: {
       email_invalid: 'Not an e-mail address',
-      short_name_too_long: 'Abbreviation longer than 8 characters',
+      short_name_invalid: 'Not an abbreviation: up to 8 letters or digits, dot or hyphen',
       short_name_inconsistent: 'Two abbreviations for the same teacher',
       short_name_taken: 'The same abbreviation for two teachers',
       short_name_held: 'Another teacher already has this abbreviation',

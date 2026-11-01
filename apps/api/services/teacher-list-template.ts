@@ -9,9 +9,15 @@ import { listClasses } from '../lib/dao/class-teachers.ts'
 import { rosterTeacherAddresses } from '../lib/dao/teacher-detail.ts'
 import type { Queryable } from '../lib/db.ts'
 
-/** A CSV field: quoted when it holds the separator, a quote or a line break (RFC 4180). */
+/**
+ * A CSV field: quoted when it holds the separator, a quote or a line break
+ * (RFC 4180); a value a spreadsheet would read as a formula gets an
+ * apostrophe first, so it stays text when opened (an abbreviation cannot
+ * start so, but the file is opened in a spreadsheet by design).
+ */
 function field(value: string): string {
-  return /[";\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value
+  const text = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+  return /[";\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
 export async function teacherListTemplate(db: Queryable): Promise<string> {
