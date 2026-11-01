@@ -431,7 +431,7 @@ export const de = {
     batch_not_pending: 'Über diesen Import wurde schon entschieden.',
     batch_superseded: 'Seit diesem Import wurde ein anderer übernommen. Bitte lies die Klassenlisten noch einmal ein.',
     duplicate_group: 'Eine Gruppe ist zweimal eingetragen.',
-    group_label_incomplete: 'Eine Klassengruppe hat Klasse und Schulstufe; die Gruppe der Lehrkräfte hat keine.',
+    group_label_incomplete: 'Eine Klassengruppe muss Klasse und Schulstufe haben; die Gruppe der Lehrkräfte hat keine.',
     no_groups: 'Es sind noch keine Entra-Gruppen eingetragen.',
     // Accounts and roles
     already_bound: 'Dieses Konto ist dieser Person schon zugeordnet.',
