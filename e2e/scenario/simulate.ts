@@ -4,7 +4,7 @@
 // of it is written to docs/simulation.md. Local only, never in CI: it
 // needs the test server (TEST_DATABASE_URL, as for the API tests) and a
 // solver (SOLVER_URL, http://127.0.0.1:8000 unless set; CONTRIBUTING.md
-// starts one). About two minutes per school.
+// starts one). About a quarter of an hour per school at 30 s per level.
 //
 //   npm run simulate                         five schools, docs/simulation.md
 //   npm run simulate -- --schools 1 --out -  one school, the report on stdout
@@ -16,7 +16,6 @@ import path from 'node:path'
 import type { TestContext } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { RUN_LIMITS } from '@school-allocation/api-contracts/allocation'
 import { placeTarget, type LevelValue, type SolveStatus } from '@school-allocation/school-core'
 import { actorOf } from '../../apps/api/lib/actor.ts'
 import { campaignStudents } from '../../apps/api/lib/dao/choices.ts'
@@ -34,8 +33,13 @@ import { ANNA } from '../../apps/api/test/helpers/personas.ts'
 import { loadScenario, type Loaded } from './load.ts'
 import { PROJECT_DAYS, SCENARIO_SEED, STORY, scenario, type Scenario, type ScenarioClass, type ScenarioItem } from './school.ts'
 
+/**
+ * The simulation's time per level: 30 s, not the app's default of 5 s (RUN_LIMITS), which leaves the wish levels
+ * of a school this size unproven and the answer to the request's order; the app's default is still to be decided.
+ */
+const SIMULATION_LIMIT = 30
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const { values: args } = parseArgs({ options: { seed: { type: 'string', default: String(SCENARIO_SEED) }, schools: { type: 'string', default: '5' }, out: { type: 'string', default: path.join(ROOT, 'docs', 'simulation.md') }, limit: { type: 'string', default: String(RUN_LIMITS.defaultDeterministicTimePerLevel) } } })
+const { values: args } = parseArgs({ options: { seed: { type: 'string', default: String(SCENARIO_SEED) }, schools: { type: 'string', default: '5' }, out: { type: 'string', default: path.join(ROOT, 'docs', 'simulation.md') }, limit: { type: 'string', default: String(SIMULATION_LIMIT) } } })
 const SCHOOLS = Number(args.schools)
 /** Deterministic time per level; several, comma-separated, run one after another on each school's one snapshot. */
 const LIMITS = args.limit.split(',').map(Number)

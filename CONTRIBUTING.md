@@ -63,7 +63,7 @@ A dependency change edits the exact pin in `pyproject.toml` and runs `uv lock`; 
 
 `e2e/scenario/` draws a whole school from a seed: 600 students in 25 classes, 60 teachers, about 65 activities over three project days, and every student's list with the moment it is saved (`school.ts`, names from the committed lists in `names.ts`; the test people are part of it). `load.ts` carries it into a database through the services, each person acting as themselves at the moment the story has them act, the clock opening and closing the windows. `npm test` checks the generator and, with `TEST_DATABASE_URL`, loads the whole story (about a minute).
 
-`npm run simulate` loads five schools from consecutive seeds, lets the real solver allocate each (started as above; `SOLVER_URL`, `http://127.0.0.1:8000` unless set) and writes what came of it to [`docs/simulation.md`](docs/simulation.md): the demand, the time groups, the runs' levels and times, the wishes granted and the rules missed. It takes a few minutes per school and runs locally only; `-- --schools 1 --out -` prints one school's report instead.
+`npm run simulate` loads five schools from consecutive seeds, lets the real solver allocate each (started as above; `SOLVER_URL`, `http://127.0.0.1:8000` unless set) and writes what came of it to [`docs/simulation.md`](docs/simulation.md): the demand, the time groups, the runs' levels and times, the wishes granted and the rules missed. It gives the solver 30 s per level (`--limit`, several comma-separated to run each school's snapshot at each), about a quarter of an hour per school, and runs locally only; `-- --schools 1 --out -` prints one school's report instead.
 
 ## Words of the interface
 
