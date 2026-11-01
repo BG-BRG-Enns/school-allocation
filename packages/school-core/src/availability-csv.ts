@@ -152,7 +152,9 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
       return
     }
     if (known !== undefined) {
-      if (!columns.has(known)) columns.set(known, i)
+      // Two headers for one thing ("note" and "Anmerkung", say) would let one silently win: refused.
+      if (columns.has(known)) fileProblems.push({ code: 'duplicate_column', column: name })
+      else columns.set(known, i)
       return
     }
     // A day named twice (the weekday and its date, say) would let one column silently win: refused instead.
@@ -215,7 +217,9 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
       days[date] = status
     }
     const noteIndex = columns.get('note')
-    const note = noteIndex === undefined ? undefined : (cell(fields, noteIndex) ?? null)
+    // The template gives a note that starts like a formula an apostrophe so a spreadsheet keeps it text; taken off again here.
+    const noteCell = cell(fields, noteIndex)
+    const note = noteIndex === undefined ? undefined : (noteCell === undefined ? null : noteCell.replace(/^'(?=[=+\-@\t\r])/, ''))
     if (note !== undefined && note !== null && note.length > NOTE_MAX) {
       problems.push({ code: 'note_too_long', line })
       sound = false

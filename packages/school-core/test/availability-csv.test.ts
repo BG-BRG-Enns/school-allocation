@@ -48,6 +48,8 @@ test('an unknown column, a weekday the registration has twice or not at all, no 
   assert.deepEqual(parseAvailabilityCsv('Name;MO\n;\n\n', DAYS).fileProblems, [{ code: 'empty' }])
   // A blank record, as a spreadsheet leaves it, is skipped with the line numbers kept.
   assert.deepEqual(parseAvailabilityCsv('Name;MO\n;\nZwA;N\n', DAYS).rows, [{ line: 3, shortName: 'ZwA', days: { '2034-07-03': 'unavailable' } }])
+  // Two headers for the note, or for the key: one would silently win over the other.
+  assert.deepEqual(parseAvailabilityCsv('email;MO;note;Anmerkung\nanna.zwexmhofer@schule.example.org;N;;x\n', DAYS).fileProblems, [{ code: 'duplicate_column', column: 'Anmerkung' }])
   // The weekday and its date: one would silently win over the other.
   assert.deepEqual(parseAvailabilityCsv('email;MO;2034-07-03\nanna.zwexmhofer@schule.example.org;N;\n', DAYS).fileProblems, [{ code: 'duplicate_column', column: '2034-07-03' }])
   // Headers and cells that are Object's own words are nothing the tables know.
@@ -73,4 +75,9 @@ test('a row without a key, with a bad address, a value none of the three, or a n
     { code: 'note_too_long', line: 5 },
   ])
   assert.deepEqual(result.rows, [{ line: 6, email: 'carla.knoxbrunner@schule.example.org', days: { '2034-07-03': 'unavailable' }, note: null }])
+})
+
+test('a note the template protected with an apostrophe comes back as it was; an apostrophe of the note\'s own stays', () => {
+  const rows = parseAvailabilityCsv(`email;MO;note\nanna.zwexmhofer@schule.example.org;;'=nur Reserve\nbernd.pfnoexlhofer@schule.example.org;;'s Kind\ncarla.knoxbrunner@schule.example.org;;${'-'.repeat(200)}\n`, DAYS).rows
+  assert.deepEqual(rows.map((r) => r.note), ['=nur Reserve', '\'s Kind', '-'.repeat(200)])
 })
