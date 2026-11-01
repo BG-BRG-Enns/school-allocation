@@ -20,9 +20,10 @@ limit ends without any solution keeps the solution before it (the run does
 not fail on its lot). The values reported are the final solution's, read
 off the assignment the way the validator recomputes them, so a level a
 later search improved reports what the result has, not what its own search
-stopped at. Reproducibility: one worker, the request's seed, a
-deterministic time limit, every loop over sorted keys; the same request
-gives the same answer on the same solver version.
+stopped at. The search is as deterministic as one worker, the request's
+seed, a deterministic time limit and loops over sorted keys make it;
+nothing relies on that: the API stores a run's result and reads every
+explanation from it, never from a repeat.
 """
 
 from __future__ import annotations
@@ -36,6 +37,8 @@ from .contract import COST_SCALE, Level, SolveRequest, SolveResponse, Status, Ve
 
 # CP-SAT's seed is a signed 32-bit integer; the API's may be larger.
 SEED_MASK = 0x7FFFFFFF
+# CP-SAT's workers: one in this release; more search in parallel and answer the same request differently from one run to the next.
+NUM_WORKERS = 1
 
 
 @dataclass
@@ -318,7 +321,7 @@ def solve(request: SolveRequest, new_solver: Callable[[], cp_model.CpSolver] = c
         expr = model.objective(name)
         model.model.minimize(expr)
         solver = new_solver()
-        solver.parameters.num_workers = 1
+        solver.parameters.num_workers = NUM_WORKERS
         solver.parameters.random_seed = request.seed & SEED_MASK
         solver.parameters.max_deterministic_time = request.limits.deterministicTimePerLevel
         solver.parameters.log_search_progress = False

@@ -9,7 +9,7 @@ Likelihood and impact: H / M / L.
 | ID | Risk | L | I | Mitigation | Owner |
 | -- | ---- | - | - | ---------- | ----- |
 | R01 | The allocation outcome is not accepted by students, parents or staff ("why did I get my 4th choice?") | M | H | Lexicographic rule in plain words; per-student explanation; review before publish; manual changes possible; D-20 simulation shown to school leadership beforehand | Organizer |
-| R02 | Runs are not reproducible, so the school cannot explain a result | L | H | Single worker, seed, deterministic time limit, pinned OR-Tools, stored snapshot hash; CI reproducibility test | Developer |
+| R02 | A result cannot be explained after the fact | L | H | Every run stores its snapshot and hash, seed, limit, OR-Tools version, level values and assignment; the review and the per-student explanation read from the stored run, never from a repeat | Developer |
 | R03 | Solver gives `INFEASIBLE`/`UNKNOWN`, or poor results within the limit | M | M | Coverage is soft and reported; level values carry `proven`; organizer can re-run with a larger limit; xlsx fallback to manual allocation | Developer / organizer |
 | R04 | A nightly auto-update breaks the app during an open window | M | M | The tests, the journeys and the image's smoke test before every tag; a release refuses a schema it was not built for; a failed update stays down where it is noticed and the next release fixes it, a few hours in a two-week window; choices saved per change; busy gate during jobs | Developer |
 | R05 | The class groups in Entra are stale or mislabelled (new school year, late transfers) | M | H | Batch age and diff shown; refresh before close; organizer sign-off of the batch; CSV as a correction path | School admin |
@@ -34,7 +34,7 @@ The evidence column states what has to be shown for sign-off.
 | PW1 | No published allocation exceeds an item's capacity, assigns overlapping items, assigns an unranked or ineligible item, or drops or alters a pre-assignment; an organizer's change by hand afterwards may override a full item, a minimum or a rule and is recorded as forced (PW11) | Validator unit tests with tampered results; e2e run on a synthetic campaign |
 | PW2 | A multi-session item (e.g. Tue 08:00 – Wed 13:00) is assigned as a whole or not at all, and credits each date separately | Unit tests; synthetic instance |
 | PW3 | Every student either meets every day's minimum or appears in the deficit report with the missing minutes per day | Run review screen + export on a synthetic instance with forced shortage |
-| PW4 | Same snapshot + seed + versions produce an identical assignment | CI reproducibility test |
+| PW4 | A run's record (snapshot hash, seed, limit, versions, level values, assignment) is stored before the run is reviewable, and the review and explanation read from it | API tests; the API against the real solver image in CI |
 | PW5 | Solver level values are recomputed by school-core and match; a mismatch blocks publication | Unit test with a falsified level value |
 | PW6 | `INFEASIBLE` / `UNKNOWN` is shown and cannot be published | API test |
 | PW7 | Choices are accepted until `closes_at` by server time and rejected afterwards, including for crafted requests | API tests |

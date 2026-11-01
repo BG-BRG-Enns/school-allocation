@@ -24,7 +24,7 @@ Vor der ersten Berechnung brauchen alle Schulstufen der Anmeldung ihre Mindestmi
 - **Losnummer**: Sie entscheidet, wie Gleichstände ausgehen. Leer zieht SchulWahl eine.
 - **Rechenzeit je Ziel**, 1 bis 60: Mehr Rechenzeit findet eher die beste Einteilung, dauert aber länger.
 
-**Zuteilung berechnen** startet die Berechnung; nach einigen Sekunden steht sie in der Liste **Berechnungen**. Dieselbe Losnummer mit derselben Rechenzeit ergibt dieselbe Einteilung, solange sich an der Anmeldung nichts geändert hat; **Wiederholen** rechnet eine Berechnung so noch einmal. Du kannst beliebig viele Berechnungen machen, etwa mit anderen Losnummern, und sie vergleichen.
+**Zuteilung berechnen** startet die Berechnung; nach einigen Minuten, je nach Rechenzeit und Größe der Schule, steht sie in der Liste **Berechnungen**. **Wiederholen** startet eine Berechnung mit derselben Losnummer und Rechenzeit noch einmal; sie kann anders ausgehen. Du kannst beliebig viele Berechnungen machen, etwa mit anderen Losnummern, und sie vergleichen.
 
 Sagt die Seite, dass die Berechnung auf diesem Server nicht eingerichtet ist oder das Rechenmodul nicht antwortet, ist das Sache des Betriebs.
 

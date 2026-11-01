@@ -82,8 +82,8 @@ lifecycle, and is tested with synthetic data only.
 - Model compiler in school-core: the requirement left after fixed items, time groups and wish
   numbers, fee-free fallback options (D-06), two passes with the first window fixed (D-20), the lot
   from the seed; the independent validator and the explanation and summary of a result.
-- The solver service's `/v1/solve`: CP-SAT with the lexicographic levels, one worker, the seed, a
-  deterministic limit; its own tests (golden instances, reproducibility, the refusals) in CI.
+- The solver service's `/v1/solve`: CP-SAT with the lexicographic levels, the seed, a deterministic
+  limit; its own tests (golden instances, the refusals) in CI.
 - The solver contract as shared schemas, pinned to school-core's types.
 
 **S4b · Runs and review.**
@@ -93,7 +93,7 @@ lifecycle, and is tested with synthetic data only.
 - Run API with the review's numbers and an xlsx export; the Zuteilung page: start a run (seed, limit),
   the list, the review of a run (levels, rank distribution, deficits, fallbacks, cancelled items,
   items, per class), the comparison of two runs, "Lauf wiederholen".
-- A reproducibility test against the real solver image in CI.
+- A run against the real solver image in CI, validated and stored.
 
 **S4c · Publication.**
 
@@ -182,7 +182,6 @@ A credible calendar estimate needs the target project-week date. **Open.**
     doc.
 - **Solver:**
   - golden synthetic instances with known optimal level values;
-  - reproducibility (same input → byte-identical output);
   - `INFEASIBLE` and `UNKNOWN` surfaced.
 - **API:**
   - real Postgres;

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Self-hosted allocation of project-week activities and elective subjects for Austrian schools: ranked choices, a reproducible allocation, identified records.",
+  "description": "Self-hosted allocation of project-week activities and elective subjects for Austrian schools: ranked choices, a recorded and validated allocation, identified records.",
   "license": "MIT",
   "author": "Christoph Stadlbauer <christoph.stadlbauer@brgenns.ac.at>",
   "workspaces": [

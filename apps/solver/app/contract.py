@@ -85,7 +85,7 @@ class Item(Strict):
 
 
 class Limits(Strict):
-    """CP-SAT's deterministic time per level; never a wall-clock limit (reproducibility)."""
+    """CP-SAT's deterministic time per level; never a wall-clock limit, so a limit means the same work on any machine."""
 
     deterministicTimePerLevel: float = Field(gt=0, le=600)
 

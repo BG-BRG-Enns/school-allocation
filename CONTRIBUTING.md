@@ -7,7 +7,7 @@ Everyone taking part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT
 ## Before you start
 
 - For anything beyond a small fix, open an issue first and describe what you want to change. That avoids work on something that conflicts with the design in [`docs/`](docs/).
-- The invariants in [`AGENTS.md`](AGENTS.md) (Entra ID as the only assumption, the identity as the key, audited roles, reproducible and validated allocations, a release only on the schema it was built for) are not open to trade-offs for convenience.
+- The invariants in [`AGENTS.md`](AGENTS.md) (Entra ID as the only assumption, the identity as the key, audited roles, recorded and validated allocations, a release only on the schema it was built for) are not open to trade-offs for convenience.
 - Code, comments and documentation are in English. The user interface's words are in the message catalogue, German first (below).
 
 ## Setup
@@ -54,7 +54,7 @@ With the dummy Entra values in `.env.example`, `npm run dev:api` runs everything
 cd apps/solver
 uv sync --frozen                               # .venv from uv.lock: the image's pins plus pytest and the test client
 uv run --frozen uvicorn app.main:app --port 8000
-uv run --frozen pytest -q                      # the model against instances with known optima, the contract's refusals, reproducibility
+uv run --frozen pytest -q                      # the model against instances with known optima, the contract's refusals
 ```
 
 A dependency change edits the exact pin in `pyproject.toml` and runs `uv lock`; both files are committed, and Dependabot bumps them together. The image exports the lock to a requirements file at build time and installs it with `pip --require-hashes`, so nothing outside the lock can reach it. CI runs the solver's tests from the same lock (`uv sync --frozen`).

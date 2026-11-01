@@ -247,12 +247,15 @@ as a bound for the next:
    field so L4 stays exact. Equal alternatives are therefore decided by the recorded seed, not by
    input order.
 
-**Reproducibility:**
+**The record of a run:**
 
-- CP-SAT runs with `num_workers = 1`, `random_seed = seed`, and a **deterministic** time limit
-  (`max_deterministic_time`), never a wall-clock limit.
+- CP-SAT runs with `random_seed = seed` and a **deterministic** time limit (`max_deterministic_time`),
+  never a wall-clock limit, so a limit means the same work on any machine; one worker in this release.
 - The OR-Tools version is pinned and stored with the run.
-- Same snapshot + seed + versions → same assignment. This is tested in CI.
+- What a run stores is its record: the snapshot and its hash, the seed, the limit, the versions, the
+  level values and the assignment. The review and every per-student explanation read from it. A run
+  started again with the same settings is not promised to answer the same, and with several workers
+  it would not; nothing reads a repeat.
 
 **Status per level:** `OPTIMAL` or `FEASIBLE` (not proven); each level is held at the value found while
 the next is solved, and the solution found starts the next search. `INFEASIBLE` or `UNKNOWN` stops the

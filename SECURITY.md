@@ -28,7 +28,7 @@ In scope, among others:
 
 - reading another person's choices, assignments, class or roles without a role that allows it;
 - changing a ranking, an assignment, a role or the catalogue without the role, or outside the campaign state that allows it;
-- an allocation published that violates a hard rule (capacity, overlap, eligibility, a pre-assignment), or that cannot be reproduced from its recorded snapshot and seed. A change by hand after publication is the organizer's: it may override a full item, a minimum or a rule of the registration, is recorded as forced in the change log and the audit, and is not a vulnerability;
+- an allocation published that violates a hard rule (capacity, overlap, eligibility, a pre-assignment), or whose published rows do not match the stored run they were published from. A change by hand after publication is the organizer's: it may override a full item, a minimum or a rule of the registration, is recorded as forced in the change log and the audit, and is not a vulnerability;
 - bypassing authentication, or a session that outlives a block or a revoked role beyond the next request;
 - an audit event that can be changed or removed, or a privileged action without one;
 - a dependency or image that is not what the release workflow built and signed.

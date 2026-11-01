@@ -68,7 +68,7 @@ Required, because project-week choices are free combinations (D-03 c).
 
 - Python, FastAPI, OR-Tools CP-SAT; stateless; internal network only; no database credentials, no
   student data beyond small integer IDs.
-- Pinned OR-Tools version, recorded with every run, because results must be reproducible.
+- Pinned OR-Tools version, recorded with every run, so a run says what computed it.
 - Runs on demand; idle otherwise.
 
 ## 6. Load

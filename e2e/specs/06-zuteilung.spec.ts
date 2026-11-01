@@ -44,12 +44,12 @@ test('die Nachfrist beginnt zu ihrer Zeit, die Organisation beendet sie und bere
   await expect(page.getByRole('heading', { name: t.allocation.review.ruleGaps(2) })).toBeVisible()
   await shot(page, '29-zuteilung')
   await picture(page, 'zuteilung-pruefen', [page.getByRole('heading', { name: t.allocation.review.heading(1) }), page.getByRole('heading', { name: t.allocation.review.levels }).locator('xpath=following-sibling::p[1]')])
-  // The same seed again is the same allocation, which the comparison says.
+  // Repeated with the same settings: a second run, which the comparison sets against the first.
   await runs.getByRole('row', { name: /^1 / }).getByRole('button', { name: t.allocation.runs.repeat }).click()
   await expect(page.getByRole('heading', { name: t.allocation.review.heading(2) })).toBeVisible()
   await expect(runs.getByRole('row', { name: /^2 / })).toContainText(t.labels.runStatus.succeeded)
   await page.getByLabel(t.allocation.review.compareWith).selectOption({ label: t.allocation.review.compareOption(1, 4711) })
-  await expect(page.getByText(new RegExp(literally(t.allocation.review.differences(2, 1))))).toContainText(t.allocation.review.noDifferences)
+  await expect(page.getByText(new RegExp(literally(t.allocation.review.differences(2, 1))))).toBeVisible()
   await shot(page, '30-zuteilung-vergleich')
   await picture(page, 'zuteilung-berechnen', [section(page, t.allocation.start.heading), runs])
   await picture(page, 'zuteilung-vergleich', [page.getByRole('heading', { name: t.allocation.review.compare, exact: true }), page.getByText(new RegExp(literally(t.allocation.review.differences(2, 1))))])

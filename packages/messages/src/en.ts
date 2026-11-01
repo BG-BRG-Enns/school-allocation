@@ -900,7 +900,7 @@ export const en: Messages = {
       seed: 'Draw number (blank: drawn for you)',
       seedExample: 'e.g. 4711',
       limit: 'Computing time per goal (1–60)',
-      limitHint: 'More computing time is more likely to find the best allocation, but takes longer (one second here is several on the server). The same draw number with the same computing time gives the same allocation.',
+      limitHint: 'More computing time is more likely to find the best allocation, but takes longer (one second here is several on the server).',
       submit: 'Calculate allocation',
       running: 'The allocation is being calculated …',
     },
@@ -915,7 +915,7 @@ export const en: Messages = {
       deficit: 'Missing minutes',
       notCovered: 'Not every day',
       published: 'published',
-      repeatHint: (seed: number, limit: number) => `Calculate again with draw number ${seed} and computing time ${limit}: the same allocation as long as nothing has changed`,
+      repeatHint: (seed: number, limit: number) => `Calculate again with draw number ${seed} and computing time ${limit}`,
       repeat: 'Repeat',
     },
     /** The review of one run. */

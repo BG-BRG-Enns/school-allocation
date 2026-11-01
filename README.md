@@ -1,6 +1,6 @@
 # school-allocation
 
-Self-hosted allocation of project-week activities and elective subjects (Wahlpflichtgegenstände) for Austrian schools. Students rank what they want, teachers offer and fix activities, and an allocation run assigns places fairly and reproducibly; the school reviews before anything is published. Every record is identified, and every privileged action is audited.
+Self-hosted allocation of project-week activities and elective subjects (Wahlpflichtgegenstände) for Austrian schools. Students rank what they want, teachers offer and fix activities, and an allocation run assigns places fairly; the school reviews before anything is published. Every record is identified, and every privileged action is audited.
 
 Everyone signs in with the school's Microsoft Entra ID; that is the only thing the software assumes about a school. The roster comes from the school's Entra class groups or a CSV upload.
 
