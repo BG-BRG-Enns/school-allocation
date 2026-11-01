@@ -112,7 +112,7 @@ export async function loadScenario(world: ScenarioWorld, s: Scenario, options: L
     ...s.classes.map((c) => ({ groupId: c.groupId, label: c.groupName, kind: 'student' as const, className: c.name, grade: c.grade })),
     { groupId: s.teachersGroup.groupId, label: s.teachersGroup.groupName, kind: 'teacher' as const },
   ], actorOf(admin))
-  const batch = await importGraphRoster(db, world.graph.baseUrl, world.accessToken, s.schoolYear, admin.id)
+  const batch = await importGraphRoster(db, world.graph.baseUrl, world.accessToken, s.schoolYear, actorOf(admin))
   if (batch.state !== 'pending') throw new Error(`the roster import is ${batch.state}: ${JSON.stringify(batch.problems.slice(0, 3))}`)
   const committed = await commitBatch(db, batch.id, actorOf(admin), world.tenantId)
   const personIds = new Map(committed.diff.added.filter((e) => e.oid && e.personId).map((e) => [e.oid as string, e.personId as string]))
