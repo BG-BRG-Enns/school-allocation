@@ -12,7 +12,7 @@
 import { AVAILABILITY_STATUSES, type AvailabilityStatus } from './planning.ts'
 import { parseCsv, type CsvProblem } from './roster-csv.ts'
 import { isAddress } from './roster.ts'
-import { checkRows, isBlank, own, SHORT_NAME_MAX } from './teacher-csv.ts'
+import { checkRows, isBlank, own, readCell, SHORT_NAME_MAX } from './teacher-csv.ts'
 
 /** The most characters a note has. */
 export const NOTE_MAX = 200
@@ -183,10 +183,9 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
   if (shapeProblems.length > 0) return none(shapeProblems, ignored)
   const rows: AvailabilityCsvRow[] = []
   const problems: AvailabilityCsvProblem[] = []
-  const cell = (fields: readonly string[], i: number | undefined): string | undefined => {
-    const value = i === undefined ? undefined : fields[i]?.trim()
-    return value === undefined || value === '' ? undefined : value
-  }
+  // Every cell without the apostrophe the template puts before a value that starts like a formula: an address, an
+  // abbreviation or a note comes back as it went out.
+  const cell = (fields: readonly string[], i: number | undefined): string | undefined => (i === undefined ? undefined : readCell(fields[i]))
   records.forEach((fields, i) => {
     if (isBlank(fields)) return
     const line = i + 2
@@ -217,9 +216,7 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
       days[date] = status
     }
     const noteIndex = columns.get('note')
-    // The template gives a note that starts like a formula an apostrophe so a spreadsheet keeps it text; taken off again here.
-    const noteCell = cell(fields, noteIndex)
-    const note = noteIndex === undefined ? undefined : (noteCell === undefined ? null : noteCell.replace(/^'(?=[=+\-@\t\r])/, ''))
+    const note = noteIndex === undefined ? undefined : (cell(fields, noteIndex) ?? null)
     if (note !== undefined && note !== null && note.length > NOTE_MAX) {
       problems.push({ code: 'note_too_long', line })
       sound = false

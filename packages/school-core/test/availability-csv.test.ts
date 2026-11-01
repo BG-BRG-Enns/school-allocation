@@ -77,7 +77,7 @@ test('a row without a key, with a bad address, a value none of the three, or a n
   assert.deepEqual(result.rows, [{ line: 6, email: 'carla.knoxbrunner@schule.example.org', days: { '2034-07-03': 'unavailable' }, note: null }])
 })
 
-test('a note the template protected with an apostrophe comes back as it was; an apostrophe of the note\'s own stays', () => {
-  const rows = parseAvailabilityCsv(`email;MO;note\nanna.zwexmhofer@schule.example.org;;'=nur Reserve\nbernd.pfnoexlhofer@schule.example.org;;'s Kind\ncarla.knoxbrunner@schule.example.org;;${'-'.repeat(200)}\n`, DAYS).rows
-  assert.deepEqual(rows.map((r) => r.note), ['=nur Reserve', '\'s Kind', '-'.repeat(200)])
+test('a value the template protected with an apostrophe comes back as it was, an address too; an apostrophe of the note\'s own stays', () => {
+  const rows = parseAvailabilityCsv(`email;MO;note\nanna.zwexmhofer@schule.example.org;;'=nur Reserve\nbernd.pfnoexlhofer@schule.example.org;;'s Kind\n'+carla.knoxbrunner@schule.example.org;;${'-'.repeat(200)}\n`, DAYS).rows
+  assert.deepEqual(rows.map((r) => [r.email, r.note]), [['anna.zwexmhofer@schule.example.org', '=nur Reserve'], ['bernd.pfnoexlhofer@schule.example.org', '\'s Kind'], ['+carla.knoxbrunner@schule.example.org', '-'.repeat(200)]])
 })
