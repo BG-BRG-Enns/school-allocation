@@ -40,6 +40,16 @@ export const SHORT_NAME_MAX = 8
 /** An abbreviation: letters, digits, a dot or a hyphen, starting with a letter or digit, up to SHORT_NAME_MAX; nothing a spreadsheet would read as a formula, nothing a database refuses. */
 export const SHORT_NAME = /^[\p{L}\p{N}][\p{L}\p{N}.-]{0,7}$/u
 
+/**
+ * A cell as read: trimmed, and without the apostrophe the template puts
+ * before a value a spreadsheet would read as a formula (an address may
+ * start with "+" or "-"), so a template comes back as it went out.
+ */
+export function readCell(raw: string | undefined): string | undefined {
+  const value = raw?.trim().replace(/^'(?=[=+\-@\t\r])/, '')
+  return value === undefined || value === '' ? undefined : value
+}
+
 /** A table's own entry for `key`, never one inherited from Object (a header saying "constructor" is no column). */
 export function own<T>(table: Readonly<Record<string, T>>, key: string): T | undefined {
   return Object.hasOwn(table, key) ? table[key] : undefined
@@ -153,8 +163,7 @@ export function parseTeacherCsv(text: string): TeacherCsvResult {
   if (shapeProblems.length > 0) return { ...none(shapeProblems), ignoredColumns: ignored }
   const field = (fields: readonly string[], column: TeacherCsvColumn): string | undefined => {
     const i = index.get(column)
-    const value = i === undefined ? undefined : fields[i]?.trim()
-    return value === undefined || value === '' ? undefined : value
+    return i === undefined ? undefined : readCell(fields[i])
   }
   const rows: TeacherCsvRow[] = []
   const problems: TeacherCsvProblem[] = []

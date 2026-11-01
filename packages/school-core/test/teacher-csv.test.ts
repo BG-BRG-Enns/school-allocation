@@ -41,6 +41,12 @@ test('only the address is required; a file without it, without a header or with 
   assert.deepEqual(parseTeacherCsv('email;short_name\na@schule.example.org;ZwA;extra\n').fileProblems, [{ code: 'field_count', line: 2 }])
 })
 
+test('the apostrophe the template puts before a value that starts like a formula comes off again, so a template comes back as it went out', () => {
+  const result = parseTeacherCsv('email;short_name;class\n\'+anna.zwexmhofer@schule.example.org;ZwA;\n')
+  assert.deepEqual(result.problems, [])
+  assert.deepEqual(result.rows, [{ line: 2, email: '+anna.zwexmhofer@schule.example.org', shortName: 'ZwA' }])
+})
+
 test('blank records, as a spreadsheet leaves them, are skipped with the line numbers kept; a file of blank records alone is empty', () => {
   const result = parseTeacherCsv('email;short_name;class\r\n;;\r\nanna.zwexmhofer@schule.example.org;ZwA;\r\n\r\n;;\r\n')
   assert.deepEqual(result.fileProblems, [])
