@@ -116,7 +116,7 @@ test('a list naming someone the registration does not know, an address and an ab
   assert.equal(refused.body.error, 'availability_import_invalid')
   assert.equal(refused.body.problems.length, 4)
   const noDay = await send<{ error: string }>(s, s.anna, 'POST', url, { csv: 'email;Leitung\nx@schule.example.org;N\n' })
-  assert.equal(noDay.body.error, 'csv_invalid', `${noDay.status} ${JSON.stringify(noDay.body)}`)
+  assert.equal(noDay.body.error, 'csv_file_invalid', `${noDay.status} ${JSON.stringify(noDay.body)}`)
   const planning = await get<PlanningResponse>(s, s.anna, `/api/admin/campaigns/${s.campaign}/planning`)
   assert.ok(planning.body.teachers.every((x) => x.days.every((d) => d.status === 'available')))
 })

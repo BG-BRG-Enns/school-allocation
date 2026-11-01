@@ -44,7 +44,7 @@ export async function applyAvailabilityImport(db: Database, rawId: string, csv: 
     if (!campaign) throw new ApplicationError('not_found')
     if (campaign.state === 'archived') throw new ApplicationError('campaign_state')
     const { preview, writes } = await resolve(client, campaign, csv)
-    if (preview.fileProblems.length > 0) throw new ApplicationError('csv_invalid', preview.fileProblems.map((p) => `${p.code}${p.column === undefined ? '' : ` (${p.column})`}${p.line === undefined ? '' : ` (line ${p.line})`}`).join('; '))
+    if (preview.fileProblems.length > 0) throw new ApplicationError('csv_file_invalid', preview.fileProblems.map((p) => `${p.code}${p.column === undefined ? '' : ` (${p.column})`}${p.line === undefined ? '' : ` (line ${p.line})`}`).join('; '))
     if (!preview.applicable) throw new AvailabilityImportInvalid(preview.problems)
     for (const [personId, write] of writes) {
       for (const [date, status] of write.days) await planningStore.writeAvailability(client, personId, date, status)
