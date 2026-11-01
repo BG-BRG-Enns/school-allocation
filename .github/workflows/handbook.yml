@@ -45,6 +45,23 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Every branch, for the check that the tag is on main below.
+          fetch-depth: 0
+
+      # The repository-visible half of the tag ruleset (SECURITY.md,
+      # Residual risks): a release is a commit of main. The ruleset lets
+      # only the maintainer create a v* tag and nobody move or delete one;
+      # this refuses a tag that points off main all the same, so a tag
+      # alone never publishes code main never carried. The checkout above
+      # fetched every branch for it (fetch-depth: 0).
+      - name: Verify the tag is on main
+        run: |
+          set -euo pipefail
+          git rev-parse --verify --quiet origin/main >/dev/null || { echo "Refusing to publish: origin/main is not in the checkout" >&2; exit 1; }
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "Refusing to publish: ${GITHUB_REF_NAME} (${GITHUB_SHA}) is not a commit of main" >&2
+            exit 1
+          fi
 
       # No npm cache: a release builds from what the lock file names alone,
       # never from a cache another run could have filled.

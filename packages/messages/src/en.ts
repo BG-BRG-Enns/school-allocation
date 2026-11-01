@@ -882,6 +882,8 @@ export const en: Messages = {
       to: 'Place in',
       /** The free places of an item, in brackets after it. */
       free: (count: number) => `${count} open`,
+      /** An item with more students than places, after a forced change: how many too many. */
+      over: (count: number) => `${count} over`,
       force: 'Even if the activity is full, too few would remain or a rule would no longer be met (recorded)',
       submit: 'Change',
     },

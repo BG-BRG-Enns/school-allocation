@@ -893,6 +893,8 @@ export const de = {
       to: 'Einteilen in',
       /** The free places of an item, in brackets after it. */
       free: (count: number) => `${count} frei`,
+      /** An item with more students than places, after a forced change: how many too many. */
+      over: (count: number) => `${count} zu viel`,
       force: 'Auch wenn die Aktivität voll ist, dann zu wenige bleiben oder eine Regel nicht mehr erfüllt ist (wird vermerkt)',
       submit: 'Ändern',
     },

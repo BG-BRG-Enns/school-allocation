@@ -31,7 +31,7 @@ The evidence column states what has to be shown for sign-off.
 
 | # | Criterion | Evidence |
 | - | --------- | -------- |
-| PW1 | No published allocation exceeds an item's capacity, assigns overlapping items, assigns an unranked or ineligible item, or drops or alters a pre-assignment | Validator unit tests with tampered results; e2e run on a synthetic campaign |
+| PW1 | No published allocation exceeds an item's capacity, assigns overlapping items, assigns an unranked or ineligible item, or drops or alters a pre-assignment; an organizer's change by hand afterwards may override a full item, a minimum or a rule and is recorded as forced (PW11) | Validator unit tests with tampered results; e2e run on a synthetic campaign |
 | PW2 | A multi-session item (e.g. Tue 08:00 – Wed 13:00) is assigned as a whole or not at all, and credits each date separately | Unit tests; synthetic instance |
 | PW3 | Every student either meets every day's minimum or appears in the deficit report with the missing minutes per day | Run review screen + export on a synthetic instance with forced shortage |
 | PW4 | Same snapshot + seed + versions produce an identical assignment | CI reproducibility test |
