@@ -105,14 +105,14 @@ export const deFormal = {
     },
   },
   availability: {
-    intro: 'Tragen Sie ein, an welchen Projekttagen Sie für eine Aktivität da sind. Ohne Eintrag gelten Sie als verfügbar. Einen Grund brauchen Sie nicht.',
+    intro: 'Tragen Sie ein, an welchen Projekttagen Sie für eine Aktivität da sind. Ohne Eintrag gelten Sie als verfügbar. Einen Grund geben Sie nicht an.',
     none: 'Zurzeit sammelt keine Anmeldung Angebote. Solange eine sammelt, tragen Sie hier ein, an welchen ihrer Projekttage Sie da sind; danach ändert das die Organisation.',
   },
   planning: {
     intro: 'Je Lehrkraft und Projekttag: ob sie verfügbar ist, was sie leitet und was sie begleitet. Die Lehrkräfte tragen ihre Verfügbarkeit ein, solange Angebote gesammelt werden; hier ändern Sie sie für alle, bis die Anmeldung abgeschlossen ist.',
   },
   retention: {
-    intro: 'Die Daten einer Projektwoche bleiben bis ein Jahr nach dem Ende ihres Schuljahrs. Danach können Sie sie hier löschen, mit Begründung; von selbst wird nichts gelöscht. Sichern Sie vorher die Einteilung und die Kostenliste als Excel, falls die Buchhaltung sie braucht. Gelöscht ist gelöscht.',
+    intro: 'Die Daten einer Projektwoche bleiben bis ein Jahr nach dem Ende ihres Schuljahrs. Danach können Sie sie hier löschen, mit Begründung; von selbst wird nichts gelöscht. Sichern Sie vorher die Einteilung und die Kostenliste als Excel, falls die Buchhaltung danach fragt. Gelöscht ist gelöscht.',
   },
   mail: {
     class_missing: {

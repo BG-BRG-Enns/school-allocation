@@ -211,7 +211,7 @@ export const de = {
     },
     /** Why an activity was refused (school-core CATALOGUE_PROBLEM_CODES). */
     catalogueProblem: {
-      no_sessions: 'Es braucht mindestens einen Termin',
+      no_sessions: 'Mindestens ein Termin ist nötig',
       session_ends_before_start: 'Ein Termin endet vor seinem Beginn',
       session_outside_project_days: 'Ein Termin liegt außerhalb der Projekttage',
       sessions_overlap: 'Zwei Termine der Aktivität überschneiden sich',
@@ -224,7 +224,7 @@ export const de = {
       fixed_class_unknown: 'Eine der ganzen Klassen gibt es in den Klassenlisten nicht',
       eligible_class_unknown: 'Eine Klasse, für die die Aktivität angeboten wird, gibt es in den Klassenlisten nicht',
       fixed_class_also_eligible: 'Eine Klasse nimmt ganz teil und steht zugleich unter „Angeboten für Klassen“',
-      no_teacher: 'Es braucht mindestens eine Lehrkraft',
+      no_teacher: 'Mindestens eine Lehrkraft ist nötig',
       teacher_twice: 'Eine Lehrkraft ist zweimal eingetragen',
     },
     /** Why a ranking was refused (school-core RANKING_PROBLEM_CODES). */
@@ -269,7 +269,7 @@ export const de = {
     /** Why a run failed (RUN_FAILURE_CODES). */
     runFailure: {
       solver_unreachable: 'Das Rechenmodul war nicht erreichbar',
-      solver_answer_invalid: 'Das Rechenmodul hat eine unbrauchbare Antwort geliefert',
+      solver_answer_invalid: 'Das Rechenmodul hat keine gültige Antwort geliefert',
       solver_infeasible: 'Keine Einteilung möglich, meist wegen der Mindestzahl einer Aktivität, die nicht ausfallen darf',
       solver_unknown: 'In der Rechenzeit wurde keine Einteilung gefunden',
       model_invalid: 'Fehler in den Daten für die Berechnung',
@@ -349,7 +349,7 @@ export const de = {
     /** Why a registration's rules were refused (school-core RULE_PROBLEM_CODES). */
     ruleProblem: {
       category_unknown: 'Diese Kategorie gibt es nicht (mehr)',
-      grades_missing: 'Eine Regel braucht mindestens eine Schulstufe',
+      grades_missing: 'Eine Regel gilt für mindestens eine Schulstufe',
       minimum_out_of_range: 'Die Mindestzahl passt nicht: mindestens 1, höchstens 20 Aktivitäten oder 10000 Minuten',
       too_many_rules: 'Höchstens 20 Regeln',
     },
@@ -388,7 +388,7 @@ export const de = {
     },
     /** Why a period grid was refused (school-core PERIOD_PROBLEM_CODES). */
     periodProblem: {
-      no_periods: 'Es braucht mindestens eine Einheit',
+      no_periods: 'Mindestens eine Einheit ist nötig',
       period_numbering: 'Die Einheiten müssen von 1 an ohne Lücke nummeriert sein',
       period_time_invalid: 'Eine Uhrzeit hat nicht die Form HH:MM',
       period_ends_before_start: 'Eine Einheit endet nicht nach ihrem Beginn',
@@ -431,7 +431,7 @@ export const de = {
     batch_not_pending: 'Über diesen Import wurde schon entschieden.',
     batch_superseded: 'Seit diesem Import wurde ein anderer übernommen. Bitte lies die Klassenlisten noch einmal ein.',
     duplicate_group: 'Eine Gruppe ist zweimal eingetragen.',
-    group_label_incomplete: 'Eine Klassengruppe braucht Klasse und Schulstufe; die Gruppe der Lehrkräfte hat keine.',
+    group_label_incomplete: 'Eine Klassengruppe hat Klasse und Schulstufe; die Gruppe der Lehrkräfte hat keine.',
     no_groups: 'Es sind noch keine Entra-Gruppen eingetragen.',
     // Accounts and roles
     already_bound: 'Dieses Konto ist dieser Person schon zugeordnet.',
@@ -574,7 +574,7 @@ export const de = {
       intro: 'Eine Regel verlangt von den Schüler*innen einer Schulstufe (oder nur einiger ihrer Klassen) mindestens so viele Aktivitäten oder Minuten aus einer Kategorie. Klassenaktivitäten zählen mit. Die Zuteilung erfüllt die Regeln, wo es geht: nach den Mindestminuten je Tag und vor den Wünschen, auch mit einem Restplatz ohne Kosten.',
       fixed: 'Ab dem Beginn der Anmeldung stehen die Regeln fest: Die Schüler*innen wählen nach ihnen.',
       none: 'Keine Regeln.',
-      noCategories: 'Für Regeln braucht die Schule zuerst Kategorien.',
+      noCategories: 'Für Regeln legt die Schule zuerst Kategorien an.',
       rule: (number: number) => `Regel ${number}`,
       grades: 'Schulstufen',
       classes: 'Nur diese Klassen (leer: alle der Schulstufen)',
@@ -614,11 +614,11 @@ export const de = {
     },
     demand: {
       heading: 'Plätze und Bedarf',
-      intro: (percent: number) => `Je Projekttag und Schulstufe: wie viele Schüler*innen einen Platz brauchen (ohne die in einer Klassenaktivität), das Ziel mit ${percent} % darüber, damit die Wünsche Platz haben, und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Eine Schulstufe unter dem Ziel ist markiert.`,
-      cell: (needing: number, target: number, offered: number) => `${needing} brauchen · Ziel ${target} · ${offered} angeboten`,
+      intro: (percent: number) => `Je Projekttag und Schulstufe: wie viele Schüler*innen noch einen Platz suchen (ohne die in einer Klassenaktivität), das Ziel mit ${percent} % darüber, damit die Wünsche Platz haben, und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Eine Schulstufe unter dem Ziel ist markiert.`,
+      cell: (needing: number, target: number, offered: number) => `${needing} ohne Platz · Ziel ${target} · ${offered} angeboten`,
       short: (missing: number) => `${missing} unter dem Ziel`,
-      rulesIntro: 'Je Regel und Schulstufe: was die Schüler*innen nach ihren Klassenaktivitäten noch brauchen, und höchstens was die Plätze der Aktivitäten der Kategorie bringen, die sie wählen können. Eine Regel, für die das nicht reicht, ist markiert.',
-      needed: 'Brauchen',
+      rulesIntro: 'Je Regel und Schulstufe: was den Schüler*innen nach ihren Klassenaktivitäten noch fehlt, und höchstens was die Plätze der Aktivitäten der Kategorie bringen, die sie wählen können. Eine Regel, für die das nicht reicht, ist markiert.',
+      needed: 'Bedarf',
       offered: 'Bieten höchstens',
       ruleShort: 'reicht nicht',
     },
@@ -738,7 +738,7 @@ export const de = {
 
   /** Verfuegbarkeit.vue: a teacher's own availability on the project days of the registrations collecting activities. */
   availability: {
-    intro: 'Trag ein, an welchen Projekttagen du für eine Aktivität da bist. Ohne Eintrag giltst du als verfügbar. Einen Grund brauchst du nicht.',
+    intro: 'Trag ein, an welchen Projekttagen du für eine Aktivität da bist. Ohne Eintrag giltst du als verfügbar. Einen Grund gibst du nicht an.',
     none: 'Zurzeit sammelt keine Anmeldung Angebote. Solange eine sammelt, trägst du hier ein, an welchen ihrer Projekttage du da bist; danach ändert das die Organisation.',
     teachersOnly: 'Die Verfügbarkeit tragen die Lehrkräfte ein.',
     /** The label of a day's choice for a screen reader, the day as format.ts formatDay writes it. */
@@ -1363,7 +1363,7 @@ export const de = {
   /** Aufbewahrung.vue: the school years' records and the purge of one. */
   retention: {
     adminsOnly: 'Die Aufbewahrung ist der Administration der Schule vorbehalten; die Einsicht liest mit.',
-    intro: 'Die Daten einer Projektwoche bleiben bis ein Jahr nach dem Ende ihres Schuljahrs. Danach kannst du sie hier löschen, mit Begründung; von selbst wird nichts gelöscht. Sichere vorher die Einteilung und die Kostenliste als Excel, falls die Buchhaltung sie braucht. Gelöscht ist gelöscht.',
+    intro: 'Die Daten einer Projektwoche bleiben bis ein Jahr nach dem Ende ihres Schuljahrs. Danach kannst du sie hier löschen, mit Begründung; von selbst wird nichts gelöscht. Sichere vorher die Einteilung und die Kostenliste als Excel, falls die Buchhaltung danach fragt. Gelöscht ist gelöscht.',
     purged: 'Die Daten des Schuljahrs sind gelöscht.',
     years: 'Schuljahre',
     none: 'Noch keine Daten.',
