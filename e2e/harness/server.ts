@@ -215,7 +215,11 @@ async function startStandIn(): Promise<string> {
 async function startRealSolver(): Promise<string> {
   const port = await freePort()
   const child = spawn('uv', ['run', '--frozen', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(port), '--log-level', 'warning'], { cwd: path.join(ROOT, 'apps', 'solver'), stdio: ['ignore', 'ignore', 'inherit'], detached: true })
-  const exited = new Promise<never>((_, reject) => child.once('exit', (code) => reject(new Error(`the solver exited with ${code}`))))
+  // Without uv on the PATH there is no exit, only an error, which unheard would end the harness before its cleanups.
+  const exited = new Promise<never>((_, reject) => {
+    child.once('exit', (code) => reject(new Error(`the solver exited with ${code}`)))
+    child.once('error', (err) => reject(new Error(`the solver did not start: ${err.message}`)))
+  })
   // Its end at the harness's own is no failure; before the solver answers, the race below sees it.
   exited.catch(() => {})
   cleanups.push(async () => {
