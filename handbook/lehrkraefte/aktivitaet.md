@@ -25,7 +25,7 @@ Ein Termin liegt in den Einheiten der Schule: Wähle den **Tag**, **ab Einheit**
 ![Die Teilnahme: ganze Klassen, Plätze, Mindestzahl, ob die Aktivität ausfallen darf, für welche Schulstufen und Klassen sie angeboten wird, darunter die Kosten](/bilder/de/aktivitaet-teilnahme.png)
 
 - **Plätze**: wie viele Schüler\*innen höchstens teilnehmen.
-- **Mindestzahl**: unter wie vielen Teilnehmer\*innen die Aktivität nicht stattfindet.
+- **Mindestzahl**: so viele Teilnehmer\*innen soll die Aktivität mindestens haben.
 - **Fällt aus, wenn zu wenige kommen**: Mit diesem Häkchen darf die Aktivität ausfallen, wenn sich zu wenige für die Mindestzahl finden. Ohne das Häkchen findet sie statt, und die Zuteilung muss die Mindestzahl erreichen.
 - **Angeboten für Schulstufen** und **für Klassen**: Ohne Auswahl ist die Aktivität für alle.
 

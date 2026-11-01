@@ -34,7 +34,12 @@ async function must<T>(answer: Promise<{ status: number, body: T }>, what: strin
   return a.body
 }
 
+/** The run's wait: the real solver (E2E_SOLVER=real) takes its time even on a small second registration. */
+const RUN = { timeout: process.env.E2E_SOLVER === 'real' ? 300_000 : 30_000 }
+
 test('die Organisation bringt eine zweite Anmeldung über die API bis zur veröffentlichten Einteilung, mit offener Tauschzeit', async ({ page }) => {
+  // The test's own minute and the run's wait, as 06 does it: the config's 60 s would end the test while the solver still runs.
+  test.setTimeout(60_000 + RUN.timeout)
   await setClock(page, '2034-05-22T08:00:00+02:00')
   // Bernd proposes the four activities of the Monday, every one with a fee so the run places nobody as a fallback: two in the morning (one place; five places), two in the afternoon (one place; ten places).
   await openAs(page, ANNA, '/wahlen')
@@ -88,7 +93,7 @@ test('die Organisation bringt eine zweite Anmeldung über die API bis zur veröf
   expect((await enter(person(TIM.name), { [afternoon]: [items.chess ?? '', items.dance ?? ''] })).status).toBe(200)
   await must(apiPost(page, `/api/admin/campaigns/${id}/transition`, { to: 'closed' }), 'closed')
   const started = await must(apiPost<{ run: { id: string } }>(page, `/api/admin/campaigns/${id}/runs`, { seed: 7 }), 'run')
-  await expect.poll(async () => (await apiGet<{ run: { status: string } }>(page, `/api/admin/campaigns/${id}/runs/${started.run.id}`)).body.run.status, { timeout: process.env.E2E_SOLVER === 'real' ? 300_000 : 30_000 }).toBe('succeeded')
+  await expect.poll(async () => (await apiGet<{ run: { status: string } }>(page, `/api/admin/campaigns/${id}/runs/${started.run.id}`)).body.run.status, RUN).toBe('succeeded')
   const review = await must(apiGet<{ run: { cancelledItemIds: string[] } }>(page, `/api/admin/campaigns/${id}/runs/${started.run.id}`), 'review')
   await must(apiPost(page, `/api/admin/campaigns/${id}/runs/${started.run.id}/publish`, { cancelledItemIds: review.run.cancelledItemIds }), 'publish')
   await signOut(page)
