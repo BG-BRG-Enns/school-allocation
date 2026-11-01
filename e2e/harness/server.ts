@@ -204,9 +204,14 @@ async function startRealSolver(): Promise<string> {
   const exited = new Promise<never>((_, reject) => child.once('exit', (code) => reject(new Error(`the solver exited with ${code}`))))
   // Its end at the harness's own is no failure; before the solver answers, the race below sees it.
   exited.catch(() => {})
-  cleanups.push(() => {
-    // The whole group: uv and the uvicorn it runs.
-    if (child.pid !== undefined && child.exitCode === null) process.kill(-child.pid, 'SIGTERM')
+  cleanups.push(async () => {
+    if (child.pid === undefined || child.exitCode !== null) return
+    // The whole group, uv and the uvicorn it runs; killed when a solve in flight keeps it from stopping.
+    const stopped = new Promise((resolve) => child.once('exit', resolve))
+    process.kill(-child.pid, 'SIGTERM')
+    if (await Promise.race([stopped.then(() => true), new Promise((resolve) => setTimeout(resolve, 5000, false))])) return
+    process.kill(-child.pid, 'SIGKILL')
+    await stopped
   })
   const url = `http://127.0.0.1:${port}`
   const deadline = Date.now() + 120_000
