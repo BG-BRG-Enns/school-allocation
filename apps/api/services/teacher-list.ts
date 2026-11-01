@@ -60,7 +60,7 @@ export async function applyTeacherList(db: Database, csv: string, actor: Actor):
 
 /** Whether two lists name the same people, whatever their order or names. */
 function sameTeachers(a: readonly { personId: string }[], b: readonly { personId: string }[]): boolean {
-  const ids = (list: readonly { personId: string }[]) => [...new Set(list.map((x) => x.personId))].sort().join('\n')
+  const ids = (list: readonly { personId: string }[]) => [...new Set(list.map((x) => x.personId))].sort((a, b) => a.localeCompare(b, 'en')).join('\n')
   return ids(a) === ids(b)
 }
 

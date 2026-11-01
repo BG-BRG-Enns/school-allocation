@@ -95,7 +95,7 @@ async function onApply(): Promise<void> {
 }
 
 /** The people of a class's list, as a key: the same people in any order or spelling are no change. */
-const peopleOf = (list: readonly { personId: string }[]) => [...new Set(list.map((x) => x.personId))].sort().join('\n')
+const peopleOf = (list: readonly { personId: string }[]) => [...new Set(list.map((x) => x.personId))].sort((a, b) => a.localeCompare(b, 'en')).join('\n')
 /** Whether the preview would change anything at all. */
 const previewChanges = computed(() => (preview.value?.teachers.some((x) => x.shortName !== null) ?? false) || (preview.value?.classes.some((c) => peopleOf(c.before) !== peopleOf(c.after)) ?? false))
 
