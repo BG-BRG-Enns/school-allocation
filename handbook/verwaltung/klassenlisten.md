@@ -49,7 +49,7 @@ Lade die Datei hoch oder füge ihren Inhalt ein, trag das **Schuljahr** ein und 
 
 ## Einen Import prüfen und übernehmen
 
-![Ein Import aus den Entra-Gruppen: die Änderungen gegenüber den aktuellen Klassenlisten, mit neuen und entfernten Personen, und die Knöpfe Übernehmen und Verwerfen](/bilder/de/import-pruefen.png)
+![Ein Import aus den Entra-Gruppen: die Änderungen gegenüber den aktuellen Klassenlisten, die Knöpfe Übernehmen und Verwerfen und darunter die neuen Personen](/bilder/de/import-pruefen.png)
 
 Der Import zeigt, was sich gegenüber den aktuellen Klassenlisten ändert: wer **neu** ist, wer **entfernt** wird und bei wem sich Klasse, Schulstufe, Name oder Adresse **geändert** hat.
 

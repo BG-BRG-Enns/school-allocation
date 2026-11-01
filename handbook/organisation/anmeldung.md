@@ -18,7 +18,7 @@ Ab dem Öffnen zeigt die Seite der Anmeldung, wie weit alle mit ihren Wünschen 
 
 ## Für jemanden eintragen
 
-![Für jemanden eintragen: die Wünsche einer Person, von der Organisation gereiht, mit einer Begründung](/bilder/de/fuer-jemanden-eintragen.png)
+![Für jemanden eintragen: für wen, mit dem Hinweis, dass die Eintragung mit Begründung protokolliert wird, darunter die Wünsche, von der Organisation gereiht](/bilder/de/fuer-jemanden-eintragen.png)
 
 **Eintragen** in der Zeile einer Person öffnet ihre Wünsche. Du reihst für sie, schreibst eine **Begründung** und klickst **Wünsche speichern**. SchulWahl protokolliert, was du eingetragen hast, mit deiner Begründung.
 

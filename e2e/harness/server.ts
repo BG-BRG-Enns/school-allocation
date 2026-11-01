@@ -12,11 +12,26 @@
 // port (E2E_CONTROL_PORT, one above the app's) sets and moves it and runs
 // the scheduler's tick, which runs at no other time (e2e/support/clock.ts).
 //
-// Nothing here is a production knob: the stand-in and the clock are passed
+// The school around the test people is the scenario's (e2e/scenario): the
+// stand-in for Graph holds its tenant from the start, and the control port
+// loads the rest of it stage by stage, as the journeys get there
+// (e2e/support/scenario.ts).
+//
+// The solver is a greedy stand-in, enough for the journeys; with
+// E2E_SOLVER=real the harness starts the real one (apps/solver, with uv)
+// on a free port, for the handbook's pictures.
+//
+// Mail is set up, against the API tests' SMTP stand-in, so the pages show
+// the sending as a school with mail sees it; no sender runs, so every
+// notice waits in the outbox.
+//
+// Nothing here is a production knob: the stand-ins and the clock are passed
 // to the app as the API tests pass them, and no environment variable of
 // the server could point a deployed server at another authority or time.
 
+import { spawn } from 'node:child_process'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import { createServer as createNetServer, type AddressInfo } from 'node:net'
 import path from 'node:path'
 import type { TestContext } from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -27,13 +42,18 @@ import { tick } from '../../apps/api/services/scheduling.ts'
 import { ControlledClock } from '../../apps/api/test/helpers/clock.ts'
 import { createTestDatabase, withClient } from '../../apps/api/test/helpers/db.ts'
 import { SERVER_ENV } from '../../apps/api/test/helpers/env.ts'
+import { secretFile, TENANT_ID } from '../../apps/api/test/helpers/env.ts'
 import { startFakeEntra } from '../../apps/api/test/helpers/fake-entra.ts'
-import { startFakeGraph } from '../../apps/api/test/helpers/fake-graph.ts'
+import { CLASS_5A_GROUP, startFakeGraph, TEACHERS_GROUP } from '../../apps/api/test/helpers/fake-graph.ts'
+import { startFakeSmtp } from '../../apps/api/test/helpers/fake-smtp.ts'
 import { startFakeSolver } from '../../apps/api/test/helpers/fake-solver.ts'
-import { ANNA } from '../../apps/api/test/helpers/personas.ts'
+import { ANNA, SARA, TIM } from '../../apps/api/test/helpers/personas.ts'
+import { scenarioLoader, stockTenant } from '../scenario/load.ts'
 import { BASE_PATH } from '../support/base.ts'
 import { CONTROL_PORT, STORY_STARTS } from '../support/clock.ts'
 import { LOCALE } from '../support/messages.ts'
+import { sample } from '../support/sample.ts'
+import { SCHOOL, type Stage } from '../support/scenario.ts'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const PORT = Number(process.env.E2E_PORT ?? 3100)
@@ -82,20 +102,20 @@ try {
   const clock = new ControlledClock(STORY_STARTS)
   const entra = await startFakeEntra({ redirectUri: `${ORIGIN}${BASE_PATH}/api/auth/callback`, clock })
   cleanups.push(() => entra.close())
-  // The stand-in for Graph, with the groups the journeys label and read,
-  // and one more the picker finds and nobody has labelled yet.
+  // The stand-in for Graph, with the scenario's tenant: the classes, the
+  // leavers nobody labels and the teachers, 5A and the teachers under the
+  // group ids the journeys label.
   const graph = await startFakeGraph(entra.issued)
-  graph.groups.set('33333333-3333-4333-8333-333333333333', [])
-  graph.names.set('33333333-3333-4333-8333-333333333333', 'Klasse 6A')
+  stockTenant(graph, SCHOOL)
   // Two groups named after their class alone, as a school's tenant has them, for the search of all classes.
   for (const [id, name] of [['44444444-4444-4444-8444-444444444444', '7B'], ['55555555-5555-4555-8555-555555555555', '8C']] as const) {
     graph.groups.set(id, [])
     graph.names.set(id, name)
   }
   cleanups.push(() => graph.close())
-  // The stand-in for the solver: a greedy answer in the contract's shape, enough for the journey through a run.
-  const solver = await startFakeSolver()
-  cleanups.push(() => solver.close())
+  const solverUrl = process.env.E2E_SOLVER === 'real' ? await startRealSolver() : await startStandIn()
+  const smtp = await startFakeSmtp()
+  cleanups.push(() => smtp.close())
   const db = createDatabase(testDb.runtimeUrl, (err) => console.error('database client failed', err), clock)
   cleanups.push(() => db.close())
   const config = loadConfig({
@@ -104,7 +124,14 @@ try {
     HOST: '127.0.0.1',
     PORT: String(PORT),
     WEB_DIST_DIR: path.join(ROOT, 'apps', 'web', 'dist'),
-    SOLVER_URL: solver.baseUrl,
+    SOLVER_URL: solverUrl,
+    SMTP_HOST: '127.0.0.1',
+    SMTP_PORT: String(smtp.port),
+    SMTP_SECURE: 'false',
+    SMTP_REQUIRE_TLS: 'false',
+    SMTP_USER: 'wahl',
+    SMTP_PASSWORD_FILE: secretFile('smtp-password', 'e2e-password\n'),
+    MAIL_FROM: 'SchulWahl <wahl@schule.example.org>',
     // Anna administers the school in the journeys.
     BOOTSTRAP_ADMINS: ANNA.email ?? '',
   })
@@ -118,7 +145,30 @@ try {
       response.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }))
     })
   })
-  /** GET /clock: where the clock stands; POST /clock {"at"} sets it; POST /tick runs the scheduler once at the clock's time. */
+  const story = scenarioLoader({ db, clock, graph, accessToken: '', tenantId: TENANT_ID, bootstrapAdmins: [ANNA.email ?? ''], context: { baseUrl: config.publicUrl } }, SCHOOL)
+  /** What the stage does: the rest of the school, around what the journeys did through the pages. */
+  async function load(stage: Stage, until: unknown): Promise<object> {
+    switch (stage) {
+      case 'groups':
+        // Every class's group but 5A's, and not the teachers': the journeys label those.
+        return { labelled: await story.labelGroups(new Set([CLASS_5A_GROUP, TEACHERS_GROUP])) }
+      case 'staff':
+        // Every class teacher but 5A's, whom the journeys assign.
+        await story.assignStaff(new Set(['5A']))
+        return {}
+      case 'catalogue': {
+        const registration = await story.registrationNamed(sample.projectWeek)
+        if (registration.state !== 'catalogue') throw new Error(`${sample.projectWeek} is ${registration.state}, not taking proposals`)
+        return { items: (await story.catalogue(registration.id, await story.ensureCategories())).size }
+      }
+      case 'choices': {
+        if (typeof until !== 'string' || Number.isNaN(Date.parse(until))) throw new Error('until must be an ISO 8601 time')
+        // Sara's and Tim's lists are the journeys'.
+        return await story.saveChoices((await story.registrationNamed(sample.projectWeek)).id, { until, skip: new Set([SARA.oid, TIM.oid]) })
+      }
+    }
+  }
+  /** GET /clock: where the clock stands; POST /clock {"at"} sets it; POST /tick runs the scheduler once at the clock's time; POST /scenario {"stage", "until"} loads a stage of the scenario. */
   async function answer(request: IncomingMessage, response: ServerResponse): Promise<void> {
     const reply = (status: number, body: unknown) => {
       response.writeHead(status, { 'content-type': 'application/json' })
@@ -135,6 +185,11 @@ try {
     if (request.method === 'POST' && request.url === '/tick') {
       return reply(200, await tick(db, { baseUrl: config.publicUrl }, db.now(), { error: ({ err, campaignId }, message) => console.error(message, campaignId, err) }))
     }
+    if (request.method === 'POST' && request.url === '/scenario') {
+      const { stage, until } = JSON.parse(await bodyOf(request)) as { stage?: unknown, until?: unknown }
+      if (stage !== 'groups' && stage !== 'staff' && stage !== 'catalogue' && stage !== 'choices') return reply(400, { error: 'stage must be groups, staff, catalogue or choices' })
+      return reply(200, await load(stage, until))
+    }
     reply(404, { error: 'not_found' })
   }
   await new Promise<void>((resolve, reject) => {
@@ -147,6 +202,54 @@ try {
 } catch (err) {
   console.error('e2e server failed to start', err)
   await stop(1)
+}
+
+/** The stand-in for the solver: a greedy answer in the contract's shape, enough for the journeys through a run. */
+async function startStandIn(): Promise<string> {
+  const solver = await startFakeSolver()
+  cleanups.push(() => solver.close())
+  return solver.baseUrl
+}
+
+/** The real solver, with uv from apps/solver, on a free port; stopped with the harness. */
+async function startRealSolver(): Promise<string> {
+  const port = await freePort()
+  const child = spawn('uv', ['run', '--frozen', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(port), '--log-level', 'warning'], { cwd: path.join(ROOT, 'apps', 'solver'), stdio: ['ignore', 'ignore', 'inherit'], detached: true })
+  // Without uv on the PATH there is no exit, only an error, which unheard would end the harness before its cleanups.
+  const exited = new Promise<never>((_, reject) => {
+    child.once('exit', (code) => reject(new Error(`the solver exited with ${code}`)))
+    child.once('error', (err) => reject(new Error(`the solver did not start: ${err.message}`)))
+  })
+  // Its end at the harness's own is no failure; before the solver answers, the race below sees it.
+  exited.catch(() => {})
+  cleanups.push(async () => {
+    if (child.pid === undefined || child.exitCode !== null) return
+    // The whole group, uv and the uvicorn it runs; killed when a solve in flight keeps it from stopping.
+    const stopped = new Promise((resolve) => child.once('exit', resolve))
+    process.kill(-child.pid, 'SIGTERM')
+    if (await Promise.race([stopped.then(() => true), new Promise((resolve) => setTimeout(resolve, 5000, false))])) return
+    process.kill(-child.pid, 'SIGKILL')
+    await stopped
+  })
+  const url = `http://127.0.0.1:${port}`
+  const deadline = Date.now() + 120_000
+  for (;;) {
+    const healthy = await Promise.race([fetch(`${url}/health`).then((r) => r.ok, () => false), exited])
+    if (healthy) return url
+    if (Date.now() > deadline) throw new Error('the solver did not answer within two minutes')
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+}
+
+function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const probe = createNetServer()
+    probe.once('error', reject)
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address() as AddressInfo
+      probe.close(() => resolve(port))
+    })
+  })
 }
 
 function bodyOf(request: IncomingMessage): Promise<string> {

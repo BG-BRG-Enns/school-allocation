@@ -30,11 +30,9 @@ tmp/
 docs/anleitung/bilder/full-size/
 
 # VitePress's cache and the built handbooks (npm run handbook). The cut
-# pictures (npm run handbook:shots) stay local until the journeys run on
-# a school of realistic size; then they are committed.
+# pictures (npm run handbook:shots) are committed.
 handbook/.vitepress/cache/
 handbook/.vitepress/dist/
-handbook/public/bilder/
 
 # The solver's local environment and Python caches.
 apps/solver/.venv/

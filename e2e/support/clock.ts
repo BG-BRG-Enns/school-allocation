@@ -16,7 +16,8 @@ export const STORY_STARTS = new Date('2033-11-07T08:00:00+01:00')
 
 const CONTROL = `http://127.0.0.1:${CONTROL_PORT}`
 
-async function control<T>(method: 'GET' | 'POST', path: string, body?: object): Promise<T> {
+/** A request to the harness's control port, failing on anything but success. */
+export async function control<T>(method: 'GET' | 'POST', path: string, body?: object): Promise<T> {
   const response = await fetch(`${CONTROL}${path}`, { method, ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }) })
   if (!response.ok) throw new Error(`clock control ${method} ${path}: ${response.status} ${await response.text()}`)
   return await response.json() as T

@@ -25,10 +25,14 @@ export async function shot(page: Page, name: string): Promise<void> {
 /** The handbooks' languages; formal German has no handbook of its own. */
 const HANDBOOK_LANGUAGES: readonly string[] = ['de', 'en']
 
+/** The tallest a picture gets: a school's lists run long, and the picture shows their start. */
+const MAX_HEIGHT = 1200
+
 /**
  * The handbook's picture `name` (handbook/public/bilder/<language>/<name>.png):
  * the page cut to the box around every element of `of`, with `pad` pixels
- * around it, at the journeys' 1280 pixels and a device scale of 1.
+ * around it, at most MAX_HEIGHT pixels from its top, at the journeys' 1280
+ * pixels and a device scale of 1.
  */
 export async function picture(page: Page, name: string, of: Locator | readonly Locator[], pad = 16): Promise<void> {
   if (!process.env.HANDBOOK_SHOTS) return
@@ -45,7 +49,7 @@ export async function picture(page: Page, name: string, of: Locator | readonly L
   const left = Math.max(0, Math.min(...boxes.map((b) => b.x)) - pad)
   const top = Math.max(0, Math.min(...boxes.map((b) => b.y)) - pad)
   const right = Math.min(extent.width, Math.max(...boxes.map((b) => b.x + b.width)) + pad)
-  const bottom = Math.min(extent.height, Math.max(...boxes.map((b) => b.y + b.height)) + pad)
+  const bottom = Math.min(extent.height, Math.max(...boxes.map((b) => b.y + b.height)) + pad, top + MAX_HEIGHT)
   const dir = path.join(import.meta.dirname, '..', '..', 'handbook', 'public', 'bilder', LOCALE)
   mkdirSync(dir, { recursive: true })
   await page.screenshot({ path: path.join(dir, `${name}.png`), fullPage: true, clip: { x: left, y: top, width: right - left, height: bottom - top } })

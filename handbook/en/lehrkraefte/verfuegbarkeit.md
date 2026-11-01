@@ -10,6 +10,8 @@ For each project day you choose:
 
 SchulWahl saves your choice at once. You give no reason.
 
+![My availability: a choice for each project day, here unavailable on Tuesday](/bilder/en/verfuegbarkeit.png)
+
 When someone names you as a teacher of an activity, the form shows on which of its days you are unavailable or available only if needed ([Proposing an activity](./aktivitaet)). It can be submitted all the same; the organisation decides.
 
 Once activities are no longer being collected, the days leave your list. If something changes after that, tell the organisation: it changes the availability until the registration is closed.

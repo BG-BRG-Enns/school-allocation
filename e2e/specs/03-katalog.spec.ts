@@ -4,7 +4,11 @@
 // Lehrkräfte je Tag, genehmigt und veröffentlicht, und Schüler*innen lesen
 // den nummerierten Katalog mit den Kategorien. Baut
 // auf den Klassenlisten aus 02-stammdaten auf (Anna organisiert als
-// Administratorin, Bernd ist Lehrkraft, Sara Pfnäxthuber der 5A).
+// Administratorin, Bernd ist Lehrkraft, Sara Pfnäxthuber der 5A). Die
+// Projektwoche ist die der ganzen Schule (e2e/support/scenario.ts): sobald
+// sie Aktivitäten sammelt, tragen die anderen Lehrkräfte bis Mitte Februar
+// ihre Verfügbarkeit und ihre Aktivitäten ein, und die Organisation
+// genehmigt sie.
 
 import { expect, test } from '../support/test.ts'
 import { ANNA, BERND, SARA } from '../support/personas.ts'
@@ -13,6 +17,7 @@ import { openAs, signOut } from '../support/sign-in.ts'
 import { refused } from '../support/console.ts'
 import { day, fee, literally, t } from '../support/messages.ts'
 import { sample } from '../support/sample.ts'
+import { CLIMBING, climbingNumber, loadStage } from '../support/scenario.ts'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -26,6 +31,8 @@ test('die Organisation legt die Anmeldung an und öffnet sie für Aktivitäten',
   await page.getByLabel(t.campaign.settings.projectDay(1)).fill('2034-07-03')
   await page.getByRole('button', { name: t.common.addDay }).click()
   await page.getByLabel(t.campaign.settings.projectDay(2)).fill('2034-07-04')
+  await page.getByRole('button', { name: t.common.addDay }).click()
+  await page.getByLabel(t.campaign.settings.projectDay(3)).fill('2034-07-05')
   await shot(page, '13-wahl-anlegen')
   await picture(page, 'anmeldung-anlegen', section(page, t.campaigns.new))
   await page.getByRole('button', { name: t.campaigns.create }).click()
@@ -48,6 +55,8 @@ test('die Organisation legt die Anmeldung an und öffnet sie für Aktivitäten',
   await refused(page, 409, () => page.getByRole('button', { name: t.categories.add }).click())
   await expect(page.getByRole('alert')).toHaveText(t.errors.category_exists)
   await signOut(page)
+  // The school's other categories, its teachers' availability and activities, until mid-February.
+  await loadStage(page, 'catalogue')
 })
 
 test('eine Lehrkraft trägt ein, an welchen Projekttagen sie da ist', async ({ page }) => {
@@ -60,6 +69,7 @@ test('eine Lehrkraft trägt ein, an welchen Projekttagen sie da ist', async ({ p
   await expect(page.getByText(t.availability.saved)).toBeVisible()
   await page.reload()
   await expect(page.getByLabel(t.availability.statusOn(day('2034-07-04')))).toHaveValue('unavailable')
+  await picture(page, 'verfuegbarkeit', page.locator('main'))
   await signOut(page)
 })
 
@@ -76,8 +86,11 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.item.sessions.count, { exact: true }).fill('4')
   await expect(page.getByText('08:30 – 12:15')).toBeVisible()
   await page.getByLabel(t.item.sessions.minutesOn(day('2034-07-03'))).fill('210')
-  await page.getByLabel(t.common.field.places, { exact: true }).fill('12')
+  await page.getByLabel(t.common.field.places, { exact: true }).fill(String(CLIMBING.places))
   await page.getByLabel(t.item.participation.minParticipants).fill('6')
+  // For the upper school, whose Monday morning it fits.
+  const grades = page.getByRole('group', { name: t.item.participation.eligibleGrades })
+  for (const grade of CLIMBING.grades) await grades.getByLabel(`${grade}.`, { exact: true }).check()
   await page.getByLabel(t.item.fee.amount).fill(sample.climbingFee)
   await page.getByLabel(t.item.fee.note).fill(sample.climbingFeeNote)
   await page.getByRole('group', { name: t.item.categories.intro }).getByLabel(sample.sport).check()
@@ -112,7 +125,8 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
 
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
-  await picture(page, 'aktivitaeten-pruefen', section(page, t.campaign.items.heading))
+  // The submitted climbing, the last of the school's activities: its row, buttons included where the table runs past the column.
+  await picture(page, 'aktivitaeten-pruefen', page.getByRole('row', { name: climbing }))
   await page.getByRole('row', { name: climbing }).getByRole('button', { name: t.campaign.items.approve }).click()
   await expect(page.getByRole('row', { name: climbing })).toContainText(t.labels.itemState.approved)
 
@@ -127,10 +141,12 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(page.getByText(t.planning.saved)).toBeVisible()
   await expect(tuesday).toHaveValue('if_needed')
   await expect(page.getByRole('link', { name: t.planning.export })).toBeVisible()
+  await picture(page, 'lehrkraefte-je-tag', page.locator('main'))
   await page.getByRole('link', { name: `← ${t.common.backToCampaign}` }).click()
   await page.getByRole('button', { name: t.campaign.organization.publish }).click()
   await expect(page.getByText(t.labels.campaignState.published)).toBeVisible()
-  await expect(page.getByRole('row', { name: climbing })).toContainText('1')
+  // Numbered in the order of the printed catalogue: by first session, then by title.
+  await expect(page.getByRole('row', { name: climbing }).getByRole('cell').first()).toHaveText(String(climbingNumber(sample.climbing)))
   await expect(page.getByRole('link', { name: t.campaign.organization.catalogueExport })).toBeVisible()
   await shot(page, '17-katalog-veroeffentlicht')
   await signOut(page)
@@ -142,14 +158,15 @@ test('Schüler*innen lesen den veröffentlichten Katalog mit Nummern', async ({ 
   await expect(page.getByRole('link', { name: t.common.page.newItem })).toHaveCount(0)
   await page.getByRole('link', { name: t.campaign.items.viewCatalogue }).click()
   await expect(page.getByRole('heading', { name: t.catalogue.titleOf(sample.projectWeek) })).toBeVisible()
-  await expect(page.getByRole('heading', { name: `1 · ${sample.climbing}` })).toBeVisible()
-  await expect(page.getByText(`${day('2034-07-03')}, ${t.format.periods(2, 5)} (08:30 – 12:15)`)).toBeVisible()
-  await expect(page.getByText(`${t.catalogue.places(12)} · ${t.catalogue.forWhom(t.catalogue.allGrades)} · ${t.catalogue.fee(fee(1500))}`)).toBeVisible()
+  const heading = `${climbingNumber(sample.climbing)} · ${sample.climbing}`
+  const item = page.locator('.catalogue-item').filter({ has: page.getByRole('heading', { name: heading, exact: true }) })
+  await expect(item.getByText(`${day('2034-07-03')}, ${t.format.periods(2, 5)} (08:30 – 12:15)`)).toBeVisible()
+  await expect(item.getByText(`${t.catalogue.places(CLIMBING.places)} · ${t.catalogue.forWhom(t.catalogue.grades(CLIMBING.grades))} · ${t.catalogue.fee(fee(1500))}`)).toBeVisible()
   await expect(page.getByRole('button', { name: t.catalogue.print })).toBeVisible()
   // Climbing is sport: the catalogue says so, and filters by it.
-  await expect(page.locator('.catalogue-item').getByText(sample.sport, { exact: true })).toBeVisible()
+  await expect(item.getByText(sample.sport, { exact: true })).toBeVisible()
   await page.getByLabel(t.catalogue.categoryFilter).selectOption({ label: sample.sport })
-  await expect(page.getByRole('heading', { name: `1 · ${sample.climbing}` })).toBeVisible()
+  await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
   await page.getByLabel(t.catalogue.categoryFilter).selectOption({ label: t.catalogue.allCategories })
   await shot(page, '18-katalog')
   await picture(page, 'katalog', page.locator('main'))

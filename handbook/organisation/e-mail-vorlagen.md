@@ -18,7 +18,9 @@ SchulWahl schickt an festen Stellen einer Anmeldung E-Mails. Ihre Texte kommen a
 
 ## Der Versand
 
-SchulWahl schickt die E-Mails eine nach der anderen, höchstens 200 pro Stunde; der Betrieb kann den Server langsamer einstellen. Die Einladung an 600 Schüler\*innen braucht so etwa drei Stunden. Zuerst gehen die persönlichen E-Mails hinaus (eine Tauschbestätigung, eine geänderte Einteilung, die Test-E-Mail), dann die an Lehrkräfte und Klassenvorstände, zuletzt die an die Schüler\*innen: Wer einen Fehler melden kann, sieht ihn als Erster. Unter **Versand** steht, wie viele E-Mails warten und wann die letzte voraussichtlich verschickt ist.
+SchulWahl schickt die E-Mails eine nach der anderen, höchstens 200 pro Stunde; der Betrieb kann den Server langsamer einstellen. Die Einladung an 600 Schüler\*innen dauert so etwa drei Stunden. Zuerst gehen die persönlichen E-Mails hinaus (eine Tauschbestätigung, eine geänderte Einteilung, die Test-E-Mail), dann die an Lehrkräfte und Klassenvorstände, zuletzt die an die Schüler\*innen: Wer einen Fehler melden kann, sieht ihn als Erster. Unter **Versand** steht, wie viele E-Mails warten und wann die letzte voraussichtlich verschickt ist.
+
+![Der Versand: das Tempo, wie viele E-Mails warten und wann die letzte voraussichtlich verschickt ist, und der Knopf Versand anhalten](/bilder/de/e-mail-versand.png)
 
 Steckt ein Fehler in den E-Mails, halte den Versand mit **Versand anhalten** an; **Versand fortsetzen** schickt weiter, wo er stand. Eine E-Mail bekommt ihren Text, wenn sie zu warten beginnt: Eine geänderte Vorlage gilt erst für die E-Mails danach, und was schon wartet, geht so hinaus, wie es ist.
 

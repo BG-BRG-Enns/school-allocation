@@ -51,7 +51,8 @@ export default defineConfig({
     url: `${baseURL}api/health`,
     reuseExistingServer: false,
     gracefulShutdown: { signal: 'SIGTERM', timeout: 10_000 },
-    timeout: 120_000,
+    // The real solver (E2E_SOLVER=real) may first have to set up its environment with uv.
+    timeout: process.env.E2E_SOLVER === 'real' ? 300_000 : 120_000,
     stdout: 'ignore',
     stderr: 'pipe',
   },

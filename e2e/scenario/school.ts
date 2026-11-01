@@ -152,8 +152,9 @@ export interface Scenario {
   }
   /** The administrator: Anna, whose address is in BOOTSTRAP_ADMINS. */
   admin: string
-  /** The teacher granted the organizer role. */
+  /** The teacher granted the organizer role, and the reason the administrator gives. */
   organizer: string
+  organizerReason: string
   classes: ScenarioClass[]
   /** 8A and 8B: in the tenant until they leave in May, never labelled, so never in the roster. */
   leavers: ScenarioClass[]
@@ -237,7 +238,7 @@ const CATALOGUE: readonly ItemSpec[] = [
   { key: 'mon-bouldering', title: 'Boulderwand', description: 'Klettern in Absprunghöhe, mit Matten.', location: 'Kletterraum', sessions: [periods(MONDAY, 5, 5)], grades: LOWER, categories: [sport], popularity: 1.2 },
   { key: 'mon-juggling', title: 'Jonglieren', description: 'Tücher, Bälle, Teller: Jonglieren für Anfängerinnen und Anfänger.', location: 'Aula', sessions: [periods(MONDAY, 5, 5)], grades: LOWER, categories: [sport], popularity: 0.8 },
   { key: 'mon-canoe', title: 'Kanu', description: 'Paddeln auf ruhigem Wasser, mit Einschulung; Schwimmen können ist Voraussetzung.', location: 'Bootshaus', sessions: [periods(MONDAY, 2, 5)], grades: UPPER, feeCents: 1800, feeNote: 'Leihboot und Einschulung', min: 6, cancellable: true, categories: [sport], popularity: 1.6, companions: 1 },
-  { key: 'mon-climbing', title: 'Klettern in der Halle', description: 'Sichern lernen und erste Routen klettern.', location: 'Kletterhalle', sessions: [periods(MONDAY, 2, 5)], grades: UPPER, feeCents: 1200, feeNote: 'Eintritt und Leihausrüstung', min: 6, cancellable: true, categories: [sport], popularity: 1.4, companions: 1 },
+  { key: 'mon-climbing', title: 'Hochseilgarten', description: 'Sichern lernen und über Seilbrücken und Balken balancieren.', location: 'Hochseilgarten', sessions: [periods(MONDAY, 2, 5)], grades: UPPER, feeCents: 1200, feeNote: 'Eintritt und Leihausrüstung', min: 6, cancellable: true, categories: [sport], popularity: 1.4, companions: 1 },
   { key: 'mon-escape', title: 'Escape Room', description: 'Rätsel lösen gegen die Zeit, in Teams zu fünft.', location: 'Treffpunkt Haupteingang', sessions: [periods(MONDAY, 2, 5)], grades: UPPER, feeCents: 1500, feeNote: 'Eintritt', min: 10, cancellable: true, categories: [community], popularity: 1.8 },
   { key: 'mon-podcast', title: 'Podcast-Studio', description: 'Eine eigene Folge planen, aufnehmen und schneiden.', location: 'Medienraum', sessions: [periods(MONDAY, 2, 5)], grades: UPPER, categories: [creative], popularity: 1.2 },
   { key: 'mon-first-aid', title: 'Erste Hilfe', description: 'Der Kurs mit Bestätigung: Notruf, stabile Seitenlage, Wiederbelebung.', location: 'Biologiesaal', sessions: [periods(MONDAY, 2, 5)], grades: UPPER, categories: [community], popularity: 0.8 },
@@ -339,6 +340,7 @@ export function scenario(seed = SCENARIO_SEED): Scenario {
     },
     admin: ANNA.oid,
     organizer,
+    organizerReason: 'Organisation der Projekttage',
     classes,
     leavers,
     teachers,
@@ -436,7 +438,9 @@ function itemsOf(classes: readonly ScenarioClass[], teachers: readonly ScenarioT
     for (const d of dates) busy.set(oid, (busy.get(oid) ?? new Set()).add(d))
     load.set(oid, (load.get(oid) ?? 0) + 1)
   }
-  const pool = rng.fork('teachers').shuffled(teachers.map((t) => t.oid))
+  // The test people lead nothing of the school's: the journeys give them activities of their own on these days.
+  const cast = new Set([ANNA.oid, BERND.oid, CARLA.oid])
+  const pool = rng.fork('teachers').shuffled(teachers.filter((t) => !cast.has(t.oid)).map((t) => t.oid))
   const drawTeacher = (dates: readonly string[]) => {
     // The least busy teacher free on every date, in an order of chance among equals.
     const candidate = pool.filter((oid) => free(oid, dates)).sort((a, b) => (load.get(a) ?? 0) - (load.get(b) ?? 0))[0]

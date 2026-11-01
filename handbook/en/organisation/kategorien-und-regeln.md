@@ -10,6 +10,8 @@ Categories apply to all of the school's registrations. You find them under **Adm
 - **Rename** changes the name everywhere, in every registration.
 - **Remove** is only offered for a category that no activity and no rule uses. The table shows how many do.
 
+![The school's categories: each with its name and how many activities and rules use it, below them Add category](/bilder/en/kategorien.png)
+
 An activity can belong to no category, one or several. Teachers choose them in the activity's form ([Proposing an activity](../lehrkraefte/aktivitaet)), and you can change them for any activity. Once the allocation is published, an approved activity's categories stay as they are, because the allocation was calculated with them. The catalogue shows the categories with every activity, and students can filter by one.
 
 ## Rules
@@ -22,6 +24,8 @@ You enter the rules under **Change settings** ([Settings](./einstellungen)) unti
 - **At least**: 1 to 20 activities or 1 to 10000 minutes.
 
 A registration has at most 20 rules. Class activities count: if the whole class goes on a trip in the category, the rule may already be met.
+
+![Two rules in the settings: Sport, at least one activity in every year; Careers, at least 200 minutes in the 7th year](/bilder/en/regeln.png)
 
 ## What the rules do
 

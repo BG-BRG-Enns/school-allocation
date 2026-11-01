@@ -4,7 +4,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { placeTarget } from '@school-allocation/school-core'
-import { ANNA, BERND, PERSONAS, SARA, TIM } from '../../apps/api/test/helpers/personas.ts'
+import { ANNA, BERND, CARLA, PERSONAS, SARA, TIM } from '../../apps/api/test/helpers/personas.ts'
+import { inEnglish } from './english.ts'
 import { FAMILY_NAMES } from './names.ts'
 import { DOMAIN, PROJECT_DAYS, SHORT_GRADE_DAY, STORY, scenario, scenarioDemand, studentsOf, targetOf } from './school.ts'
 
@@ -90,6 +91,25 @@ test('about 65 activities; leads free on their days; nobody in two at once; a cl
 test('other seeds staff their activities as soundly: a companion drawn early is never a class teacher led later that day', () => {
   // 20331113 drew 1C's museum companion as 1D's cave lead, both Tuesday morning, before the leads were reserved first.
   for (const seed of [20331108, 20331109, 20331110, 20331111, 20331112, 20331113, 20331114, 20331115, 20331116]) assertStaffing(scenario(seed))
+})
+
+test('the test people lead nothing of the school\'s, and no title shares a word with the journeys\' climbing', () => {
+  const cast = new Set([ANNA.oid, BERND.oid, CARLA.oid])
+  for (const item of s.items) assert.ok(!item.teachers.some((oid) => cast.has(oid)), item.key)
+  for (const school of [s, inEnglish(s)]) {
+    assert.equal(new Set(school.items.map((i) => i.title)).size, school.items.length)
+    assert.deepEqual(school.items.filter((i) => /kletter|climb/i.test(i.title)).map((i) => i.title), [])
+  }
+})
+
+test('in English every activity, place, fee note and category has its text, and everything else is as drawn', () => {
+  const english = inEnglish(s)
+  assert.deepEqual(english.items.map((i) => [i.key, i.places, i.sessions, i.teachers]), s.items.map((i) => [i.key, i.places, i.sessions, i.teachers]))
+  assert.deepEqual(english.choices, s.choices)
+  assert.equal(new Set(english.categories).size, s.categories.length)
+  for (const item of english.items) assert.ok(item.categories.every((c) => english.categories.includes(c)), item.key)
+  assert.ok(english.campaign.rules.every((r) => english.categories.includes(r.category)))
+  assert.ok(!english.items.some((i) => /[äöüß]/i.test(`${i.title} ${i.description} ${i.location} ${i.feeNote}`)))
 })
 
 test('no two activities in one room at once, but the meeting point at the main entrance', () => {

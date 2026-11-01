@@ -2,7 +2,7 @@
 
 **Einstellungen ändern** auf der Seite der Anmeldung öffnet das Formular. Was sich ändern lässt, hängt vom Stand ab; der Knopf heißt später **Mindestminuten und Tauschzeit ändern** und zuletzt **Tauschzeit ändern**.
 
-![Das Formular Einstellungen der Anmeldung: Bezeichnung, Schuljahr, Projekttage, Anmeldezeitraum mit Beginn, Ende und Nachfrist, Tauschzeit, Wünsche je Zeitblock, Mindestminuten je Tag und Schulstufe und die Lehrkräfte im Katalog](/bilder/de/einstellungen.png)
+![Das Formular Einstellungen der Anmeldung: Bezeichnung, Schuljahr, Projekttage, Anmeldezeitraum mit Beginn, Ende und Nachfrist, Tauschzeit, Wünsche je Zeitblock und Plätze über dem Bedarf](/bilder/de/einstellungen.png)
 
 ## Anmeldezeitraum und Nachfrist
 
@@ -22,11 +22,11 @@ Ein **Zeitblock** sind die Aktivitäten eines Projekttags, die zur selben Zeit s
 
 ## Mindestminuten je Tag
 
-Für jede Schulstufe: wie viele Minuten an Aktivitäten Schüler\*innen an einem Projekttag brauchen. Die Zuteilung füllt diese Minuten so gut wie möglich; was fehlt, zeigt sie als fehlende Minuten. Angerechnet werden die Minuten, die eine Aktivität je Tag angibt. Ohne Mindestminuten für jede Schulstufe der Anmeldung lässt sich keine Zuteilung berechnen; du kannst sie bis zur Veröffentlichung eintragen und ändern.
+Für jede Schulstufe: wie viele Minuten an Aktivitäten Schüler\*innen an einem Projekttag mindestens haben sollen. Die Zuteilung füllt diese Minuten so gut wie möglich; was fehlt, zeigt sie als fehlende Minuten. Angerechnet werden die Minuten, die eine Aktivität je Tag angibt. Ohne Mindestminuten für jede Schulstufe der Anmeldung lässt sich keine Zuteilung berechnen; du kannst sie bis zur Veröffentlichung eintragen und ändern.
 
 ## Plätze über dem Bedarf
 
-Um wie viel Prozent die Aktivitäten mehr Plätze anbieten sollen, als Schüler\*innen einen brauchen, 20, solange du nichts anderes einträgst. Daraus rechnet **Plätze und Bedarf** das Ziel je Projekttag und Schulstufe ([Anlegen und Katalog](./anlegen)). Mehr Plätze als nötig lassen den Wünschen Raum.
+Um wie viel Prozent die Aktivitäten mehr Plätze anbieten sollen, als Schüler\*innen einen suchen, 20, solange du nichts anderes einträgst. Daraus rechnet **Plätze und Bedarf** das Ziel je Projekttag und Schulstufe ([Anlegen und Katalog](./anlegen)). Mehr Plätze als nötig lassen den Wünschen Raum.
 
 ## Regeln
 
