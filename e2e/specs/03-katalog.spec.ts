@@ -125,7 +125,8 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
 
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
-  await picture(page, 'aktivitaeten-pruefen', section(page, t.campaign.items.heading))
+  // The submitted climbing, the last of the school's activities: its row, buttons included where the table runs past the column.
+  await picture(page, 'aktivitaeten-pruefen', page.getByRole('row', { name: climbing }))
   await page.getByRole('row', { name: climbing }).getByRole('button', { name: t.campaign.items.approve }).click()
   await expect(page.getByRole('row', { name: climbing })).toContainText(t.labels.itemState.approved)
 

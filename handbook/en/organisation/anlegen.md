@@ -14,7 +14,7 @@ An activity's **lead** is whoever created it, as long as they are among its teac
 
 ## Reviewing activities
 
-![A registration's activities: a submitted activity with teacher, session, places and cost and the Edit, Approve, Return and Withdraw buttons](/bilder/en/aktivitaeten-pruefen.png)
+![A submitted activity in the registration's list: title and cost, teacher, session, places, state and the Edit, Approve, Return and Withdraw buttons](/bilder/en/aktivitaeten-pruefen.png)
 
 The table shows each activity with its teachers, sessions, places, cost and status; the Organisation section counts drafts, submitted, approved and withdrawn activities. For a submitted activity you have three buttons:
 

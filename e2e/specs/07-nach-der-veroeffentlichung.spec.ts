@@ -133,7 +133,8 @@ test('der Klassenvorstand teilt den Schüler ohne Platz in eine Lücke zu; die O
   // The option's label carries the catalogue number and the free places; the value is the id.
   await form.getByLabel(t.schoolClass.unplaced.itemFor(TIM.name)).selectOption(await form.getByRole('option', { name: new RegExp(literally(sample.woodwork)) }).getAttribute('value'))
   await form.getByLabel(t.schoolClass.unplaced.reasonFor(TIM.name)).fill(sample.reason.noMorningPlace)
-  await picture(page, 'klasse-einteilen', section(page, t.schoolClass.unplaced.heading(unplaced)))
+  // Tim's entry among the class's 25.
+  await picture(page, 'klasse-einteilen', page.getByRole('listitem').filter({ has: form }))
   await form.getByRole('button', { name: t.schoolClass.unplaced.place }).click()
   await expect(page.getByRole('status')).toHaveText(t.schoolClass.placed)
   await expect(page.getByRole('heading', { name: t.schoolClass.unplaced.heading(unplaced - 1) })).toBeVisible()

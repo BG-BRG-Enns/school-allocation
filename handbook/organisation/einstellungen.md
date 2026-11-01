@@ -2,7 +2,7 @@
 
 **Einstellungen ändern** auf der Seite der Anmeldung öffnet das Formular. Was sich ändern lässt, hängt vom Stand ab; der Knopf heißt später **Mindestminuten und Tauschzeit ändern** und zuletzt **Tauschzeit ändern**.
 
-![Das Formular Einstellungen der Anmeldung: Bezeichnung, Schuljahr, Projekttage, Anmeldezeitraum mit Beginn, Ende und Nachfrist, Tauschzeit, Wünsche je Zeitblock, Mindestminuten je Tag und Schulstufe und die Lehrkräfte im Katalog](/bilder/de/einstellungen.png)
+![Das Formular Einstellungen der Anmeldung: Bezeichnung, Schuljahr, Projekttage, Anmeldezeitraum mit Beginn, Ende und Nachfrist, Tauschzeit, Wünsche je Zeitblock und Plätze über dem Bedarf](/bilder/de/einstellungen.png)
 
 ## Anmeldezeitraum und Nachfrist
 

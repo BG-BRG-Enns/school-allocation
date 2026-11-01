@@ -49,7 +49,7 @@ Upload the file or paste its content, enter the **School year** and click **Impo
 
 ## Reviewing and applying an import
 
-![An import from Entra groups: changes from the current class lists, with new and removed people, and the Apply and Discard buttons](/bilder/en/import-pruefen.png)
+![An import from Entra groups: changes from the current class lists, the Apply and Discard buttons and below them the new people](/bilder/en/import-pruefen.png)
 
 The import shows what changes from the current class lists: who is **new**, who is **removed** and whose class, year, name or address has **changed**.
 

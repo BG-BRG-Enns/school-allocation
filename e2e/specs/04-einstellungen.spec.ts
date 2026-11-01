@@ -63,7 +63,8 @@ test('die Administration ordnet einen Klassenvorstand zu, der seine Klasse in de
   await panel.getByLabel(t.classTeachers.addTeacher).fill('Bernd')
   await panel.getByRole('button', { name: t.classTeachers.addPerson(BERND.name) }).click()
   await shot(page, '20-klassenvorstand-zuordnen')
-  await picture(page, 'klassenvorstand-zuordnen', page.locator('main'))
+  // From 5A's row down to the form below the 25 classes.
+  await picture(page, 'klassenvorstand-zuordnen', [page.getByRole('row', { name: /5A/ }), panel])
   await panel.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.classTeachers.saved)
   await expect(page.getByRole('row', { name: /5A/ })).toContainText(BERND.name)

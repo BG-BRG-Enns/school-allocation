@@ -18,7 +18,7 @@ From opening, the registration page shows everyone's progress with their choices
 
 ## Entering for someone
 
-![Enter for someone: a person's choices, ranked by the organisation, with a reason](/bilder/en/fuer-jemanden-eintragen.png)
+![Enter for someone: for whom, with the note that the entry is recorded with a reason, below it the choices, ranked by the organisation](/bilder/en/fuer-jemanden-eintragen.png)
 
 **Enter** in a person's row opens their choices. Rank for them, write a **Reason** and click **Save choices**. SchulWahl records what you entered, with your reason.
 

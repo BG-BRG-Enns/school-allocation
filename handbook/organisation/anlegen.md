@@ -14,7 +14,7 @@ Die **Leitung** einer Aktivität hat, wer sie angelegt hat, solange sie oder er 
 
 ## Aktivitäten prüfen
 
-![Die Aktivitäten einer Anmeldung: eine eingereichte Aktivität mit Lehrkraft, Termin, Plätzen und Kosten und den Knöpfen Bearbeiten, Genehmigen, Zurückgeben und Zurückziehen](/bilder/de/aktivitaeten-pruefen.png)
+![Eine eingereichte Aktivität in der Liste der Anmeldung: Titel und Kosten, Lehrkraft, Termin, Plätze, Stand und die Knöpfe Bearbeiten, Genehmigen, Zurückgeben und Zurückziehen](/bilder/de/aktivitaeten-pruefen.png)
 
 Die Tabelle zeigt jede Aktivität mit Lehrkräften, Terminen, Plätzen, Kosten und Stand; der Abschnitt Organisation zählt Entwürfe, eingereichte, genehmigte und zurückgezogene. Für eine eingereichte Aktivität hast du drei Knöpfe:
 
