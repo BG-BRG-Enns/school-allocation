@@ -118,7 +118,7 @@ test('a list with an unknown address, an unknown class or an abbreviation anothe
   assert.equal(refused.body.error, 'teacher_list_invalid')
   assert.equal(refused.body.problems.length, 4)
   const noAddress = await send<{ error: string }>(s, s.anna, 'POST', '/api/admin/classes/import', { csv: 'short_name;class\nZwA;5A\n' })
-  assert.equal(noAddress.body.error, 'csv_invalid', `${noAddress.status} ${JSON.stringify(noAddress.body)}`)
+  assert.equal(noAddress.body.error, 'csv_file_invalid', `${noAddress.status} ${JSON.stringify(noAddress.body)}`)
   // Nothing of it was written.
   assert.deepEqual((await get<{ teachers: { shortName: string | null }[] }>(s, s.anna, '/api/admin/classes/teachers?q=Zwex')).body.teachers.map((x) => x.shortName), [null])
 })

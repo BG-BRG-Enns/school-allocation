@@ -445,6 +445,7 @@ export const en: Messages = {
     request_failed: 'That did not work. Please try again.',
     // The roster
     csv_invalid: 'The file is not a class list in the expected format. Please use the template.',
+    csv_file_invalid: 'The CSV file cannot be read as it is; the check says why.',
     invalid_school_year: 'Write the school year as 2026/27.',
     batch_not_pending: 'This import has already been decided on.',
     batch_superseded: 'Another import has been applied since this one. Please import the class lists again.',

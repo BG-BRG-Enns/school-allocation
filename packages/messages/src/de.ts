@@ -448,6 +448,7 @@ export const de = {
     request_failed: 'Das hat nicht geklappt. Bitte versuch es noch einmal.',
     // The roster
     csv_invalid: 'Die Datei ist keine Klassenliste im erwarteten Format. Bitte nimm die Vorlage.',
+    csv_file_invalid: 'Die CSV-Datei lässt sich so nicht lesen; die Prüfung sagt, woran es liegt.',
     invalid_school_year: 'Das Schuljahr wird als 2026/27 geschrieben.',
     batch_not_pending: 'Über diesen Import wurde schon entschieden.',
     batch_superseded: 'Seit diesem Import wurde ein anderer übernommen. Bitte lies die Klassenlisten noch einmal ein.',

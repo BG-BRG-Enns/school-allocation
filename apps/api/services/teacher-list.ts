@@ -35,7 +35,7 @@ export async function applyTeacherList(db: Database, csv: string, actor: Actor):
     const schoolYear = await currentSchoolYear(client)
     if (schoolYear === undefined) throw new ApplicationError('no_roster')
     const { preview, details, classes } = await resolve(client, csv)
-    if (preview.fileProblems.length > 0) throw new ApplicationError('csv_invalid', preview.fileProblems.map((p) => `${p.code}${p.line === undefined ? '' : ` (line ${p.line})`}`).join('; '))
+    if (preview.fileProblems.length > 0) throw new ApplicationError('csv_file_invalid', preview.fileProblems.map((p) => `${p.code}${p.line === undefined ? '' : ` (line ${p.line})`}`).join('; '))
     if (!preview.applicable) throw new TeacherListInvalid(preview.problems)
     const current = await store.readDetails(client, [...details.keys()])
     // Released first, then given: two teachers exchanging their abbreviations would otherwise meet the unique index.

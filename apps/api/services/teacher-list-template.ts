@@ -2,10 +2,10 @@
 // again: every teacher of the roster in force with the abbreviation known
 // and a row per class they are class teacher of in the app (the roster's
 // own class-teacher column is the roster's, not this file's). Without a
-// roster, the template with its example rows.
+// roster, the template with its example rows; with one, never them.
 
 import { TEACHER_CSV_TEMPLATE } from '@school-allocation/school-core'
-import { listClasses } from '../lib/dao/class-teachers.ts'
+import { currentSchoolYear, listClasses } from '../lib/dao/class-teachers.ts'
 import { rosterTeacherAddresses } from '../lib/dao/teacher-detail.ts'
 import type { Queryable } from '../lib/db.ts'
 
@@ -21,8 +21,9 @@ function field(value: string): string {
 }
 
 export async function teacherListTemplate(db: Queryable): Promise<string> {
+  // The example rows only without a roster; a roster without an addressable teacher gives the header alone.
+  if (await currentSchoolYear(db) === undefined) return TEACHER_CSV_TEMPLATE
   const teachers = await rosterTeacherAddresses(db)
-  if (teachers.length === 0) return TEACHER_CSV_TEMPLATE
   const classesOf = new Map<string, string[]>()
   for (const c of await listClasses(db)) {
     for (const teacher of c.teachers) {
