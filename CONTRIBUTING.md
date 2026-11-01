@@ -83,7 +83,7 @@ npm run handbook:dev    # serves it while you write
 npm run handbook:shots  # renews the pictures; needs TEST_DATABASE_URL, as the journeys do
 ```
 
-Pull requests do not build the site. `.github/workflows/handbook.yml` builds it from a release tag and publishes it to GitHub Pages, so the handbook online describes the latest release. That needs the repository's Pages source set to GitHub Actions, and its `github-pages` environment allowing deployments from `v*` tags.
+Pull requests do not build the site. `.github/workflows/publish-image.yml` calls `.github/workflows/handbook.yml` once a release's images are published and verified, and that builds the site from the release tag and publishes it to GitHub Pages, so the handbook online describes the latest release that came out; the handbook workflow also runs by hand on a release tag for a handbook-only republish. That needs the repository's Pages source set to GitHub Actions, and its `github-pages` environment allowing deployments from `v*` tags.
 
 ## Checks
 
