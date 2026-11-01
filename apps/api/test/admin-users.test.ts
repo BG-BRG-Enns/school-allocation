@@ -40,7 +40,7 @@ test('an administrator grants and revokes roles, which count at the next request
   const grants = await get<{ grants: Grant[] }>(h, anna, '/api/admin/roles')
   assert.deepEqual(grants.body.grants.map((g) => [g.displayName, g.role]), [[ANNA.name, 'school_admin'], [BERND.name, 'campaign_organizer']])
   const own = grants.body.grants.find((g) => g.displayName === ANNA.name)
-  const self = await send<{ error: string }>(h, anna, 'POST', `/api/admin/roles/${own?.id}/revoke`, { reason: 'ich brauche das nicht mehr' })
+  const self = await send<{ error: string }>(h, anna, 'POST', `/api/admin/roles/${own?.id}/revoke`, { reason: 'die Rolle ist nicht mehr nötig' })
   assert.equal(self.status, 409)
   assert.equal(self.body.error, 'cannot_revoke_self')
 

@@ -242,7 +242,7 @@ const CATALOGUE: readonly ItemSpec[] = [
   { key: 'mon-escape', title: 'Escape Room', description: 'Rätsel lösen gegen die Zeit, in Teams zu fünft.', location: 'Treffpunkt Haupteingang', sessions: [periods(MONDAY, 2, 5)], grades: UPPER, feeCents: 1500, feeNote: 'Eintritt', min: 10, cancellable: true, categories: [community], popularity: 1.8 },
   { key: 'mon-podcast', title: 'Podcast-Studio', description: 'Eine eigene Folge planen, aufnehmen und schneiden.', location: 'Medienraum', sessions: [periods(MONDAY, 2, 5)], grades: UPPER, categories: [creative], popularity: 1.2 },
   { key: 'mon-first-aid', title: 'Erste Hilfe', description: 'Der Kurs mit Bestätigung: Notruf, stabile Seitenlage, Wiederbelebung.', location: 'Biologiesaal', sessions: [periods(MONDAY, 2, 5)], grades: UPPER, categories: [community], popularity: 0.8 },
-  { key: 'mon-helpers', title: 'Helferteam Sporttag', description: 'Stationen betreuen, Zeiten nehmen, Urkunden schreiben: der Sporttag der Unterstufe braucht euch.', location: 'Turnsaal-Foyer', sessions: [periods(MONDAY, 2, 6)], grades: UPPER, places: 16, categories: [community], popularity: 0.7, companions: 1 },
+  { key: 'mon-helpers', title: 'Helferteam Sporttag', description: 'Stationen betreuen, Zeiten nehmen, Urkunden schreiben: der Sporttag der Unterstufe zählt auf euch.', location: 'Turnsaal-Foyer', sessions: [periods(MONDAY, 2, 6)], grades: UPPER, places: 16, categories: [community], popularity: 0.7, companions: 1 },
   // Monday and Tuesday: the 7th classes away.
   {
     key: 'mon-tue-7th-trip', title: 'Rad- und Wandertage der 7. Klassen', description: 'Zwei Tage mit dem Rad und zu Fuß, mit Übernachtung in einer Jugendherberge.', location: 'Treffpunkt Haupteingang',
