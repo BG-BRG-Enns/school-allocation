@@ -12,7 +12,7 @@ export interface SchoolYearRecords {
 /** Every school year any record names, newest first. */
 export async function schoolYearRecords(db: Queryable): Promise<SchoolYearRecords[]> {
   const { rows } = await db.query<{ school_year: string, campaigns: { id: string, name: string, state: string }[], batches: string, class_teachers: string }>(
-    `with years as (select school_year from campaign union select school_year from import_batch union select school_year from class_teacher)
+    `with years as (select school_year from campaign union select school_year from import_batch union select school_year from class_teacher union select school_year from deleted_campaign)
      select y.school_year,
             coalesce((select json_agg(json_build_object('id', c.id, 'name', c.name, 'state', c.state) order by c.created_at) from campaign c where c.school_year = y.school_year), '[]') as campaigns,
             (select count(*) from import_batch b where b.school_year = y.school_year) as batches,

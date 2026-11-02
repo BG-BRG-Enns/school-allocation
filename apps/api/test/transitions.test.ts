@@ -95,6 +95,9 @@ test('a registration in preparation is deleted with its rules and draft items, a
   assert.deepEqual((await owner.query<{ school_year: string, name: string }>('select school_year, name from deleted_campaign where id = $1', [id])).rows, [{ school_year: '2026/27', name: 'Versuch' }])
   assert.ok((await readAudit(owner, id)).length > 0)
   await assert.rejects(owner.query('select * from purge_deleted_campaigns($1)', ['2026/27']), /retention of 2026\/27 has not ended/)
+  // The year stays in the retention overview by the tombstone alone, so the chain is purged with it one day.
+  const years = await get<{ years: { schoolYear: string, campaigns: unknown[] }[] }>(s, s.anna, '/api/admin/retention')
+  assert.ok(years.body.years.some((y) => y.schoolYear === '2026/27'))
   assert.deepEqual((await get<{ campaigns: Campaign[] }>(s, s.anna, '/api/campaigns')).body.campaigns.map((c) => c.id), [other])
   const audit = (await readAudit(s.db, SCHOOL_SCOPE)).filter((e) => e.action === 'campaign.deleted')
   assert.equal(audit.length, 1)
