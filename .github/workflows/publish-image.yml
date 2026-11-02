@@ -16,9 +16,12 @@ name: Publish Images
 # which no host follows; the images are signed and pulled as a host pulls
 # them; only then do the release tag and the line tag go onto the verified
 # digests, the release tags first, the line tags last, all three images in
-# one step. A failure before that leaves the line where it was. The
-# handbook publishes after the images, from the same tag, so it never
-# describes a release that did not come out.
+# one step. A failure before that leaves the line where it was. Then the
+# release's notes go to a GitHub Release on the tag (scripts/release-notes.mjs:
+# the images with their digests, the line, the schema version, the pull
+# requests since the previous release), and the handbook publishes after
+# the images, from the same tag, so it never describes a release that did
+# not come out.
 
 'on':
   workflow_dispatch: {}
@@ -43,6 +46,15 @@ jobs:
     concurrency:
       group: publish-images
       cancel-in-progress: false
+    # What the release job writes into the notes: the verified digests and
+    # the line's decision.
+    outputs:
+      app-digest: ${{ steps.build.outputs.digest }}
+      postgres-digest: ${{ steps.build-postgres.outputs.digest }}
+      solver-digest: ${{ steps.build-solver.outputs.digest }}
+      line: ${{ steps.line.outputs.name }}
+      line-moved: ${{ steps.line.outputs.move }}
+      line-current: ${{ steps.line.outputs.current }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -246,8 +258,10 @@ jobs:
           release="${GITHUB_REF_NAME}"
           line="v${GITHUB_REF_NAME#v}"
           line="${line%%.*}"
-          current="$(gh api --paginate "/orgs/${GITHUB_REPOSITORY_OWNER}/packages/container/school-allocation/versions?per_page=100" \
-            --jq "[.[] | select(.metadata.container.tags | index(\"${line}\")) | .metadata.container.tags[] | select(test(\"^v[0-9]+[.][0-9]+[.][0-9]+$\"))] | first // empty")"
+          # --slurp: one array over every page, so the first match is the first
+          # of all of them (gh's own --jq would run per page); jq is the runner's.
+          current="$(gh api --paginate --slurp "/orgs/${GITHUB_REPOSITORY_OWNER}/packages/container/school-allocation/versions?per_page=100" \
+            | jq -r --arg line "$line" '[.[][] | select(.metadata.container.tags | index($line)) | .metadata.container.tags[] | select(test("^v[0-9]+[.][0-9]+[.][0-9]+$"))] | first // empty')"
           move=yes
           if [ -n "$current" ] && [ "$current" != "$release" ] && [ "$(printf '%s\n%s\n' "$current" "$release" | sort -V | tail -n 1)" = "$current" ]; then
             move=no
@@ -255,6 +269,7 @@ jobs:
           fi
           echo "move=${move}" >> "$GITHUB_OUTPUT"
           echo "name=${line}" >> "$GITHUB_OUTPUT"
+          echo "current=${current}" >> "$GITHUB_OUTPUT"
 
       # Only now the tags a host can see: the release tag and the line tag,
       # put on the verified digests themselves (the same index, so the
@@ -317,7 +332,132 @@ jobs:
             echo "${POSTGRES_IMAGE}:${GITHUB_REF_NAME}@${POSTGRES_DIGEST}"
             echo "${SOLVER_IMAGE}:${GITHUB_REF_NAME}@${SOLVER_DIGEST}"
             echo '```'
+            echo
+            echo "The release's notes: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # The release's notes, on a GitHub Release of the tag, once the images are
+  # out: what a host pulls (the three references with their digests), whether
+  # the line moved, the schema version and whether it rose since the previous
+  # release, the verify line, the handbook, and the pull requests merged since
+  # the previous release (GitHub's generated notes, .github/release.yml). The
+  # previous release is the highest v<major>.<minor>.<patch> tag below this
+  # one, from git, not from the Releases that exist. The job alone may write
+  # to the repository's contents, and only Releases are written. A re-run of
+  # the job (one that healed the line tags) replaces the notes instead of
+  # failing on the Release that exists.
+  release:
+    name: Release notes
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    # One at a time, as the images: "Latest" is decided from the tags the
+    # remote has at that moment, and two jobs deciding it at once could
+    # leave it on the older release.
+    concurrency:
+      group: release-notes
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Every tag, for the previous release and its migrations.
+          fetch-depth: 0
+
+      # No npm cache, as the handbook's build: the script has no dependencies, and a
+      # release run takes nothing from a cache another run could have filled.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          package-manager-cache: false
+
+      # Expansions go through env rather than straight into the script body
+      # (see "Report the release").
+      - name: Write the release notes
+        id: notes
+        env:
+          APP_DIGEST: ${{ needs.publish.outputs.app-digest }}
+          POSTGRES_DIGEST: ${{ needs.publish.outputs.postgres-digest }}
+          SOLVER_DIGEST: ${{ needs.publish.outputs.solver-digest }}
+          LINE: ${{ needs.publish.outputs.line }}
+          LINE_MOVED: ${{ needs.publish.outputs.line-moved }}
+          LINE_CURRENT: ${{ needs.publish.outputs.line-current }}
+          HANDBOOK_URL: https://bg-brg-enns.github.io/school-allocation/
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          release="${GITHUB_REF_NAME}"
+          # The release tags the remote has now, in version order; this one must
+          # be among them. The remote's, not the checkout's: a tag pushed since
+          # the checkout decides "Latest" as much as the ones before.
+          git ls-remote --tags --refs origin 'refs/tags/v[0-9]*' | sed 's|.*refs/tags/||' | grep -Ex 'v[0-9]+\.[0-9]+\.[0-9]+' | sort -V > tags.txt
+          grep -qx "$release" tags.txt || { echo "Refusing to write notes: ${release} is not a tag of the repository" >&2; exit 1; }
+          previous="$(grep -x -B1 "$release" tags.txt | head -n 1 | grep -vx "$release" || true)"
+          latest=false
+          if [ "$(tail -n 1 tags.txt)" = "$release" ]; then latest=true; fi
+          # The schema version a release is built for, as its migrator reads it
+          # (apps/api/scripts/migrate.ts): the highest `-- schema-version: N` on
+          # the first line of a migration, 0 if none; a first line that starts
+          # like the marker but is not one is refused, as the migrator refuses it.
+          schema_version() {
+            best=0
+            for file in $(git ls-tree --name-only "$1" -- apps/api/migrations/ | grep '\.sql$'); do
+              first="$(git show "$1:${file}" | head -n 1)"
+              case "$first" in
+                '-- schema-version:'*)
+                  n="$(printf '%s' "$first" | sed -nE 's/^-- schema-version: ([1-9][0-9]{0,8})[[:space:]]*$/\1/p')"
+                  if [ -z "$n" ]; then echo "Refusing to write notes: ${file} at $1 starts with a schema version the migrator would refuse" >&2; return 1; fi
+                  if [ "$n" -gt "$best" ]; then best="$n"; fi
+                  ;;
+              esac
+            done
+            echo "$best"
+          }
+          current_schema="$(schema_version "$release")"
+          [ "$current_schema" -gt 0 ] || { echo "Refusing to write notes: no migration of ${release} names a schema version" >&2; exit 1; }
+          previous_schema=""
+          if [ -n "$previous" ]; then previous_schema="$(schema_version "$previous")"; fi
+          node scripts/release-notes.mjs \
+            --tag="$release" --previous="$previous" \
+            --app="ghcr.io/${owner}/school-allocation:${release}@${APP_DIGEST}" \
+            --postgres="ghcr.io/${owner}/school-allocation-postgres:${release}@${POSTGRES_DIGEST}" \
+            --solver="ghcr.io/${owner}/school-allocation-solver:${release}@${SOLVER_DIGEST}" \
+            --line="$LINE" --line-moved="$LINE_MOVED" --line-current="$LINE_CURRENT" \
+            --schema-version="$current_schema" --previous-schema-version="$previous_schema" \
+            --handbook="$HANDBOOK_URL" --repository="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" > notes.md
+          echo "previous=${previous}" >> "$GITHUB_OUTPUT"
+          echo "latest=${latest}" >> "$GITHUB_OUTPUT"
+
+      # The generated part comes from the API, so a Release that exists
+      # (a re-run) gets the same notes as a new one. Latest is the highest
+      # release tag, not the newest Release: a patch on an older line is
+      # never "Latest".
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIOUS: ${{ steps.notes.outputs.previous }}
+          LATEST: ${{ steps.notes.outputs.latest }}
+        run: |
+          set -euo pipefail
+          release="${GITHUB_REF_NAME}"
+          {
+            cat notes.md
+            echo
+            if [ -n "$PREVIOUS" ]; then
+              gh api --method POST "/repos/${GITHUB_REPOSITORY}/releases/generate-notes" -f tag_name="$release" -f previous_tag_name="$PREVIOUS" -f target_commitish="$GITHUB_SHA" --jq .body
+            else
+              gh api --method POST "/repos/${GITHUB_REPOSITORY}/releases/generate-notes" -f tag_name="$release" -f target_commitish="$GITHUB_SHA" --jq .body
+            fi
+          } > release.md
+          if gh release view "$release" --json id >/dev/null 2>&1; then
+            gh release edit "$release" --title "$release" --notes-file release.md --latest="$LATEST"
+            echo "Replaced the notes of the Release ${release}" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            gh release create "$release" --verify-tag --title "$release" --notes-file release.md --latest="$LATEST"
+          fi
+          echo "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${release}" | tee -a "$GITHUB_STEP_SUMMARY"
 
   # The handbook describes the release, so it publishes after the images
   # are out, from the same tag (handbook.yml, a reusable workflow, which

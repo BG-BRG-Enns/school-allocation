@@ -85,6 +85,10 @@ npm run handbook:shots  # renews the pictures; needs TEST_DATABASE_URL, as the j
 
 Pull requests do not build the site. `.github/workflows/publish-image.yml` calls `.github/workflows/handbook.yml` once a release's images are published and verified, and that builds the site from the release tag and publishes it to GitHub Pages, so the handbook online describes the latest release that came out; the handbook workflow also runs by hand on a release tag for a handbook-only republish. That needs the repository's Pages source set to GitHub Actions, and its `github-pages` environment allowing deployments from `v*` tags.
 
+## Releases
+
+A release is a `v<major>.<minor>.<patch>` tag on `main`, pushed by the maintainer. `.github/workflows/publish-image.yml` builds, signs and verifies the three images, tags them with the release and the line, writes the release's notes to a GitHub Release on the tag and publishes the handbook. The notes' head comes from `scripts/release-notes.mjs` (the images with their digests, whether the line moved, the schema version and whether it rose since the previous release, the verify line, the handbook); below it GitHub lists the pull requests merged since the previous release tag, by their titles (`.github/release.yml` puts Dependabot's under Dependencies). A pull request's title is therefore written for whoever runs the app and reads the notes, not only for the log.
+
 ## Checks
 
 Run these before pushing. CI runs the same ones on every pull request. The database tests need `TEST_DATABASE_URL`, a superuser connection to a second server, started with `npm run db:test` on port 5433; each test creates and drops its own database there. Not the development server: the tests set the runtime role's password, which is the server's, and would lock the development API out of its database. The tests refuse the server `apps/api/.env` names. Without `TEST_DATABASE_URL` they are skipped locally, and in CI they fail.

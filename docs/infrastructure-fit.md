@@ -12,7 +12,8 @@ Same shape as school-election:
   `schulwahl-solver.container`, an internal network (database and solver, no egress), an egress
   network (app only), a database volume.
 - **Images** on GHCR, cosign-signed, with a floating line tag (`:v1`) and immutable version tags.
-  The base images are digest-pinned.
+  The base images are digest-pinned. Each release has a GitHub Release with the images' digests,
+  the schema version and the changes since the previous one.
 - **Secrets as files** (`*_FILE`): session key, database owner and runtime passwords, Entra client
   secret, SMTP password. The app refuses inline secrets.
 - **Migrations** run as `ExecStartPre` before every start, forward-only SQL, with a runtime-privilege
