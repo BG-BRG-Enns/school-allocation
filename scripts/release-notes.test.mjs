@@ -27,13 +27,13 @@ test('a release on the line: the three images, the nightly pickup, the schema un
   assert.match(notes, /Built for schema version 1, unchanged since v1\.1\.0\./)
   assert.match(notes, /cosign verify --key deploy\/cosign\.pub ghcr\.io\/bg-brg-enns\/school-allocation:v1\.2\.0@sha256:aaaa/)
   assert.match(notes, /blob\/v1\.2\.0\/deploy\/cosign\.pub/)
-  assert.match(notes, /<https:\/\/bg-brg-enns\.github\.io\/school-allocation\/>, built from this release\./)
+  assert.match(notes, /<https:\/\/bg-brg-enns\.github\.io\/school-allocation\/>, republished from this release; it describes the latest release that came out\./)
   assert.doesNotMatch(notes, /raised|stays|first release/)
 })
 
 test('a raised schema version says that the way back is the backup, with the guide\'s section at the tag', () => {
   const notes = releaseNotes({ ...base, schemaVersion: 2 })
-  assert.match(notes, /Built for schema version 2, raised from 1 \(v1\.1\.0\): an earlier release does not start on a database v1\.2\.0 migrated\. The way back is the backup taken before the update \(\[Updates\]\(https:\/\/github\.com\/BG-BRG-Enns\/school-allocation\/blob\/v1\.2\.0\/deploy\/README\.md#updates\)\)\./)
+  assert.match(notes, /Built for schema version 2, raised from 1 \(v1\.1\.0\): an earlier release does not start on a database migrated by v1\.2\.0\. The way back is the backup taken before the update \(\[Updates\]\(https:\/\/github\.com\/BG-BRG-Enns\/school-allocation\/blob\/v1\.2\.0\/deploy\/README\.md#updates\)\)\./)
 })
 
 test('the first release has no previous one to compare with', () => {

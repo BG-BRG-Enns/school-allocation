@@ -45,14 +45,14 @@ export function releaseNotes({ tag, previous, images, line, lineMoved, lineCurre
     '',
     '## Handbook',
     '',
-    `<${handbookUrl}>, built from this release.`,
+    `<${handbookUrl}>, republished from this release; it describes the latest release that came out.`,
   ].join('\n')
 }
 
 function schemaLine({ tag, previous, schemaVersion, previousSchemaVersion, updatesUrl }) {
   if (previous === '') return `Built for schema version ${schemaVersion}: the first release.`
   if (schemaVersion === previousSchemaVersion) return `Built for schema version ${schemaVersion}, unchanged since ${previous}.`
-  return `Built for schema version ${schemaVersion}, raised from ${previousSchemaVersion} (${previous}): an earlier release does not start on a database ${tag} migrated. The way back is the backup taken before the update ([Updates](${updatesUrl})).`
+  return `Built for schema version ${schemaVersion}, raised from ${previousSchemaVersion} (${previous}): an earlier release does not start on a database migrated by ${tag}. The way back is the backup taken before the update ([Updates](${updatesUrl})).`
 }
 
 const FLAGS = ['tag', 'previous', 'app', 'postgres', 'solver', 'line', 'line-moved', 'line-current', 'schema-version', 'previous-schema-version', 'handbook', 'repository']

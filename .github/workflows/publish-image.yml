@@ -258,8 +258,10 @@ jobs:
           release="${GITHUB_REF_NAME}"
           line="v${GITHUB_REF_NAME#v}"
           line="${line%%.*}"
-          current="$(gh api --paginate "/orgs/${GITHUB_REPOSITORY_OWNER}/packages/container/school-allocation/versions?per_page=100" \
-            --jq "[.[] | select(.metadata.container.tags | index(\"${line}\")) | .metadata.container.tags[] | select(test(\"^v[0-9]+[.][0-9]+[.][0-9]+$\"))] | first // empty")"
+          # --slurp: one array over every page, so the first match is the first
+          # of all of them (gh's own --jq would run per page); jq is the runner's.
+          current="$(gh api --paginate --slurp "/orgs/${GITHUB_REPOSITORY_OWNER}/packages/container/school-allocation/versions?per_page=100" \
+            | jq -r --arg line "$line" '[.[][] | select(.metadata.container.tags | index($line)) | .metadata.container.tags[] | select(test("^v[0-9]+[.][0-9]+[.][0-9]+$"))] | first // empty')"
           move=yes
           if [ -n "$current" ] && [ "$current" != "$release" ] && [ "$(printf '%s\n%s\n' "$current" "$release" | sort -V | tail -n 1)" = "$current" ]; then
             move=no
@@ -351,6 +353,12 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: write
+    # One at a time, as the images: "Latest" is decided from the tags the
+    # remote has at that moment, and two jobs deciding it at once could
+    # leave it on the older release.
+    concurrency:
+      group: release-notes
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -381,16 +389,34 @@ jobs:
           set -euo pipefail
           owner="${GITHUB_REPOSITORY_OWNER,,}"
           release="${GITHUB_REF_NAME}"
-          # The release tags in version order; this one must be among them.
-          git tag --list 'v[0-9]*' | grep -Ex 'v[0-9]+\.[0-9]+\.[0-9]+' | sort -V > tags.txt
+          # The release tags the remote has now, in version order; this one must
+          # be among them. The remote's, not the checkout's: a tag pushed since
+          # the checkout decides "Latest" as much as the ones before.
+          git ls-remote --tags --refs origin 'refs/tags/v[0-9]*' | sed 's|.*refs/tags/||' | grep -Ex 'v[0-9]+\.[0-9]+\.[0-9]+' | sort -V > tags.txt
           grep -qx "$release" tags.txt || { echo "Refusing to write notes: ${release} is not a tag of the repository" >&2; exit 1; }
           previous="$(grep -x -B1 "$release" tags.txt | head -n 1 | grep -vx "$release" || true)"
           latest=false
           if [ "$(tail -n 1 tags.txt)" = "$release" ]; then latest=true; fi
-          # The highest `-- schema-version: N` among a release's migrations (AGENTS.md, Invariants).
-          schema_version() { { git grep -h '^-- schema-version: ' "$1" -- 'apps/api/migrations/*.sql' || true; } | sed 's/^-- schema-version: *//' | sort -n | tail -n 1; }
+          # The schema version a release is built for, as its migrator reads it
+          # (apps/api/scripts/migrate.ts): the highest `-- schema-version: N` on
+          # the first line of a migration, 0 if none; a first line that starts
+          # like the marker but is not one is refused, as the migrator refuses it.
+          schema_version() {
+            best=0
+            for file in $(git ls-tree --name-only "$1" -- apps/api/migrations/ | grep '\.sql$'); do
+              first="$(git show "$1:${file}" | head -n 1)"
+              case "$first" in
+                '-- schema-version:'*)
+                  n="$(printf '%s' "$first" | sed -nE 's/^-- schema-version: ([1-9][0-9]{0,8})[[:space:]]*$/\1/p')"
+                  if [ -z "$n" ]; then echo "Refusing to write notes: ${file} at $1 starts with a schema version the migrator would refuse" >&2; return 1; fi
+                  if [ "$n" -gt "$best" ]; then best="$n"; fi
+                  ;;
+              esac
+            done
+            echo "$best"
+          }
           current_schema="$(schema_version "$release")"
-          [ -n "$current_schema" ] || { echo "Refusing to write notes: no migration of ${release} names a schema version" >&2; exit 1; }
+          [ "$current_schema" -gt 0 ] || { echo "Refusing to write notes: no migration of ${release} names a schema version" >&2; exit 1; }
           previous_schema=""
           if [ -n "$previous" ]; then previous_schema="$(schema_version "$previous")"; fi
           node scripts/release-notes.mjs \
