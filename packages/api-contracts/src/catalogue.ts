@@ -3,7 +3,7 @@
 // are school-core's checkItem, applied after these.
 
 import { CLASS_NAME, GRADES, MAX_RULES, RULE_LIMITS, RULE_PROBLEM_CODES, RULE_UNITS } from '@school-allocation/school-core'
-import { Type } from 'typebox'
+import { Type, type Static } from 'typebox'
 import { CatalogueProblemSchema } from './campaigns.ts'
 import { Literals, MultiLineText, SingleLineText, StrictObject, Uuid } from './common.ts'
 
@@ -72,8 +72,12 @@ export const ClassTeachersBody = StrictObject({ teachers: Type.Array(Uuid, { max
 export const ClassParams = StrictObject({ className: Type.String({ pattern: CLASS_NAME.source, maxLength: 16 }) })
 
 export const TransitionBody = StrictObject({
-  to: Type.Union([Type.Literal('catalogue'), Type.Literal('published'), Type.Literal('open'), Type.Literal('closed'), Type.Literal('archived')]),
+  to: Type.Union([Type.Literal('draft'), Type.Literal('catalogue'), Type.Literal('published'), Type.Literal('open'), Type.Literal('closed'), Type.Literal('archived')]),
 })
+
+/** What the deletion of a registration in preparation removed, per relation. */
+export const CampaignDeletedResponse = StrictObject({ removed: Type.Array(StrictObject({ relation: Type.String(), count: Type.Integer() })) })
+export type CampaignDeletedResponse = Static<typeof CampaignDeletedResponse>
 
 export const CreditBody = StrictObject({
   date: LocalDate,

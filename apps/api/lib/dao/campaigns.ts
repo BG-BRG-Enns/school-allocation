@@ -124,6 +124,12 @@ export async function replaceRules(db: Queryable, id: string, rules: readonly Ru
   }
 }
 
+/** Runs the delete of a registration in preparation (delete_draft_campaign) and returns what it removed, per relation. */
+export async function deleteDraftCampaign(db: Queryable, id: string): Promise<{ relation: string, count: number }[]> {
+  const { rows } = await db.query<{ relation: string, removed: string }>('select relation, removed from delete_draft_campaign($1)', [id])
+  return rows.map((row) => ({ relation: row.relation, count: Number(row.removed) }))
+}
+
 export async function updateState(db: Queryable, id: string, to: string) {
   await db.query('update campaign set state = $2, updated_at = app_now() where id = $1', [id, to])
 }

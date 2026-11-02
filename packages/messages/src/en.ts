@@ -600,13 +600,41 @@ export const en: Messages = {
       publish: 'Publish catalogue',
       open: 'Open registration',
       archive: 'Close registration',
-      archiveConfirm: 'Close the registration? Nothing can be changed afterwards: no swaps, placements or attendance.',
       close: 'End registration',
+      backToDraft: 'Back to preparation',
+      backToCatalogue: 'Back to collecting',
+      delete: 'Delete registration',
       editSettings: 'Change settings',
       editMinimumAndSwap: 'Change minimum minutes and swap period',
       editSwap: 'Change swap period',
       catalogueExport: 'Catalogue as Excel',
       rules: 'Rules',
+    },
+    /** The step an organizer takes by hand, confirmed on the page with what it does and whether there is a way back. */
+    transitions: {
+      confirm: 'Confirm the step',
+      /** The confirmation's button, after the step's own name. */
+      submit: (step: string) => `Yes: ${step}`,
+      /** What each step does, a line each; the key is the step as the button names it (backToCatalogue: published → catalogue). */
+      consequences: {
+        catalogue: ['Teachers see the registration and submit their activities.', 'Way back: to preparation, as long as the catalogue is not published.'],
+        published: ['No new proposals; the name, school year and project days are fixed.', 'The approved activities get numbers, which stay.', 'Everyone sees the catalogue, students included; at the start set in the settings, registration opens by itself.', 'Way back: to collecting; the numbers stay.'],
+        open: ['Every student of the class lists gets the invitation email.', 'Class activities take their classes with them.', 'No way back.'],
+        closed: ['Registration ends now; there is no late registration then.', 'The class lists of this registration are frozen; anyone without complete choices gets an email, class teachers their list.', 'No way back.'],
+        archived: ['Nothing changes afterwards: no swaps, placements or attendance.', 'Everything stays readable.', 'No way back.'],
+        draft: ['Teachers no longer see the registration; their drafts stay.', 'Way back: collect activities.'],
+        backToCatalogue: ['Teachers submit again; students no longer see the catalogue.', 'Numbers given stay; a new publication numbers only the rest.'],
+        delete: ['The registration, its rules and the drafts of its activities are deleted.', 'The school\'s log records that it existed.', 'No way back.'],
+      },
+      /** What the organizer should know before this very step, from the registration's state. */
+      warnings: {
+        noApproved: 'No activity is approved: the catalogue would be empty.',
+        opensAtPast: (when: string) => `The start ${when} is in the past: registration opens by itself right after publication.`,
+        noEnd: 'Registration has no end: it runs until it is ended by hand.',
+        noEndAck: 'I open the registration without an end and will end it by hand.',
+        mailOff: 'Sending email is not configured on this server: the invitations wait in the outbox until it is.',
+      },
+      deleted: 'Registration deleted.',
     },
     rulesEditor: {
       heading: 'Rules',

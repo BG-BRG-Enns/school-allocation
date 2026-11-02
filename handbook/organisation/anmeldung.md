@@ -2,7 +2,7 @@
 
 ## Öffnen
 
-Die Anmeldung öffnet zum **Beginn** aus den [Einstellungen](./einstellungen) von selbst, oder sofort mit **Anmeldung öffnen**. Beim Öffnen nimmt jede Klassenaktivität ihre ganzen Klassen mit, und alle Schüler\*innen, die mitmachen, bekommen die E-Mail mit der Einladung.
+Die Anmeldung öffnet zum **Beginn** aus den [Einstellungen](./einstellungen) von selbst, oder sofort mit **Anmeldung öffnen**. Beim Öffnen nimmt jede Klassenaktivität ihre ganzen Klassen mit, und alle Schüler\*innen, die mitmachen, bekommen die E-Mail mit der Einladung. Von hier gibt es keinen Weg zurück, darum fragt der Schritt noch einmal und sagt, was fehlt: ein **Ende**, ohne das die Anmeldung läuft, bis sie von Hand beendet wird (das wird eigens bestätigt), oder ein E-Mail-Versand, der auf dem Server nicht eingerichtet ist und die Einladungen warten lässt ([E-Mails](./e-mails)).
 
 ## Was Schüler\*innen sehen
 

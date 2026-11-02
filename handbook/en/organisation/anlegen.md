@@ -4,11 +4,11 @@
 
 ![The New registration form with name, school year and two project days](/bilder/en/anmeldung-anlegen.png)
 
-Under **Registrations**, use **New registration** to enter the **Name** (Project Week 2027), **School year** (2026/27) and **Project days**; **Add day** adds another day. **Create registration** creates it in the “In preparation” state. Only the organisation can see it for now, and you can take your time entering the [settings](./einstellungen).
+Under **Registrations**, use **New registration** to enter the **Name** (Project Week 2027), **School year** (2026/27) and **Project days**; beside each date stands its weekday, so a wrong month shows, and **Add day** proposes the day after the last. **Create registration** creates it in the “In preparation” state. Only the organisation can see it for now, and you can take your time entering the [settings](./einstellungen). A registration that stays in preparation (the wrong school year, a try) is deleted with **Delete registration**: it goes with its rules and the drafts of its activities; the school's log records that it existed.
 
 ## Collecting activities
 
-**Collect activities** opens the registration to teachers: they see it and submit their activities with **New activity**. The [Teachers](/en/lehrkraefte/aktivitaet) handbook explains the form. You can also create activities yourself, including for a teacher you enter in the form.
+**Collect activities** opens the registration to teachers: they see it and submit their activities with **New activity**. Like every step it is confirmed once more; **Back to preparation** takes it back as long as the catalogue is not published, the teachers' drafts stay. The [Teachers](/en/lehrkraefte/aktivitaet) handbook explains the form. You can also create activities yourself, including for a teacher you enter in the form.
 
 An activity's **lead** is whoever created it, as long as they are among its teachers; otherwise the first teacher named. If you are a teacher yourself, a new activity already lists you: when you create it for someone else, take yourself off, and the first teacher named leads.
 
@@ -46,7 +46,7 @@ If a teacher lacks the abbreviation, or it differs from the list, set it here be
 
 ## Publishing the catalogue
 
-**Publish catalogue** closes submissions. The approved activities get their numbers and form the catalogue, which everyone can now see, including students. The name, school year and project days are now fixed.
+**Publish catalogue** closes submissions. The approved activities get their numbers and form the catalogue, which everyone can now see, including students. The name, school year and project days are now fixed. Before the step you see what it does and what is missing: no approved activity, a start in the past at which registration would open by itself right away. **Back to collecting** takes the publication back; numbers given stay, a new publication numbers only the rest.
 
 ![The catalogue: the registration name, project days and each activity's number, title, session, places, who it is for and cost](/bilder/en/katalog.png)
 

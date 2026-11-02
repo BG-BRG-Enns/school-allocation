@@ -39,6 +39,8 @@ export const AUDIT_ACTIONS = [
   'campaign.created',
   'campaign.changed',
   'campaign.transitioned',
+  // A campaign still in preparation deleted (school scope: its own chain stays as the record that it was).
+  'campaign.deleted',
   // Its rules per category replaced, with the new list (campaign scope).
   'campaign.rules-changed',
   // An activity, in its campaign's scope: an organizer's review, and what

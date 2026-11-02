@@ -6,7 +6,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { createCampaign, loadCampaigns, type Campaign } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { formatDay } from '../lib/format.ts'
+import { formatDay, nextDay } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
 import { CAMPAIGN_STATE_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
@@ -27,8 +27,9 @@ onMounted(() => loading.run(async () => {
   campaigns.value = (await loadCampaigns()).campaigns
 }))
 
+/** The next day proposed is the one after the last: a project week runs on, and a wrong month shows beside the date. */
 function addDay(): void {
-  days.value.push('')
+  days.value.push(nextDay(days.value.at(-1) ?? ''))
 }
 
 function removeDay(index: number): void {
@@ -132,6 +133,10 @@ async function onCreate(): Promise<void> {
             type="date"
             required
           >
+          <span
+            v-if="days[index]"
+            class="muted"
+          >{{ formatDay(days[index]) }}</span>
           <button
             v-if="days.length > 1"
             type="button"

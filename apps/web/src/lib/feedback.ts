@@ -34,5 +34,5 @@ export function useFeedback() {
 /** A date and time as the lists show them, in the school's locale. */
 export function formatWhen(iso: string | null | undefined): string {
   if (!iso) return '–'
-  return new Date(iso).toLocaleString(INTL_LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
+  return new Date(iso).toLocaleString(INTL_LOCALE, { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }

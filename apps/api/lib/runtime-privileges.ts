@@ -120,6 +120,8 @@ export const RUNTIME_FUNCTIONS: readonly string[] = [
   'app_now()',
   // The retention purge (purge_school_year): a definer function owned by the migrator, the one path through the guards; the service checks the date and the reason and writes the audit event.
   'purge_school_year(text)',
+  // The deletion of a registration still in preparation (delete_draft_campaign): a definer function, the one path; the service writes the audit event.
+  'delete_draft_campaign(uuid)',
   // The guards' refusal (refuse()): a trigger runs as the role that writes, so the runtime role meets a guard's rule as SQLSTATE 55000 with
   // its words rather than as a permission error on the function. It raises and returns nothing.
   'refuse(text)',

@@ -4,11 +4,11 @@
 
 ![Das Formular Neue Anmeldung mit Bezeichnung, Schuljahr und zwei Projekttagen](/bilder/de/anmeldung-anlegen.png)
 
-Unter **Anmeldungen** trägst du bei **Neue Anmeldung** die **Bezeichnung** (Projektwoche 2027), das **Schuljahr** (2026/27) und die **Projekttage** ein; **Tag hinzufügen** fügt einen weiteren an. **Anmeldung anlegen** legt sie im Stand „In Vorbereitung“ an. Noch sieht sie außer der Organisation niemand, und du kannst in Ruhe die [Einstellungen](./einstellungen) eintragen.
+Unter **Anmeldungen** trägst du bei **Neue Anmeldung** die **Bezeichnung** (Projektwoche 2027), das **Schuljahr** (2026/27) und die **Projekttage** ein; neben jedem Datum steht sein Wochentag, damit ein falscher Monat auffällt, und **Tag hinzufügen** schlägt den Tag nach dem letzten vor. **Anmeldung anlegen** legt sie im Stand „In Vorbereitung“ an. Noch sieht sie außer der Organisation niemand, und du kannst in Ruhe die [Einstellungen](./einstellungen) eintragen. Eine Anmeldung, die in Vorbereitung bleibt (das falsche Schuljahr, ein Versuch), löschst du mit **Anmeldung löschen**: Sie geht mit ihren Regeln und den Entwürfen ihrer Aktivitäten; das Protokoll der Schule hält fest, dass es sie gab.
 
 ## Angebote sammeln
 
-**Angebote sammeln** öffnet die Anmeldung für die Lehrkräfte: Sie sehen sie und reichen mit **Neue Aktivität** ihre Aktivitäten ein. Wie das Formular funktioniert, beschreibt das Handbuch [Lehrkräfte](/lehrkraefte/aktivitaet). Du kannst selbst Aktivitäten anlegen, auch für eine Lehrkraft, die du im Formular einträgst.
+**Angebote sammeln** öffnet die Anmeldung für die Lehrkräfte: Sie sehen sie und reichen mit **Neue Aktivität** ihre Aktivitäten ein. Wie jeder Schritt wird er noch einmal bestätigt; **Zurück zur Vorbereitung** nimmt ihn zurück, solange der Katalog nicht veröffentlicht ist, die Entwürfe der Lehrkräfte bleiben. Wie das Formular funktioniert, beschreibt das Handbuch [Lehrkräfte](/lehrkraefte/aktivitaet). Du kannst selbst Aktivitäten anlegen, auch für eine Lehrkraft, die du im Formular einträgst.
 
 Die **Leitung** einer Aktivität hat, wer sie angelegt hat, solange sie oder er unter ihren Lehrkräften ist; sonst die zuerst genannte Lehrkraft. Bist du selbst Lehrkraft, stehst du in einer neuen Aktivität schon darin: Legst du sie für jemand anderen an, nimm dich heraus, dann leitet die zuerst genannte Lehrkraft.
 
@@ -46,7 +46,7 @@ Fehlt einer Lehrkraft das Kürzel, oder stimmt es nicht mit der Liste überein, 
 
 ## Den Katalog veröffentlichen
 
-**Katalog veröffentlichen** schließt die Einreichung. Die genehmigten Aktivitäten bekommen ihre Nummern und bilden den Katalog, den ab jetzt alle sehen, auch die Schüler\*innen. Bezeichnung, Schuljahr und Projekttage stehen ab jetzt fest.
+**Katalog veröffentlichen** schließt die Einreichung. Die genehmigten Aktivitäten bekommen ihre Nummern und bilden den Katalog, den ab jetzt alle sehen, auch die Schüler\*innen. Bezeichnung, Schuljahr und Projekttage stehen ab jetzt fest. Vor dem Schritt steht, was er bewirkt, und ob etwas fehlt: keine genehmigte Aktivität, ein Beginn in der Vergangenheit, zu dem die Anmeldung gleich von selbst öffnen würde. **Zurück zum Sammeln** nimmt die Veröffentlichung zurück; vergebene Nummern bleiben, eine neue Veröffentlichung nummeriert nur die weiteren.
 
 ![Der Katalog: der Name der Anmeldung, die Projekttage und je Aktivität Nummer, Titel, Termin, Plätze, für wen und Kosten](/bilder/de/katalog.png)
 

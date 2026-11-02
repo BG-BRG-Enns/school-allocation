@@ -45,7 +45,9 @@ Status: proposal for review · 2026-10-27 · revised 2026-10-29 for the decision
 stateDiagram-v2
   [*] --> draft
   draft --> catalogue: organizer opens proposals
+  catalogue --> draft: the organizer steps back (teachers lose sight; drafts stay)
   catalogue --> published: catalogue approved (print view available)
+  published --> catalogue: the organizer steps back (numbers given stay; a second publication numbers the rest)
   published --> open: opens_at reached (roster refreshed, pre-assignments materialized)
   open --> grace: closes_at reached (class teachers get their class's missing submissions)
   grace --> closed: late_until reached (missed-deadline mails queued, roster batch frozen)
@@ -67,7 +69,12 @@ place where first come first served returns, bounded to free places (§3, rule 7
 
 The guards live in school-core and are re-checked under a per-campaign advisory lock, as in
 school-election's `changeElection`. Time-based transitions are evaluated by server time; a
-transition that was missed during a restart is applied on start.
+transition that was missed during a restart is applied on start. Every step an organizer takes by
+hand is confirmed on the page with its consequences named; from `open` on there is no way back, as
+mails have gone out and students have ranked. A registration still in `draft` can be deleted
+(`delete_draft_campaign`, a definer function like the purge: the rules, the draft items and the grants
+scoped to it go; anything later refuses); the deletion is audited in the school's chain, the
+registration's own chain stays.
 
 ## 3. Choice rules (project week)
 
@@ -393,7 +400,7 @@ it deliberately with `npm run contracts:update:routes` and review the diff.
 | `GET /api/categories` | any | The school's categories by name |
 | `GET /api/admin/categories` · `POST …` · `PATCH …/:id` · `DELETE …/:id` | organizer, admin | The categories with how many items and rules name each; add (`{ name }`, trimmed; 409 `category_exists`, `too_many_categories`), rename (the same name records nothing) and remove (409 `category_in_use`); each answers with the list, audited in the school scope |
 | `POST /api/admin/items/:id/approve` · `POST …/return` · `POST …/withdraw` | organizer | Review, audited: approve, return to draft with a note, withdraw with a reason. Withdrawn after publication, the item takes nobody anywhere: every student currently in it is removed from it, a `remove` change each with the withdrawal's reason, told as after any change by hand; the result, the class page and the attendance then agree, and the gaps show where a class teacher or the organizer fills them |
-| `POST /api/admin/campaigns` · `PATCH …/:id` · `POST …/:id/transition` | organizer | Campaign set-up (name, school year, project days, the window's settings and the rules, `rules` replacing the list as a whole until the window opens; 422 `rules_invalid` with `problems: [{ code, rule? }]`) and lifecycle; this release moves to `catalogue` and `published`, which numbers the approved items |
+| `POST /api/admin/campaigns` · `PATCH …/:id` · `POST …/:id/transition` · `DELETE …/:id` | organizer | Campaign set-up (name, school year, project days, the window's settings and the rules, `rules` replacing the list as a whole until the window opens; 422 `rules_invalid` with `problems: [{ code, rule? }]`) and lifecycle: `to` is one of `draft` (from `catalogue`), `catalogue` (from `draft` or `published`), `published` (numbers the approved items not yet numbered), `open`, `closed`, `archived`; the deletion of a registration still in `draft` with what went (409 `campaign_state` for anything later), audited as `campaign.deleted` in the school scope |
 | `GET /api/admin/campaigns/:id/export/catalogue.xlsx` | organizer, auditor | The catalogue as a workbook: activities and sessions |
 | `GET /api/admin/roster` · `PUT /api/admin/roster/groups` | admin | The roster in force, recent batches; label Entra groups (students/teachers, class, grade) |
 | `GET /api/admin/roster/graph/start` · `GET …/graph/callback` | admin | Refresh from the labelled groups with the administrator's own Graph token (authorization-code flow, second redirect URI) |

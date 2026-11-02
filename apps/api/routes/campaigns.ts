@@ -7,7 +7,7 @@ import type { FastifyInstance } from 'fastify'
 import { actorOf } from '../lib/actor.ts'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { createCampaign, listCampaigns, transitionCampaign, updateCampaign } from '../services/campaigns.ts'
+import { createCampaign, deleteCampaign, listCampaigns, transitionCampaign, updateCampaign } from '../services/campaigns.ts'
 import { projectDays } from '../services/catalogue-input.ts'
 import { campaignView, visibleCampaign } from '../services/catalogue.ts'
 
@@ -50,5 +50,10 @@ export async function campaignsRoutes(app: FastifyInstance, { db, guards, baseUr
     const campaign = await transitionCampaign(db, request.params.id, request.body.to, actorOf(callerOf(request)), { baseUrl })
     wakeSender?.()
     return campaign
+  })
+
+  // A registration still in preparation: the wrong year, a try.
+  registerEndpoint(app, endpoints.deleteAdminCampaignsById, { ...organizer }, async (request) => {
+    return deleteCampaign(db, request.params.id, actorOf(callerOf(request)))
   })
 }

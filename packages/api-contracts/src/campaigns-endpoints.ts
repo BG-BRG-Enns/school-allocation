@@ -1,6 +1,6 @@
 import { Type } from 'typebox'
 import * as metadata from './endpoint-metadata.ts'
-import { CampaignBody, CampaignChangesBody, RulesInvalidResponse, TransitionBody } from './catalogue.ts'
+import { CampaignBody, CampaignChangesBody, CampaignDeletedResponse, RulesInvalidResponse, TransitionBody } from './catalogue.ts'
 import { ErrorResponse, IdParams } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
 import { CampaignListResponse, CampaignSchema, CampaignViewSchema } from './campaigns.ts'
@@ -14,3 +14,5 @@ export const postAdminCampaigns = defineEndpoint({ ...metadata.postAdminCampaign
 export const patchAdminCampaignsById = defineEndpoint({ ...metadata.patchAdminCampaignsById, schema: { params: IdParams, body: CampaignChangesBody, response: { '200': CampaignSchema, '422': Type.Union([RulesInvalidResponse, ErrorResponse]), '4xx': ErrorResponse } } })
 
 export const postAdminCampaignsByIdTransition = defineEndpoint({ ...metadata.postAdminCampaignsByIdTransition, schema: { params: IdParams, body: TransitionBody, response: { '200': CampaignSchema, '4xx': ErrorResponse } } })
+/** A registration still in preparation deleted, with what went; 409 campaign_state for anything later. */
+export const deleteAdminCampaignsById = defineEndpoint({ ...metadata.deleteAdminCampaignsById, schema: { params: IdParams, response: { '200': CampaignDeletedResponse, '4xx': ErrorResponse } } })
