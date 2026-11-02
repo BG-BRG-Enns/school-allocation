@@ -49,6 +49,7 @@ export const de = {
       classTeachers: 'Klassenvorstände',
       periods: 'Stundenraster',
       mailTemplates: 'E-Mail-Vorlagen',
+      mails: 'E-Mails',
       retention: 'Aufbewahrung',
       wishes: 'Meine Wünsche',
       result: 'Meine Einteilung',
@@ -465,6 +466,7 @@ export const de = {
     csv_invalid: 'Die Datei ist keine Klassenliste im erwarteten Format. Bitte nimm die Vorlage.',
     csv_file_invalid: 'Die CSV-Datei lässt sich so nicht lesen; die Prüfung sagt, woran es liegt.',
     short_name_held: 'Dieses Kürzel hat schon eine andere Lehrkraft.',
+    mail_state: 'Nur eine fehlgeschlagene oder verworfene E-Mail wird noch einmal geschickt.',
     invalid_school_year: 'Das Schuljahr wird als 2026/27 geschrieben.',
     batch_not_pending: 'Über diesen Import wurde schon entschieden.',
     batch_superseded: 'Seit diesem Import wurde ein anderer übernommen. Bitte lies die Klassenlisten noch einmal ein.',
@@ -595,6 +597,8 @@ export const de = {
     organization: {
       heading: 'Organisation',
       itemCounts: (counts: { draft: number, proposed: number, approved: number, withdrawn: number }) => `${counts.draft} ${byCount(counts.draft, 'Entwurf', 'Entwürfe')} · ${counts.proposed} eingereicht · ${counts.approved} genehmigt · ${counts.withdrawn} zurückgezogen`,
+      /** A link to the mails page, filtered to this registration. */
+      mailsWaiting: (n: number) => `${n} ${byCount(n, 'E-Mail', 'E-Mails')} dieser Anmeldung ${byCount(n, 'wartet', 'warten')} auf den Versand`,
       collect: 'Angebote sammeln',
       publish: 'Katalog veröffentlichen',
       open: 'Anmeldung öffnen',
@@ -925,6 +929,30 @@ export const de = {
     choicesLater: 'Wer sich schon angemeldet hat, zeigt diese Seite, sobald die Anmeldung läuft.',
   },
 
+  /** Mails.vue: the queue, what waits and what became of every mail; the sending's pace and pause (mailTemplates.sending). */
+  mails: {
+    editorsOnly: 'Die E-Mails sehen die Administration und die Organisation.',
+    intro: 'Jede E-Mail, die SchulWahl geschickt hat oder schicken wird, ohne Betreff und Text: an wen, von welcher Anmeldung, in welchem Stand. Wartende lassen sich verwerfen, fehlgeschlagene und verworfene noch einmal schicken.',
+    heading: 'Alle E-Mails',
+    filter: { state: 'Stand', kind: 'Art', campaign: 'Anmeldung', all: 'alle', apply: 'Anzeigen' },
+    column: { kind: 'Art', campaign: 'Anmeldung', to: 'An', state: 'Stand', created: 'Seit', detail: 'Antwort' },
+    /** The list's size against the whole match, as "200 von 612 E-Mails". */
+    shown: (shown: number, total: number) => `${shown} von ${total} ${byCount(total, 'E-Mail', 'E-Mails')}`,
+    none: 'Keine E-Mail passt dazu.',
+    noCampaign: 'ohne Anmeldung',
+    /** A waiting mail an organizer took out of the queue (state expired, detail discarded). */
+    discardedState: 'verworfen',
+    selectAll: 'Alle auswählen',
+    selectNone: 'Keine auswählen',
+    select: (to: string) => `E-Mail an ${to} auswählen`,
+    discardSelected: (n: number) => `${n} ausgewählte verwerfen`,
+    discardCampaign: (name: string) => `Alle wartenden von „${name}“ verwerfen`,
+    discardConfirm: (n: number) => `${n} wartende ${byCount(n, 'E-Mail', 'E-Mails')} verwerfen? ${byCount(n, 'Sie wird', 'Sie werden')} nicht gesendet.`,
+    discarded: (n: number) => `${n} ${byCount(n, 'E-Mail', 'E-Mails')} verworfen.`,
+    retry: 'Noch einmal schicken',
+    retried: 'Die E-Mail wartet wieder auf den Versand, als neue Kopie.',
+  },
+
   /** Zuteilung.vue: the organizer's runs, their review and the changes after publication. */
   allocation: {
     published: 'Die Einteilung ist veröffentlicht; die E-Mails sind unterwegs.',
@@ -1141,6 +1169,7 @@ export const de = {
     classTeachers: 'Wer welche Klasse führt und ihren Stand in einer Anmeldung sieht.',
     periods: 'Die Einheiten der Schule, in denen Lehrkräfte ihre Termine angeben.',
     mailTemplates: 'Die E-Mails, die eine Anmeldung verschickt: Einladungen, Erinnerungen, Listen an die Klassenvorstände.',
+    mails: 'Was auf den Versand wartet, was gesendet ist, was fehlschlug; den Versand anhalten, Wartendes verwerfen.',
     retention: 'Welche Schuljahre Daten haben und wie lange sie bleiben; ein Schuljahr löschen, ein Jahr nach seinem Ende.',
     categories: 'Kategorien wie Sport oder Berufsorientierung, für die Regeln der Anmeldungen.',
     /** The school's language, chosen here for everyone; the page then loads again in it. */
@@ -1371,6 +1400,8 @@ export const de = {
   /** Mailvorlagen.vue: the texts of the mails a campaign sends; their defaults are the group `mail`, a school's own texts are stored. */
   mailTemplates: {
     editorsOnly: 'Die E-Mail-Vorlagen ändern die Administration und die Organisation.',
+    /** Before the link to the mails page, which took the sending over. */
+    queueLink: 'Den Versand, was wartet und was gesendet ist, zeigt die Seite',
     intro: 'Die E-Mails, die eine Anmeldung verschickt. Platzhalter wie {{first_name}} füllt SchulWahl beim Versand; klick einen an, um ihn einzufügen.',
     mailOff: 'Der E-Mail-Versand ist auf diesem Server nicht eingerichtet: E-Mails warten, bis er es ist.',
     saved: 'Vorlage gespeichert.',

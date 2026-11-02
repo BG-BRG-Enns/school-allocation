@@ -1,11 +1,11 @@
-import { type MailKind } from '@school-allocation/api-contracts/mail'
+import type { DiscardBody, MailKind, MailQueueQuery, MailQueueResponse, QueueMail } from '@school-allocation/api-contracts/mail'
 import type { Actor, Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { readMailPaused, updateMailPaused } from '../lib/dao/settings.ts'
 import type { Database } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
-import { enqueueMail, listCampaignMails, queueStatus, spacingOf } from '../lib/mail/outbox.ts'
-import { requireCampaign } from './campaigns.ts'
+import { copyMailForRetry, countMails, discardMails as discardInOutbox, enqueueMail, listCampaignMails, listMails, queueStatus, spacingOf } from '../lib/mail/outbox.ts'
+import { canonicalId, requireCampaign } from './campaigns.ts'
 import { sampleMail } from './mail-templates.ts'
 
 /**
@@ -64,6 +64,61 @@ export async function setMailPaused(db: Database, paused: boolean, actor: Actor)
     if (await readMailPaused(client) === paused) return
     await updateMailPaused(client, paused, actor)
     await appendAudit(client, { scopeId: SCHOOL_SCOPE, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: paused ? 'mail.paused' : 'mail.resumed', metadata: {} })
+  })
+}
+
+/** The queue as the page lists it: the mails matching the filter, newest first up to the limit, and how many match in all. */
+export async function listMailQueue(db: Database, query: MailQueueQuery): Promise<MailQueueResponse> {
+  const filter = { ...(query.state === undefined ? {} : { state: query.state }), ...(query.kind === undefined ? {} : { kind: query.kind }), ...(query.campaignId === undefined ? {} : { campaignId: canonicalId(query.campaignId) }) }
+  const mails = await listMails(db, filter, Number(query.limit ?? '200'))
+  const total = await countMails(db, filter)
+  return { mails, total }
+}
+
+/**
+ * Takes waiting mails out of the queue: an opening nobody meant, a text
+ * with a mistake. Audited in the registration's chain when the selection
+ * is one registration's, else the school's, with the counts by kind; a
+ * selection that takes nothing records nothing.
+ */
+export async function discardMails(db: Database, selection: DiscardBody, actor: Actor): Promise<{ discarded: number }> {
+  return db.tx(async (client) => {
+    await lockScope(client, SCHOOL_SCOPE)
+    let scopeId = SCHOOL_SCOPE
+    let picked: Parameters<typeof discardInOutbox>[1]
+    if ('ids' in selection) picked = { ids: selection.ids.map(canonicalId) }
+    else {
+      const campaign = await requireCampaign(client, canonicalId(selection.campaignId))
+      await lockScope(client, campaign.id)
+      scopeId = campaign.id
+      picked = { campaignId: campaign.id, ...(selection.kinds === undefined ? {} : { kinds: selection.kinds }) }
+    }
+    const { discarded, byKind } = await discardInOutbox(client, picked)
+    if (discarded === 0) return { discarded }
+    await appendAudit(client, { scopeId, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: 'mail.discarded', metadata: { discarded, byKind } })
+    return { discarded }
+  })
+}
+
+/**
+ * Queues a failed or discarded mail again, as a copy: the server was down,
+ * the address wrong and corrected since, a discard one too many. The copy
+ * takes its turn like a new mail; audited with both ids. The caller wakes
+ * the sender afterwards.
+ */
+export async function retryMail(db: Database, rawId: string, actor: Actor): Promise<{ mail: QueueMail }> {
+  const id = canonicalId(rawId)
+  return db.tx(async (client) => {
+    await lockScope(client, SCHOOL_SCOPE)
+    const [original] = await listMails(client, { id }, 1)
+    if (original === undefined) throw new ApplicationError('not_found')
+    if (original.state !== 'failed' && original.state !== 'expired') throw new ApplicationError('mail_state')
+    const copyId = await copyMailForRetry(client, id, `retry:${id}:${db.now().getTime()}`)
+    if (copyId === undefined) throw new ApplicationError('mail_state')
+    const [mail] = await listMails(client, { id: copyId }, 1)
+    if (mail === undefined) throw new ApplicationError('not_found')
+    await appendAudit(client, { scopeId: original.campaignId ?? SCHOOL_SCOPE, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: 'mail.retried', metadata: { id, retryId: copyId, kind: original.kind } })
+    return { mail }
   })
 }
 

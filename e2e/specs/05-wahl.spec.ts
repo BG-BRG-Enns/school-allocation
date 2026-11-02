@@ -123,11 +123,9 @@ test('einen Tag vor dem Ende wird erinnert, wer fehlt; die Organisation gibt fü
   await signOut(page)
 })
 
-test('die Administration ändert eine E-Mail-Vorlage; ein falscher Platzhalter wird abgewiesen, ein Klick fügt einen ein; Zurücksetzen bringt den vorgegebenen Text', async ({ page }) => {
+test('die Organisation sieht die E-Mails: den Versand, der angehalten und fortgesetzt wird; die Liste, aus der eine wartende Erinnerung verworfen und noch einmal geschickt wird', async ({ page }) => {
   await openAs(page, ANNA, '/verwaltung')
-  await page.getByRole('link', { name: t.common.page.mailTemplates }).click()
-  const reminder = t.labels.mailKind.choice_reminder
-  await expect(page.getByRole('heading', { name: reminder })).toBeVisible()
+  await page.getByRole('link', { name: t.common.page.mails }).click()
   // The sending: the reminders wait in the queue, as the journeys' server sends nothing; holding it and going on.
   const sending = section(page, t.mailTemplates.sending.heading)
   await expect(sending).toContainText(t.mailTemplates.sending.pace(200))
@@ -139,6 +137,33 @@ test('die Administration ändert eine E-Mail-Vorlage; ein falscher Platzhalter w
   await sending.getByRole('button', { name: t.mailTemplates.sending.resume }).click()
   await expect(page.getByRole('status')).toHaveText(t.mailTemplates.sending.resumedDone)
   await expect(sending).toContainText(t.mailTemplates.sending.pauseHint)
+  // The list: the waiting reminders, filtered to them; the first one discarded, listed as such, then sent again.
+  const list = section(page, t.mails.heading)
+  const filters = page.getByRole('form', { name: t.mails.heading })
+  await filters.getByLabel(t.mails.filter.kind).selectOption('choice_reminder')
+  await filters.getByLabel(t.mails.filter.state).selectOption('queued')
+  await filters.getByRole('button', { name: t.mails.filter.apply }).click()
+  const reminders = list.getByRole('row').filter({ hasText: t.labels.mailKind.choice_reminder })
+  await expect(reminders.first()).toContainText(t.labels.mailState.queued)
+  await picture(page, 'e-mails', list)
+  await reminders.first().getByRole('checkbox').check()
+  page.once('dialog', (dialog) => void dialog.accept())
+  await list.getByRole('button', { name: t.mails.discardSelected(1) }).click()
+  await expect(page.getByRole('status')).toHaveText(t.mails.discarded(1))
+  await filters.getByLabel(t.mails.filter.state).selectOption('expired')
+  await filters.getByRole('button', { name: t.mails.filter.apply }).click()
+  const discarded = list.getByRole('row').filter({ hasText: t.mails.discardedState })
+  await expect(discarded.first()).toBeVisible()
+  await discarded.first().getByRole('button', { name: t.mails.retry }).click()
+  await expect(page.getByRole('status')).toHaveText(t.mails.retried)
+  await signOut(page)
+})
+
+test('die Administration ändert eine E-Mail-Vorlage; ein falscher Platzhalter wird abgewiesen, ein Klick fügt einen ein; Zurücksetzen bringt den vorgegebenen Text', async ({ page }) => {
+  await openAs(page, ANNA, '/verwaltung')
+  await page.getByRole('link', { name: t.common.page.mailTemplates }).click()
+  const reminder = t.labels.mailKind.choice_reminder
+  await expect(page.getByRole('heading', { name: reminder })).toBeVisible()
   const template = section(page, reminder)
   await expect(template.getByText(t.mailTemplates.defaultText)).toBeVisible()
   await template.getByRole('button', { name: t.common.edit }).click()

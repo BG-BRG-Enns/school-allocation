@@ -10,7 +10,7 @@
 // priority, then age, never sooner than the spacing after the last claim
 // the database holds, and nothing while sending is paused.
 
-import type { MailKind } from '@school-allocation/api-contracts/mail'
+import type { MailKind, QueueMail } from '@school-allocation/api-contracts/mail'
 import type { Database, Queryable } from '../db.ts'
 import { truncateDetail } from './transport.ts'
 
@@ -181,6 +181,133 @@ export async function recoverInterruptedMails(db: Queryable): Promise<number> {
 export async function listCampaignMails(db: Queryable, campaignId: string, limit = 500): Promise<OutboxMail[]> {
   const { rows } = await db.query<MailRow>(`select ${COLUMNS} from outbox_mail where campaign_id = $1 order by created_at desc limit $2`, [campaignId, limit])
   return rows.map(toMail)
+}
+
+/** What the queue page asks for: by state, kind, registration, or one mail by id. */
+export interface MailFilter {
+  id?: string
+  state?: MailState
+  kind?: MailKind
+  campaignId?: string
+}
+
+function filterSql(filter: MailFilter): { where: string, params: unknown[] } {
+  const clauses: string[] = []
+  const params: unknown[] = []
+  const add = (sql: string, value: unknown) => {
+    params.push(value)
+    clauses.push(sql.replace('?', `$${params.length}`))
+  }
+  if (filter.id !== undefined) add('m.id = ?', filter.id)
+  if (filter.state !== undefined) add('m.state = ?', filter.state)
+  if (filter.kind !== undefined) add('m.kind = ?', filter.kind)
+  if (filter.campaignId !== undefined) add('m.campaign_id = ?', filter.campaignId)
+  return { where: clauses.length === 0 ? '' : ` where ${clauses.join(' and ')}`, params }
+}
+
+/** The mails matching the filter, newest first, as the queue page lists them: never the subject or the text. */
+export async function listMails(db: Queryable, filter: MailFilter, limit: number): Promise<QueueMail[]> {
+  const { where, params } = filterSql(filter)
+  const { rows } = await db.query<QueueRow>(
+    `select ${QUEUE_COLUMNS} from outbox_mail m left join campaign c on c.id = m.campaign_id${where} order by m.created_at desc, m.id limit $${params.length + 1}`,
+    [...params, limit],
+  )
+  return rows.map(toQueueMail)
+}
+
+/** How many mails match the filter, the list's limit aside. */
+export async function countMails(db: Queryable, filter: MailFilter): Promise<number> {
+  const { where, params } = filterSql(filter)
+  const { rows: [row] } = await db.query<{ n: number }>(`select count(*)::int as n from outbox_mail m${where}`, params)
+  return row?.n ?? 0
+}
+
+/** What an organizer takes out of the queue: the mails named, or a registration's (of some kinds, else all). */
+export type DiscardSelection = { ids: readonly string[] } | { campaignId: string, kinds?: readonly MailKind[] }
+
+/**
+ * Takes waiting mails out of the queue: queued ones become `expired` with
+ * the detail `discarded`; one in a session gets its expiry set to now, so a
+ * transient failure lets it expire instead of going out later (the
+ * expireCampaignMails pattern, one statement for both states). Returns how
+ * many expired, by kind.
+ */
+export async function discardMails(db: Queryable, selection: DiscardSelection): Promise<{ discarded: number, byKind: Record<string, number> }> {
+  const [selectSql, params]: [string, unknown[]] = 'ids' in selection
+    ? ['id = any($1::uuid[])', [selection.ids]]
+    : selection.kinds === undefined ? ['campaign_id = $1', [selection.campaignId]] : ['campaign_id = $1 and kind = any($2::text[])', [selection.campaignId, selection.kinds]]
+  const { rows } = await db.query<{ state: MailState, kind: string }>(
+    `update outbox_mail
+        set state = case when state = 'queued' then 'expired' else state end,
+            detail = case when state = 'queued' then 'discarded' else detail end,
+            expires_at = case when expires_at is null or expires_at > app_now() then app_now() else expires_at end,
+            updated_at = app_now()
+      where state in ('queued', 'sending') and ${selectSql}
+      returning state, kind`,
+    params,
+  )
+  const byKind: Record<string, number> = {}
+  let discarded = 0
+  for (const row of rows) {
+    if (row.state !== 'expired') continue
+    discarded++
+    byKind[row.kind] = (byKind[row.kind] ?? 0) + 1
+  }
+  return { discarded, byKind }
+}
+
+/**
+ * Queues a failed or discarded mail again as a copy under a new dedupe
+ * key: the original's rows are immutable, and a state once final stays
+ * so. Returns the copy's id, or nothing when the mail is not in such a
+ * state.
+ */
+export async function copyMailForRetry(db: Queryable, id: string, dedupeKey: string): Promise<string | undefined> {
+  const { rows: [row] } = await db.query<{ id: string }>(
+    `insert into outbox_mail (kind, campaign_id, person_id, to_address, subject, body, dedupe_key, priority)
+     select kind, campaign_id, person_id, to_address, subject, body, $2, priority from outbox_mail where id = $1 and state in ('failed', 'expired')
+     returning id`,
+    [id, dedupeKey],
+  )
+  return row?.id
+}
+
+const QUEUE_COLUMNS = 'm.id, m.kind, m.campaign_id, c.name as campaign_name, m.person_id, m.to_address, m.state, m.priority, m.attempts, m.detail, m.created_at, m.sent_at, m.next_attempt_at, m.expires_at'
+
+interface QueueRow {
+  id: string
+  kind: string
+  campaign_id: string | null
+  campaign_name: string | null
+  person_id: string | null
+  to_address: string
+  state: MailState
+  priority: number
+  attempts: number
+  detail: string | null
+  created_at: Date
+  sent_at: Date | null
+  next_attempt_at: Date | null
+  expires_at: Date | null
+}
+
+function toQueueMail(row: QueueRow): QueueMail {
+  return {
+    id: row.id,
+    kind: row.kind,
+    campaignId: row.campaign_id,
+    campaignName: row.campaign_name,
+    personId: row.person_id,
+    to: row.to_address,
+    state: row.state,
+    priority: Number(row.priority),
+    attempts: Number(row.attempts),
+    detail: row.detail,
+    createdAt: row.created_at.toISOString(),
+    sentAt: row.sent_at?.toISOString() ?? null,
+    nextAttemptAt: row.next_attempt_at?.toISOString() ?? null,
+    expiresAt: row.expires_at?.toISOString() ?? null,
+  }
 }
 
 /** The state of the latest mail of each kind per person of a campaign, for the non-submitter list. */

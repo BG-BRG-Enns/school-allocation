@@ -16,6 +16,7 @@ import Kategorien from './pages/Kategorien.vue'
 import Klasse from './pages/Klasse.vue'
 import Klassen from './pages/Klassen.vue'
 import Lehrkraefte from './pages/Lehrkraefte.vue'
+import Mails from './pages/Mails.vue'
 import Mailvorlagen from './pages/Mailvorlagen.vue'
 import Aufbewahrung from './pages/Aufbewahrung.vue'
 import Personen from './pages/Personen.vue'
@@ -56,6 +57,7 @@ export const router = createRouter({
     { path: '/verwaltung/zeiten', component: Zeiten },
     { path: '/verwaltung/kategorien', component: Kategorien },
     { path: '/verwaltung/mailvorlagen', component: Mailvorlagen },
+    { path: '/verwaltung/e-mails', component: Mails },
     { path: '/verwaltung/aufbewahrung', component: Aufbewahrung },
   ],
 })

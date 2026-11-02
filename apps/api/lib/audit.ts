@@ -74,6 +74,10 @@ export const AUDIT_ACTIONS = [
   'mail.test-sent',
   'mail.paused',
   'mail.resumed',
+  // Waiting mails taken out of the queue (the registration's scope when they are one registration's, else the
+  // school's), with the counts by kind; a failed or discarded mail queued again as a copy, with both ids.
+  'mail.discarded',
+  'mail.retried',
   // The allocation (campaign scope): a run started by an organizer and
   // finished by the job on their behalf, with its status; a run left
   // running by a restart, marked interrupted at the next start.

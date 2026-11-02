@@ -6,6 +6,9 @@
 //   POST /api/admin/mail-templates/:kind/test  the kind with sample values, to the caller's own address, audited
 //   GET  /api/admin/mail/status                whether mail is set up, the pace, whether sending is paused, what waits and until when
 //   PUT  /api/admin/mail/paused                { paused }: pauses or resumes sending, audited; queued mails stay queued
+//   GET  /api/admin/mail?state=&kind=&campaignId=&limit=  the queue, newest first, without subject or text; `total` counts the whole match
+//   POST /api/admin/mail/discard               { ids } or { campaignId, kinds? }: waiting mails taken out of the queue, audited
+//   POST /api/admin/mail/:id/retry             a failed or discarded mail queued again as a copy, audited
 //
 // Organizers and administrators; the texts are the school's, not a campaign's.
 
@@ -20,7 +23,7 @@ import { actorOf } from '../lib/actor.ts'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { readTemplates, resetTemplate, saveTemplate } from '../services/mail-templates.ts'
-import { queueTestMail, setMailPaused } from '../services/mail.ts'
+import { discardMails, listMailQueue, queueTestMail, retryMail, setMailPaused } from '../services/mail.ts'
 
 export interface MailRoutesOptions {
   config: Config
@@ -61,5 +64,19 @@ export async function mailRoutes(app: FastifyInstance, { config, db, guards, wak
     await setMailPaused(db, request.body.paused, actorOf(callerOf(request)))
     if (!request.body.paused) wakeSender?.()
     return mailStatus(db, config.mail?.perHour ?? null)
+  })
+
+  registerEndpoint(app, endpoints.getAdminMail, { ...organizer }, async (request) => {
+    return listMailQueue(db, request.query)
+  })
+
+  registerEndpoint(app, endpoints.postAdminMailDiscard, { ...organizer }, async (request) => {
+    return discardMails(db, request.body, actorOf(callerOf(request)))
+  })
+
+  registerEndpoint(app, endpoints.postAdminMailByIdRetry, { ...organizer }, async (request) => {
+    const result = await retryMail(db, request.params.id, actorOf(callerOf(request)))
+    wakeSender?.()
+    return result
   })
 }

@@ -424,6 +424,51 @@
   },
   {
     "method": "GET",
+    "url": "/api/admin/mail",
+    "body": null,
+    "params": null,
+    "querystring": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "enum": [
+            "queued",
+            "sending",
+            "sent",
+            "failed",
+            "expired"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "choice_invitation",
+            "choice_reminder",
+            "grace_invitation",
+            "grace_reminder",
+            "missed_deadline",
+            "class_missing",
+            "result_published",
+            "class_unplaced",
+            "item_cancelled",
+            "swap_confirmed",
+            "assignment_changed"
+          ]
+        },
+        "campaignId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "limit": {
+          "type": "string",
+          "pattern": "^([1-9][0-9]{0,2}|1000)$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/admin/mail/status",
     "body": null,
     "params": null,
@@ -1933,6 +1978,87 @@
       },
       "additionalProperties": false
     },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "POST",
+    "url": "/api/admin/mail/:id/retry",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "POST",
+    "url": "/api/admin/mail/discard",
+    "body": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "ids"
+          ],
+          "properties": {
+            "ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+              },
+              "minItems": 1,
+              "maxItems": 1000
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "campaignId"
+          ],
+          "properties": {
+            "campaignId": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            },
+            "kinds": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "choice_invitation",
+                  "choice_reminder",
+                  "grace_invitation",
+                  "grace_reminder",
+                  "missed_deadline",
+                  "class_missing",
+                  "result_published",
+                  "class_unplaced",
+                  "item_cancelled",
+                  "swap_confirmed",
+                  "assignment_changed"
+                ]
+              },
+              "minItems": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "params": null,
     "querystring": null,
     "bodyLimit": null
   },
