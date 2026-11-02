@@ -121,6 +121,16 @@ test('a list with an unknown address, an unknown class or an abbreviation anothe
   assert.equal(noAddress.body.error, 'csv_file_invalid', `${noAddress.status} ${JSON.stringify(noAddress.body)}`)
   // Nothing of it was written.
   assert.deepEqual((await get<{ teachers: { shortName: string | null }[] }>(s, s.anna, '/api/admin/classes/teachers?q=Zwex')).body.teachers.map((x) => x.shortName), [null])
+  // A sound row beside one with a problem: the file applies, the row with the problem skipped.
+  const mixed = `email;short_name;class\n${ANNA.email};ZwA;5A\nnobody@schule.example.org;NoN;\n`
+  const mixedPreview = await send<TeacherListPreview>(s, s.anna, 'POST', '/api/admin/classes/import/preview', { csv: mixed })
+  assert.equal(mixedPreview.body.applicable, true)
+  assert.deepEqual(mixedPreview.body.problems.map((p) => p.line), [3])
+  const applied = await send<TeacherListApplied>(s, s.anna, 'POST', '/api/admin/classes/import', { csv: mixed })
+  assert.equal(applied.status, 200, JSON.stringify(applied.body))
+  assert.equal(applied.body.skipped, 1)
+  assert.equal(applied.body.shortNames, 1)
+  assert.deepEqual((await get<{ teachers: { shortName: string | null }[] }>(s, s.anna, '/api/admin/classes/teachers?q=Zwex')).body.teachers.map((x) => x.shortName), ['ZwA'])
 })
 
 test('a teacher may not import or read the template; an organizer who is no administrator may', DB, async (t) => {

@@ -172,7 +172,9 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
     if (weekday !== undefined) {
       const matching = projectDays.filter((date) => weekdayOf(date) === weekday)
       if (matching.length === 1) dayColumn(matching[0] as string)
-      else fileProblems.push({ code: matching.length === 0 ? 'unknown_column' : 'day_ambiguous', column: name })
+      // A weekday none of the days falls on: the days are named, so a sheet for another week shows as one.
+      else if (matching.length === 0) fileProblems.push({ code: 'unknown_column', column: name, days: [...projectDays] })
+      else fileProblems.push({ code: 'day_ambiguous', column: name })
       return
     }
     if (name === '') unnamed.push(i)
@@ -184,8 +186,12 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
   if (fileProblems.length > 0) return none(fileProblems, ignored)
   const shapeProblems = checkRows(records, header.length)
   if (shapeProblems.length > 0) return none(shapeProblems, ignored)
-  const filledUnnamed = unnamed.filter((i) => records.some((fields) => (fields[i] ?? '').trim() !== ''))
-  if (filledUnnamed.length > 0) return none(filledUnnamed.map((i) => ({ code: 'unknown_column' as const, column: `#${i + 1}` })), ignored)
+  // Named with the first line that has something there: in a long sheet, the column alone would not say where to look.
+  const filledUnnamed = unnamed.flatMap((i) => {
+    const at = records.findIndex((fields) => (fields[i] ?? '').trim() !== '')
+    return at === -1 ? [] : [{ code: 'unknown_column' as const, column: `#${i + 1}`, line: at + 2 }]
+  })
+  if (filledUnnamed.length > 0) return none(filledUnnamed, ignored)
   const rows: AvailabilityCsvRow[] = []
   const problems: AvailabilityCsvProblem[] = []
   // Every cell without the apostrophe the template puts before a value that starts like a formula: an address, an

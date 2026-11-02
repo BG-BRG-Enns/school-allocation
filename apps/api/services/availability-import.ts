@@ -25,6 +25,8 @@ interface Resolved {
   preview: AvailabilityImportPreview
   /** Per person: the days to write and, where the file has the column, the note. */
   writes: Map<string, { days: Map<string, AvailabilityStatus>, note?: string | null, currentShortName: string | null }>
+  /** The lines with a problem: listed, and left out of the rest. */
+  skipped: number
 }
 
 /** What the list would change for the registration; `applicable` says whether apply would take it. */
@@ -43,8 +45,9 @@ export async function applyAvailabilityImport(db: Database, rawId: string, csv: 
     const campaign = await lockedCampaign(client, id)
     if (!campaign) throw new ApplicationError('not_found')
     if (campaign.state === 'archived') throw new ApplicationError('campaign_state')
-    const { preview, writes } = await resolve(client, campaign, csv)
+    const { preview, writes, skipped } = await resolve(client, campaign, csv)
     if (preview.fileProblems.length > 0) throw new ApplicationError('csv_file_invalid', preview.fileProblems.map((p) => `${p.code}${p.column === undefined ? '' : ` (${p.column})`}${p.line === undefined ? '' : ` (line ${p.line})`}`).join('; '))
+    // Rows with a problem are skipped; a file with no other row has nothing to apply.
     if (!preview.applicable) throw new AvailabilityImportInvalid(preview.problems)
     for (const [personId, write] of writes) {
       for (const [date, status] of write.days) await planningStore.writeAvailability(client, personId, date, status)
@@ -52,9 +55,9 @@ export async function applyAvailabilityImport(db: Database, rawId: string, csv: 
     }
     await appendAudit(client, {
       scopeId: id, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: 'availability.imported',
-      metadata: { sha256: createHash('sha256').update(csv).digest('hex'), teachers: preview.teachers.length, days: preview.days.length, changedDays: preview.changedDays, changedNotes: preview.changedNotes },
+      metadata: { sha256: createHash('sha256').update(csv).digest('hex'), teachers: preview.teachers.length, days: preview.days.length, changedDays: preview.changedDays, changedNotes: preview.changedNotes, skipped },
     })
-    return { changedDays: preview.changedDays, changedNotes: preview.changedNotes }
+    return { changedDays: preview.changedDays, changedNotes: preview.changedNotes, skipped }
   })
   return { planning: (await planning(db, id)).planning, ...counts }
 }
@@ -85,7 +88,7 @@ async function resolve(db: Queryable, campaign: Campaign, csv: string): Promise<
   const parsed = parseAvailabilityCsv(csv, campaign.projectDays)
   const preview: AvailabilityImportPreview = { fileProblems: parsed.fileProblems, problems: [...parsed.problems], ignoredColumns: parsed.ignoredColumns, days: parsed.days, teachers: [], changedDays: 0, changedNotes: 0, applicable: false }
   const writes: Resolved['writes'] = new Map()
-  if (parsed.fileProblems.length > 0) return { preview, writes }
+  if (parsed.fileProblems.length > 0) return { preview, writes, skipped: 0 }
   const items = await plannedItems(db, campaign)
   const teachers = await planningStore.planningTeachers(db, campaign.id, items.map((item) => item.id))
   const byId = new Map(teachers.map((teacher) => [teacher.personId, teacher]))
@@ -104,7 +107,10 @@ async function resolve(db: Queryable, campaign: Campaign, csv: string): Promise<
     }
     const personId = fromAddress ?? fromShortName
     if (personId === undefined || !byId.has(personId)) {
-      preview.problems.push({ code: 'teacher_unknown', line: row.line, key: row.email ?? row.shortName ?? '' })
+      // Said apart, because the way out differs: an address nobody of the registration has; an abbreviation nobody
+      // has at all (set it in Stammdaten, or here beside the name); one a teacher has who is not of this registration.
+      const code = row.email !== undefined ? 'teacher_unknown' : personId === undefined ? 'short_name_unknown' : 'teacher_not_in_registration'
+      preview.problems.push({ code, line: row.line, key: row.email ?? row.shortName ?? '' })
       continue
     }
     resolved.push({ ...row, personId })
@@ -128,6 +134,7 @@ async function resolve(db: Queryable, campaign: Campaign, csv: string): Promise<
     if (note !== null) preview.changedNotes++
     preview.teachers.push({ personId, displayName: teacher.displayName, shortName: teacher.shortName, days, note })
   }
-  preview.applicable = preview.problems.length === 0 && writes.size > 0
-  return { preview, writes }
+  // A row with a problem is listed and left out whole, the parser's rows included; what the other rows say is applied.
+  preview.applicable = writes.size > 0
+  return { preview, writes, skipped: new Set(preview.problems.map((problem) => problem.line)).size }
 }

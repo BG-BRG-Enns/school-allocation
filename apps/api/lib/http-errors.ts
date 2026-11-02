@@ -61,6 +61,7 @@ export const APPLICATION_ERROR_STATUS = {
   rule_lost: 422,
   run_stale: 409,
   sessions_outside_days: 409,
+  short_name_held: 409,
   solver_off: 409,
   swap_closed: 409,
   swap_order: 422,

@@ -77,6 +77,8 @@ export interface CsvProblem {
   line?: number
   /** The column a `missing_column` is about: a roster column, or a teacher list's (teacher-csv.ts). */
   column?: string
+  /** The registration's project days (ISO dates), with an `unknown_column` that is a weekday none of them falls on (availability-csv.ts). */
+  days?: string[]
 }
 
 export interface RosterCsvResult {
@@ -112,7 +114,7 @@ export function parseRosterCsv(text: string): RosterCsvResult {
   if (filled.length > CSV_LIMITS.rows) fileProblems.push({ code: 'too_many_rows' })
   rows.forEach((row, i) => {
     const line = i + 2
-    if (row.length !== header.length && !isBlank(row)) fileProblems.push({ code: 'field_count', line })
+    if (!hasWidth(row, header.length) && !isBlank(row)) fileProblems.push({ code: 'field_count', line })
     if (row.some((field) => field.length > CSV_LIMITS.field)) fileProblems.push({ code: 'field_too_long', line })
   })
   if (fileProblems.length > 0) return { entries: [], fileProblems, problems: [] }
@@ -158,6 +160,16 @@ export function parseRosterCsv(text: string): RosterCsvResult {
 /** A record with nothing in it: an empty line, or one of separators and spaces alone. */
 function isBlank(row: readonly string[]): boolean {
   return row.every((field) => field.trim() === '')
+}
+
+/**
+ * Whether a record has the header's fields: exactly, or more with nothing
+ * in the extra ones. A sheet that once had a column past the last header
+ * exports a separator at the end of every row; those are read, a row with
+ * fewer fields or with something past the header is not.
+ */
+export function hasWidth(row: readonly string[], width: number): boolean {
+  return row.length === width || (row.length > width && row.slice(width).every((field) => field.trim() === ''))
 }
 
 interface ParsedCsv {

@@ -177,7 +177,9 @@ export const en: Messages = {
       short_name_too_long: 'Abbreviation longer than 8 characters',
       status_invalid: 'Neither empty nor N nor F',
       note_too_long: 'Note longer than 200 characters',
-      teacher_unknown: 'No teacher of this registration has this address or abbreviation',
+      teacher_unknown: 'No teacher of this registration has this address',
+      short_name_unknown: 'No abbreviation in the base data; set it beside the name or under class teachers',
+      teacher_not_in_registration: 'No teacher of this registration: not in its class lists and on no activity',
       key_conflict: 'The address and the abbreviation belong to two teachers',
     },
     /** What is wrong with a CSV file as a whole (school-core CSV_PROBLEM_CODES). */
@@ -459,6 +461,7 @@ export const en: Messages = {
     // The roster
     csv_invalid: 'The file is not a class list in the expected format. Please use the template.',
     csv_file_invalid: 'The CSV file cannot be read as it is; the check says why.',
+    short_name_held: 'Another teacher already has this abbreviation.',
     invalid_school_year: 'Write the school year as 2026/27.',
     batch_not_pending: 'This import has already been decided on.',
     batch_superseded: 'Another import has been applied since this one. Please import the class lists again.',
@@ -795,20 +798,29 @@ export const en: Messages = {
     /** The import of an availability list on the teachers-by-day page. */
     csv: {
       title: 'Availability from a CSV file',
-      intro: 'One row per teacher, named by e-mail address or abbreviation, and one column per project day, headed by the date or the weekday (MO, DI, MI or Mon, Tue, Wed): empty means available, N not available, F only if necessary. A column “Anmerkung” or “note” becomes the note, a column “Leitung” is skipped; any other column is an error, so that no day is lost unnoticed. What the file says is applied; teachers and days not in it stay as they are.',
+      intro: 'One row per teacher, named by e-mail address or abbreviation, and one column per project day, headed by the date or the weekday (MO, DI, MI or Mon, Tue, Wed): empty means available, N not available, F only if necessary. The school\'s list with the columns “Name”, “MO”, “DI”, “MI”, “Leitung” and “Anmerkung” is read as the spreadsheet exports it; an empty column at the end does no harm. A column “Anmerkung” or “note” becomes the note, a column “Leitung” is skipped; any other column is an error, so that no day is lost unnoticed. What the file says is applied; rows with a problem are skipped; teachers and days not in it stay as they are.',
       template: 'Template as of today',
       file: 'File',
       paste: 'or paste the content here',
       check: 'Check',
       apply: 'Apply',
       ignored: (columns: string) => `Not read: ${columns}`,
-      problems: 'These rows are not applied:',
+      problems: 'These rows are skipped, the others applied:',
       fileProblems: 'The file cannot be read:',
       line: (line: number) => `Line ${line}`,
+      /** After an unknown weekday column: the registration's days, as format.ts formatDay writes them. */
+      registrationDays: (days: string) => `The registration's days are ${days}.`,
       nothing: 'The file changes nothing.',
       noteHead: 'Note',
       none: '–',
-      applied: (days: number, notes: number) => `Applied: ${days} days changed, ${notes} notes.`,
+      applied: (days: number, notes: number, skipped: number) => `Applied: ${days} days changed, ${notes} notes${skipped === 0 ? '' : `; ${skipped} ${byCount(skipped, 'row', 'rows')} skipped`}.`,
+    },
+    /** One teacher's abbreviation, set beside the name. */
+    shortName: {
+      edit: (name: string) => `Change the abbreviation of ${name}`,
+      label: (name: string) => `Abbreviation of ${name}`,
+      save: 'Save abbreviation',
+      saved: 'Abbreviation saved.',
     },
   },
 
@@ -1311,7 +1323,7 @@ export const en: Messages = {
       check: 'Check',
       apply: 'Apply',
       ignored: (columns: string) => `Not read: ${columns}`,
-      problems: 'These rows are not applied:',
+      problems: 'These rows are skipped, the others applied:',
       fileProblems: 'The file cannot be read:',
       line: (line: number) => `Line ${line}`,
       shortNames: 'Abbreviations',
@@ -1321,7 +1333,7 @@ export const en: Messages = {
       none: '–',
       nothing: 'The file changes nothing.',
       withShortName: (name: string, shortName: string) => `${name} (${shortName})`,
-      applied: (shortNames: number, classes: number) => `Applied: ${shortNames} abbreviations, ${classes} classes changed.`,
+      applied: (shortNames: number, classes: number, skipped: number) => `Applied: ${shortNames} abbreviations, ${classes} classes changed${skipped === 0 ? '' : `; ${skipped} ${byCount(skipped, 'row', 'rows')} skipped`}.`,
     },
   },
 

@@ -9,6 +9,7 @@ import { AVAILABILITY_STATUSES } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
 import { withBase } from '../lib/base.ts'
 import type { AvailabilityImportPreview } from '@school-allocation/api-contracts'
+import { setTeacherShortName } from '../lib/admin-api.ts'
 import { applyAvailabilityImport, availabilityTemplatePath, loadPlanning, planningExportPath, previewAvailabilityImport, setAvailabilityFor, type AvailabilityStatus, type PlanningResponse } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay } from '../lib/format.ts'
@@ -58,6 +59,22 @@ async function onChange(personId: string, date: string, status: AvailabilityStat
   }, t.planning.saved)
 }
 
+// One teacher's abbreviation, set beside the name: the row's edit opens a small form; saving reloads the overview.
+const editingShortName = ref<{ personId: string, value: string } | null>(null)
+function startShortName(teacher: { personId: string, shortName: string | null }): void {
+  editingShortName.value = { personId: teacher.personId, value: teacher.shortName ?? '' }
+}
+async function onSaveShortName(): Promise<void> {
+  const editing = editingShortName.value
+  if (!editing) return
+  const value = editing.value.trim()
+  const ok = await saving.run(async () => {
+    await setTeacherShortName(editing.personId, value === '' ? null : value)
+    planning.value = await loadPlanning(props.id)
+  }, t.planning.shortName.saved)
+  if (ok) editingShortName.value = null
+}
+
 // The availability list: a file or pasted text, checked first, then the checked text applied.
 const csvText = ref('')
 const checkedCsv = ref('')
@@ -100,14 +117,14 @@ async function onCheck(): Promise<void> {
 
 async function onApply(): Promise<void> {
   const text = checkedCsv.value
-  let applied = { changedDays: 0, changedNotes: 0 }
+  let applied = { changedDays: 0, changedNotes: 0, skipped: 0 }
   const ok = await applying.run(async () => {
     const result = await applyAvailabilityImport(props.id, text)
     planning.value = result.planning
-    applied = { changedDays: result.changedDays, changedNotes: result.changedNotes }
+    applied = { changedDays: result.changedDays, changedNotes: result.changedNotes, skipped: result.skipped }
   })
   if (ok) {
-    applying.notice.value = t.planning.csv.applied(applied.changedDays, applied.changedNotes)
+    applying.notice.value = t.planning.csv.applied(applied.changedDays, applied.changedNotes, applied.skipped)
     preview.value = null
     csvText.value = ''
     checkedCsv.value = ''
@@ -192,6 +209,45 @@ const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (
               {{ teacher.displayName }}<template v-if="teacher.shortName !== null">
                 ({{ teacher.shortName }})
               </template>
+              <form
+                v-if="editingShortName?.personId === teacher.personId"
+                class="inline-form"
+                :aria-label="t.planning.shortName.label(teacher.displayName)"
+                @submit.prevent="onSaveShortName"
+              >
+                <input
+                  v-model="editingShortName.value"
+                  type="text"
+                  maxlength="8"
+                  size="8"
+                  :aria-label="t.planning.shortName.label(teacher.displayName)"
+                  :disabled="saving.busy.value"
+                >
+                <button
+                  type="submit"
+                  class="small"
+                  :disabled="saving.busy.value"
+                >
+                  {{ t.planning.shortName.save }}
+                </button>
+                <button
+                  type="button"
+                  class="ghost small"
+                  :disabled="saving.busy.value"
+                  @click="editingShortName = null"
+                >
+                  {{ t.common.cancel }}
+                </button>
+              </form>
+              <button
+                v-else-if="editable"
+                type="button"
+                class="ghost small"
+                :aria-label="t.planning.shortName.edit(teacher.displayName)"
+                @click="startShortName(teacher)"
+              >
+                {{ t.common.edit }}
+              </button>
               <span
                 v-if="teacher.note !== null"
                 class="muted"
@@ -296,6 +352,8 @@ const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (
                 – {{ problem.column }}
               </template><template v-if="problem.line !== undefined">
                 ({{ t.planning.csv.line(problem.line) }})
+              </template><template v-if="problem.days !== undefined">
+                {{ t.planning.csv.registrationDays(problem.days.map(formatDay).join(', ')) }}
               </template>
             </li>
           </ul>

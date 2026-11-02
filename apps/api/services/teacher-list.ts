@@ -5,7 +5,7 @@
 // the school's lock.
 
 import { createHash } from 'node:crypto'
-import type { TeacherListApplied, TeacherListPreview } from '@school-allocation/api-contracts/settings'
+import type { TeacherListApplied, TeacherListPreview, TeacherShortNameResponse } from '@school-allocation/api-contracts/settings'
 import { parseTeacherCsv, type TeacherCsvRow } from '@school-allocation/school-core'
 import type { Actor } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
@@ -21,6 +21,8 @@ interface Resolved {
   preview: TeacherListPreview
   details: Map<string, { shortName: string }>
   classes: Map<string, string[]>
+  /** The lines with a problem: listed, and left out of the rest. */
+  skipped: number
 }
 
 /** What the list would do against the roster in force; `applicable` says whether apply would take it. */
@@ -34,8 +36,9 @@ export async function applyTeacherList(db: Database, csv: string, actor: Actor):
     await lockScope(client, SCHOOL_SCOPE)
     const schoolYear = await currentSchoolYear(client)
     if (schoolYear === undefined) throw new ApplicationError('no_roster')
-    const { preview, details, classes } = await resolve(client, csv)
+    const { preview, details, classes, skipped } = await resolve(client, csv)
     if (preview.fileProblems.length > 0) throw new ApplicationError('csv_file_invalid', preview.fileProblems.map((p) => `${p.code}${p.line === undefined ? '' : ` (line ${p.line})`}`).join('; '))
+    // Rows with a problem are skipped; a file with no other row has nothing to apply.
     if (!preview.applicable) throw new TeacherListInvalid(preview.problems)
     const current = await store.readDetails(client, [...details.keys()])
     // Released first, then given: two teachers exchanging their abbreviations would otherwise meet the unique index.
@@ -52,9 +55,36 @@ export async function applyTeacherList(db: Database, csv: string, actor: Actor):
       scopeId: SCHOOL_SCOPE,
       actor: { tid: actor.tid, oid: actor.oid, name: actor.name },
       action: 'class.teachers-imported',
-      metadata: { schoolYear, sha256: createHash('sha256').update(csv).digest('hex'), teachers: preview.teachers.length, shortNames: details.size, classes: classesChanged },
+      metadata: { schoolYear, sha256: createHash('sha256').update(csv).digest('hex'), teachers: preview.teachers.length, shortNames: details.size, classes: classesChanged, skipped },
     })
-    return { classes: await listClasses(client), teachers: preview.teachers.length, shortNames: details.size, classesChanged }
+    return { classes: await listClasses(client), teachers: preview.teachers.length, shortNames: details.size, classesChanged, skipped }
+  })
+}
+
+/**
+ * Sets one teacher's abbreviation, as the planning page offers it beside the
+ * name: the one correction the list import is too much for. Null takes it
+ * away. An abbreviation another teacher holds (in any case) is refused; the
+ * same one again changes nothing and writes nothing.
+ */
+export async function setShortName(db: Database, personId: string, shortName: string | null, actor: Actor): Promise<TeacherShortNameResponse> {
+  return db.tx(async (client) => {
+    await lockScope(client, SCHOOL_SCOPE)
+    if (!await store.isTeacher(client, personId)) throw new ApplicationError('not_found')
+    const current = (await store.readDetails(client, [personId])).get(personId) ?? { shortName: null, note: null }
+    if ((current.shortName ?? '') === (shortName ?? '')) return { personId, shortName: current.shortName }
+    if (shortName !== null) {
+      const owner = (await store.shortNameOwners(client, [shortName.toLowerCase()])).get(shortName.toLowerCase())
+      if (owner !== undefined && owner !== personId) throw new ApplicationError('short_name_held')
+    }
+    await store.writeDetail(client, personId, { shortName, note: current.note })
+    await appendAudit(client, {
+      scopeId: SCHOOL_SCOPE,
+      actor: { tid: actor.tid, oid: actor.oid, name: actor.name },
+      action: 'teacher.short-name-changed',
+      metadata: { personId, before: current.shortName, after: shortName },
+    })
+    return { personId, shortName }
   })
 }
 
@@ -69,7 +99,7 @@ async function resolve(db: Queryable, csv: string): Promise<Resolved> {
   const preview: TeacherListPreview = { fileProblems: parsed.fileProblems, problems: [...parsed.problems], ignoredColumns: parsed.ignoredColumns, teachers: [], classes: [], applicable: false }
   const details = new Map<string, { shortName: string }>()
   const classes = new Map<string, string[]>()
-  if (parsed.fileProblems.length > 0) return { preview, details, classes }
+  if (parsed.fileProblems.length > 0) return { preview, details, classes, skipped: 0 }
   const found = await store.findTeachersByAddress(db, [...new Set(parsed.rows.map((row) => row.email))])
   const known = await store.knownClasses(db)
   const rows: (TeacherCsvRow & { personId: string, displayName: string })[] = []
@@ -118,9 +148,12 @@ async function resolve(db: Queryable, csv: string): Promise<Resolved> {
       wanted.delete(row.personId)
     }
   }
-  const current = await store.readDetails(db, [...new Set(rows.map((row) => row.personId))])
+  // A row with a problem is listed and left out whole, the parser's rows included; what the other rows say is applied.
+  const skippedLines = new Set(preview.problems.map((problem) => problem.line))
+  const applied = rows.filter((row) => !skippedLines.has(row.line))
+  const current = await store.readDetails(db, [...new Set(applied.map((row) => row.personId))])
   const seen = new Set<string>()
-  for (const row of rows) {
+  for (const row of applied) {
     if (seen.has(row.personId)) continue
     seen.add(row.personId)
     const after = wanted.get(row.personId)
@@ -128,14 +161,14 @@ async function resolve(db: Queryable, csv: string): Promise<Resolved> {
     if (after !== undefined) details.set(row.personId, { shortName: after })
     preview.teachers.push({ personId: row.personId, displayName: row.displayName, email: row.email, shortName: after === undefined || after === before ? null : { before, after } })
   }
-  for (const row of rows) {
+  for (const row of applied) {
     if (row.className === undefined) continue
     const list = classes.get(row.className) ?? []
     if (!list.includes(row.personId)) list.push(row.personId)
     classes.set(row.className, list)
   }
   if (classes.size > 0) {
-    const names = new Map(rows.map((row) => [row.personId, row.displayName]))
+    const names = new Map(applied.map((row) => [row.personId, row.displayName]))
     // The assignments themselves, not the class list's view of them: a teacher no longer in the roster keeps an
     // assignment the list does not show, and a file without them must still take it away.
     const schoolYear = await currentSchoolYear(db)
@@ -151,6 +184,6 @@ async function resolve(db: Queryable, csv: string): Promise<Resolved> {
       })
     }
   }
-  preview.applicable = preview.problems.length === 0 && rows.length > 0
-  return { preview, details, classes }
+  preview.applicable = applied.length > 0
+  return { preview, details, classes, skipped: skippedLines.size }
 }

@@ -53,6 +53,7 @@ export {
 } from './roster-csv.ts'
 
 export {
+  SHORT_NAME,
   SHORT_NAME_MAX,
   TEACHER_CSV_COLUMNS,
   TEACHER_CSV_PROBLEM_CODES,

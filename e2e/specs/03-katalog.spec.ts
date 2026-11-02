@@ -141,6 +141,13 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(page.getByText(t.planning.saved)).toBeVisible()
   await expect(tuesday).toHaveValue('if_needed')
   await expect(page.getByRole('link', { name: t.planning.export })).toBeVisible()
+  // Carla's abbreviation, set beside her name: the one correction the list import is too much for.
+  await page.getByRole('button', { name: t.planning.shortName.edit(CARLA.name) }).click()
+  const shortName = page.getByRole('form', { name: t.planning.shortName.label(CARLA.name) })
+  await shortName.getByRole('textbox').fill('KnC')
+  await shortName.getByRole('button', { name: t.planning.shortName.save }).click()
+  await expect(page.getByText(t.planning.shortName.saved)).toBeVisible()
+  await expect(page.getByRole('row', { name: new RegExp(literally(CARLA.name)) }).first()).toContainText('(KnC)')
   // The school's list for Carla: only if necessary on Monday, with a remark; checked, pictured, applied.
   const csv = page.getByRole('form', { name: t.planning.csv.title })
   await csv.getByLabel(t.planning.csv.paste).fill(`email;MO;DI;MI;Leitung;Anmerkung\n${CARLA.email};F;;;N;${sample.reserveOnly}\n`)
@@ -149,7 +156,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(check.getByRole('row', { name: new RegExp(literally(CARLA.name)) })).toContainText(`${t.labels.availability.available} → ${t.labels.availability.if_needed}`)
   await picture(page, 'verfuegbarkeit-import', check)
   await check.getByRole('button', { name: t.planning.csv.apply }).click()
-  await expect(check.getByRole('status')).toHaveText(t.planning.csv.applied(1, 1))
+  await expect(check.getByRole('status')).toHaveText(t.planning.csv.applied(1, 1, 0))
   const carla = page.getByRole('row', { name: new RegExp(literally(CARLA.name)) }).first()
   await expect(carla).toContainText(sample.reserveOnly)
   await expect(page.getByLabel(t.planning.statusOf(CARLA.name, day('2034-07-03')))).toHaveValue('if_needed')

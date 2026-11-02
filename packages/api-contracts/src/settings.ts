@@ -1,8 +1,8 @@
 // Shared HTTP shapes. Types are derived from the schemas used by Fastify.
 
 import { Type, type Static } from 'typebox'
-import { CSV_LIMITS, TEACHER_CSV_PROBLEM_CODES } from '@school-allocation/school-core'
-import { Literals, StrictObject } from './common.ts'
+import { CSV_LIMITS, SHORT_NAME, SHORT_NAME_MAX, TEACHER_CSV_PROBLEM_CODES } from '@school-allocation/school-core'
+import { Literals, StrictObject, Uuid } from './common.ts'
 
 export const PeriodSchema = StrictObject({
   period: Type.Number(),
@@ -64,6 +64,8 @@ export const CsvFileProblemSchema = StrictObject({
   code: Type.String(),
   line: Type.Optional(Type.Integer()),
   column: Type.Optional(Type.String()),
+  /** The registration's project days, with a weekday column none of them falls on. */
+  days: Type.Optional(Type.Array(Type.String())),
 })
 
 /** What a teacher list would do, before it is applied: per teacher the abbreviation, per class its class teachers. */
@@ -83,7 +85,7 @@ export const TeacherListPreview = StrictObject({
     before: Type.Array(StrictObject({ personId: Type.String(), displayName: Type.String() })),
     after: Type.Array(StrictObject({ personId: Type.String(), displayName: Type.String() })),
   })),
-  /** True when nothing stands in the way: no problem of any kind, and at least one row. */
+  /** True when apply would take the file: no problem with the file itself, and at least one row without a problem; rows with one are skipped. */
   applicable: Type.Boolean(),
 })
 export type TeacherListPreview = Static<typeof TeacherListPreview>
@@ -93,7 +95,16 @@ export const TeacherListApplied = StrictObject({
   teachers: Type.Integer(),
   shortNames: Type.Integer(),
   classesChanged: Type.Integer(),
+  /** The lines with a problem, left out. */
+  skipped: Type.Integer(),
 })
 export type TeacherListApplied = Static<typeof TeacherListApplied>
+
+export const TeacherParams = StrictObject({ personId: Uuid })
+/** A teacher's abbreviation as an organizer sets it on the planning page; null takes it away. */
+export const ShortNameBody = StrictObject({ shortName: Type.Union([Type.String({ pattern: SHORT_NAME.source, maxLength: SHORT_NAME_MAX }), Type.Null()]) })
+export type ShortNameBody = Static<typeof ShortNameBody>
+export const TeacherShortNameResponse = StrictObject({ personId: Type.String(), shortName: Type.Union([Type.String(), Type.Null()]) })
+export type TeacherShortNameResponse = Static<typeof TeacherShortNameResponse>
 
 export const TeacherListInvalidResponse = StrictObject({ error: Type.Literal('teacher_list_invalid'), problems: Type.Array(TeacherListProblemSchema) })
