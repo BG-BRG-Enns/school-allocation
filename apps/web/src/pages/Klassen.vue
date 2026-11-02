@@ -80,14 +80,14 @@ async function onCheck(): Promise<void> {
 
 async function onApply(): Promise<void> {
   const text = checkedCsv.value
-  let applied = { shortNames: 0, classesChanged: 0 }
+  let applied = { shortNames: 0, classesChanged: 0, skipped: 0 }
   const ok = await applying.run(async () => {
     const result = await applyTeacherList(text)
     classes.value = result.classes
-    applied = { shortNames: result.shortNames, classesChanged: result.classesChanged }
+    applied = { shortNames: result.shortNames, classesChanged: result.classesChanged, skipped: result.skipped }
   })
   if (ok) {
-    applying.notice.value = t.classTeachers.csv.applied(applied.shortNames, applied.classesChanged)
+    applying.notice.value = t.classTeachers.csv.applied(applied.shortNames, applied.classesChanged, applied.skipped)
     preview.value = null
     csvText.value = ''
     checkedCsv.value = ''

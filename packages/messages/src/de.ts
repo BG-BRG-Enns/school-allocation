@@ -180,7 +180,9 @@ export const de = {
       short_name_too_long: 'Kürzel länger als 8 Zeichen',
       status_invalid: 'Weder leer noch N noch F',
       note_too_long: 'Anmerkung länger als 200 Zeichen',
-      teacher_unknown: 'Keine Lehrkraft dieser Anmeldung mit dieser Adresse oder diesem Kürzel',
+      teacher_unknown: 'Keine Lehrkraft dieser Anmeldung mit dieser Adresse',
+      short_name_unknown: 'Kein Kürzel in den Stammdaten: neben dem Namen oder bei den Klassenvorständen zu setzen',
+      teacher_not_in_registration: 'Keine Lehrkraft dieser Anmeldung: nicht in ihren Klassenlisten und auf keiner Aktivität',
       key_conflict: 'Adresse und Kürzel gehören zu zwei Lehrkräften',
     },
     /** What is wrong with a CSV file as a whole (school-core CSV_PROBLEM_CODES). */
@@ -462,6 +464,7 @@ export const de = {
     // The roster
     csv_invalid: 'Die Datei ist keine Klassenliste im erwarteten Format. Bitte nimm die Vorlage.',
     csv_file_invalid: 'Die CSV-Datei lässt sich so nicht lesen; die Prüfung sagt, woran es liegt.',
+    short_name_held: 'Dieses Kürzel hat schon eine andere Lehrkraft.',
     invalid_school_year: 'Das Schuljahr wird als 2026/27 geschrieben.',
     batch_not_pending: 'Über diesen Import wurde schon entschieden.',
     batch_superseded: 'Seit diesem Import wurde ein anderer übernommen. Bitte lies die Klassenlisten noch einmal ein.',
@@ -801,20 +804,29 @@ export const de = {
     /** The import of an availability list on the teachers-by-day page. */
     csv: {
       title: 'Verfügbarkeit aus einer CSV-Datei',
-      intro: 'Eine Zeile je Lehrkraft, benannt mit der E-Mail-Adresse oder dem Kürzel, und eine Spalte je Projekttag, mit dem Datum oder dem Wochentag als Namen (MO, DI, MI): leer heißt verfügbar, N nicht verfügbar, F nur wenn nötig. Eine Spalte „Anmerkung“ wird zur Notiz, eine Spalte „Leitung“ übergangen; jede andere Spalte ist ein Fehler, damit kein Tag unbemerkt verloren geht. Übernommen wird, was in der Datei steht; Lehrkräfte und Tage, die nicht darin stehen, bleiben.',
+      intro: 'Eine Zeile je Lehrkraft, benannt mit der E-Mail-Adresse oder dem Kürzel, und eine Spalte je Projekttag, mit dem Datum oder dem Wochentag als Namen (MO, DI, MI): leer heißt verfügbar, N nicht verfügbar, F nur wenn nötig. Die Liste der Schule mit den Spalten „Name“, „MO“, „DI“, „MI“, „Leitung“ und „Anmerkung“ wird so gelesen, wie die Tabelle sie exportiert; eine leere Spalte am Ende stört nicht. Eine Spalte „Anmerkung“ wird zur Notiz, eine Spalte „Leitung“ übergangen; jede andere Spalte ist ein Fehler, damit kein Tag unbemerkt verloren geht. Übernommen wird, was in der Datei steht; Zeilen mit einem Problem werden übersprungen; Lehrkräfte und Tage, die nicht darin stehen, bleiben.',
       template: 'Vorlage mit dem Stand von heute',
       file: 'Datei',
       paste: 'oder den Inhalt hier einfügen',
       check: 'Prüfen',
       apply: 'Übernehmen',
       ignored: (columns: string) => `Nicht gelesen: ${columns}`,
-      problems: 'Diese Zeilen werden nicht übernommen:',
+      problems: 'Diese Zeilen werden übersprungen, die anderen übernommen:',
       fileProblems: 'Die Datei lässt sich nicht lesen:',
       line: (line: number) => `Zeile ${line}`,
+      /** After an unknown weekday column: the registration's days, as format.ts formatDay writes them. */
+      registrationDays: (days: string) => `Die Anmeldung hat die Tage ${days}.`,
       nothing: 'Die Datei ändert nichts.',
       noteHead: 'Notiz',
       none: '–',
-      applied: (days: number, notes: number) => `Übernommen: ${days} Tage geändert, ${notes} Notizen.`,
+      applied: (days: number, notes: number, skipped: number) => `Übernommen: ${days} Tage geändert, ${notes} Notizen${skipped === 0 ? '' : `; ${skipped} ${byCount(skipped, 'Zeile', 'Zeilen')} übersprungen`}.`,
+    },
+    /** One teacher's abbreviation, set beside the name. */
+    shortName: {
+      edit: (name: string) => `Kürzel von ${name} ändern`,
+      label: (name: string) => `Kürzel von ${name}`,
+      save: 'Kürzel speichern',
+      saved: 'Kürzel gespeichert.',
     },
   },
 
@@ -1328,7 +1340,7 @@ export const de = {
       check: 'Prüfen',
       apply: 'Übernehmen',
       ignored: (columns: string) => `Nicht gelesen: ${columns}`,
-      problems: 'Diese Zeilen werden nicht übernommen:',
+      problems: 'Diese Zeilen werden übersprungen, die anderen übernommen:',
       fileProblems: 'Die Datei lässt sich nicht lesen:',
       line: (line: number) => `Zeile ${line}`,
       shortNames: 'Kürzel',
@@ -1338,7 +1350,7 @@ export const de = {
       none: '–',
       nothing: 'Die Datei ändert nichts.',
       withShortName: (name: string, shortName: string) => `${name} (${shortName})`,
-      applied: (shortNames: number, classes: number) => `Übernommen: ${shortNames} Kürzel, ${classes} Klassen geändert.`,
+      applied: (shortNames: number, classes: number, skipped: number) => `Übernommen: ${shortNames} Kürzel, ${classes} Klassen geändert${skipped === 0 ? '' : `; ${skipped} ${byCount(skipped, 'Zeile', 'Zeilen')} übersprungen`}.`,
     },
   },
 

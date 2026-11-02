@@ -107,12 +107,26 @@ test('a list with an unknown address, an unknown class or an abbreviation anothe
     { code: 'short_name_held', line: 2, key: 'KnC' },
   ])
   assert.equal(preview.body.applicable, false)
-  // Two abbreviations for one teacher, one abbreviation for two: judged after the addresses are resolved.
+  // Two abbreviations for one teacher, one abbreviation for two: judged after the addresses are resolved, and every
+  // row of such a teacher skipped, so no row is applied without the abbreviation it names.
   const disagreeing = await send<TeacherListPreview>(s, s.anna, 'POST', '/api/admin/classes/import/preview', { csv: `email;short_name\n${BERND.email};PfB\n${BERND.email};PfX\n${ANNA.email};pfb\n` })
   assert.deepEqual(disagreeing.body.problems, [
     { code: 'short_name_inconsistent', line: 3, key: BERND.email },
     { code: 'short_name_taken', line: 4, key: 'pfb' },
+    { code: 'short_name_inconsistent', line: 2, key: BERND.email },
   ])
+  assert.equal(disagreeing.body.applicable, false)
+  // A chain of claims: Anna wants Carla's KnC, Carla wants an absent teacher's; Carla's row falls, so Anna's claim on
+  // what Carla keeps falls with it, and the file applies nothing instead of meeting the unique index.
+  assert.equal((await send(s, s.anna, 'POST', '/api/admin/classes/import', { csv: `email;short_name\n${BERND.email};PfB\n` })).status, 200)
+  const chain = await send<TeacherListPreview>(s, s.anna, 'POST', '/api/admin/classes/import/preview', { csv: `email;short_name\n${ANNA.email};KnC\n${CARLA.email};PfB\n` })
+  assert.deepEqual(chain.body.problems.map((p) => [p.code, p.line]), [['short_name_held', 3], ['short_name_held', 2]])
+  assert.equal(chain.body.applicable, false)
+  // Two rows of one teacher claiming a held abbreviation: both skipped, the second's class assignment with it.
+  const twice = await send<TeacherListPreview>(s, s.anna, 'POST', '/api/admin/classes/import/preview', { csv: `email;short_name;class\n${ANNA.email};KnC;\n${ANNA.email};KnC;5A\n` })
+  assert.deepEqual(twice.body.problems.map((p) => [p.code, p.line]), [['short_name_held', 2], ['short_name_held', 3]])
+  assert.equal(twice.body.applicable, false)
+  assert.deepEqual(twice.body.classes, [])
   const refused = await send<{ error: string, problems: unknown[] }>(s, s.anna, 'POST', '/api/admin/classes/import', { csv: list })
   assert.equal(refused.status, 422)
   assert.equal(refused.body.error, 'teacher_list_invalid')
@@ -121,6 +135,16 @@ test('a list with an unknown address, an unknown class or an abbreviation anothe
   assert.equal(noAddress.body.error, 'csv_file_invalid', `${noAddress.status} ${JSON.stringify(noAddress.body)}`)
   // Nothing of it was written.
   assert.deepEqual((await get<{ teachers: { shortName: string | null }[] }>(s, s.anna, '/api/admin/classes/teachers?q=Zwex')).body.teachers.map((x) => x.shortName), [null])
+  // A sound row beside one with a problem: the file applies, the row with the problem skipped.
+  const mixed = `email;short_name;class\n${ANNA.email};ZwA;5A\nnobody@schule.example.org;NoN;\n`
+  const mixedPreview = await send<TeacherListPreview>(s, s.anna, 'POST', '/api/admin/classes/import/preview', { csv: mixed })
+  assert.equal(mixedPreview.body.applicable, true)
+  assert.deepEqual(mixedPreview.body.problems.map((p) => p.line), [3])
+  const applied = await send<TeacherListApplied>(s, s.anna, 'POST', '/api/admin/classes/import', { csv: mixed })
+  assert.equal(applied.status, 200, JSON.stringify(applied.body))
+  assert.equal(applied.body.skipped, 1)
+  assert.equal(applied.body.shortNames, 1)
+  assert.deepEqual((await get<{ teachers: { shortName: string | null }[] }>(s, s.anna, '/api/admin/classes/teachers?q=Zwex')).body.teachers.map((x) => x.shortName), ['ZwA'])
 })
 
 test('a teacher may not import or read the template; an organizer who is no administrator may', DB, async (t) => {

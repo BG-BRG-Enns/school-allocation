@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { AvailabilityImportApplied, AvailabilityImportPreview, PlanningResponse } from '@school-allocation/api-contracts/planning'
 import type { TeacherListApplied } from '@school-allocation/api-contracts/settings'
-import { readAudit } from '../lib/audit.ts'
+import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
 import type { BatchDetail } from '../lib/models/roster.ts'
 import { DB, get, harness, send, signIn, type Harness } from './helpers/harness.ts'
@@ -91,7 +91,7 @@ test('an availability list is previewed as what it changes, applied with the not
   assert.deepEqual([after?.note, after?.days.map((d) => d.status)], [null, ['available', 'if_needed']])
 })
 
-test('a list naming someone the registration does not know, an address and an abbreviation of two people, or a value none of the three is not applied; a file without a day column is refused; nothing is written', DB, async (t) => {
+test('rows naming someone the registration does not know, an address and an abbreviation of two people, or a value none of the three are skipped and the rest applied; a file of such rows alone or without a day column is refused', DB, async (t) => {
   const s = await school(t)
   const url = `/api/admin/campaigns/${s.campaign}/availability/import`
   const list = [
@@ -100,6 +100,7 @@ test('a list naming someone the registration does not know, an address and an ab
     `${SARA.email};;N`,
     `${ANNA.email};PfB;N`,
     `${CARLA.email};;vielleicht`,
+    `;XyZ;N`,
     `${BERND.email};;N`,
   ].join('\n')
   const preview = await send<AvailabilityImportPreview>(s, s.anna, 'POST', `${url}/preview`, { csv: list })
@@ -109,16 +110,53 @@ test('a list naming someone the registration does not know, an address and an ab
     { code: 'teacher_unknown', line: 2, key: 'nobody@schule.example.org' },
     { code: 'teacher_unknown', line: 3, key: SARA.email },
     { code: 'key_conflict', line: 4, key: `${ANNA.email} / PfB` },
+    { code: 'short_name_unknown', line: 6, key: 'XyZ' },
   ])
-  assert.equal(preview.body.applicable, false)
-  const refused = await send<{ error: string, problems: unknown[] }>(s, s.anna, 'POST', url, { csv: list })
+  // Bernd's row is sound: the file applies, the five rows with a problem skipped.
+  assert.equal(preview.body.applicable, true)
+  assert.deepEqual(preview.body.teachers.map((x) => x.displayName), [BERND.name])
+  const applied = await send<AvailabilityImportApplied>(s, s.anna, 'POST', url, { csv: list })
+  assert.equal(applied.status, 200, JSON.stringify(applied.body))
+  assert.equal(applied.body.skipped, 5)
+  assert.equal(applied.body.changedDays, 1)
+  const planning = await get<PlanningResponse>(s, s.anna, `/api/admin/campaigns/${s.campaign}/planning`)
+  assert.deepEqual(planning.body.teachers.map((x) => [x.displayName, x.days.map((d) => d.status)]), [[ANNA.name, ['available', 'available']], [BERND.name, ['unavailable', 'available']], [CARLA.name, ['available', 'available']]])
+  // A file whose rows all have a problem has nothing to apply.
+  const refused = await send<{ error: string, problems: unknown[] }>(s, s.anna, 'POST', url, { csv: 'email;MO\nnobody@schule.example.org;N\n' })
   assert.equal(refused.status, 422)
   assert.equal(refused.body.error, 'availability_import_invalid')
-  assert.equal(refused.body.problems.length, 4)
+  assert.equal(refused.body.problems.length, 1)
   const noDay = await send<{ error: string }>(s, s.anna, 'POST', url, { csv: 'email;Leitung\nx@schule.example.org;N\n' })
   assert.equal(noDay.body.error, 'csv_file_invalid', `${noDay.status} ${JSON.stringify(noDay.body)}`)
+  // A weekday none of the registration's days falls on names the days.
+  const otherWeek = await send<AvailabilityImportPreview>(s, s.anna, 'POST', `${url}/preview`, { csv: 'Name;MO;MI\nPfB;;N\n' })
+  assert.deepEqual(otherWeek.body.fileProblems, [{ code: 'unknown_column', column: 'MI', days: DAYS }])
+})
+
+test('an organizer sets one teacher\'s abbreviation beside the name; one another teacher holds is refused; the same again changes nothing; a teacher may not', DB, async (t) => {
+  const s = await school(t)
   const planning = await get<PlanningResponse>(s, s.anna, `/api/admin/campaigns/${s.campaign}/planning`)
-  assert.ok(planning.body.teachers.every((x) => x.days.every((d) => d.status === 'available')))
+  const anna = planning.body.teachers.find((x) => x.displayName === ANNA.name)
+  const bernd = planning.body.teachers.find((x) => x.displayName === BERND.name)
+  assert.ok(anna && bernd)
+  // The id in either case: PostgreSQL's lower case is what the stores key by.
+  const set = await send<{ personId: string, shortName: string | null }>(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId.toUpperCase()}/short-name`, { shortName: 'ZwA' })
+  assert.equal(set.status, 200, JSON.stringify(set.body))
+  assert.deepEqual(set.body, { personId: anna.personId, shortName: 'ZwA' })
+  const held = await send<{ error: string }>(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId}/short-name`, { shortName: 'pfb' })
+  assert.equal(held.status, 409)
+  assert.equal(held.body.error, 'short_name_held')
+  assert.equal((await send(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId}/short-name`, { shortName: 'ZwA' })).status, 200)
+  assert.equal((await send(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId}/short-name`, { shortName: '=x' })).status, 400)
+  assert.equal((await send(s, s.anna, 'PUT', `/api/admin/teachers/00000000-0000-4000-8000-000000000000/short-name`, { shortName: 'NoN' })).status, 404)
+  assert.equal((await send(s, s.bernd, 'PUT', `/api/admin/teachers/${anna.personId}/short-name`, { shortName: 'XX' })).status, 403)
+  // One audit event for the change that wrote, none for the one that did not.
+  const events = (await readAudit(s.db, SCHOOL_SCOPE)).filter((e) => e.action === 'teacher.short-name-changed')
+  assert.equal(events.length, 1)
+  assert.deepEqual(events[0]?.metadata, { personId: anna.personId, before: null, after: 'ZwA' })
+  const after = await get<PlanningResponse>(s, s.anna, `/api/admin/campaigns/${s.campaign}/planning`)
+  assert.equal(after.body.teachers.find((x) => x.displayName === ANNA.name)?.shortName, 'ZwA')
+  assert.equal((await send(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId}/short-name`, { shortName: null })).status, 200)
 })
 
 test('a teacher may not import or read the template; the organizer may', DB, async (t) => {

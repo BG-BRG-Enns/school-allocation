@@ -40,6 +40,9 @@ test('a file without the right header, with the wrong field count or a broken qu
   assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\n\n\n').fileProblems, [{ code: 'empty' }])
   assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\r\n;;;;;\r\n').fileProblems, [{ code: 'empty' }])
   assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\na@b.cd;A;B;5A;9').fileProblems, [{ code: 'field_count', line: 2 }])
+  // A separator at the end of a row, as a sheet exports after a column was removed, is not a field; a value there is one too many.
+  assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\na@b.cd;A;B;5A;9;student;\n').fileProblems, [])
+  assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\na@b.cd;A;B;5A;9;student;x\n').fileProblems, [{ code: 'field_count', line: 2 }])
   assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\n"a@b.cd;A;B;5A;9;student').fileProblems, [{ code: 'malformed_quote', line: 2 }])
   assert.deepEqual(parseRosterCsv('email;given_name;family_name;class;grade;kind\n"a@b.cd"x;A;B;5A;9;student').fileProblems, [{ code: 'malformed_quote', line: 2 }])
   const long = 'x'.repeat(CSV_LIMITS.field + 1)

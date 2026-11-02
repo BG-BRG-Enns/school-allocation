@@ -23,6 +23,20 @@ test('the school\'s sheet is read as exported: the abbreviation, MO/DI/MI, Leitu
   ])
 })
 
+test('the sheet as a spreadsheet exports it after a column was removed: a separator at the end of the header and of every row, read as if it were not there', () => {
+  const text = 'short_name;2034-07-03;2034-07-04;2034-07-05;note;\r\n'
+    + 'ZwA;;;N;;\r\n'
+    + 'PfB;F;;F;;\r\n'
+    + 'KnC;N;N;N;N;\r\n'
+  const result = parseAvailabilityCsv(text, DAYS)
+  assert.deepEqual(result.fileProblems, [])
+  assert.deepEqual(result.problems, [])
+  assert.deepEqual(result.rows.map((row) => [row.shortName, row.days['2034-07-05'], row.note]), [['ZwA', 'unavailable', null], ['PfB', 'if_needed', null], ['KnC', 'unavailable', 'N']])
+  // Rows with the trailing separator under a header without one are read the same; a row with fewer fields is not.
+  assert.deepEqual(parseAvailabilityCsv('Name;MO;DI\nZwA;N;;\nPfB;;F;\n', DAYS).rows.map((row) => row.shortName), ['ZwA', 'PfB'])
+  assert.deepEqual(parseAvailabilityCsv('Name;MO;DI\nZwA;N\n', DAYS).fileProblems, [{ code: 'field_count', line: 2 }])
+})
+
 test('days by date or by weekday in either language, a subset of the days, addresses as the key, spelled-out values', () => {
   const text = 'email,2034-07-05,Tuesday\n'
     + 'Anna.Zwexmhofer@schule.example.org,nicht verfügbar,only if necessary\n'
@@ -39,7 +53,7 @@ test('days by date or by weekday in either language, a subset of the days, addre
 
 test('an unknown column, a weekday the registration has twice or not at all, no key column and no day column are refused as a file', () => {
   assert.deepEqual(parseAvailabilityCsv('Name;MO;Dienstg\nZwA;;\n', DAYS).fileProblems, [{ code: 'unknown_column', column: 'Dienstg' }])
-  assert.deepEqual(parseAvailabilityCsv('Name;FR\nZwA;\n', DAYS).fileProblems, [{ code: 'unknown_column', column: 'FR' }, { code: 'missing_column', column: '2034-07-03' }])
+  assert.deepEqual(parseAvailabilityCsv('Name;FR\nZwA;\n', DAYS).fileProblems, [{ code: 'unknown_column', column: 'FR', days: DAYS }, { code: 'missing_column', column: '2034-07-03' }])
   assert.deepEqual(parseAvailabilityCsv('Name;MO\nZwA;\n', ['2034-07-03', '2034-07-10']).fileProblems, [{ code: 'day_ambiguous', column: 'MO' }, { code: 'missing_column', column: '2034-07-03' }])
   assert.deepEqual(parseAvailabilityCsv('MO;DI\n;\n', DAYS).fileProblems, [{ code: 'missing_column', column: 'email' }])
   assert.deepEqual(parseAvailabilityCsv('Name;Leitung\nZwA;N\n', DAYS).fileProblems, [{ code: 'missing_column', column: '2034-07-03' }])
@@ -48,9 +62,11 @@ test('an unknown column, a weekday the registration has twice or not at all, no 
   assert.deepEqual(parseAvailabilityCsv('Name;MO\n;\n\n', DAYS).fileProblems, [{ code: 'empty' }])
   // A blank record, as a spreadsheet leaves it, is skipped with the line numbers kept.
   assert.deepEqual(parseAvailabilityCsv('Name;MO\n;\nZwA;N\n', DAYS).rows, [{ line: 3, shortName: 'ZwA', days: { '2034-07-03': 'unavailable' } }])
-  // A column without a header: a trailing separator is nothing, a value under it is a column the import does not know.
+  // A column without a header: a trailing separator is nothing, a value under it is a column the import does not know, named with its first line.
   assert.deepEqual(parseAvailabilityCsv('Name;MO;\nZwA;N;\n', DAYS).rows, [{ line: 2, shortName: 'ZwA', days: { '2034-07-03': 'unavailable' } }])
-  assert.deepEqual(parseAvailabilityCsv('Name;MO;\nZwA;N;x\n', DAYS).fileProblems, [{ code: 'unknown_column', column: '#3' }])
+  assert.deepEqual(parseAvailabilityCsv('Name;MO;\nZwA;N;\nPfB;;x\n', DAYS).fileProblems, [{ code: 'unknown_column', column: '#3', line: 3 }])
+  // A weekday none of the days falls on names the days, so a sheet for another week is seen as one.
+  assert.deepEqual(parseAvailabilityCsv('Name;MO;SA\nZwA;;\n', DAYS).fileProblems, [{ code: 'unknown_column', column: 'SA', days: DAYS }])
   // Two headers for the note, or for the key: one would silently win over the other.
   assert.deepEqual(parseAvailabilityCsv('email;MO;note;Anmerkung\nanna.zwexmhofer@schule.example.org;N;;x\n', DAYS).fileProblems, [{ code: 'duplicate_column', column: 'Anmerkung' }])
   // The weekday and its date: one would silently win over the other.

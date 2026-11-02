@@ -2814,6 +2814,46 @@
   },
   {
     "method": "PUT",
+    "url": "/api/admin/teachers/:personId/short-name",
+    "body": {
+      "type": "object",
+      "required": [
+        "shortName"
+      ],
+      "properties": {
+        "shortName": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N}.-]{0,7}$",
+              "maxLength": 8
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "required": [
+        "personId"
+      ],
+      "properties": {
+        "personId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "PUT",
     "url": "/api/campaigns/:id/my-choice",
     "body": {
       "type": "object",

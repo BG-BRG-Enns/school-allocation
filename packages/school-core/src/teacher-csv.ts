@@ -10,7 +10,7 @@
 // is. Other columns (a long name, subjects) are ignored and named as
 // ignored, so a column nobody meant to drop is seen.
 
-import { CSV_LIMITS, parseCsv, type CsvProblem } from './roster-csv.ts'
+import { CSV_LIMITS, hasWidth, parseCsv, type CsvProblem } from './roster-csv.ts'
 import { isAddress } from './roster.ts'
 
 /** The columns, by their canonical header names; `email` is required. */
@@ -128,7 +128,7 @@ export function isBlank(fields: readonly string[]): boolean {
   return fields.every((field) => field.trim() === '')
 }
 
-/** The shape problems every row-based file shares: the count of rows and fields, the length of a field; blank records do not count. */
+/** The shape problems every row-based file shares: the count of rows and fields (a trailing separator is not one, roster-csv.ts hasWidth), the length of a field; blank records do not count. */
 export function checkRows(rows: readonly (readonly string[])[], width: number): CsvProblem[] {
   const filled = rows.filter((fields) => !isBlank(fields))
   if (filled.length === 0) return [{ code: 'empty' }]
@@ -137,7 +137,7 @@ export function checkRows(rows: readonly (readonly string[])[], width: number): 
   rows.forEach((fields, i) => {
     if (isBlank(fields)) return
     const line = i + 2
-    if (fields.length !== width) problems.push({ code: 'field_count', line })
+    if (!hasWidth(fields, width)) problems.push({ code: 'field_count', line })
     else if (fields.some((field) => field.length > CSV_LIMITS.field)) problems.push({ code: 'field_too_long', line })
   })
   return problems

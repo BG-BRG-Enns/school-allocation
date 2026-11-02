@@ -326,9 +326,18 @@ ul.plain {
   border-color: var(--line);
 }
 
-.button.small {
+.button.small,
+button.small {
   padding: 4px 8px;
   margin-right: 4px;
+}
+
+/* A small form beside a name in a table: the abbreviation on the planning page. */
+.inline-form {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin-left: 4px;
 }
 
 .badge-approved {

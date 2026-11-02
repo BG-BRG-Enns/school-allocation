@@ -68,7 +68,8 @@ export const AvailabilityImportBody = TeacherListBody
 export type AvailabilityImportBody = Static<typeof AvailabilityImportBody>
 
 /** Why a row of an availability list is not applied: school-core's reading problems, and what the registration does not know. */
-export const AVAILABILITY_IMPORT_PROBLEM_CODES = [...AVAILABILITY_CSV_PROBLEM_CODES, 'teacher_unknown', 'key_conflict'] as const
+/** The parser's codes, then the API's: no teacher of the registration with that address; no teacher at all with that abbreviation; a teacher with it, but not of this registration; an address and an abbreviation of two people. */
+export const AVAILABILITY_IMPORT_PROBLEM_CODES = [...AVAILABILITY_CSV_PROBLEM_CODES, 'teacher_unknown', 'short_name_unknown', 'teacher_not_in_registration', 'key_conflict'] as const
 export type AvailabilityImportProblemCode = typeof AVAILABILITY_IMPORT_PROBLEM_CODES[number]
 export const AvailabilityImportProblemSchema = StrictObject({
   code: Literals(AVAILABILITY_IMPORT_PROBLEM_CODES),
@@ -94,7 +95,7 @@ export const AvailabilityImportPreview = StrictObject({
   /** Days whose status changes, and notes that change. */
   changedDays: Type.Integer(),
   changedNotes: Type.Integer(),
-  /** True when nothing stands in the way: no problem of any kind, and at least one row. */
+  /** True when apply would take the file: no problem with the file itself, and at least one row without a problem; rows with one are skipped. */
   applicable: Type.Boolean(),
 })
 export type AvailabilityImportPreview = Static<typeof AvailabilityImportPreview>
@@ -103,6 +104,8 @@ export const AvailabilityImportApplied = StrictObject({
   planning: PlanningResponse,
   changedDays: Type.Integer(),
   changedNotes: Type.Integer(),
+  /** The lines with a problem, left out. */
+  skipped: Type.Integer(),
 })
 export type AvailabilityImportApplied = Static<typeof AvailabilityImportApplied>
 

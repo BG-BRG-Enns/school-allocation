@@ -37,6 +37,7 @@ export const saveClassTeachers = (className: string, teachers: string[]) => apiR
 export const previewTeacherList = (csv: string) => apiRequest(endpoints.postAdminClassesImportPreview, { body: { csv } })
 export const applyTeacherList = (csv: string) => apiRequest(endpoints.postAdminClassesImport, { body: { csv } })
 export const teacherListTemplatePath = endpointPath(endpoints.getAdminClassesImportTemplate, {})
+export const setTeacherShortName = (personId: string, shortName: string | null) => apiRequest(endpoints.putAdminTeachersByPersonIdShortName, { params: { personId }, body: { shortName } })
 export const loadMailTemplates = () => apiRequest(endpoints.getAdminMailTemplates, { })
 export const saveMailTemplate = (kind: MailKind, subject: string, body: string) => apiRequest(endpoints.putAdminMailTemplatesByKind, { params: { kind: kind }, body: { subject, body } })
 export const resetMailTemplate = (kind: MailKind) => apiRequest(endpoints.deleteAdminMailTemplatesByKind, { params: { kind: kind } })

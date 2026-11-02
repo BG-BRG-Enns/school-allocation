@@ -40,6 +40,14 @@ export async function knownClasses(db: Queryable): Promise<Set<string>> {
   return new Set(rows.map((row) => row.class_name))
 }
 
+/** Whether the person is a teacher of any class list, committed or pending: the planning names teachers of the registration's batch, which may be frozen. */
+export async function isTeacher(db: Queryable, personId: string): Promise<boolean> {
+  const { rows } = await db.query<{ ok: boolean }>(
+    'select true as ok from roster_entry where person_id = $1 and kind = \'teacher\' limit 1', [personId],
+  )
+  return rows.length > 0
+}
+
 /** The details of the persons given, where a row exists. */
 export async function readDetails(db: Queryable, personIds: readonly string[]): Promise<Map<string, TeacherDetail>> {
   const { rows } = await db.query<{ person_id: string, short_name: string | null, note: string | null }>(
