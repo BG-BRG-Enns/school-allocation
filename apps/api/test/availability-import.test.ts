@@ -139,7 +139,8 @@ test('an organizer sets one teacher\'s abbreviation beside the name; one another
   const anna = planning.body.teachers.find((x) => x.displayName === ANNA.name)
   const bernd = planning.body.teachers.find((x) => x.displayName === BERND.name)
   assert.ok(anna && bernd)
-  const set = await send<{ personId: string, shortName: string | null }>(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId}/short-name`, { shortName: 'ZwA' })
+  // The id in either case: PostgreSQL's lower case is what the stores key by.
+  const set = await send<{ personId: string, shortName: string | null }>(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId.toUpperCase()}/short-name`, { shortName: 'ZwA' })
   assert.equal(set.status, 200, JSON.stringify(set.body))
   assert.deepEqual(set.body, { personId: anna.personId, shortName: 'ZwA' })
   const held = await send<{ error: string }>(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId}/short-name`, { shortName: 'pfb' })

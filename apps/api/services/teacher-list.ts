@@ -14,6 +14,7 @@ import * as classStore from '../lib/dao/class-teachers.ts'
 import * as store from '../lib/dao/teacher-detail.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError, TeacherListInvalid } from '../lib/errors.ts'
+import { canonicalId } from './campaigns.ts'
 import { replaceClassTeachersIn } from './class-teachers.ts'
 
 /** The rows that matched, grouped for the writing: per person the abbreviation, per class its teachers. */
@@ -67,7 +68,9 @@ export async function applyTeacherList(db: Database, csv: string, actor: Actor):
  * away. An abbreviation another teacher holds (in any case) is refused; the
  * same one again changes nothing and writes nothing.
  */
-export async function setShortName(db: Database, personId: string, shortName: string | null, actor: Actor): Promise<TeacherShortNameResponse> {
+export async function setShortName(db: Database, rawPersonId: string, shortName: string | null, actor: Actor): Promise<TeacherShortNameResponse> {
+  // Lower case, as PostgreSQL returns ids and the stores key them; the route accepts either case.
+  const personId = canonicalId(rawPersonId)
   return db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
     if (!await store.isTeacher(client, personId)) throw new ApplicationError('not_found')
@@ -119,33 +122,49 @@ async function resolve(db: Queryable, csv: string): Promise<Resolved> {
   // one teacher per abbreviation, in the file; and one already held by someone the file does not rename is not taken.
   const wanted = new Map<string, string>()
   const claimed = new Map<string, string>()
-  const unsound = new Set<string>()
+  /** The teachers whose abbreviation the file cannot settle, with why. */
+  const unsound = new Map<string, 'short_name_inconsistent' | 'short_name_taken'>()
   for (const row of rows) {
     if (row.shortName === undefined) continue
     const lower = row.shortName.toLowerCase()
     const before = wanted.get(row.personId)
     if (before !== undefined && before.toLowerCase() !== lower) {
       preview.problems.push({ code: 'short_name_inconsistent', line: row.line, key: row.email })
-      unsound.add(row.personId)
+      unsound.set(row.personId, 'short_name_inconsistent')
       continue
     }
     const claimant = claimed.get(lower)
     if (claimant !== undefined && claimant !== row.personId) {
       preview.problems.push({ code: 'short_name_taken', line: row.line, key: row.shortName })
-      unsound.add(row.personId)
+      unsound.set(row.personId, 'short_name_taken')
       continue
     }
     wanted.set(row.personId, row.shortName)
     claimed.set(lower, row.personId)
   }
-  for (const personId of unsound) wanted.delete(personId)
-  const owners = await store.shortNameOwners(db, [...new Set([...wanted.values()].map((name) => name.toLowerCase()))])
+  // Every row of such a teacher that names an abbreviation is skipped, not only the one met second: a row applied
+  // without the abbreviation it names would be half read.
+  const flagged = new Set(preview.problems.map((problem) => problem.line))
   for (const row of rows) {
-    if (row.shortName === undefined) continue
-    const owner = owners.get(row.shortName.toLowerCase())
-    if (owner !== undefined && owner !== row.personId && !wanted.has(owner)) {
-      preview.problems.push({ code: 'short_name_held', line: row.line, key: row.shortName })
-      wanted.delete(row.personId)
+    const code = unsound.get(row.personId)
+    if (row.shortName === undefined || code === undefined || flagged.has(row.line)) continue
+    preview.problems.push({ code, line: row.line, key: code === 'short_name_taken' ? row.shortName : row.email })
+    flagged.add(row.line)
+  }
+  for (const personId of unsound.keys()) wanted.delete(personId)
+  // An abbreviation held by someone the file does not rename is not taken. Judged until nothing changes: a teacher
+  // whose own claim falls keeps the abbreviation they hold, so a claim on it that passed before falls with them.
+  const owners = await store.shortNameOwners(db, [...new Set([...wanted.values()].map((name) => name.toLowerCase()))])
+  for (let settled = false; !settled;) {
+    settled = true
+    for (const row of rows) {
+      if (row.shortName === undefined || !wanted.has(row.personId)) continue
+      const owner = owners.get(row.shortName.toLowerCase())
+      if (owner !== undefined && owner !== row.personId && !wanted.has(owner)) {
+        preview.problems.push({ code: 'short_name_held', line: row.line, key: row.shortName })
+        wanted.delete(row.personId)
+        settled = false
+      }
     }
   }
   // A row with a problem is listed and left out whole, the parser's rows included; what the other rows say is applied.
