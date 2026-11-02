@@ -21,6 +21,8 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   // the schema version, and refuses to start on a schema it was not built for
   // (lib/db.ts checkSchema).
   schema_migrations: { table: ['SELECT'] },
+  // The tombstones of registrations deleted in preparation: written and read by the definer functions alone (0003); the runtime role only looks.
+  deleted_campaign: { table: ['SELECT'] },
   // Sign-in records a person and refreshes their name, address and the time;
   // the identity itself is never rewritten, and nobody is deleted. Blocking
   // is an administrator's action through the application.
@@ -122,6 +124,8 @@ export const RUNTIME_FUNCTIONS: readonly string[] = [
   'purge_school_year(text)',
   // The deletion of a registration still in preparation (delete_draft_campaign): a definer function, the one path; the service writes the audit event.
   'delete_draft_campaign(uuid)',
+  // The audit chains of registrations deleted in preparation, with the year's retention (purge_deleted_campaigns); the service calls it with the purge.
+  'purge_deleted_campaigns(text)',
   // The guards' refusal (refuse()): a trigger runs as the role that writes, so the runtime role meets a guard's rule as SQLSTATE 55000 with
   // its words rather than as a permission error on the function. It raises and returns nothing.
   'refuse(text)',

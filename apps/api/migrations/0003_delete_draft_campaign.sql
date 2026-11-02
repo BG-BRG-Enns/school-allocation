@@ -8,14 +8,27 @@
 -- scoped to the campaign (the grant guard keeps every grant; the app makes
 -- none scoped to a campaign), a notice, a placement, a choice, a run. The
 -- campaign's audit chain stays as the record that it was; the service writes
--- the deletion into the school's chain. Additive: no schema version.
+-- the deletion into the school's chain. A tombstone keeps the chain's scope
+-- with its school year, so the year's retention purge finds it
+-- (purge_deleted_campaigns below): the purge of a year reads its campaigns,
+-- and this one is gone. Additive: no schema version.
+create table deleted_campaign (
+  id uuid primary key,
+  school_year text not null check (school_year ~ '^\d{4}/\d{2}$'),
+  name text not null,
+  deleted_at timestamptz not null default app_now()
+);
+create index deleted_campaign_school_year on deleted_campaign (school_year);
+
 create function delete_draft_campaign(campaign_id uuid) returns table (relation text, removed bigint)
 language plpgsql security definer set search_path = public, pg_catalog as $$
 declare
   st text;
+  yr text;
+  nm text;
   n bigint;
 begin
-  select state into st from campaign where id = campaign_id for update;
+  select state, school_year, name into st, yr, nm from campaign where id = campaign_id for update;
   if st is null then
     raise exception 'no such campaign' using errcode = '02000';
   end if;
@@ -38,7 +51,32 @@ begin
   relation := 'catalog_item'; removed := n; return next;
   with d as (delete from campaign_rule where campaign_rule.campaign_id = delete_draft_campaign.campaign_id returning 1) select count(*) into n from d;
   relation := 'campaign_rule'; removed := n; return next;
+  insert into deleted_campaign (id, school_year, name) values (delete_draft_campaign.campaign_id, yr, nm);
   with d as (delete from campaign where id = delete_draft_campaign.campaign_id returning 1) select count(*) into n from d;
   relation := 'campaign'; removed := n; return next;
+end
+$$;
+
+-- The retention purge of a year (purge_school_year) reads the year's campaigns and takes their audit chains with them; a
+-- campaign deleted in preparation left its chain behind, under its tombstone. This takes those chains and the tombstones
+-- once the year's retention has ended, the same rule as the purge's; the service calls both in one transaction.
+create function purge_deleted_campaigns(year text) returns table (relation text, removed bigint)
+language plpgsql security definer set search_path = public, pg_catalog as $$
+declare
+  scopes uuid[];
+  n bigint;
+begin
+  if year !~ '^\d{4}/\d{2}$' then
+    raise exception 'not a school year: %', year using errcode = '22023';
+  end if;
+  if now() < make_timestamptz(substring(year from 1 for 4)::integer + 2, 9, 1, 0, 0, 0, 'Europe/Vienna') then
+    raise exception 'the retention of % has not ended', year using errcode = '55000';
+  end if;
+  select coalesce(array_agg(id), '{}') into scopes from deleted_campaign where school_year = year;
+  perform set_config('schulwahl.purge', 'on', true);
+  with d as (delete from audit_event where scope_id = any(scopes) returning 1) select count(*) into n from d;
+  relation := 'audit_event_deleted_campaigns'; removed := n; return next;
+  with d as (delete from deleted_campaign where id = any(scopes) returning 1) select count(*) into n from d;
+  relation := 'deleted_campaign'; removed := n; return next;
 end
 $$;

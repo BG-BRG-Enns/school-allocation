@@ -74,7 +74,8 @@ hand is confirmed on the page with its consequences named; from `open` on there 
 mails have gone out and students have ranked. A registration still in `draft` can be deleted
 (`delete_draft_campaign`, a definer function like the purge: the rules and the draft items go; an item
 once numbered, a grant scoped to it or anything of a window refuses); the deletion is audited in the school's chain, the
-registration's own chain stays.
+registration's own chain stays under a tombstone (`deleted_campaign`) that the year's retention purge reads
+(`purge_deleted_campaigns`, called with `purge_school_year`), so the chain goes with the year like every other.
 
 ## 3. Choice rules (project week)
 

@@ -6,6 +6,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
+import { createDatabase } from '../lib/db.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
 import type { Item } from '../lib/models/items.ts'
 import type { BatchDetail } from '../lib/models/roster.ts'
@@ -88,6 +89,12 @@ test('a registration in preparation is deleted with its rules and draft items, a
   assert.deepEqual(Object.fromEntries(deleted.body.removed.map((r) => [r.relation, r.count])), { catalog_item: 1, campaign_rule: 0, campaign: 1 })
   assert.equal((await get(s, s.anna, `/api/campaigns/${id}`)).status, 404)
   assert.equal((await send(s, s.anna, 'DELETE', `/api/admin/campaigns/${id}`)).status, 404)
+  // The registration's own chain stays, under a tombstone with its year, for the year's retention purge to find.
+  const owner = createDatabase(s.ownerUrl, () => {})
+  t.after(() => owner.close())
+  assert.deepEqual((await owner.query<{ school_year: string, name: string }>('select school_year, name from deleted_campaign where id = $1', [id])).rows, [{ school_year: '2026/27', name: 'Versuch' }])
+  assert.ok((await readAudit(owner, id)).length > 0)
+  await assert.rejects(owner.query('select * from purge_deleted_campaigns($1)', ['2026/27']), /retention of 2026\/27 has not ended/)
   assert.deepEqual((await get<{ campaigns: Campaign[] }>(s, s.anna, '/api/campaigns')).body.campaigns.map((c) => c.id), [other])
   const audit = (await readAudit(s.db, SCHOOL_SCOPE)).filter((e) => e.action === 'campaign.deleted')
   assert.equal(audit.length, 1)
