@@ -77,25 +77,35 @@ export async function listMailQueue(db: Database, query: MailQueueQuery): Promis
 
 /**
  * Takes waiting mails out of the queue: an opening nobody meant, a text
- * with a mistake. Audited in the registration's chain when the selection
- * is one registration's, else the school's, with the counts by kind; a
- * selection that takes nothing records nothing.
+ * with a mistake. Audited in the registration's chain when the mails are
+ * one registration's (named as such, or every mail picked by id being
+ * its), else the school's, with the counts by kind and the mails in a
+ * session given their expiry; a selection that changes nothing records
+ * nothing.
  */
 export async function discardMails(db: Database, selection: DiscardBody, actor: Actor): Promise<{ discarded: number }> {
   return db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
-    let scopeId = SCHOOL_SCOPE
+    let campaignId: string | null = null
     let picked: Parameters<typeof discardInOutbox>[1]
-    if ('ids' in selection) picked = { ids: selection.ids.map(canonicalId) }
-    else {
+    if ('ids' in selection) {
+      const ids = selection.ids.map(canonicalId)
+      const campaigns = new Set((await listMails(client, { ids }, ids.length)).map((mail) => mail.campaignId))
+      const [only] = campaigns
+      if (campaigns.size === 1 && only !== null && only !== undefined) campaignId = only
+      picked = { ids }
+    } else {
       const campaign = await requireCampaign(client, canonicalId(selection.campaignId))
-      await lockScope(client, campaign.id)
-      scopeId = campaign.id
+      campaignId = campaign.id
       picked = { campaignId: campaign.id, ...(selection.kinds === undefined ? {} : { kinds: selection.kinds }) }
     }
-    const { discarded, byKind } = await discardInOutbox(client, picked)
-    if (discarded === 0) return { discarded }
-    await appendAudit(client, { scopeId, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: 'mail.discarded', metadata: { discarded, byKind } })
+    if (campaignId !== null) await lockScope(client, campaignId)
+    const { discarded, inFlight, byKind } = await discardInOutbox(client, picked)
+    if (discarded + inFlight === 0) return { discarded }
+    await appendAudit(client, {
+      scopeId: campaignId ?? SCHOOL_SCOPE, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: 'mail.discarded',
+      metadata: { discarded, inFlight, byKind, ...(campaignId === null ? {} : { campaignId }) },
+    })
     return { discarded }
   })
 }
@@ -103,8 +113,9 @@ export async function discardMails(db: Database, selection: DiscardBody, actor: 
 /**
  * Queues a failed or discarded mail again, as a copy: the server was down,
  * the address wrong and corrected since, a discard one too many. The copy
- * takes its turn like a new mail; audited with both ids. The caller wakes
- * the sender afterwards.
+ * takes its turn like a new mail, with the original's expiry; a reminder
+ * that expired by its window's end is not one to send again. Audited
+ * with both ids. The caller wakes the sender afterwards.
  */
 export async function retryMail(db: Database, rawId: string, actor: Actor): Promise<{ mail: QueueMail }> {
   const id = canonicalId(rawId)
@@ -112,7 +123,7 @@ export async function retryMail(db: Database, rawId: string, actor: Actor): Prom
     await lockScope(client, SCHOOL_SCOPE)
     const [original] = await listMails(client, { id }, 1)
     if (original === undefined) throw new ApplicationError('not_found')
-    if (original.state !== 'failed' && original.state !== 'expired') throw new ApplicationError('mail_state')
+    if (original.state !== 'failed' && !(original.state === 'expired' && original.detail === 'discarded')) throw new ApplicationError('mail_state')
     const copyId = await copyMailForRetry(client, id, `retry:${id}:${db.now().getTime()}`)
     if (copyId === undefined) throw new ApplicationError('mail_state')
     const [mail] = await listMails(client, { id: copyId }, 1)

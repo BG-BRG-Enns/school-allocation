@@ -186,6 +186,7 @@ export async function listCampaignMails(db: Queryable, campaignId: string, limit
 /** What the queue page asks for: by state, kind, registration, or one mail by id. */
 export interface MailFilter {
   id?: string
+  ids?: readonly string[]
   state?: MailState
   kind?: MailKind
   campaignId?: string
@@ -199,6 +200,7 @@ function filterSql(filter: MailFilter): { where: string, params: unknown[] } {
     clauses.push(sql.replace('?', `$${params.length}`))
   }
   if (filter.id !== undefined) add('m.id = ?', filter.id)
+  if (filter.ids !== undefined) add('m.id = any(?::uuid[])', filter.ids)
   if (filter.state !== undefined) add('m.state = ?', filter.state)
   if (filter.kind !== undefined) add('m.kind = ?', filter.kind)
   if (filter.campaignId !== undefined) add('m.campaign_id = ?', filter.campaignId)
@@ -230,9 +232,9 @@ export type DiscardSelection = { ids: readonly string[] } | { campaignId: string
  * the detail `discarded`; one in a session gets its expiry set to now, so a
  * transient failure lets it expire instead of going out later (the
  * expireCampaignMails pattern, one statement for both states). Returns how
- * many expired, by kind.
+ * many expired, by kind, and how many in a session were given that expiry.
  */
-export async function discardMails(db: Queryable, selection: DiscardSelection): Promise<{ discarded: number, byKind: Record<string, number> }> {
+export async function discardMails(db: Queryable, selection: DiscardSelection): Promise<{ discarded: number, inFlight: number, byKind: Record<string, number> }> {
   const [selectSql, params]: [string, unknown[]] = 'ids' in selection
     ? ['id = any($1::uuid[])', [selection.ids]]
     : selection.kinds === undefined ? ['campaign_id = $1', [selection.campaignId]] : ['campaign_id = $1 and kind = any($2::text[])', [selection.campaignId, selection.kinds]]
@@ -253,19 +255,21 @@ export async function discardMails(db: Queryable, selection: DiscardSelection): 
     discarded++
     byKind[row.kind] = (byKind[row.kind] ?? 0) + 1
   }
-  return { discarded, byKind }
+  return { discarded, inFlight: rows.length - discarded, byKind }
 }
 
 /**
  * Queues a failed or discarded mail again as a copy under a new dedupe
  * key: the original's rows are immutable, and a state once final stays
- * so. Returns the copy's id, or nothing when the mail is not in such a
- * state.
+ * so. The copy keeps the original's expiry, so a reminder of a window
+ * that has ended expires again instead of going out. Returns the copy's
+ * id, or nothing when the mail is neither failed nor discarded.
  */
 export async function copyMailForRetry(db: Queryable, id: string, dedupeKey: string): Promise<string | undefined> {
   const { rows: [row] } = await db.query<{ id: string }>(
-    `insert into outbox_mail (kind, campaign_id, person_id, to_address, subject, body, dedupe_key, priority)
-     select kind, campaign_id, person_id, to_address, subject, body, $2, priority from outbox_mail where id = $1 and state in ('failed', 'expired')
+    `insert into outbox_mail (kind, campaign_id, person_id, to_address, subject, body, dedupe_key, priority, expires_at)
+     select kind, campaign_id, person_id, to_address, subject, body, $2, priority, expires_at from outbox_mail
+      where id = $1 and (state = 'failed' or (state = 'expired' and detail = 'discarded'))
      returning id`,
     [id, dedupeKey],
   )

@@ -52,7 +52,7 @@ test('the queue lists every mail without its text, by state and kind; waiting on
   assert.equal((await get<MailQueueResponse>(h, anna, '/api/admin/mail?state=queued')).body.total, 1)
   const audit = (await readAudit(h.db, SCHOOL_SCOPE)).filter((e) => e.action === 'mail.discarded')
   assert.equal(audit.length, 1)
-  assert.deepEqual(audit[0]?.metadata, { discarded: 2, byKind: { class_missing: 1, choice_reminder: 1 } })
+  assert.deepEqual(audit[0]?.metadata, { discarded: 2, inFlight: 0, byKind: { class_missing: 1, choice_reminder: 1 } })
   // The same again takes nothing and records nothing.
   assert.equal((await send<DiscardResponse>(h, anna, 'POST', '/api/admin/mail/discard', { ids: [first.id] })).body.discarded, 0)
   assert.equal((await readAudit(h.db, SCHOOL_SCOPE)).filter((e) => e.action === 'mail.discarded').length, 1)

@@ -110,17 +110,18 @@ async function onDiscardSelected(): Promise<void> {
   if (ok) acting.notice.value = t.mails.discarded(discarded)
 }
 
-/** Every waiting mail of the registration the filter names, the ones past the list's limit included. */
+/** Every waiting mail of the registration the filter names, whatever the other filters show and the list's limit: counted afresh for the question. */
 async function onDiscardCampaign(): Promise<void> {
   const campaignId = campaignFilter.value
-  const count = stateFilter.value === '' || stateFilter.value === 'queued' ? total.value : waitingShown.value.length
-  if (campaignId === '' || !window.confirm(t.mails.discardConfirm(count))) return
+  if (campaignId === '') return
   let discarded = 0
   const ok = await acting.run(async () => {
+    const count = (await loadMailQueue({ campaignId, state: 'queued', limit: '1' })).total
+    if (count === 0 || !window.confirm(t.mails.discardConfirm(count))) return
     discarded = (await discardMails({ campaignId })).discarded
     await afterChange()
   })
-  if (ok) acting.notice.value = t.mails.discarded(discarded)
+  if (ok && discarded > 0) acting.notice.value = t.mails.discarded(discarded)
 }
 
 async function onRetry(id: string): Promise<void> {
