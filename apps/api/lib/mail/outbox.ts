@@ -263,14 +263,16 @@ export async function discardMails(db: Queryable, selection: DiscardSelection): 
 /**
  * Queues a failed or discarded mail again as a copy under a new dedupe
  * key: the original's rows are immutable, and a state once final stays
- * so. The copy keeps the original's expiry, so a reminder of a window
- * that has ended expires again instead of going out. Returns the copy's
- * id, or nothing when the mail is neither failed nor discarded.
+ * so. The copy carries no expiry of its own: the original's may be the
+ * cutoff a discard gave it in a session, and a reminder's window is
+ * judged by the caller before the copy and expires the copy at its end
+ * like every queued reminder. Returns the copy's id, or nothing when the
+ * mail is neither failed nor discarded.
  */
 export async function copyMailForRetry(db: Queryable, id: string, dedupeKey: string): Promise<string | undefined> {
   const { rows: [row] } = await db.query<{ id: string }>(
-    `insert into outbox_mail (kind, campaign_id, person_id, to_address, subject, body, dedupe_key, priority, expires_at)
-     select kind, campaign_id, person_id, to_address, subject, body, $2, priority, expires_at from outbox_mail
+    `insert into outbox_mail (kind, campaign_id, person_id, to_address, subject, body, dedupe_key, priority)
+     select kind, campaign_id, person_id, to_address, subject, body, $2, priority from outbox_mail
       where id = $1 and (state = 'failed' or (state = 'expired' and detail = 'discarded'))
      returning id`,
     [id, dedupeKey],

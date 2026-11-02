@@ -122,11 +122,12 @@ const WINDOW_OF_KIND: Readonly<Partial<Record<string, readonly string[]>>> = {
 /**
  * Queues a failed or discarded mail again, as a copy: the server was down,
  * the address wrong and corrected since, a discard one too many. The copy
- * takes its turn like a new mail, with the original's expiry; a reminder
- * that expired by its window's end is not one to send again, nor one of a
- * window the registration has left since, judged under the registration's
- * lock so a close in flight is seen. Audited with both ids. The caller
- * wakes the sender afterwards.
+ * takes its turn like a new mail; a mail of a window is sent again only
+ * while the registration is in that window, judged under the
+ * registration's lock (taken before the copy for every registration's
+ * mail, as the insert touches the registration's row) so a close in
+ * flight is seen; at the window's end the copy expires like every queued
+ * reminder. Audited with both ids. The caller wakes the sender afterwards.
  */
 export async function retryMail(db: Database, rawId: string, actor: Actor): Promise<{ mail: QueueMail }> {
   const id = canonicalId(rawId)
@@ -136,10 +137,12 @@ export async function retryMail(db: Database, rawId: string, actor: Actor): Prom
     if (original === undefined) throw new ApplicationError('not_found')
     if (original.state !== 'failed' && !(original.state === 'expired' && original.detail === 'discarded')) throw new ApplicationError('mail_state')
     const window = WINDOW_OF_KIND[original.kind]
-    if (original.campaignId !== null && window !== undefined) {
+    if (original.campaignId !== null) {
       await lockScope(client, original.campaignId)
-      const campaign = await lockedCampaign(client, original.campaignId)
-      if (!campaign || !window.includes(campaign.state)) throw new ApplicationError('mail_state')
+      if (window !== undefined) {
+        const campaign = await lockedCampaign(client, original.campaignId)
+        if (!campaign || !window.includes(campaign.state)) throw new ApplicationError('mail_state')
+      }
     }
     const copyId = await copyMailForRetry(client, id, `retry:${id}:${db.now().getTime()}`)
     if (copyId === undefined) throw new ApplicationError('mail_state')
