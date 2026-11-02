@@ -65,6 +65,9 @@ test('the queue lists every mail without its text, by state and kind; waiting on
   assert.notEqual(retried.body.mail.id, first.id)
   assert.equal((await get<MailQueueResponse>(h, anna, `/api/admin/mail?state=expired`)).body.total, 2)
   assert.equal((await readAudit(h.db, SCHOOL_SCOPE)).filter((e) => e.action === 'mail.retried').length, 1)
+  // A second copy of the same mail is refused: one retry per original.
+  const again = await send<{ error: string }>(h, anna, 'POST', `/api/admin/mail/${first.id}/retry`)
+  assert.deepEqual([again.status, again.body.error], [409, 'mail_state'])
   const notFailed = await send<{ error: string }>(h, anna, 'POST', `/api/admin/mail/${third.id}/retry`)
   assert.deepEqual([notFailed.status, notFailed.body.error], [409, 'mail_state'])
   assert.equal((await send(h, anna, 'POST', '/api/admin/mail/00000000-0000-4000-8000-000000000000/retry')).status, 404)
@@ -86,7 +89,7 @@ test('the queue lists every mail without its text, by state and kind; waiting on
   )
   assert.ok(stale)
   const closedWindow = await send<{ error: string }>(h, anna, 'POST', `/api/admin/mail/${stale.id}/retry`)
-  assert.deepEqual([closedWindow.status, closedWindow.body.error], [409, 'mail_state'])
+  assert.deepEqual([closedWindow.status, closedWindow.body.error], [409, 'campaign_state'])
 
   // A teacher sees and manages nothing of it.
   const bernd = await signIn(h, BERND)

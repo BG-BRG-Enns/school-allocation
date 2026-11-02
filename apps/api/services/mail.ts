@@ -126,8 +126,10 @@ const WINDOW_OF_KIND: Readonly<Partial<Record<string, readonly string[]>>> = {
  * while the registration is in that window, judged under the
  * registration's lock (taken before the copy for every registration's
  * mail, as the insert touches the registration's row) so a close in
- * flight is seen; at the window's end the copy expires like every queued
- * reminder. Audited with both ids. The caller wakes the sender afterwards.
+ * flight is seen (409 campaign_state); at the window's end the copy expires
+ * like every queued reminder. One copy per original: a second retry of the
+ * same mail is refused (409 mail_state), the copy is what fails or is
+ * retried next. Audited with both ids. The caller wakes the sender afterwards.
  */
 export async function retryMail(db: Database, rawId: string, actor: Actor): Promise<{ mail: QueueMail }> {
   const id = canonicalId(rawId)
@@ -141,10 +143,11 @@ export async function retryMail(db: Database, rawId: string, actor: Actor): Prom
       await lockScope(client, original.campaignId)
       if (window !== undefined) {
         const campaign = await lockedCampaign(client, original.campaignId)
-        if (!campaign || !window.includes(campaign.state)) throw new ApplicationError('mail_state')
+        if (!campaign || !window.includes(campaign.state)) throw new ApplicationError('campaign_state')
       }
     }
-    const copyId = await copyMailForRetry(client, id, `retry:${id}:${db.now().getTime()}`)
+    // One copy per original: a second click, or two at once, finds the key taken and is refused; the copy itself can be sent again once it failed.
+    const copyId = await copyMailForRetry(client, id, `retry:${id}`)
     if (copyId === undefined) throw new ApplicationError('mail_state')
     const [mail] = await listMails(client, { id: copyId }, 1)
     if (mail === undefined) throw new ApplicationError('not_found')

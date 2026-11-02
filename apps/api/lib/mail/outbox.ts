@@ -234,7 +234,9 @@ export type DiscardSelection = { ids: readonly string[] } | { campaignId: string
  * in a session gets its expiry set to now, so a transient failure lets it
  * expire instead of going out later (the expireCampaignMails pattern, one
  * statement for both states). Returns how many expired, by kind, and how
- * many in a session were given that expiry.
+ * many in a session were given that expiry; a repeat of the same selection
+ * touches nothing, as the queued ones are expired and the in-flight ones
+ * already have it.
  */
 export async function discardMails(db: Queryable, selection: DiscardSelection): Promise<{ discarded: number, inFlight: number, byKind: Record<string, number> }> {
   const [selectSql, params]: [string, unknown[]] = 'ids' in selection
@@ -246,7 +248,7 @@ export async function discardMails(db: Queryable, selection: DiscardSelection): 
             detail = case when state = 'queued' then 'discarded' else detail end,
             expires_at = case when state = 'sending' and (expires_at is null or expires_at > app_now()) then app_now() else expires_at end,
             updated_at = app_now()
-      where state in ('queued', 'sending') and ${selectSql}
+      where (state = 'queued' or (state = 'sending' and (expires_at is null or expires_at > app_now()))) and ${selectSql}
       returning state, kind`,
     params,
   )
@@ -270,10 +272,12 @@ export async function discardMails(db: Queryable, selection: DiscardSelection): 
  * mail is neither failed nor discarded.
  */
 export async function copyMailForRetry(db: Queryable, id: string, dedupeKey: string): Promise<string | undefined> {
+  // The key is the original's, once: a second copy of the same mail is dropped, as any second write of a key is.
   const { rows: [row] } = await db.query<{ id: string }>(
     `insert into outbox_mail (kind, campaign_id, person_id, to_address, subject, body, dedupe_key, priority)
      select kind, campaign_id, person_id, to_address, subject, body, $2, priority from outbox_mail
       where id = $1 and (state = 'failed' or (state = 'expired' and detail = 'discarded'))
+     on conflict (dedupe_key) do nothing
      returning id`,
     [id, dedupeKey],
   )

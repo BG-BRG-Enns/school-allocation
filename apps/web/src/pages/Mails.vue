@@ -51,7 +51,7 @@ async function loadList(): Promise<void> {
 }
 
 onMounted(() => loading.run(async () => {
-  const [sending, list] = [await loadMailStatus(), await loadCampaigns()]
+  const [sending, list] = await Promise.all([loadMailStatus(), loadCampaigns()])
   status.value = sending
   campaigns.value = list.campaigns.map((c) => ({ id: c.id, name: c.name }))
   await loadList()
