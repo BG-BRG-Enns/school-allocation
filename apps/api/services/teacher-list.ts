@@ -157,14 +157,13 @@ async function resolve(db: Queryable, csv: string): Promise<Resolved> {
   const owners = await store.shortNameOwners(db, [...new Set([...wanted.values()].map((name) => name.toLowerCase()))])
   for (let settled = false; !settled;) {
     settled = true
-    for (const row of rows) {
-      if (row.shortName === undefined || !wanted.has(row.personId)) continue
-      const owner = owners.get(row.shortName.toLowerCase())
-      if (owner !== undefined && owner !== row.personId && !wanted.has(owner)) {
-        preview.problems.push({ code: 'short_name_held', line: row.line, key: row.shortName })
-        wanted.delete(row.personId)
-        settled = false
-      }
+    for (const [personId, shortName] of wanted) {
+      const owner = owners.get(shortName.toLowerCase())
+      if (owner === undefined || owner === personId || wanted.has(owner)) continue
+      // Every row of the teacher that names it: the rows agree on it, or the teacher would be unsound already.
+      for (const row of rows) if (row.personId === personId && row.shortName !== undefined) preview.problems.push({ code: 'short_name_held', line: row.line, key: row.shortName })
+      wanted.delete(personId)
+      settled = false
     }
   }
   // A row with a problem is listed and left out whole, the parser's rows included; what the other rows say is applied.

@@ -122,6 +122,11 @@ test('a list with an unknown address, an unknown class or an abbreviation anothe
   const chain = await send<TeacherListPreview>(s, s.anna, 'POST', '/api/admin/classes/import/preview', { csv: `email;short_name\n${ANNA.email};KnC\n${CARLA.email};PfB\n` })
   assert.deepEqual(chain.body.problems.map((p) => [p.code, p.line]), [['short_name_held', 3], ['short_name_held', 2]])
   assert.equal(chain.body.applicable, false)
+  // Two rows of one teacher claiming a held abbreviation: both skipped, the second's class assignment with it.
+  const twice = await send<TeacherListPreview>(s, s.anna, 'POST', '/api/admin/classes/import/preview', { csv: `email;short_name;class\n${ANNA.email};KnC;\n${ANNA.email};KnC;5A\n` })
+  assert.deepEqual(twice.body.problems.map((p) => [p.code, p.line]), [['short_name_held', 2], ['short_name_held', 3]])
+  assert.equal(twice.body.applicable, false)
+  assert.deepEqual(twice.body.classes, [])
   const refused = await send<{ error: string, problems: unknown[] }>(s, s.anna, 'POST', '/api/admin/classes/import', { csv: list })
   assert.equal(refused.status, 422)
   assert.equal(refused.body.error, 'teacher_list_invalid')

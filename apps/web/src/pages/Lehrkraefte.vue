@@ -72,7 +72,12 @@ async function onSaveShortName(): Promise<void> {
     await setTeacherShortName(editing.personId, value === '' ? null : value)
     planning.value = await loadPlanning(props.id)
   }, t.planning.shortName.saved)
-  if (ok) editingShortName.value = null
+  if (ok) {
+    editingShortName.value = null
+    // A checked list may have skipped a row for this very abbreviation: what it would apply has changed, so it is checked again.
+    preview.value = null
+    latestCheck++
+  }
 }
 
 // The availability list: a file or pasted text, checked first, then the checked text applied.
