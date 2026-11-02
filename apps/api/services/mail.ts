@@ -1,6 +1,7 @@
 import type { DiscardBody, MailKind, MailQueueQuery, MailQueueResponse, QueueMail } from '@school-allocation/api-contracts/mail'
 import type { Actor, Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
+import { lockedCampaign } from '../lib/dao/campaigns.ts'
 import { readMailPaused, updateMailPaused } from '../lib/dao/settings.ts'
 import type { Database } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
@@ -110,12 +111,22 @@ export async function discardMails(db: Database, selection: DiscardBody, actor: 
   })
 }
 
+/** The states of a registration in which a mail of a window still has its meaning; a kind not listed keeps it in every state. */
+const WINDOW_OF_KIND: Readonly<Partial<Record<string, readonly string[]>>> = {
+  choice_invitation: ['open'],
+  choice_reminder: ['open'],
+  grace_invitation: ['grace'],
+  grace_reminder: ['grace'],
+}
+
 /**
  * Queues a failed or discarded mail again, as a copy: the server was down,
  * the address wrong and corrected since, a discard one too many. The copy
  * takes its turn like a new mail, with the original's expiry; a reminder
- * that expired by its window's end is not one to send again. Audited
- * with both ids. The caller wakes the sender afterwards.
+ * that expired by its window's end is not one to send again, nor one of a
+ * window the registration has left since, judged under the registration's
+ * lock so a close in flight is seen. Audited with both ids. The caller
+ * wakes the sender afterwards.
  */
 export async function retryMail(db: Database, rawId: string, actor: Actor): Promise<{ mail: QueueMail }> {
   const id = canonicalId(rawId)
@@ -124,6 +135,12 @@ export async function retryMail(db: Database, rawId: string, actor: Actor): Prom
     const [original] = await listMails(client, { id }, 1)
     if (original === undefined) throw new ApplicationError('not_found')
     if (original.state !== 'failed' && !(original.state === 'expired' && original.detail === 'discarded')) throw new ApplicationError('mail_state')
+    const window = WINDOW_OF_KIND[original.kind]
+    if (original.campaignId !== null && window !== undefined) {
+      await lockScope(client, original.campaignId)
+      const campaign = await lockedCampaign(client, original.campaignId)
+      if (!campaign || !window.includes(campaign.state)) throw new ApplicationError('mail_state')
+    }
     const copyId = await copyMailForRetry(client, id, `retry:${id}:${db.now().getTime()}`)
     if (copyId === undefined) throw new ApplicationError('mail_state')
     const [mail] = await listMails(client, { id: copyId }, 1)

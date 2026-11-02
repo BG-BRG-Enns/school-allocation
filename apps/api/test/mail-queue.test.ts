@@ -7,6 +7,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { DiscardResponse, MailQueueResponse, RetryResponse } from '@school-allocation/api-contracts/mail'
 import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
+import { createDatabase } from '../lib/db.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
 import { secretFile } from './helpers/env.ts'
 import { startFakeSmtp } from './helpers/fake-smtp.ts'
@@ -60,7 +61,7 @@ test('the queue lists every mail without its text, by state and kind; waiting on
   // Sent again: a copy queued under a new key, the original as it was; only a failed or discarded one.
   const retried = await send<RetryResponse>(h, anna, 'POST', `/api/admin/mail/${first.id}/retry`)
   assert.equal(retried.status, 200, JSON.stringify(retried.body))
-  assert.deepEqual([retried.body.mail.kind, retried.body.mail.state, retried.body.mail.to], [first.kind, 'queued', first.to])
+  assert.deepEqual([retried.body.mail.kind, retried.body.mail.state, retried.body.mail.to, retried.body.mail.expiresAt], [first.kind, 'queued', first.to, null])
   assert.notEqual(retried.body.mail.id, first.id)
   assert.equal((await get<MailQueueResponse>(h, anna, `/api/admin/mail?state=expired`)).body.total, 2)
   assert.equal((await readAudit(h.db, SCHOOL_SCOPE)).filter((e) => e.action === 'mail.retried').length, 1)
@@ -75,6 +76,17 @@ test('the queue lists every mail without its text, by state and kind; waiting on
   assert.equal((await get<MailQueueResponse>(h, anna, `/api/admin/mail?campaignId=${created.body.id}`)).body.total, 0)
   assert.equal((await send(h, anna, 'POST', '/api/admin/mail/discard', { campaignId: '00000000-0000-4000-8000-000000000000' })).status, 404)
   assert.equal((await send(h, anna, 'POST', '/api/admin/mail/discard', {})).status, 400)
+  // A failed reminder of a window the registration is not in (here: never was) is not sent again.
+  const owner = createDatabase(h.ownerUrl, () => {})
+  t.after(() => owner.close())
+  const { rows: [stale] } = await owner.query<{ id: string }>(
+    `insert into outbox_mail (kind, campaign_id, person_id, to_address, subject, body, dedupe_key, priority, state, detail, expires_at)
+     values ('choice_reminder', $1, null, $2, 'x', 'x', 'test:stale', 3, 'failed', '451 busy', app_now() + interval '1 day') returning id`,
+    [created.body.id, ANNA.email],
+  )
+  assert.ok(stale)
+  const closedWindow = await send<{ error: string }>(h, anna, 'POST', `/api/admin/mail/${stale.id}/retry`)
+  assert.deepEqual([closedWindow.status, closedWindow.body.error], [409, 'mail_state'])
 
   // A teacher sees and manages nothing of it.
   const bernd = await signIn(h, BERND)

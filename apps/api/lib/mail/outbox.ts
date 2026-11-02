@@ -229,10 +229,12 @@ export type DiscardSelection = { ids: readonly string[] } | { campaignId: string
 
 /**
  * Takes waiting mails out of the queue: queued ones become `expired` with
- * the detail `discarded`; one in a session gets its expiry set to now, so a
- * transient failure lets it expire instead of going out later (the
- * expireCampaignMails pattern, one statement for both states). Returns how
- * many expired, by kind, and how many in a session were given that expiry.
+ * the detail `discarded`, their own expiry untouched (a copy sent again
+ * keeps it: none for an invitation, the window's end for a reminder); one
+ * in a session gets its expiry set to now, so a transient failure lets it
+ * expire instead of going out later (the expireCampaignMails pattern, one
+ * statement for both states). Returns how many expired, by kind, and how
+ * many in a session were given that expiry.
  */
 export async function discardMails(db: Queryable, selection: DiscardSelection): Promise<{ discarded: number, inFlight: number, byKind: Record<string, number> }> {
   const [selectSql, params]: [string, unknown[]] = 'ids' in selection
@@ -242,7 +244,7 @@ export async function discardMails(db: Queryable, selection: DiscardSelection): 
     `update outbox_mail
         set state = case when state = 'queued' then 'expired' else state end,
             detail = case when state = 'queued' then 'discarded' else detail end,
-            expires_at = case when expires_at is null or expires_at > app_now() then app_now() else expires_at end,
+            expires_at = case when state = 'sending' and (expires_at is null or expires_at > app_now()) then app_now() else expires_at end,
             updated_at = app_now()
       where state in ('queued', 'sending') and ${selectSql}
       returning state, kind`,
