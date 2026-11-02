@@ -1,0 +1,15 @@
+# The generated part of a release's notes (publish-image.yml, the release
+# job): the pull requests merged since the previous release, by label.
+# Dependabot's land under Dependencies; everything else, with its
+# conventional-commit title, under Changes.
+changelog:
+  categories:
+    - title: Changes
+      labels:
+        - '*'
+      exclude:
+        labels:
+          - dependencies
+    - title: Dependencies
+      labels:
+        - dependencies
