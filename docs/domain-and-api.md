@@ -72,8 +72,8 @@ school-election's `changeElection`. Time-based transitions are evaluated by serv
 transition that was missed during a restart is applied on start. Every step an organizer takes by
 hand is confirmed on the page with its consequences named; from `open` on there is no way back, as
 mails have gone out and students have ranked. A registration still in `draft` can be deleted
-(`delete_draft_campaign`, a definer function like the purge: the rules, the draft items and the grants
-scoped to it go; anything later refuses); the deletion is audited in the school's chain, the
+(`delete_draft_campaign`, a definer function like the purge: the rules and the draft items go; an item
+once numbered, a grant scoped to it or anything of a window refuses); the deletion is audited in the school's chain, the
 registration's own chain stays.
 
 ## 3. Choice rules (project week)

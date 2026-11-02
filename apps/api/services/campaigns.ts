@@ -199,10 +199,11 @@ export async function transitionCampaign(db: Database, rawId: string, to: Campai
 
 /**
  * Deletes a registration still in preparation: the database's definer
- * function takes the rules, the draft items and the grants scoped to it,
- * and refuses anything later (an item past draft, a notice, a placement);
- * the service says so as `campaign_state`. Audited in the school's chain
- * with the name and what went; the registration's own chain stays.
+ * function takes the rules and the draft items, and refuses anything else
+ * (an item past draft or once numbered, a grant scoped to the campaign, a
+ * notice, a placement) as SQLSTATE 55000, which is answered as
+ * `campaign_state`. Audited in the school's chain with the name and what
+ * went; the registration's own chain stays.
  */
 export async function deleteCampaign(db: Database, rawId: string, actor: Actor): Promise<{ removed: { relation: string, count: number }[] }> {
   const id = canonicalId(rawId)
@@ -214,7 +215,14 @@ export async function deleteCampaign(db: Database, rawId: string, actor: Actor):
     if (current.state !== 'draft') throw new ApplicationError('campaign_state')
     const counts = await store.campaignCounts(client, id)
     if (counts.proposed + counts.approved + counts.withdrawn > 0) throw new ApplicationError('campaign_state')
-    const removed = await store.deleteDraftCampaign(client, id)
+    let removed: { relation: string, count: number }[]
+    try {
+      removed = await store.deleteDraftCampaign(client, id)
+    } catch (error) {
+      // The function's own refusals (a draft that once had a number, a grant scoped to the campaign): the state's, not a fault.
+      if ((error as { code?: string }).code === '55000') throw new ApplicationError('campaign_state')
+      throw error
+    }
     await appendAudit(client, {
       scopeId: SCHOOL_SCOPE, actor: auditActor(actor), action: 'campaign.deleted',
       metadata: { campaignId: id, name: current.name, schoolYear: current.schoolYear, removed: Object.fromEntries(removed.map((r) => [r.relation, r.count])) },
