@@ -95,7 +95,7 @@ export async function saveRanking(db: Database, campaign: Campaign, personId: st
     // The clock under the lock, not the last tick: after the window's end nothing is taken, whatever the state still says.
     const end = current.lateUntil ?? current.closesAt
     if (end !== null && now.getTime() > end.getTime()) throw new ApplicationError('campaign_state')
-    student = await campaignStudent(client, { rosterBatchId: current.rosterBatchId }, personId)
+    student = await campaignStudent(client, { id: campaign.id, rosterBatchId: current.rosterBatchId }, personId)
     if (!student) throw new ApplicationError('not_a_student')
     const view = await choiceView(client, { ...campaign, state: current.state }, student)
     const problems = checkRanking(ranking, view.groups, campaign.wishesPerGroup)

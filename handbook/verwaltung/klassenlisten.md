@@ -1,6 +1,6 @@
 # Klassenlisten
 
-Die Klassenlisten sagen SchulWahl, wer an der Schule ist: alle Schüler\*innen mit Klasse und Schulstufe und alle Lehrkräfte. Nur wer in den Klassenlisten steht, macht bei einer Anmeldung mit. Sie kommen aus den **Entra-Gruppen** der Schule oder aus einer **CSV-Datei**. Beide Wege enden gleich: SchulWahl zeigt dir die eingelesene Liste zur Prüfung, und sie gilt erst, wenn du sie übernimmst.
+Die Klassenlisten sagen SchulWahl, wer an der Schule ist: alle Schüler\*innen mit Klasse und Schulstufe und alle Lehrkräfte. Nur wer in den Klassenlisten steht, macht bei einer Anmeldung mit, und nur in einer Klasse, die an ihr teilnimmt ([Anlegen](/organisation/anlegen)). Sie kommen aus den **Entra-Gruppen** der Schule oder aus einer **CSV-Datei**. Beide Wege enden gleich: SchulWahl zeigt dir die eingelesene Liste zur Prüfung, und sie gilt erst, wenn du sie übernimmst.
 
 ## Aus den Entra-Gruppen
 
@@ -67,6 +67,6 @@ Jeder Import bleibt mit seinem Stand in der Liste: zur Prüfung, übernommen, ve
 
 ## Was eine neue Liste ändert
 
-- Wer neu in der Liste steht, macht ab jetzt mit, auch bei einer Anmeldung, die schon läuft.
+- Wer neu in der Liste steht, macht ab jetzt mit, auch bei einer Anmeldung, die schon läuft, wenn seine Klasse an ihr teilnimmt. Eine Klasse, die neu in der Liste ist, nimmt an keiner Anmeldung teil, bis die Organisation sie in deren Einstellungen einträgt; der Import sagt das, solange eine Anmeldung läuft.
 - Wer in der neuen Liste fehlt, behält sein Konto. Unter Konten und Rollen steht dann „Nicht in den aktuellen Klassenlisten“, und die Person macht bei nichts mit, bis eine Liste sie wieder enthält. Ihre Wünsche und ihre Einteilung bleiben.
 - Mit dem Ende einer Anmeldung hält SchulWahl für sie die Klassenlisten fest, die gerade gelten. Eine spätere Liste ändert an der Zuteilung dieser Anmeldung nichts mehr.

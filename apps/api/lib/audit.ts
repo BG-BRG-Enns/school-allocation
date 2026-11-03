@@ -43,6 +43,8 @@ export const AUDIT_ACTIONS = [
   'campaign.deleted',
   // Its rules per category replaced, with the new list (campaign scope).
   'campaign.rules-changed',
+  // Its classes replaced, by counts (campaign scope).
+  'campaign.classes-changed',
   // An activity, in its campaign's scope: an organizer's review, and what
   // an organizer does by that right alone (creating on behalf, changing an
   // item past drafting). A teacher's own drafting is not privileged and not

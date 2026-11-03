@@ -7,7 +7,8 @@
 import { MAX_RULES, placeTarget, RULE_LIMITS, RULE_UNITS } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { loadMailQueue, loadMailStatus } from '../lib/admin-api.ts'
+import ClassPicker from '../components/ClassPicker.vue'
+import { loadClasses as loadRosterClasses, loadMailQueue, loadMailStatus } from '../lib/admin-api.ts'
 import { approveItem, catalogueExportPath, deleteCampaign, deleteItem, loadCampaign, loadCategories, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignRule, type CampaignView, type Category, type DayDemand, type Item, type MissingStudent, type RuleDemand, type RuleUnit } from '../lib/campaigns-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
@@ -23,7 +24,11 @@ const view = ref<CampaignView | null>(null)
 const items = ref<Item[]>([])
 const demand = ref<DayDemand[]>([])
 const ruleDemand = ref<RuleDemand[]>([])
-const grades = ref<number[]>([])
+/** The classes taking part, with their grades, for those who see the demand. */
+const memberClasses = ref<{ className: string, grade: number }[]>([])
+const grades = computed(() => [...new Set(memberClasses.value.map((cl) => cl.grade))].sort((a, b) => a - b))
+/** The classes of the class lists in force, for the organizer's picker and the line naming those not in. */
+const rosterClasses = ref<{ className: string, grade: number }[]>([])
 /** The school's categories, to name the rules by. */
 const categories = ref<Category[]>([])
 const loading = useFeedback()
@@ -39,8 +44,9 @@ async function load(): Promise<void> {
       const [d, c] = await Promise.all([loadDemand(props.id), loadClasses(props.id)])
       demand.value = d.demand
       ruleDemand.value = d.rules
-      grades.value = [...new Set(c.classes.map((cl) => cl.grade))].sort((a, b) => a - b)
+      memberClasses.value = c.classes
     }
+    if (v.may.organize) rosterClasses.value = (await loadRosterClasses()).classes.map((c) => ({ className: c.className, grade: c.grade }))
     if (v.may.organize || v.campaign.rules.length > 0) categories.value = (await loadCategories()).categories
   })
 }
@@ -48,6 +54,16 @@ onMounted(load)
 watch(() => props.id, load)
 
 const campaign = computed(() => view.value?.campaign)
+/** "7 Klassen, Schulstufen 5–11": the grades where the member classes are known with theirs. */
+const classSummary = computed(() => {
+  const c = campaign.value
+  if (!c) return ''
+  const known = memberClasses.value.length > 0 ? memberClasses.value : rosterClasses.value.filter((cl) => c.classes.includes(cl.className))
+  const range = known.length === c.classes.length && known.length > 0 ? [Math.min(...known.map((cl) => cl.grade)), Math.max(...known.map((cl) => cl.grade))] as [number, number] : null
+  return t.campaigns.classes.summary(c.classes.length, range)
+})
+/** The classes of the class lists in force that are not in: a class imported since, or one taken out. */
+const notTakingPart = computed(() => rosterClasses.value.map((cl) => cl.className).filter((name) => !(campaign.value?.classes ?? []).includes(name)))
 const organizes = computed(() => view.value?.may.organize ?? false)
 const teaches = computed(() => session.value?.person?.kind === 'teacher')
 const published = computed(() => campaign.value !== undefined && !['draft', 'catalogue'].includes(campaign.value.state))
@@ -165,6 +181,9 @@ const editing = ref(false)
 const name = ref('')
 const schoolYear = ref('')
 const days = ref<string[]>([])
+const classesDraft = ref<string[]>([])
+/** Why the classes were refused: an activity or a rule still names the ones taken out. */
+const classProblem = ref('')
 const opensAt = ref('')
 const closesAt = ref('')
 const lateUntil = ref('')
@@ -191,6 +210,8 @@ function startEditing(): void {
   name.value = c.name
   schoolYear.value = c.schoolYear
   days.value = [...c.projectDays]
+  classesDraft.value = [...c.classes]
+  classProblem.value = ''
   opensAt.value = localInput(c.opensAt)
   closesAt.value = localInput(c.closesAt)
   lateUntil.value = localInput(c.lateUntil)
@@ -208,8 +229,10 @@ function startEditing(): void {
 }
 async function onSaveSettings(): Promise<void> {
   ruleProblems.value = []
+  classProblem.value = ''
   const ok = await action.run(async () => {
     const changes: CampaignChanges = { name: name.value.trim(), schoolYear: schoolYear.value.trim(), projectDays: days.value.filter(Boolean) }
+    if (setUpEditable.value) changes.classes = classesDraft.value
     if (windowEditable.value) {
       changes.opensAt = instantOrNull(opensAt.value)
       changes.closesAt = instantOrNull(closesAt.value)
@@ -235,6 +258,9 @@ async function onSaveSettings(): Promise<void> {
     try {
       await updateCampaign(props.id, changes)
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'class_in_use' && Array.isArray(err.body.classes)) {
+        classProblem.value = t.campaigns.classes.inUse((err.body.classes as string[]).join(', '))
+      }
       if (err instanceof ApiError && err.code === 'rules_invalid' && Array.isArray(err.body.problems)) {
         ruleProblems.value = (err.body.problems as { code: string, rule?: number }[]).map((p) => {
           const label = RULE_PROBLEM_LABELS[p.code] ?? p.code
@@ -291,6 +317,7 @@ const consequences = computed<string[]>(() => {
   const key = step === 'catalogue' && c.state === 'published' ? 'backToCatalogue' : step
   const lines = [...t.campaign.transitions.consequences[key]]
   const w = t.campaign.transitions.warnings
+  if ((step === 'published' || step === 'open') && c.classes.length === 0) lines.push(w.noClasses)
   if (step === 'published') {
     if ((view.value?.counts?.approved ?? 0) === 0) lines.push(w.noApproved)
     if (c.opensAt !== null && Date.parse(c.opensAt) <= Date.now()) lines.push(w.opensAtPast(formatWhenShort(c.opensAt)))
@@ -363,6 +390,7 @@ function onSubmitPending(): void {
     <p>
       <span class="badge">{{ CAMPAIGN_STATE_LABELS[campaign.state] ?? campaign.state }}</span>
       {{ t.campaign.yearAndDays(campaign.schoolYear, campaign.projectDays.map(formatDay).join(', ')) }}
+      · {{ classSummary }}
     </p>
     <p
       v-if="windowSummary"
@@ -405,6 +433,12 @@ function onSubmitPending(): void {
         class="muted"
       >
         {{ t.campaign.organization.itemCounts(view.counts) }}
+      </p>
+      <p
+        v-if="notTakingPart.length > 0"
+        class="muted"
+      >
+        {{ t.campaigns.classes.notTakingPart(notTakingPart.join(', ')) }}
       </p>
       <p v-if="mailsWaiting > 0">
         <RouterLink :to="{ path: '/verwaltung/e-mails', query: { campaign: campaign.id } }">
@@ -643,6 +677,21 @@ function onSubmitPending(): void {
             >
               {{ t.common.addDay }}
             </button>
+          </p>
+        </fieldset>
+        <fieldset class="field">
+          <legend>{{ t.campaigns.classes.legend }}</legend>
+          <ClassPicker
+            v-model="classesDraft"
+            :options="rosterClasses"
+            :disabled="!setUpEditable"
+          />
+          <p
+            v-if="classProblem"
+            role="alert"
+            class="alert"
+          >
+            {{ classProblem }}
           </p>
         </fieldset>
         <fieldset class="field">

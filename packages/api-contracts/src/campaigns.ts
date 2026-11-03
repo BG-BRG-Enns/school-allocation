@@ -54,6 +54,8 @@ export const CampaignSchema = StrictObject({
   schoolYear: Type.String(),
   state: Literals(CAMPAIGN_STATES),
   projectDays: Type.Array(Type.String()),
+  /** The classes taking part, by name, sorted; every reader of "the registration's students" goes by them. */
+  classes: Type.Array(Type.String()),
   rosterBatchId: Type.Union([Type.String(), Type.Null()]),
   createdAt: Type.String(),
   updatedAt: Type.String(),

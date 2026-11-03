@@ -1098,6 +1098,15 @@
           "minItems": 1,
           "maxItems": 10
         },
+        "classes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._/-]{0,15}$",
+            "maxLength": 16
+          },
+          "maxItems": 100
+        },
         "opensAt": {
           "anyOf": [
             {
@@ -1522,6 +1531,15 @@
           },
           "minItems": 1,
           "maxItems": 10
+        },
+        "classes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._/-]{0,15}$",
+            "maxLength": 16
+          },
+          "maxItems": 100
         }
       },
       "additionalProperties": false

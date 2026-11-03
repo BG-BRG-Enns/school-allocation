@@ -22,12 +22,12 @@ import { datesOfSpan, instantOf } from '../lib/time.ts'
 import { reconcilePreAssignments } from './pre-assignments.ts'
 
 /**
- * Checks an activity against its campaign's project days and the roster's
- * classes and teachers, inside the caller's transaction; throws ItemInvalid.
+ * Checks an activity against its campaign's project days and classes and
+ * the roster's teachers, inside the caller's transaction; throws ItemInvalid.
  */
 async function validate(client: Queryable, campaignId: string, input: ItemInput): Promise<void> {
   const campaign = await store.findProjectDays(client, campaignId)
-  const classes = await store.listRosterClasses(client)
+  const classes = await store.listCampaignClasses(client, campaignId)
   const teachers = await store.findItemTeachers(client, input)
   const known = new Set(teachers.map((row) => row.personId))
   const unknownTeachers = input.teachers.filter((id) => !known.has(id))
@@ -279,6 +279,6 @@ async function mustRead(db: Queryable, id: string): Promise<Item> {
 export async function withVisibleItem<T>(db: Database, id: string, caller: Caller, operation: () => Promise<T>): Promise<T> {
   const item = await readItem(db, id)
   const campaign = item === undefined ? undefined : await readCampaign(db, item.campaignId)
-  if (!item || !campaign || !canSee(caller, campaign.state)) throw new ApplicationError('not_found')
+  if (!item || !campaign || !canSee(caller, campaign)) throw new ApplicationError('not_found')
   return operation()
 }

@@ -16,7 +16,7 @@ import { classPlacements, type ClassPlacement } from './publication.ts'
 /** A campaign outside the caller's scope is indistinguishable from a missing one. */
 export async function visibleCampaign(db: Database, caller: Caller, id: string): Promise<Campaign> {
   const campaign = await readCampaign(db, id)
-  if (!campaign || !canSee(caller, campaign.state)) throw new ApplicationError('not_found')
+  if (!campaign || !canSee(caller, campaign)) throw new ApplicationError('not_found')
   return campaign
 }
 
@@ -85,7 +85,7 @@ export async function catalogueView(db: Database, campaign: Campaign, caller: Ca
 
 export async function classOptions(db: Database, campaign: Campaign, caller: Caller) {
   if (!mayPropose(caller)) throw new ApplicationError('forbidden')
-  return { classes: await rosterClasses(db) }
+  return { classes: await rosterClasses(db, campaign) }
 }
 
 export async function teacherOptions(db: Database, campaign: Campaign, caller: Caller, q: string) {

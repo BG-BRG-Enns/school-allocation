@@ -2,7 +2,7 @@
 
 ## Opening
 
-Registration opens automatically at the **Start** set in the [settings](./einstellungen), or immediately with **Open registration**. When it opens, each class activity takes in its whole classes, and all participating students receive the invitation email. From here there is no way back, so the step asks once more and says what is missing: an **End**, without which registration runs until it is ended by hand (confirmed separately), or email sending not configured on the server, which leaves the invitations waiting ([Emails](./e-mails)).
+Registration opens automatically at the **Start** set in the [settings](./einstellungen), or immediately with **Open registration**. When it opens, each class activity takes in its whole classes, and all students of the classes taking part ([Setting up](./anlegen)) receive the invitation email. From here there is no way back, so the step asks once more and says what is missing: an **End**, without which registration runs until it is ended by hand (confirmed separately), or email sending not configured on the server, which leaves the invitations waiting ([Emails](./e-mails)).
 
 ## What students see
 
@@ -38,7 +38,7 @@ Registration ends automatically at the end of the registration period or late re
 
 | When | Who | Template |
 | ---- | --- | -------- |
-| on opening | all participating students | Registration invitation |
+| on opening | all students of the classes taking part | Registration invitation |
 | one day before the registration period ends | anyone still without complete choices | Reminder before registration closes |
 | at the end of the registration period | class teachers, with their class's list | Missing choices, to the class teacher |
 | at the end of the registration period, if late registration follows | anyone still without complete choices | Late registration invitation |

@@ -274,11 +274,13 @@ export function scenarioLoader(world: ScenarioWorld, s: Scenario, log: (message:
     const until = Date.parse(options.until)
     const campaign = await requireCampaign(db, campaignId)
     const keyOf = new Map([...itemIds].map(([key, id]) => [id, key]))
+    // Only the students of the classes the registration takes in have a list to save (a journey may have left a class out).
+    const taking = new Set(s.classes.filter((c) => campaign.classes.includes(c.name)).flatMap((c) => c.students.map((p) => p.oid)))
     const events: Event[] = []
     let saved = 0
     let complete = 0
     for (const choice of s.choices) {
-      if (choice.saveAt === null || Date.parse(choice.saveAt) >= until || options.skip?.has(choice.oid) || outcomes.has(choice.oid)) continue
+      if (choice.saveAt === null || Date.parse(choice.saveAt) >= until || options.skip?.has(choice.oid) || outcomes.has(choice.oid) || !taking.has(choice.oid)) continue
       events.push({ at: choice.saveAt, order: 1, run: async () => {
         const caller = await signIn(choice.oid)
         const student = await callerStudent(db, campaign, caller)

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 // The campaigns the person may see, and, for organizers, the form that
-// sets a new one up: its name, school year and project days.
+// sets a new one up: its name, school year, project days and classes.
 
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import ClassPicker from '../components/ClassPicker.vue'
+import { loadClasses } from '../lib/admin-api.ts'
 import { createCampaign, loadCampaigns, type Campaign } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, nextDay } from '../lib/format.ts'
@@ -21,10 +23,17 @@ const organizes = computed(() => (session.value?.roles ?? []).some((role) => rol
 const name = ref('')
 const schoolYear = ref('')
 const days = ref<string[]>([''])
+/** The classes of the class lists in force, for the picker; every one preselected. */
+const classOptions = ref<{ className: string, grade: number }[]>([])
+const classes = ref<string[]>([])
 const creating = useFeedback()
 
 onMounted(() => loading.run(async () => {
   campaigns.value = (await loadCampaigns()).campaigns
+  if (organizes.value) {
+    classOptions.value = (await loadClasses()).classes.map((c) => ({ className: c.className, grade: c.grade }))
+    classes.value = classOptions.value.map((c) => c.className)
+  }
 }))
 
 /** The next day proposed is the one after the last: a project week runs on, and a wrong month shows beside the date. */
@@ -39,7 +48,7 @@ function removeDay(index: number): void {
 async function onCreate(): Promise<void> {
   let created: Campaign | undefined
   const ok = await creating.run(async () => {
-    created = await createCampaign({ kind: 'project_week', name: name.value.trim(), schoolYear: schoolYear.value.trim(), projectDays: days.value.filter(Boolean) })
+    created = await createCampaign({ kind: 'project_week', name: name.value.trim(), schoolYear: schoolYear.value.trim(), projectDays: days.value.filter(Boolean), classes: classes.value })
   })
   if (ok && created) await router.push(`/wahlen/${created.id}`)
 }
@@ -156,6 +165,16 @@ async function onCreate(): Promise<void> {
             {{ t.common.addDay }}
           </button>
         </p>
+      </fieldset>
+      <fieldset class="field">
+        <legend>{{ t.campaigns.classes.legend }}</legend>
+        <p class="muted">
+          {{ t.campaigns.classes.hint }}
+        </p>
+        <ClassPicker
+          v-model="classes"
+          :options="classOptions"
+        />
       </fieldset>
       <p class="actions">
         <button

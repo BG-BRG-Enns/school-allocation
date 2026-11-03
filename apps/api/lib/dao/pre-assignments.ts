@@ -7,6 +7,7 @@ export async function insertClassPlacements(db: Queryable, campaignId: string, i
      select i.campaign_id, i.id, e.person_id, 'class'
        from catalog_item i
        join roster_entry e on e.batch_id = ${CAMPAIGN_BATCH_ID} and e.kind = 'student' and e.person_id is not null and e.class_name = any(i.fixed_classes)
+       join campaign_class cc on cc.campaign_id = i.campaign_id and cc.class_name = e.class_name
       where i.campaign_id = $1 and i.state = 'approved' and ($2::uuid is null or i.id = $2)
      on conflict do nothing`,
     [campaignId, itemId ?? null],
@@ -19,6 +20,7 @@ export async function deleteObsoletePlacements(db: Queryable, campaignId: string
     `delete from pre_assignment p
       where p.campaign_id = $1 and ($2::uuid is null or p.item_id = $2) and p.exempted_at is null and p.source = 'class'
         and not exists (select 1 from roster_entry e join catalog_item i on i.id = p.item_id
+                           join campaign_class cc on cc.campaign_id = p.campaign_id and cc.class_name = e.class_name
                          where e.batch_id = ${CAMPAIGN_BATCH_ID} and e.person_id = p.person_id and i.state = 'approved' and e.class_name = any(i.fixed_classes))`,
     [campaignId, itemId ?? null],
   )

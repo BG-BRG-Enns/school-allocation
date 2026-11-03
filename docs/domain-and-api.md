@@ -16,7 +16,7 @@ Status: proposal for review · 2026-10-27 · revised 2026-10-29 for the decision
 | `RosterEntry` | `batch_id`, `oid?`, `upn?`, `mail?`, `display_name`, `kind`, `class?`, `grade?`, `person_id?` | One per person per batch |
 | `ClassTeacher` | `school_year`, `class`, `person_id`, `assigned_by` | Assigned in the app or from a CSV column |
 | `SchoolYear` | `id` (e.g. `2026/27`), `starts_on`, `ends_on` | Explicit rollover |
-| `Campaign` | `id`, `kind` (`project_week` / `wpf`), `mechanism` (`ranked`), `school_year`, `project_days[]`, `eligibility` (rule), `opens_at`, `closes_at`, `late_until` (end of the grace week), `swap_from`, `swap_until`, `config` (wishes per time group, default 3; daily minimum in minutes per grade; reminders; whether the catalogue names teachers; `place_headroom_percent`, the places above the need the demand's target asks for, default 20), `rules[]` (`CampaignRule`), `status`, `roster_batch_id?` (frozen at close) | Lifecycle in §2; the days and the per-grade minimum are configuration, not code |
+| `Campaign` | `id`, `kind` (`project_week` / `wpf`), `mechanism` (`ranked`), `school_year`, `project_days[]`, `classes[]` (the classes taking part, `campaign_class`; every class of the lists in force unless named at creation; changed while the campaign is set up or takes proposals, never to a class the lists do not have, never without one an activity or a rule names, 409 `class_in_use` with their names; audited as `campaign.classes-changed` by counts), `opens_at`, `closes_at`, `late_until` (end of the grace week), `swap_from`, `swap_until`, `config` (wishes per time group, default 3; daily minimum in minutes per grade; reminders; whether the catalogue names teachers; `place_headroom_percent`, the places above the need the demand's target asks for, default 20), `rules[]` (`CampaignRule`), `status`, `roster_batch_id?` (frozen at close) | Lifecycle in §2; the days and the per-grade minimum are configuration, not code |
 | `Category` | `id`, `name` (unique in any case, at most 60 characters) | The school's, outside any school year, like the period grid: at most 50, sorted by name. Kept by organizers and administrators, audited in the school scope (`category.created` / `changed` / `removed`); renamed freely, removed only while no item and no rule names it (409 `category_in_use`) |
 | `CampaignRule` | `campaign_id`, `position`, `category_id`, `grades[]` (at least one), `classes[]` (empty: every class of the grades), `unit` (`items` / `minutes`), `minimum` (1–20 items or 1–10000 minutes) | At least so many items, or credited minutes, of the category per student (school-core `rules.ts`); class activities count. At most 20 per campaign, replaced as a whole until the window opens, audited as `campaign.rules-changed` when they change. Never a hard constraint (§5) |
 | `TeacherAvailability` | `person_id`, `day`, `status` (`unavailable` / `if_needed`), `updated_at` | No row means available; no reason is stored. Per date, not per campaign. Set by the teacher on the days of a campaign taking proposals, by an organizer on a campaign's days until it is archived (audited in its chain as `availability.changed`); purged with the school year its date falls in |
@@ -86,7 +86,10 @@ of the year archived), so the chain goes with the year like every other.
    items are not offered to that student. Example: classes C and D are in Vienna from Tuesday 08:00
    to Wednesday 13:00, so their students see only Monday's items. A student whose fixed items already
    cover every day has nothing to choose and counts as complete. An item with `places > 0` is, for
-   every other eligible student, a choosable item with that capacity (D-24 revised).
+   every other student taking part, a choosable item with that capacity (D-24 revised). Who takes
+   part is the campaign's class list (D-21): a student of a class outside it sees the campaign no
+   more than a draft, is invited to nothing and placed nowhere; an item may name as fixed or
+   eligible only classes of the list.
 2. Only **choosable** items eligible for the student's grade/class in the frozen catalogue can be
    ranked. Fixed items, ineligible items and items overlapping the student's fixed items are rejected
    server-side, so manipulated requests fail.
@@ -159,7 +162,7 @@ The worker sends one mail at a time, at most `MAIL_PER_HOUR` an hour (default an
 
 **Inputs** (frozen snapshot):
 
-- eligible students from the roster batch;
+- the students of the campaign's classes from the roster batch;
 - their pre-assignments (fixed items, minus exemptions);
 - their complete or incomplete ranked lists per time group, each marked `first` or `late`;
 - the approved catalogue with sessions and credits;
@@ -387,9 +390,9 @@ it deliberately with `npm run contracts:update:routes` and review the diff.
 | --------------- | ---- | ------- |
 | `GET /api/auth/login`, `GET /api/auth/callback`, `POST /api/auth/logout` | — | Entra sign-in |
 | `GET /api/auth/me` | any | Account, roles, and the bound person with kind, class and grade (null until bound) |
-| `GET /api/campaigns` · `GET /api/campaigns/:id` · `GET …/:id/items` | any | Campaigns visible to me (organizers all, teachers also those taking proposals, everyone else from publication on); the items as far as the role allows |
+| `GET /api/campaigns` · `GET /api/campaigns/:id` · `GET …/:id/items` | any | Campaigns visible to me (organizers all, teachers also those taking proposals, everyone else from publication on, a student only those their class takes part in); the items as far as the role allows |
 | `GET /api/campaigns/:id/catalogue` | any | Published catalogue: approved items, numbered, in print order (eligibility flags for students come with the choice window) |
-| `GET /api/campaigns/:id/classes` · `GET …/:id/teachers?q=` | teacher, organizer | The roster's classes and teachers, for the proposal form |
+| `GET /api/campaigns/:id/classes` · `GET …/:id/teachers?q=` | teacher, organizer | The campaign's classes (with their grades, from the roster it goes by) and the roster's teachers, for the proposal form |
 | `GET /api/campaigns/:id/my-choice` · `PUT …/my-choice` | student | Fixed items, the offered items by project day and time group, the ranked wishes per group, completeness (whole-list replace); until `late_until` |
 | `GET /api/campaigns/:id/my-result` | student | The published places with the explanation (the items per day with the wish number, the minutes against the requirement, what is missing, the window the list came in, the seed), the fee, the swap window's dates and, while it is open, every item the student could move into with its free places, what the move would leave and why it would be refused (D-13); the student's own changes since publication; 409 `not_published` before publication |
 | `POST /api/campaigns/:id/swap` | student | Move into an item with free places during the swap window (§3 rule 7); answers with the result as it is afterwards; 409 `swap_closed`, `item_full`, `already_placed`, 422 with the rule's code otherwise |
@@ -402,7 +405,7 @@ it deliberately with `npm run contracts:update:routes` and review the diff.
 | `GET /api/categories` | any | The school's categories by name |
 | `GET /api/admin/categories` · `POST …` · `PATCH …/:id` · `DELETE …/:id` | organizer, admin | The categories with how many items and rules name each; add (`{ name }`, trimmed; 409 `category_exists`, `too_many_categories`), rename (the same name records nothing) and remove (409 `category_in_use`); each answers with the list, audited in the school scope |
 | `POST /api/admin/items/:id/approve` · `POST …/return` · `POST …/withdraw` | organizer | Review, audited: approve, return to draft with a note, withdraw with a reason. Withdrawn after publication, the item takes nobody anywhere: every student currently in it is removed from it, a `remove` change each with the withdrawal's reason, told as after any change by hand; the result, the class page and the attendance then agree, and the gaps show where a class teacher or the organizer fills them |
-| `POST /api/admin/campaigns` · `PATCH …/:id` · `POST …/:id/transition` · `DELETE …/:id` | organizer | Campaign set-up (name, school year, project days, the window's settings and the rules, `rules` replacing the list as a whole until the window opens; 422 `rules_invalid` with `problems: [{ code, rule? }]`) and lifecycle: `to` is one of `draft` (from `catalogue`), `catalogue` (from `draft` or `published`), `published` (numbers the approved items not yet numbered), `open`, `closed`, `archived`; the deletion of a registration still in `draft` with what went (409 `campaign_state` for anything later), audited as `campaign.deleted` in the school scope |
+| `POST /api/admin/campaigns` · `PATCH …/:id` · `POST …/:id/transition` · `DELETE …/:id` | organizer | Campaign set-up (name, school year, project days, `classes` (left out at creation: every class of the lists; 404 `class_unknown` naming the strangers, 409 `class_in_use` naming the classes an activity or a rule keeps), the window's settings and the rules, `rules` replacing the list as a whole until the window opens; 422 `rules_invalid` with `problems: [{ code, rule? }]`) and lifecycle: `to` is one of `draft` (from `catalogue`), `catalogue` (from `draft` or `published`), `published` (numbers the approved items not yet numbered), `open`, `closed`, `archived`; the deletion of a registration still in `draft` with what went (409 `campaign_state` for anything later), audited as `campaign.deleted` in the school scope |
 | `GET /api/admin/campaigns/:id/export/catalogue.xlsx` | organizer, auditor | The catalogue as a workbook: activities and sessions |
 | `GET /api/admin/roster` · `PUT /api/admin/roster/groups` | admin | The roster in force, recent batches; label Entra groups (students/teachers, class, grade) |
 | `GET /api/admin/roster/graph/start` · `GET …/graph/callback` | admin | Refresh from the labelled groups with the administrator's own Graph token (authorization-code flow, second redirect URI) |

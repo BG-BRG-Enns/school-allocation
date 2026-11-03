@@ -2,7 +2,7 @@
 
 ## Öffnen
 
-Die Anmeldung öffnet zum **Beginn** aus den [Einstellungen](./einstellungen) von selbst, oder sofort mit **Anmeldung öffnen**. Beim Öffnen nimmt jede Klassenaktivität ihre ganzen Klassen mit, und alle Schüler\*innen, die mitmachen, bekommen die E-Mail mit der Einladung. Von hier gibt es keinen Weg zurück, darum fragt der Schritt noch einmal und sagt, was fehlt: ein **Ende**, ohne das die Anmeldung läuft, bis sie von Hand beendet wird (das wird eigens bestätigt), oder ein E-Mail-Versand, der auf dem Server nicht eingerichtet ist und die Einladungen warten lässt ([E-Mails](./e-mails)).
+Die Anmeldung öffnet zum **Beginn** aus den [Einstellungen](./einstellungen) von selbst, oder sofort mit **Anmeldung öffnen**. Beim Öffnen nimmt jede Klassenaktivität ihre ganzen Klassen mit, und alle Schüler\*innen der Klassen, die teilnehmen ([Anlegen](./anlegen)), bekommen die E-Mail mit der Einladung. Von hier gibt es keinen Weg zurück, darum fragt der Schritt noch einmal und sagt, was fehlt: ein **Ende**, ohne das die Anmeldung läuft, bis sie von Hand beendet wird (das wird eigens bestätigt), oder ein E-Mail-Versand, der auf dem Server nicht eingerichtet ist und die Einladungen warten lässt ([E-Mails](./e-mails)).
 
 ## Was Schüler\*innen sehen
 
@@ -38,7 +38,7 @@ Die Anmeldung endet mit dem Ende des Anmeldezeitraums oder der Nachfrist von sel
 
 | Wann | Wer | Vorlage |
 | ---- | --- | ------- |
-| beim Öffnen | alle Schüler\*innen, die mitmachen | Einladung zur Anmeldung |
+| beim Öffnen | alle Schüler\*innen der Klassen, die teilnehmen | Einladung zur Anmeldung |
 | einen Tag vor dem Ende des Anmeldezeitraums | wer noch keine vollständigen Wünsche hat | Erinnerung vor dem Ende der Anmeldung |
 | am Ende des Anmeldezeitraums | die Klassenvorstände, mit der Liste ihrer Klasse | Fehlende Wünsche, an den Klassenvorstand |
 | am Ende des Anmeldezeitraums, wenn eine Nachfrist folgt | wer noch keine vollständigen Wünsche hat | Einladung zur Nachfrist |

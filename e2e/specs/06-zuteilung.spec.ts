@@ -16,7 +16,7 @@ import { anyCount, anyText, literally, t } from '../support/messages.ts'
 import { ANNA, BERND, SARA } from '../support/personas.ts'
 import { picture, section, shot } from '../support/screenshot.ts'
 import { sample } from '../support/sample.ts'
-import { classSize, loadStage, SCHOOL, STUDENTS } from '../support/scenario.ts'
+import { classSize, loadStage, PARTICIPATING, PARTICIPATING_CLASSES, SCHOOL } from '../support/scenario.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
@@ -53,10 +53,10 @@ test('die Nachfrist beginnt zu ihrer Zeit, die Organisation beendet sie und bere
   await expect(page.getByRole('heading', { name: t.allocation.review.levels })).toBeVisible()
   await expect(page.getByRole('row', { name: new RegExp(literally(t.labels.level.students_with_deficit)) })).toContainText(t.allocation.review.proven)
   await expect(page.getByRole('heading', { name: t.allocation.review.items, exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: new RegExp(literally(t.allocation.review.studentList(STUDENTS))) })).toBeVisible()
+  await expect(page.getByRole('heading', { name: new RegExp(literally(t.allocation.review.studentList(PARTICIPATING))) })).toBeVisible()
   // Each rule with how many of its students the run met: sport every student's, careers guidance the 7th grade's.
   for (const rule of SCHOOL.campaign.rules) {
-    const students = SCHOOL.classes.filter((c) => rule.grades.includes(c.grade)).reduce((sum, c) => sum + c.students.length, 0)
+    const students = PARTICIPATING_CLASSES.filter((c) => rule.grades.includes(c.grade)).reduce((sum, c) => sum + c.students.length, 0)
     await expect(page.getByText(anyCount((met) => `${t.rules.asks(rule.category, rule.minimum, rule.unit)} · ${t.rules.scope(rule.grades, [])}: ${t.allocation.review.ruleMet(met, students)}`))).toBeVisible()
   }
   await expect(page.getByRole('heading', { name: anyCount(t.allocation.review.ruleGaps) })).toBeVisible()

@@ -5,24 +5,27 @@ import type { Campaign } from '../models/campaigns.ts'
 import type { CampaignStudent, SaveBy } from '../models/choices.ts'
 import { campaignRosterBatch } from './roster-selection.ts'
 
-export async function campaignStudents(db: Queryable, campaign: Pick<Campaign, 'rosterBatchId'>, className?: string): Promise<CampaignStudent[]> {
+/** The students of the campaign: those of its classes in the roster it goes by, or of one class of them. */
+export async function campaignStudents(db: Queryable, campaign: Pick<Campaign, 'id' | 'rosterBatchId'>, className?: string): Promise<CampaignStudent[]> {
   const { rows } = await db.query<{ person_id: string, display_name: string, class_name: string, grade: number, address: string | null }>(
     `select e.person_id, e.display_name, e.class_name, e.grade, coalesce(e.mail, e.upn) as address
        from roster_entry e
+       join campaign_class cc on cc.campaign_id = $2 and cc.class_name = e.class_name
       where e.batch_id = ${campaignRosterBatch(campaign)} and e.kind = 'student' and e.person_id is not null
-        and e.class_name is not null and e.grade is not null and ($1::text is null or e.class_name = $1)
+        and e.grade is not null and ($1::text is null or e.class_name = $1)
       order by e.class_name, e.display_name`,
-    [className ?? null],
+    [className ?? null, campaign.id],
   )
   return rows.map((row) => ({ personId: row.person_id, displayName: row.display_name, className: row.class_name, grade: row.grade, address: row.address }))
 }
 
-/** One student of the campaign's roster by person id; undefined when the roster does not list them as a student. */
-export async function campaignStudent(db: Queryable, campaign: Pick<Campaign, 'rosterBatchId'>, personId: string): Promise<CampaignStudent | undefined> {
+/** One student of the campaign by person id; undefined when the roster does not list them as a student of one of its classes. */
+export async function campaignStudent(db: Queryable, campaign: Pick<Campaign, 'id' | 'rosterBatchId'>, personId: string): Promise<CampaignStudent | undefined> {
   const { rows: [row] } = await db.query<{ display_name: string, class_name: string, grade: number, address: string | null }>(
     `select e.display_name, e.class_name, e.grade, coalesce(e.mail, e.upn) as address from roster_entry e
-      where e.batch_id = ${campaignRosterBatch(campaign)} and e.kind = 'student' and e.person_id = $1 and e.class_name is not null and e.grade is not null`,
-    [personId],
+       join campaign_class cc on cc.campaign_id = $2 and cc.class_name = e.class_name
+      where e.batch_id = ${campaignRosterBatch(campaign)} and e.kind = 'student' and e.person_id = $1 and e.grade is not null`,
+    [personId, campaign.id],
   )
   return row === undefined ? undefined : { personId, displayName: row.display_name, className: row.class_name, grade: row.grade, address: row.address }
 }

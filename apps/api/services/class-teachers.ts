@@ -30,7 +30,7 @@ import { isTeacher } from '../lib/policies.ts'
  * Every class page, workbook and recording asks this, never a list made
  * for the roster in force.
  */
-export async function classTeacherOf(db: Queryable, campaign: Pick<Campaign, 'rosterBatchId'>, caller: Caller): Promise<string[]> {
+export async function classTeacherOf(db: Queryable, campaign: Pick<Campaign, 'id' | 'rosterBatchId'>, caller: Caller): Promise<string[]> {
   if (!isTeacher(caller) || caller.person === null) return []
   return store.classesTaught(db, campaign, caller.person.id)
 }

@@ -1,6 +1,6 @@
 # Class lists
 
-The class lists tell SchulWahl who is at the school: all students with their class and year, and all teachers. Only people in the class lists take part in a registration. They come from the school's **Entra groups** or a **CSV file**. Both routes end the same way: SchulWahl shows you the imported list for review, and it only takes effect when you apply it.
+The class lists tell SchulWahl who is at the school: all students with their class and year, and all teachers. Only people in the class lists take part in a registration, and only in a class that takes part in it ([Setting up](/en/organisation/anlegen)). They come from the school's **Entra groups** or a **CSV file**. Both routes end the same way: SchulWahl shows you the imported list for review, and it only takes effect when you apply it.
 
 ## From Entra groups
 
@@ -67,6 +67,6 @@ Every import stays in the list with its status: for review, applied, discarded o
 
 ## What a new list changes
 
-- Anyone new in the list takes part from now on, even in a registration that is already open.
+- Anyone new in the list takes part from now on, even in a registration that is already open, if their class takes part in it. A class new to the list takes part in no registration until the organisation enters it in that registration's settings; the import says so while a registration is running.
 - Anyone missing from the new list keeps their account. Accounts and roles then shows “Not in the current class lists”, and the person takes part in nothing until a list includes them again. Their choices and allocation stay.
 - When a registration ends, SchulWahl freezes the class lists then in effect for it. A later list no longer changes that registration's allocation.
