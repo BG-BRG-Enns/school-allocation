@@ -1,3 +1,4 @@
+import type { CampaignState } from '@school-allocation/school-core'
 import type { Caller } from './actor.ts'
 import type { Campaign } from './models/campaigns.ts'
 import type { ChoiceView } from './models/choices.ts'
@@ -14,18 +15,24 @@ export function isTeacher(caller: Pick<Caller, 'person'>): boolean {
 }
 
 /**
- * Whether the caller may see the campaign: organizers see all of them,
- * teachers also one taking proposals, everyone signed in what is
- * published, the archived campaign included (read-only: the result and
- * the attendance stay readable); a student only one their class takes
- * part in. A campaign that is not visible does not exist for the caller.
+ * Whether the caller may see a campaign in `state`, by role: organizers
+ * see all of them, teachers also one taking proposals, everyone signed in
+ * what is published, the archived campaign included (read-only: the
+ * result and the attendance stay readable). A student sees only one a
+ * class of theirs takes part in, judged against the campaign's own roster
+ * (services/visibility.ts), never against the caller's current class: a
+ * class changes with the next school year, a retained result does not.
+ * A campaign that is not visible does not exist for the caller.
  */
-export function canSee(caller: Pick<Caller, 'roles' | 'person'>, campaign: Pick<Campaign, 'state' | 'classes'>): boolean {
+export function canSee(caller: Pick<Caller, 'roles' | 'person'>, state: CampaignState): boolean {
   if (isOrganizer(caller)) return true
-  if (campaign.state === 'catalogue') return isTeacher(caller)
-  if (campaign.state === 'draft') return false
-  if (caller.person?.kind === 'student') return caller.person.className !== null && campaign.classes.includes(caller.person.className)
-  return true
+  if (state === 'catalogue') return isTeacher(caller)
+  return state !== 'draft'
+}
+
+/** Whether the caller is a student of the roster in force. */
+export function isStudent(caller: Pick<Caller, 'person'>): boolean {
+  return caller.person?.kind === 'student'
 }
 
 /** Who may propose: teachers of the roster in force, and organizers on anyone's behalf. They always see the teachers of an item. */

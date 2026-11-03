@@ -132,4 +132,19 @@ test('a student of a class left out sees nothing of the registration; the openin
   const body = (await owner.query<{ body: string }>('select body from outbox_mail where campaign_id = $1 and kind = \'class_missing\'', [id])).rows[0]?.body ?? ''
   assert.match(body, /5A/)
   assert.doesNotMatch(body, /8B/)
+  // The close froze the roster. A later list moves Sara to 6A and Tim to 5A: the registration goes by its own roster,
+  // so Sara still reads it and Tim still does not; one still following the lists in force goes by them.
+  const moved = ['email;given_name;family_name;class;grade;kind;class_teacher_email', `${SARA.email};Sara;Pfnäxthuber;6A;10;student;`, `${TIM.email};Tim;Gnöxwieser;5A;9;student;`,
+    `${ANNA.email};Anna;Zwexmhofer;;;teacher;`, `${BERND.email};Bernd;Pfnöxlhofer;;;teacher;`, `${CARLA.email};Carla;Knoxbrunner;;;teacher;`].join('\n')
+  const batch = await send<BatchDetail>(s, s.anna, 'POST', '/api/admin/roster/csv', { csv: moved, schoolYear: '2026/27' })
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/roster/batches/${batch.body.id}/commit`)).status, 200)
+  const sara = await signIn(s, SARA)
+  const tim = await signIn(s, TIM)
+  assert.equal((await get(s, sara, `/api/campaigns/${id}`)).status, 200, 'Sara, now in 6A, still reads the registration frozen with her in 5A')
+  assert.equal((await get(s, tim, `/api/campaigns/${id}`)).status, 404, 'Tim, now in 5A, was not in it')
+  const next = await create(s, { name: 'Projektwoche 2028', classes: ['5A'] })
+  assert.equal((await move(s, next.body.id, 'catalogue')).status, 200)
+  assert.equal((await move(s, next.body.id, 'published')).status, 200)
+  assert.deepEqual((await get<{ campaigns: Campaign[] }>(s, tim, '/api/campaigns')).body.campaigns.map((c) => c.name), ['Projektwoche 2028'], 'a registration following the lists in force sees Tim in 5A')
+  assert.deepEqual((await get<{ campaigns: Campaign[] }>(s, sara, '/api/campaigns')).body.campaigns.map((c) => c.name), ['Projektwoche 2027'])
 })

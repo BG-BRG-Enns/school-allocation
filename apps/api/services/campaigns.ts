@@ -15,9 +15,9 @@ import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError, ClassInUse, RulesInvalid } from '../lib/errors.ts'
 import type { Campaign, CampaignChanges, CampaignWindow, NewCampaign, RuleInput } from '../lib/models/campaigns.ts'
 import type { WindowContext } from '../lib/models/window.ts'
-import { canSee } from '../lib/policies.ts'
 import { datesOfSpan } from '../lib/time.ts'
 import { uniqueSorted } from './catalogue-input.ts'
+import { visibleAmong } from './visibility.ts'
 import { windowEffects } from './window.ts'
 
 /** The states an organizer moves a campaign into by hand, the two steps back included (draft from catalogue, catalogue from published); the grace week comes by the clock alone, the allocation's states by a run and its publication. The archive closes the campaign after the event and the attendance: nothing changes afterwards. */
@@ -107,8 +107,9 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     await lockScope(client, id)
     const current = await lockedCampaign(client, id)
     if (!current) throw new ApplicationError('not_found')
+    // Compared as sets: the stored list comes in the database's order, the sent one in the form's.
     const classes = changes.classes === undefined ? undefined : uniqueSorted(changes.classes)
-    const classesChanged = classes !== undefined && classes.join() !== current.classes.join()
+    const classesChanged = classes !== undefined && (classes.length !== current.classes.length || classes.some((name) => !current.classes.includes(name)))
     const setUpChanged = changes.name !== current.name || changes.schoolYear !== current.schoolYear || changes.projectDays.join() !== current.projectDays.join() || classesChanged
     if (setUpChanged && current.state !== 'draft' && current.state !== 'catalogue') throw new ApplicationError('campaign_state')
     const window: CampaignWindow = { ...current }
@@ -268,8 +269,7 @@ export async function deleteCampaign(db: Database, rawId: string, actor: Actor):
 
 /** The campaigns the caller may see, newest first. */
 export async function listCampaigns(db: Queryable, caller: Pick<Caller, 'roles' | 'person'>): Promise<Campaign[]> {
-  const rows = await store.listCampaigns(db)
-  return rows.filter((campaign) => canSee(caller, campaign))
+  return visibleAmong(db, caller, await store.listCampaigns(db))
 }
 
 /**

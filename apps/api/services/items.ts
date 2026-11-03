@@ -17,9 +17,10 @@ import { numberApprovedItems, readItem, writeParts } from '../lib/dao/items.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError, ItemInvalid } from '../lib/errors.ts'
 import type { Item, ItemInput, Move } from '../lib/models/items.ts'
-import { canSee, isOwn } from '../lib/policies.ts'
+import { isOwn } from '../lib/policies.ts'
 import { datesOfSpan, instantOf } from '../lib/time.ts'
 import { reconcilePreAssignments } from './pre-assignments.ts'
+import { mayView } from './visibility.ts'
 
 /**
  * Checks an activity against its campaign's project days and classes and
@@ -279,6 +280,6 @@ async function mustRead(db: Queryable, id: string): Promise<Item> {
 export async function withVisibleItem<T>(db: Database, id: string, caller: Caller, operation: () => Promise<T>): Promise<T> {
   const item = await readItem(db, id)
   const campaign = item === undefined ? undefined : await readCampaign(db, item.campaignId)
-  if (!item || !campaign || !canSee(caller, campaign)) throw new ApplicationError('not_found')
+  if (!item || !campaign || !(await mayView(db, caller, campaign))) throw new ApplicationError('not_found')
   return operation()
 }

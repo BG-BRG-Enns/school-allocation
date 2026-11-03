@@ -3,7 +3,7 @@ import { type Caller } from '../actor.ts'
 import type { Queryable } from '../db.ts'
 import type { Campaign } from '../models/campaigns.ts'
 import type { CampaignStudent, SaveBy } from '../models/choices.ts'
-import { campaignRosterBatch } from './roster-selection.ts'
+import { campaignRosterBatch, CURRENT_BATCH_ID } from './roster-selection.ts'
 
 /** The students of the campaign: those of its classes in the roster it goes by, or of one class of them. */
 export async function campaignStudents(db: Queryable, campaign: Pick<Campaign, 'id' | 'rosterBatchId'>, className?: string): Promise<CampaignStudent[]> {
@@ -28,6 +28,18 @@ export async function campaignStudent(db: Queryable, campaign: Pick<Campaign, 'i
     [personId, campaign.id],
   )
   return row === undefined ? undefined : { personId, displayName: row.display_name, className: row.class_name, grade: row.grade, address: row.address }
+}
+
+/** Which of the campaigns `ids` the person is a student of, each judged by its own roster: a class of theirs in it takes part. */
+export async function memberCampaignIds(db: Queryable, personId: string, ids: readonly string[]): Promise<string[]> {
+  const { rows } = await db.query<{ id: string }>(
+    `select c.id from campaign c
+       join roster_entry e on e.batch_id = coalesce(c.roster_batch_id, ${CURRENT_BATCH_ID}) and e.kind = 'student' and e.person_id = $1
+       join campaign_class cc on cc.campaign_id = c.id and cc.class_name = e.class_name
+      where c.id = any($2::uuid[])`,
+    [personId, ids],
+  )
+  return rows.map((row) => row.id)
 }
 
 /** The items a student is placed into, exemptions left out. */

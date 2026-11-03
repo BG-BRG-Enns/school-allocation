@@ -6,17 +6,18 @@ import { readSnapshot, type Database } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
 import { type StudentChoiceState } from '../lib/models/choices.ts'
-import { canSee, isOrganizer, isTeacher, mayPropose, maySeeDemand, withoutTeachers } from '../lib/policies.ts'
+import { isOrganizer, isTeacher, mayPropose, maySeeDemand, withoutTeachers } from '../lib/policies.ts'
 import { campaignDemand, requireCampaign } from './campaigns.ts'
 import { classTeacherOf } from './class-teachers.ts'
 import { choiceStates } from './choices.ts'
 import { catalogueItems, listItems } from './items.ts'
 import { classPlacements, type ClassPlacement } from './publication.ts'
+import { mayView } from './visibility.ts'
 
 /** A campaign outside the caller's scope is indistinguishable from a missing one. */
 export async function visibleCampaign(db: Database, caller: Caller, id: string): Promise<Campaign> {
   const campaign = await readCampaign(db, id)
-  if (!campaign || !canSee(caller, campaign)) throw new ApplicationError('not_found')
+  if (!campaign || !(await mayView(db, caller, campaign))) throw new ApplicationError('not_found')
   return campaign
 }
 
