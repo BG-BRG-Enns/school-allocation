@@ -214,82 +214,82 @@ async function onTest(kind: MailKind): Promise<void> {
             </button>
           </p>
         </template>
-        <form
-          v-else-if="editing"
-          class="panel"
-          :aria-label="t.mailTemplates.editing(MAIL_KIND_LABELS[template.kind] ?? template.kind)"
-          @submit.prevent="onSave"
-        >
-          <p class="field">
-            <label :for="`subject-${template.kind}`">{{ t.mailTemplates.subject }}</label>
-            <input
-              :id="`subject-${template.kind}`"
-              v-model="editing.subject"
-              required
-              maxlength="200"
-              @focus="lastField = 'subject'"
-            >
-          </p>
-          <p class="field">
-            <label :for="`body-${template.kind}`">{{ t.mailTemplates.body }}</label>
-            <textarea
-              :id="`body-${template.kind}`"
-              v-model="editing.body"
-              rows="12"
-              maxlength="8000"
-              required
-              @focus="lastField = 'body'"
-            />
-          </p>
-          <h3>{{ t.mailTemplates.placeholders }}</h3>
-          <p class="muted">
-            {{ t.mailTemplates.placeholderHint }}
-          </p>
-          <ul class="plain placeholders">
-            <li
-              v-for="name in template.placeholders"
-              :key="name"
-            >
-              <button
-                type="button"
-                class="ghost"
-                @mousedown.prevent
-                @click="insertPlaceholder(name)"
-              >
-                {{ written(name) }}
-              </button>
-              {{ MEANINGS[name] ?? '' }}
-            </li>
-          </ul>
-          <ul
-            v-if="problems.length > 0"
-            class="alert"
-            role="alert"
+      </Collapsible>
+      <form
+        v-if="editing && editing.kind === template.kind"
+        class="panel"
+        :aria-label="t.mailTemplates.editing(MAIL_KIND_LABELS[template.kind] ?? template.kind)"
+        @submit.prevent="onSave"
+      >
+        <p class="field">
+          <label :for="`subject-${template.kind}`">{{ t.mailTemplates.subject }}</label>
+          <input
+            :id="`subject-${template.kind}`"
+            v-model="editing.subject"
+            required
+            maxlength="200"
+            @focus="lastField = 'subject'"
           >
-            <li
-              v-for="problem in problems"
-              :key="problem"
-            >
-              {{ problem }}
-            </li>
-          </ul>
-          <p class="actions">
-            <button
-              type="submit"
-              :disabled="saving.busy.value"
-            >
-              {{ t.common.save }}
-            </button>
+        </p>
+        <p class="field">
+          <label :for="`body-${template.kind}`">{{ t.mailTemplates.body }}</label>
+          <textarea
+            :id="`body-${template.kind}`"
+            v-model="editing.body"
+            rows="12"
+            maxlength="8000"
+            required
+            @focus="lastField = 'body'"
+          />
+        </p>
+        <h3>{{ t.mailTemplates.placeholders }}</h3>
+        <p class="muted">
+          {{ t.mailTemplates.placeholderHint }}
+        </p>
+        <ul class="plain placeholders">
+          <li
+            v-for="name in template.placeholders"
+            :key="name"
+          >
             <button
               type="button"
               class="ghost"
-              @click="editing = null"
+              @mousedown.prevent
+              @click="insertPlaceholder(name)"
             >
-              {{ t.common.cancel }}
+              {{ written(name) }}
             </button>
-          </p>
-        </form>
-      </Collapsible>
+            {{ MEANINGS[name] ?? '' }}
+          </li>
+        </ul>
+        <ul
+          v-if="problems.length > 0"
+          class="alert"
+          role="alert"
+        >
+          <li
+            v-for="problem in problems"
+            :key="problem"
+          >
+            {{ problem }}
+          </li>
+        </ul>
+        <p class="actions">
+          <button
+            type="submit"
+            :disabled="saving.busy.value"
+          >
+            {{ t.common.save }}
+          </button>
+          <button
+            type="button"
+            class="ghost"
+            @click="editing = null"
+          >
+            {{ t.common.cancel }}
+          </button>
+        </p>
+      </form>
     </section>
   </template>
 </template>

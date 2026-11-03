@@ -4,7 +4,7 @@
 // the page's (lib/list-filter.ts useListFilter), so the page filters and
 // the browser remembers.
 
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { isFiltering, type FilterField, type FilterValues } from '../lib/list-filter.ts'
 import { t } from '../lib/i18n.ts'
 
@@ -24,6 +24,14 @@ const active = computed(() => isFiltering(props.modelValue))
 function set(key: string, value: string | boolean): void {
   emit('update:modelValue', { ...props.modelValue, [key]: value })
 }
+
+// A choice the browser remembered that the list no longer offers (a class of another registration under the same key, a
+// category since removed) would hide every row behind a select showing "all"; once the options are there, it is cleared.
+// Options still loading are an empty list, which keeps the choice.
+watch([() => props.fields, () => props.modelValue], ([fields, values]) => {
+  const stale = fields.filter((field) => field.kind === 'select' && (field.options?.length ?? 0) > 0 && typeof values[field.key] === 'string' && values[field.key] !== '' && !field.options?.some((option) => option.value === values[field.key]))
+  if (stale.length > 0) emit('update:modelValue', { ...values, ...Object.fromEntries(stale.map((field) => [field.key, ''])) })
+}, { immediate: true, deep: true })
 
 /** Every value back to "not filtered": the fields shown, and a value kept for a field the page does not show right now (a category control a teacher has no categories for). */
 function clear(): void {

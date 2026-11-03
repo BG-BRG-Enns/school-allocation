@@ -21,18 +21,19 @@ function storage(): Pick<Storage, 'getItem' | 'setItem'> | undefined {
   }
 }
 
-/** Whether `value` has the shape of `initial`: the same type, and an array where an array is expected. */
+/** Whether `value` has the shape of `initial`: the same type, an array where an array is expected, and null only for null (typeof null is "object"). */
 function sameShape(value: unknown, initial: unknown): boolean {
   if (Array.isArray(initial)) return Array.isArray(value)
-  if (initial === null) return value === null
+  if (initial === null || value === null) return value === initial
   return typeof value === typeof initial && !Array.isArray(value)
 }
 
 /** What was stored under `key`, when it has the shape of `initial`; else `initial`. */
 export function readUiState<T>(key: string, initial: T): T {
-  const raw = storage()?.getItem(PREFIX + key) ?? null
-  if (raw === null) return initial
   try {
+    // The read is inside too: a browser that denies storage may throw on it, not only on the property.
+    const raw = storage()?.getItem(PREFIX + key) ?? null
+    if (raw === null) return initial
     const parsed: unknown = JSON.parse(raw)
     return sameShape(parsed, initial) ? parsed as T : initial
   } catch {

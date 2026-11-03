@@ -1342,39 +1342,39 @@ function onSubmitPending(): void {
             </tr>
           </tbody>
         </table>
-        <form
-          v-if="pending"
-          class="panel"
-          :aria-label="pending.kind === 'return' ? t.campaign.pending.returnTitle(pending.item.title) : t.campaign.pending.withdrawTitle(pending.item.title)"
-          @submit.prevent="onSubmitPending"
-        >
-          <h3>{{ pending.kind === 'return' ? t.campaign.pending.returnTitle(pending.item.title) : t.campaign.pending.withdrawTitle(pending.item.title) }}</h3>
-          <p class="field">
-            <label for="pending-text">{{ pending.kind === 'return' ? t.campaign.pending.returnNote : t.common.field.reason }}</label>
-            <input
-              id="pending-text"
-              v-model="text"
-              required
-              maxlength="500"
-            >
-          </p>
-          <p class="actions">
-            <button
-              type="submit"
-              :disabled="action.busy.value"
-            >
-              {{ pending.kind === 'return' ? t.campaign.items.return : t.campaign.items.withdraw }}
-            </button>
-            <button
-              type="button"
-              class="ghost"
-              @click="pending = null"
-            >
-              {{ t.common.cancel }}
-            </button>
-          </p>
-        </form>
       </Collapsible>
+      <form
+        v-if="pending"
+        class="panel"
+        :aria-label="pending.kind === 'return' ? t.campaign.pending.returnTitle(pending.item.title) : t.campaign.pending.withdrawTitle(pending.item.title)"
+        @submit.prevent="onSubmitPending"
+      >
+        <h3>{{ pending.kind === 'return' ? t.campaign.pending.returnTitle(pending.item.title) : t.campaign.pending.withdrawTitle(pending.item.title) }}</h3>
+        <p class="field">
+          <label for="pending-text">{{ pending.kind === 'return' ? t.campaign.pending.returnNote : t.common.field.reason }}</label>
+          <input
+            id="pending-text"
+            v-model="text"
+            required
+            maxlength="500"
+          >
+        </p>
+        <p class="actions">
+          <button
+            type="submit"
+            :disabled="action.busy.value"
+          >
+            {{ pending.kind === 'return' ? t.campaign.items.return : t.campaign.items.withdraw }}
+          </button>
+          <button
+            type="button"
+            class="ghost"
+            @click="pending = null"
+          >
+            {{ t.common.cancel }}
+          </button>
+        </p>
+      </form>
     </section>
   </template>
 </template>
