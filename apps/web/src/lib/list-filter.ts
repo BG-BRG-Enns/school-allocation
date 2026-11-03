@@ -18,9 +18,16 @@ export interface FilterField {
 /** The values by field key: '' or false means "not filtered by this". */
 export type FilterValues = Record<string, string | boolean>
 
-/** The filter's values, remembered under `id`; a value stored for a field that is gone is ignored. */
+/** The filter's values, remembered under `id`; a field the stored values lack starts from `initial`, so every key the page reads is there. */
 export function useListFilter(id: string, initial: FilterValues): Ref<FilterValues> {
-  return useUiState<FilterValues>(`${id}:filter`, initial)
+  const state = useUiState<FilterValues>(`${id}:filter`, initial)
+  state.value = { ...initial, ...state.value }
+  return state
+}
+
+/** Whether `chosen` is one of `values`, or nothing is chosen (also a value the page never set). */
+export function matchesOneOf(values: readonly string[], chosen: string | boolean | undefined): boolean {
+  return chosen === '' || chosen === undefined || chosen === false || chosen === true || values.includes(chosen)
 }
 
 /** Whether any value filters. */

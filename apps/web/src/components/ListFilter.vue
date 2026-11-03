@@ -25,8 +25,10 @@ function set(key: string, value: string | boolean): void {
   emit('update:modelValue', { ...props.modelValue, [key]: value })
 }
 
+/** Every value back to "not filtered": the fields shown, and a value kept for a field the page does not show right now (a category control a teacher has no categories for). */
 function clear(): void {
-  emit('update:modelValue', Object.fromEntries(props.fields.map((field) => [field.key, field.kind === 'check' ? false : ''])))
+  const kept = Object.fromEntries(Object.entries(props.modelValue).map(([key, value]) => [key, typeof value === 'boolean' ? false : '']))
+  emit('update:modelValue', { ...kept, ...Object.fromEntries(props.fields.map((field) => [field.key, field.kind === 'check' ? false : ''])) })
 }
 </script>
 

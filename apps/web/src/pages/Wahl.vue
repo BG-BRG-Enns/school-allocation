@@ -18,7 +18,7 @@ import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf, nextDay } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
 import { CAMPAIGN_STATE_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS, MAIL_KIND_LABELS, MAIL_STATE_LABELS, RULE_PROBLEM_LABELS, RULE_UNIT_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
-import { filtered, matchesOption, matchesText, useListFilter, type FilterField } from '../lib/list-filter.ts'
+import { filtered, matchesOneOf, matchesOption, matchesText, useListFilter, type FilterField } from '../lib/list-filter.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
@@ -100,7 +100,7 @@ const itemFields = computed<FilterField[]>(() => [
   ...(categories.value.length > 0 ? [{ key: 'category', kind: 'select' as const, label: t.filters.category, options: categories.value.map((c) => ({ value: c.id, label: c.name })) }] : []),
   { key: 'text', kind: 'text', label: t.filters.text },
 ])
-const itemsShown = filtered(items, itemFilter, (item, f) => matchesOption(item.state, f.state) && (f.category === '' || item.categoryIds.includes(String(f.category))) && matchesText([item.title, ...item.teachers.map((teacher) => teacher.displayName)], f.text))
+const itemsShown = filtered(items, itemFilter, (item, f) => matchesOption(item.state, f.state) && matchesOneOf(item.categoryIds, f.category) && matchesText([item.title, ...item.teachers.map((teacher) => teacher.displayName)], f.text))
 
 // The registration's mails still waiting to be sent: a link to the mails page, where they can be looked at or discarded.
 const mailsWaiting = ref(0)
