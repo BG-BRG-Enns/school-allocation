@@ -104,7 +104,7 @@ test('einen Tag vor dem Ende wird erinnert, wer fehlt; die Organisation gibt fü
   const status = section(page, t.campaign.missing.heading)
   await status.getByRole('heading', { name: t.campaign.missing.heading }).click()
   await expect(tim).toBeHidden()
-  await page.getByRole('link', { name: t.common.page.campaigns }).click()
+  await page.getByRole('link', { name: t.common.page.campaigns, exact: true }).click()
   await page.getByRole('link', { name: sample.projectWeek }).click()
   await expect(page.getByRole('heading', { name: t.campaign.missing.heading })).toBeVisible()
   await expect(tim).toBeHidden()

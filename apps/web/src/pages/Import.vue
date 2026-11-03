@@ -27,7 +27,7 @@ const diffFilter = useListFilter('import:diff', { text: '' })
 const diffFields: FilterField[] = [{ key: 'text', kind: 'text', label: t.filters.classOrName }]
 const addedShown = filtered(() => batch.value?.diff.added ?? [], diffFilter, (entry, f) => matchesText([entry.className, entry.displayName], f.text))
 const removedShown = filtered(() => batch.value?.diff.removed ?? [], diffFilter, (entry, f) => matchesText([entry.className, entry.displayName], f.text))
-const changedShown = filtered(() => batch.value?.diff.changed ?? [], diffFilter, (change, f) => matchesText([change.after.className, change.before.className, change.after.displayName], f.text))
+const changedShown = filtered(() => batch.value?.diff.changed ?? [], diffFilter, (change, f) => matchesText([change.after.className, change.before.className, change.after.displayName, change.before.displayName], f.text))
 
 async function load(): Promise<void> {
   await loading.run(async () => {
