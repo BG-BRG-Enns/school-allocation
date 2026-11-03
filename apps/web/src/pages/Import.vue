@@ -3,11 +3,14 @@
 // wrong with it, and the decision: it becomes the list, or it is set aside.
 
 import { computed, onMounted, ref, watch } from 'vue'
+import Collapsible from '../components/Collapsible.vue'
+import ListFilter from '../components/ListFilter.vue'
 import { commitBatch, discardBatch, loadBatch, type BatchDetail, type StoredEntry } from '../lib/admin-api.ts'
 import { loadCampaigns } from '../lib/campaigns-api.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
 import { t } from '../lib/i18n.ts'
 import { BATCH_STATE_LABELS, FIELD_LABELS, KIND_LABELS, PROBLEM_LABELS, SOURCE_LABELS, WARNING_LABELS } from '../lib/labels.ts'
+import { filtered, matchesText, useListFilter, type FilterField } from '../lib/list-filter.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string }>()
@@ -18,6 +21,13 @@ const batch = ref<BatchDetail | null>(null)
 const registrationRunning = ref(false)
 const loading = useFeedback()
 const decision = useFeedback()
+
+// One filter over the three tables of the diff: a class, or a name.
+const diffFilter = useListFilter('import:diff', { text: '' })
+const diffFields: FilterField[] = [{ key: 'text', kind: 'text', label: t.filters.classOrName }]
+const addedShown = filtered(() => batch.value?.diff.added ?? [], diffFilter, (entry, f) => matchesText([entry.className, entry.displayName], f.text))
+const removedShown = filtered(() => batch.value?.diff.removed ?? [], diffFilter, (entry, f) => matchesText([entry.className, entry.displayName], f.text))
+const changedShown = filtered(() => batch.value?.diff.changed ?? [], diffFilter, (change, f) => matchesText([change.after.className, change.before.className, change.after.displayName], f.text))
 
 async function load(): Promise<void> {
   await loading.run(async () => {
@@ -173,106 +183,129 @@ function field(entry: StoredEntry, name: string): string {
         {{ decision.notice.value }}
       </p>
 
-      <h3 v-if="batch.diff.added.length > 0">
-        {{ t.rosterImport.changes.added }}
-      </h3>
-      <table
-        v-if="batch.diff.added.length > 0"
-        class="table"
-      >
-        <thead>
-          <tr>
-            <th scope="col">
-              {{ t.common.field.name }}
-            </th>
-            <th scope="col">
-              {{ t.rosterImport.changes.kindAndClass }}
-            </th>
-            <th scope="col">
-              {{ t.common.field.email }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="entry in batch.diff.added"
-            :key="entry.id"
+      <ListFilter
+        v-if="batch.diff.added.length + batch.diff.removed.length + batch.diff.changed.length > 0"
+        id="diff"
+        v-model="diffFilter"
+        :fields="diffFields"
+        :shown="addedShown.length + removedShown.length + changedShown.length"
+        :total="batch.diff.added.length + batch.diff.removed.length + batch.diff.changed.length"
+      />
+      <section v-if="batch.diff.added.length > 0">
+        <Collapsible
+          id="import:added"
+          :heading="t.rosterImport.changes.added"
+          :level="3"
+        >
+          <table
+            v-if="addedShown.length > 0"
+            class="table"
           >
-            <td>{{ entry.displayName }}</td>
-            <td>{{ describe(entry) }}</td>
-            <td>{{ entry.mail ?? entry.upn ?? '–' }}</td>
-          </tr>
-        </tbody>
-      </table>
+            <thead>
+              <tr>
+                <th scope="col">
+                  {{ t.common.field.name }}
+                </th>
+                <th scope="col">
+                  {{ t.rosterImport.changes.kindAndClass }}
+                </th>
+                <th scope="col">
+                  {{ t.common.field.email }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="entry in addedShown"
+                :key="entry.id"
+              >
+                <td>{{ entry.displayName }}</td>
+                <td>{{ describe(entry) }}</td>
+                <td>{{ entry.mail ?? entry.upn ?? '–' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </Collapsible>
+      </section>
 
-      <h3 v-if="batch.diff.removed.length > 0">
-        {{ t.rosterImport.changes.removed }}
-      </h3>
-      <table
-        v-if="batch.diff.removed.length > 0"
-        class="table"
-      >
-        <thead>
-          <tr>
-            <th scope="col">
-              {{ t.common.field.name }}
-            </th>
-            <th scope="col">
-              {{ t.rosterImport.changes.kindAndClass }}
-            </th>
-            <th scope="col">
-              {{ t.common.field.email }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="entry in batch.diff.removed"
-            :key="entry.id"
+      <section v-if="batch.diff.removed.length > 0">
+        <Collapsible
+          id="import:removed"
+          :heading="t.rosterImport.changes.removed"
+          :level="3"
+        >
+          <table
+            v-if="removedShown.length > 0"
+            class="table"
           >
-            <td>{{ entry.displayName }}</td>
-            <td>{{ describe(entry) }}</td>
-            <td>{{ entry.mail ?? entry.upn ?? '–' }}</td>
-          </tr>
-        </tbody>
-      </table>
+            <thead>
+              <tr>
+                <th scope="col">
+                  {{ t.common.field.name }}
+                </th>
+                <th scope="col">
+                  {{ t.rosterImport.changes.kindAndClass }}
+                </th>
+                <th scope="col">
+                  {{ t.common.field.email }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="entry in removedShown"
+                :key="entry.id"
+              >
+                <td>{{ entry.displayName }}</td>
+                <td>{{ describe(entry) }}</td>
+                <td>{{ entry.mail ?? entry.upn ?? '–' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </Collapsible>
+      </section>
 
-      <h3 v-if="batch.diff.changed.length > 0">
-        {{ t.rosterImport.changes.changed }}
-      </h3>
-      <table
-        v-if="batch.diff.changed.length > 0"
-        class="table"
-      >
-        <thead>
-          <tr>
-            <th scope="col">
-              {{ t.common.field.name }}
-            </th>
-            <th scope="col">
-              {{ t.rosterImport.changes.change }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="change in batch.diff.changed"
-            :key="change.key"
+      <section v-if="batch.diff.changed.length > 0">
+        <Collapsible
+          id="import:changed"
+          :heading="t.rosterImport.changes.changed"
+          :level="3"
+        >
+          <table
+            v-if="changedShown.length > 0"
+            class="table"
           >
-            <td>{{ change.after.displayName }}</td>
-            <td>
-              <ul class="plain">
-                <li
-                  v-for="name in change.fields"
-                  :key="name"
-                >
-                  {{ FIELD_LABELS[name] ?? name }}: {{ field(change.before, name) }} → {{ field(change.after, name) }}
-                </li>
-              </ul>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            <thead>
+              <tr>
+                <th scope="col">
+                  {{ t.common.field.name }}
+                </th>
+                <th scope="col">
+                  {{ t.rosterImport.changes.change }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="change in changedShown"
+                :key="change.key"
+              >
+                <td>{{ change.after.displayName }}</td>
+                <td>
+                  <ul class="plain">
+                    <li
+                      v-for="name in change.fields"
+                      :key="name"
+                    >
+                      {{ FIELD_LABELS[name] ?? name }}: {{ field(change.before, name) }} → {{ field(change.after, name) }}
+                    </li>
+                  </ul>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </Collapsible>
+      </section>
     </section>
   </template>
 </template>

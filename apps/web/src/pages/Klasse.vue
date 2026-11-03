@@ -7,6 +7,7 @@
 // the attendance per project day and session (D-16), recorded here.
 
 import { computed, onMounted, ref, watch } from 'vue'
+import Collapsible from '../components/Collapsible.vue'
 import { classAttendanceExportPath, loadClassAttendance, placeStudent, recordAttendance, type AttendanceStatus, type ClassAttendanceResponse } from '../lib/allocation-api.ts'
 import { withBase } from '../lib/base.ts'
 import { loadCampaign, loadCategories, loadClassStatus, type Campaign, type Category, type ClassStatus } from '../lib/campaigns-api.ts'
@@ -256,84 +257,89 @@ watch(() => [props.id, props.className], load)
       <p class="muted">
         {{ t.schoolClass.attendance.intro }} {{ attendance.recordable ? t.schoolClass.attendance.recordable : t.schoolClass.attendance.readOnly }}
       </p>
-      <div
-        v-for="day in attendance.days"
+      <section
+        v-for="(day, index) in attendance.days"
         :key="day.date"
       >
-        <h3>{{ formatDay(day.date) }}</h3>
-        <p
-          v-if="day.rows.length === 0"
-          class="muted"
+        <Collapsible
+          :id="`klasse:attendance:${index + 1}`"
+          :heading="formatDay(day.date)"
+          :level="3"
         >
-          {{ t.schoolClass.attendance.noSession }}
-        </p>
-        <form
-          v-else
-          :aria-label="t.schoolClass.attendance.ofDay(formatDay(day.date))"
-          @submit.prevent="onSaveAttendance(day.date)"
-        >
-          <table>
-            <thead>
-              <tr>
-                <th>{{ t.common.field.student }}</th>
-                <th>{{ t.common.field.item }}</th>
-                <th>{{ t.schoolClass.attendance.status }}</th>
-                <th>{{ t.schoolClass.attendance.note }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="r in day.rows"
-                :key="`${r.sessionId}-${r.personId}`"
-              >
-                <td>{{ r.displayName }}</td>
-                <td>{{ r.number === null ? r.title : `${r.number}. ${r.title}` }} · {{ formatSpan(r.startsAt, r.endsAt) }}</td>
-                <td>
-                  <select
-                    v-model="marks[markKey(r.sessionId, r.personId)]"
-                    :aria-label="t.schoolClass.attendance.statusOf(r.displayName, r.title)"
-                    :disabled="!attendance.recordable"
-                  >
-                    <option
-                      value=""
-                      :disabled="r.status !== null"
-                    >
-                      –
-                    </option>
-                    <option
-                      v-for="st in STATUSES"
-                      :key="st"
-                      :value="st"
-                    >
-                      {{ ATTENDANCE_STATUS_LABELS[st] ?? st }}
-                    </option>
-                  </select>
-                </td>
-                <td>
-                  <input
-                    v-model="notes[markKey(r.sessionId, r.personId)]"
-                    type="text"
-                    maxlength="200"
-                    :aria-label="t.schoolClass.attendance.noteOf(r.displayName, r.title)"
-                    :disabled="!attendance.recordable"
-                  >
-                </td>
-              </tr>
-            </tbody>
-          </table>
           <p
-            v-if="attendance.recordable"
-            class="actions"
+            v-if="day.rows.length === 0"
+            class="muted"
           >
-            <button
-              type="submit"
-              :disabled="action.busy.value"
-            >
-              {{ t.schoolClass.attendance.save }}
-            </button>
+            {{ t.schoolClass.attendance.noSession }}
           </p>
-        </form>
-      </div>
+          <form
+            v-else
+            :aria-label="t.schoolClass.attendance.ofDay(formatDay(day.date))"
+            @submit.prevent="onSaveAttendance(day.date)"
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th>{{ t.common.field.student }}</th>
+                  <th>{{ t.common.field.item }}</th>
+                  <th>{{ t.schoolClass.attendance.status }}</th>
+                  <th>{{ t.schoolClass.attendance.note }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="r in day.rows"
+                  :key="`${r.sessionId}-${r.personId}`"
+                >
+                  <td>{{ r.displayName }}</td>
+                  <td>{{ r.number === null ? r.title : `${r.number}. ${r.title}` }} · {{ formatSpan(r.startsAt, r.endsAt) }}</td>
+                  <td>
+                    <select
+                      v-model="marks[markKey(r.sessionId, r.personId)]"
+                      :aria-label="t.schoolClass.attendance.statusOf(r.displayName, r.title)"
+                      :disabled="!attendance.recordable"
+                    >
+                      <option
+                        value=""
+                        :disabled="r.status !== null"
+                      >
+                        –
+                      </option>
+                      <option
+                        v-for="st in STATUSES"
+                        :key="st"
+                        :value="st"
+                      >
+                        {{ ATTENDANCE_STATUS_LABELS[st] ?? st }}
+                      </option>
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      v-model="notes[markKey(r.sessionId, r.personId)]"
+                      type="text"
+                      maxlength="200"
+                      :aria-label="t.schoolClass.attendance.noteOf(r.displayName, r.title)"
+                      :disabled="!attendance.recordable"
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p
+              v-if="attendance.recordable"
+              class="actions"
+            >
+              <button
+                type="submit"
+                :disabled="action.busy.value"
+              >
+                {{ t.schoolClass.attendance.save }}
+              </button>
+            </p>
+          </form>
+        </Collapsible>
+      </section>
       <p class="actions">
         <a
           class="button ghost-link"

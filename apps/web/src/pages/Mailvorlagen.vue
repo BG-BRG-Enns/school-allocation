@@ -9,6 +9,7 @@
 
 import type { MailKind } from '@school-allocation/api-contracts'
 import { computed, nextTick, onMounted, ref } from 'vue'
+import Collapsible from '../components/Collapsible.vue'
 import { loadMailTemplates, resetMailTemplate, saveMailTemplate, sendTestMail, type MailTemplate, type TemplateInvalidBody } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { useFeedback } from '../lib/feedback.ts'
@@ -166,125 +167,129 @@ async function onTest(kind: MailKind): Promise<void> {
       v-for="template in templates"
       :key="template.kind"
     >
-      <h2>{{ MAIL_KIND_LABELS[template.kind] ?? template.kind }}</h2>
-      <p>
-        <span class="badge">{{ template.custom ? t.mailTemplates.customText : t.mailTemplates.defaultText }}</span>
-      </p>
-      <p
-        v-if="otherLanguage(template)"
-        class="alert"
+      <Collapsible
+        :id="`mailvorlagen:${template.kind}`"
+        :heading="MAIL_KIND_LABELS[template.kind] ?? template.kind"
       >
-        {{ otherLanguage(template) }}
-      </p>
-      <template v-if="editing?.kind !== template.kind">
-        <p><strong>{{ template.subject }}</strong></p>
-        <pre class="mail-body">{{ template.body }}</pre>
-        <p class="muted">
-          {{ t.mailTemplates.placeholders }}: {{ placeholderList(template) }}
+        <p>
+          <span class="badge">{{ template.custom ? t.mailTemplates.customText : t.mailTemplates.defaultText }}</span>
         </p>
-        <p class="actions">
-          <button
-            type="button"
-            class="ghost"
-            @click="startEditing(template)"
-          >
-            {{ t.common.edit }}
-          </button>
-          <button
-            v-if="template.custom"
-            type="button"
-            class="ghost"
-            :disabled="saving.busy.value"
-            @click="onReset(template.kind)"
-          >
-            {{ t.mailTemplates.reset }}
-          </button>
-          <button
-            v-if="mailEnabled"
-            type="button"
-            class="ghost"
-            :disabled="saving.busy.value"
-            @click="onTest(template.kind)"
-          >
-            {{ t.mailTemplates.sendTest }}
-          </button>
+        <p
+          v-if="otherLanguage(template)"
+          class="alert"
+        >
+          {{ otherLanguage(template) }}
         </p>
-      </template>
-      <form
-        v-else-if="editing"
-        class="panel"
-        :aria-label="t.mailTemplates.editing(MAIL_KIND_LABELS[template.kind] ?? template.kind)"
-        @submit.prevent="onSave"
-      >
-        <p class="field">
-          <label :for="`subject-${template.kind}`">{{ t.mailTemplates.subject }}</label>
-          <input
-            :id="`subject-${template.kind}`"
-            v-model="editing.subject"
-            required
-            maxlength="200"
-            @focus="lastField = 'subject'"
-          >
-        </p>
-        <p class="field">
-          <label :for="`body-${template.kind}`">{{ t.mailTemplates.body }}</label>
-          <textarea
-            :id="`body-${template.kind}`"
-            v-model="editing.body"
-            rows="12"
-            maxlength="8000"
-            required
-            @focus="lastField = 'body'"
-          />
-        </p>
-        <h3>{{ t.mailTemplates.placeholders }}</h3>
-        <p class="muted">
-          {{ t.mailTemplates.placeholderHint }}
-        </p>
-        <ul class="plain placeholders">
-          <li
-            v-for="name in template.placeholders"
-            :key="name"
-          >
+        <template v-if="editing?.kind !== template.kind">
+          <p><strong>{{ template.subject }}</strong></p>
+          <pre class="mail-body">{{ template.body }}</pre>
+          <p class="muted">
+            {{ t.mailTemplates.placeholders }}: {{ placeholderList(template) }}
+          </p>
+          <p class="actions">
             <button
               type="button"
               class="ghost"
-              @mousedown.prevent
-              @click="insertPlaceholder(name)"
+              @click="startEditing(template)"
             >
-              {{ written(name) }}
+              {{ t.common.edit }}
             </button>
-            {{ MEANINGS[name] ?? '' }}
-          </li>
-        </ul>
-        <ul
-          v-if="problems.length > 0"
-          class="alert"
-          role="alert"
+            <button
+              v-if="template.custom"
+              type="button"
+              class="ghost"
+              :disabled="saving.busy.value"
+              @click="onReset(template.kind)"
+            >
+              {{ t.mailTemplates.reset }}
+            </button>
+            <button
+              v-if="mailEnabled"
+              type="button"
+              class="ghost"
+              :disabled="saving.busy.value"
+              @click="onTest(template.kind)"
+            >
+              {{ t.mailTemplates.sendTest }}
+            </button>
+          </p>
+        </template>
+        <form
+          v-else-if="editing"
+          class="panel"
+          :aria-label="t.mailTemplates.editing(MAIL_KIND_LABELS[template.kind] ?? template.kind)"
+          @submit.prevent="onSave"
         >
-          <li
-            v-for="problem in problems"
-            :key="problem"
+          <p class="field">
+            <label :for="`subject-${template.kind}`">{{ t.mailTemplates.subject }}</label>
+            <input
+              :id="`subject-${template.kind}`"
+              v-model="editing.subject"
+              required
+              maxlength="200"
+              @focus="lastField = 'subject'"
+            >
+          </p>
+          <p class="field">
+            <label :for="`body-${template.kind}`">{{ t.mailTemplates.body }}</label>
+            <textarea
+              :id="`body-${template.kind}`"
+              v-model="editing.body"
+              rows="12"
+              maxlength="8000"
+              required
+              @focus="lastField = 'body'"
+            />
+          </p>
+          <h3>{{ t.mailTemplates.placeholders }}</h3>
+          <p class="muted">
+            {{ t.mailTemplates.placeholderHint }}
+          </p>
+          <ul class="plain placeholders">
+            <li
+              v-for="name in template.placeholders"
+              :key="name"
+            >
+              <button
+                type="button"
+                class="ghost"
+                @mousedown.prevent
+                @click="insertPlaceholder(name)"
+              >
+                {{ written(name) }}
+              </button>
+              {{ MEANINGS[name] ?? '' }}
+            </li>
+          </ul>
+          <ul
+            v-if="problems.length > 0"
+            class="alert"
+            role="alert"
           >
-            {{ problem }}
-          </li>
-        </ul>
-        <p class="actions">
-          <button
-            type="submit"
-            :disabled="saving.busy.value"
-          >
-            {{ t.common.save }}
-          </button>
-          <button
-            type="button"
-            class="ghost"
-            @click="editing = null"
-          >
-            {{ t.common.cancel }}
-          </button>
-        </p>
-      </form>
+            <li
+              v-for="problem in problems"
+              :key="problem"
+            >
+              {{ problem }}
+            </li>
+          </ul>
+          <p class="actions">
+            <button
+              type="submit"
+              :disabled="saving.busy.value"
+            >
+              {{ t.common.save }}
+            </button>
+            <button
+              type="button"
+              class="ghost"
+              @click="editing = null"
+            >
+              {{ t.common.cancel }}
+            </button>
+          </p>
+        </form>
+      </Collapsible>
     </section>
   </template>
 </template>

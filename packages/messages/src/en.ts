@@ -568,6 +568,25 @@ export const en: Messages = {
     licences: 'SchulWahl is free software under the MIT licence. The licences of the libraries these pages contain:',
   },
 
+  /** The controls over a long list (components/ListFilter.vue): the fields and what passes. */
+  filters: {
+    label: 'Filter',
+    all: 'All',
+    text: 'Search',
+    className: 'Class',
+    state: 'State',
+    category: 'Category',
+    kind: 'Kind',
+    onlyIncomplete: 'Only without complete choices',
+    onlyRestricted: 'Only with limited availability',
+    reset: 'Clear filter',
+    onlyCancelled: 'Only cancelled',
+    classOrName: 'Class or name',
+    nameOrShortName: 'Name or abbreviation',
+    /** "12 of 700" rows pass the filter. */
+    shown: (shown: number, total: number) => `${shown} of ${total}`,
+    count: (total: number) => `${total} ${byCount(total, 'entry', 'entries')}`,
+  },
   /** Wahlen.vue: the campaigns the person may see, and the organizer's form for a new one. */
   campaigns: {
     none: 'No registration yet.',
@@ -851,6 +870,7 @@ export const en: Messages = {
       title: 'Availability from a CSV file',
       intro: 'One row per teacher, named by e-mail address or abbreviation, and one column per project day, headed by the date or the weekday (MO, DI, MI or Mon, Tue, Wed): empty means available, N not available, F only if necessary. The school\'s list with the columns “Name”, “MO”, “DI”, “MI”, “Leitung” and “Anmerkung” is read as the spreadsheet exports it; an empty column at the end does no harm. A column “Anmerkung” or “note” becomes the note, a column “Leitung” is skipped; any other column is an error, so that no day is lost unnoticed. What the file says is applied; rows with a problem are skipped; teachers and days not in it stay as they are.',
       template: 'Template as of today',
+      preview: 'Preview',
       file: 'File',
       paste: 'or paste the content here',
       check: 'Check',

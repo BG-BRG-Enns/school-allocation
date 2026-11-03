@@ -4,10 +4,12 @@
 // organizers review, move the campaign on, set its rules and export the
 // catalogue.
 
-import { MAX_RULES, placeTarget, RULE_LIMITS, RULE_UNITS } from '@school-allocation/school-core'
+import { ITEM_STATES, MAX_RULES, placeTarget, RULE_LIMITS, RULE_UNITS } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import ClassPicker from '../components/ClassPicker.vue'
+import Collapsible from '../components/Collapsible.vue'
+import ListFilter from '../components/ListFilter.vue'
 import { loadClasses as loadRosterClasses, loadMailQueue, loadMailStatus } from '../lib/admin-api.ts'
 import { approveItem, catalogueExportPath, deleteCampaign, deleteItem, loadCampaign, loadCategories, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignRule, type CampaignView, type Category, type DayDemand, type Item, type MissingStudent, type RuleDemand, type RuleUnit } from '../lib/campaigns-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
@@ -16,6 +18,7 @@ import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf, nextDay } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
 import { CAMPAIGN_STATE_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS, MAIL_KIND_LABELS, MAIL_STATE_LABELS, RULE_PROBLEM_LABELS, RULE_UNIT_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
+import { filtered, matchesOption, matchesText, useListFilter, type FilterField } from '../lib/list-filter.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
@@ -82,6 +85,22 @@ async function loadMissing(): Promise<void> {
 }
 watch(view, loadMissing)
 const missingCount = computed(() => missing.value.filter((s) => s.state !== 'complete').length)
+// The status list filtered by class, completeness and name; the browser keeps the filter across pages.
+const statusFilter = useListFilter('wahl:status', { className: '', incomplete: false, text: '' })
+const statusFields = computed<FilterField[]>(() => [
+  { key: 'className', kind: 'select', label: t.filters.className, options: [...new Set(missing.value.map((s) => s.className))].sort((a, b) => a.localeCompare(b, 'de')).map((name) => ({ value: name, label: name })) },
+  { key: 'incomplete', kind: 'check', label: t.filters.onlyIncomplete },
+  { key: 'text', kind: 'text', label: t.filters.text },
+])
+const missingShown = filtered(missing, statusFilter, (s, f) => matchesOption(s.className, f.className) && (f.incomplete !== true || s.state !== 'complete') && matchesText([s.displayName], f.text))
+// The activities filtered by state, category and text (title or teacher).
+const itemFilter = useListFilter('wahl:items', { state: '', category: '', text: '' })
+const itemFields = computed<FilterField[]>(() => [
+  { key: 'state', kind: 'select', label: t.filters.state, options: ITEM_STATES.map((state) => ({ value: state, label: ITEM_STATE_LABELS[state] ?? state })) },
+  ...(categories.value.length > 0 ? [{ key: 'category', kind: 'select' as const, label: t.filters.category, options: categories.value.map((c) => ({ value: c.id, label: c.name })) }] : []),
+  { key: 'text', kind: 'text', label: t.filters.text },
+])
+const itemsShown = filtered(items, itemFilter, (item, f) => matchesOption(item.state, f.state) && (f.category === '' || item.categoryIds.includes(String(f.category))) && matchesText([item.title, ...item.teachers.map((teacher) => teacher.displayName)], f.text))
 
 // The registration's mails still waiting to be sent: a link to the mails page, where they can be looked at or discarded.
 const mailsWaiting = ref(0)
@@ -981,353 +1000,381 @@ function onSubmitPending(): void {
     </section>
 
     <section v-if="organizes && windowOpened">
-      <h2>{{ t.campaign.missing.heading }}</h2>
-      <p
-        v-if="missingLoading.error.value"
-        role="alert"
-        class="alert"
+      <Collapsible
+        id="wahl:status"
+        :heading="t.campaign.missing.heading"
       >
-        {{ missingLoading.error.value }}
-      </p>
-      <p class="muted">
-        {{ t.campaign.missing.summary(missing.length, missingCount) }}
-      </p>
-      <p class="actions">
-        <a
-          class="button ghost-link"
-          :href="withBase(missingExportPath(campaign.id))"
-        >{{ t.campaign.missing.export }}</a>
-      </p>
-      <table
-        v-if="missing.length > 0"
-        class="table"
-      >
-        <thead>
-          <tr>
-            <th scope="col">
-              {{ t.common.field.className }}
-            </th>
-            <th scope="col">
-              {{ t.common.field.name }}
-            </th>
-            <th scope="col">
-              {{ t.common.field.state }}
-            </th>
-            <th scope="col">
-              {{ t.campaign.missing.mails }}
-            </th>
-            <th scope="col">
-              <span class="visually-hidden">{{ t.common.field.actions }}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="s in missing"
-            :key="s.personId"
-          >
-            <td>{{ s.className }}</td>
-            <td>{{ s.displayName }}</td>
-            <td>
-              <span :class="['badge', s.state === 'complete' ? 'badge-approved' : 'badge-proposed']">{{ CHOICE_STATE_LABELS[s.state] ?? s.state }}</span>
-              <span
-                v-if="s.window"
-                class="muted"
-              > ({{ WINDOW_LABELS[s.window] ?? s.window }})</span>
-            </td>
-            <td>{{ mailSummary(s) }}</td>
-            <td class="row-actions">
-              <RouterLink
-                class="button ghost-link small"
-                :to="`/wahlen/${campaign.id}/wuensche/${s.personId}`"
-              >
-                {{ t.campaign.missing.enter }}
-              </RouterLink>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section v-if="view.may.seeDemand && demand.length > 0">
-      <h2>{{ t.campaign.demand.heading }}</h2>
-      <p class="muted">
-        {{ t.campaign.demand.intro(campaign.placeHeadroomPercent) }}
-      </p>
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">
-              {{ t.common.field.day }}
-            </th>
-            <th
-              v-for="grade in demandGrades"
-              :key="grade"
-              scope="col"
-            >
-              {{ t.common.gradeOrdinal(grade) }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="day in demand"
-            :key="day.date"
-          >
-            <th scope="row">
-              {{ formatDay(day.date) }}
-            </th>
-            <td
-              v-for="grade in demandGrades"
-              :key="grade"
-              :class="{ short: shortOf(day, grade) > 0 }"
-            >
-              <template v-if="demandOf(day, grade)">
-                {{ demandText(day, grade) }}
-                <template v-if="shortOf(day, grade) > 0">
-                  <br>{{ t.campaign.demand.short(shortOf(day, grade)) }}
-                </template>
-              </template>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <template v-if="ruleDemand.length > 0">
-        <p class="muted">
-          {{ t.campaign.demand.rulesIntro }}
+        <p
+          v-if="missingLoading.error.value"
+          role="alert"
+          class="alert"
+        >
+          {{ missingLoading.error.value }}
         </p>
-        <table class="table">
+        <p class="muted">
+          {{ t.campaign.missing.summary(missing.length, missingCount) }}
+        </p>
+        <p class="actions">
+          <a
+            class="button ghost-link"
+            :href="withBase(missingExportPath(campaign.id))"
+          >{{ t.campaign.missing.export }}</a>
+        </p>
+        <ListFilter
+          v-if="missing.length > 0"
+          id="status"
+          v-model="statusFilter"
+          :fields="statusFields"
+          :shown="missingShown.length"
+          :total="missing.length"
+        />
+        <table
+          v-if="missingShown.length > 0"
+          class="table"
+        >
           <thead>
             <tr>
               <th scope="col">
-                {{ t.rules.rule }}
+                {{ t.common.field.className }}
               </th>
               <th scope="col">
-                {{ t.common.field.grade }}
+                {{ t.common.field.name }}
               </th>
               <th scope="col">
-                {{ t.common.field.students }}
+                {{ t.common.field.state }}
               </th>
               <th scope="col">
-                {{ t.campaign.demand.needed }}
+                {{ t.campaign.missing.mails }}
               </th>
               <th scope="col">
-                {{ t.campaign.demand.offered }}
+                <span class="visually-hidden">{{ t.common.field.actions }}</span>
               </th>
             </tr>
           </thead>
           <tbody>
             <tr
-              v-for="d in ruleDemand"
-              :key="`${d.ruleId}-${d.grade}`"
+              v-for="s in missingShown"
+              :key="s.personId"
             >
-              <td>{{ ruleAsks(d.ruleId) }}</td>
-              <td>{{ d.grade }}.</td>
-              <td>{{ d.students }}</td>
-              <td>{{ ruleAmount(d.ruleId, d.needed) }}</td>
-              <td :class="{ short: d.offered < d.needed }">
-                {{ ruleAmount(d.ruleId, d.offered) }}
-                <template v-if="d.offered < d.needed">
-                  <br>{{ t.campaign.demand.ruleShort }}
+              <td>{{ s.className }}</td>
+              <td>{{ s.displayName }}</td>
+              <td>
+                <span :class="['badge', s.state === 'complete' ? 'badge-approved' : 'badge-proposed']">{{ CHOICE_STATE_LABELS[s.state] ?? s.state }}</span>
+                <span
+                  v-if="s.window"
+                  class="muted"
+                > ({{ WINDOW_LABELS[s.window] ?? s.window }})</span>
+              </td>
+              <td>{{ mailSummary(s) }}</td>
+              <td class="row-actions">
+                <RouterLink
+                  class="button ghost-link small"
+                  :to="`/wahlen/${campaign.id}/wuensche/${s.personId}`"
+                >
+                  {{ t.campaign.missing.enter }}
+                </RouterLink>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </Collapsible>
+    </section>
+
+    <section v-if="view.may.seeDemand && demand.length > 0">
+      <Collapsible
+        id="wahl:demand"
+        :heading="t.campaign.demand.heading"
+      >
+        <p class="muted">
+          {{ t.campaign.demand.intro(campaign.placeHeadroomPercent) }}
+        </p>
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">
+                {{ t.common.field.day }}
+              </th>
+              <th
+                v-for="grade in demandGrades"
+                :key="grade"
+                scope="col"
+              >
+                {{ t.common.gradeOrdinal(grade) }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="day in demand"
+              :key="day.date"
+            >
+              <th scope="row">
+                {{ formatDay(day.date) }}
+              </th>
+              <td
+                v-for="grade in demandGrades"
+                :key="grade"
+                :class="{ short: shortOf(day, grade) > 0 }"
+              >
+                <template v-if="demandOf(day, grade)">
+                  {{ demandText(day, grade) }}
+                  <template v-if="shortOf(day, grade) > 0">
+                    <br>{{ t.campaign.demand.short(shortOf(day, grade)) }}
+                  </template>
                 </template>
               </td>
             </tr>
           </tbody>
         </table>
-      </template>
+        <template v-if="ruleDemand.length > 0">
+          <p class="muted">
+            {{ t.campaign.demand.rulesIntro }}
+          </p>
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">
+                  {{ t.rules.rule }}
+                </th>
+                <th scope="col">
+                  {{ t.common.field.grade }}
+                </th>
+                <th scope="col">
+                  {{ t.common.field.students }}
+                </th>
+                <th scope="col">
+                  {{ t.campaign.demand.needed }}
+                </th>
+                <th scope="col">
+                  {{ t.campaign.demand.offered }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="d in ruleDemand"
+                :key="`${d.ruleId}-${d.grade}`"
+              >
+                <td>{{ ruleAsks(d.ruleId) }}</td>
+                <td>{{ d.grade }}.</td>
+                <td>{{ d.students }}</td>
+                <td>{{ ruleAmount(d.ruleId, d.needed) }}</td>
+                <td :class="{ short: d.offered < d.needed }">
+                  {{ ruleAmount(d.ruleId, d.offered) }}
+                  <template v-if="d.offered < d.needed">
+                    <br>{{ t.campaign.demand.ruleShort }}
+                  </template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+      </Collapsible>
     </section>
 
     <section>
-      <h2>{{ t.campaign.items.heading }}</h2>
-      <p class="actions">
-        <RouterLink
-          v-if="view.may.propose"
-          class="button"
-          :to="`/wahlen/${campaign.id}/aktivitaet/neu`"
-        >
-          {{ t.common.page.newItem }}
-        </RouterLink>
-        <RouterLink
-          v-if="teaches && campaign.state === 'catalogue'"
-          class="button ghost-link"
-          to="/verfuegbarkeit"
-        >
-          {{ t.availability.link }}
-        </RouterLink>
-        <RouterLink
-          v-if="published || organizes"
-          class="button ghost-link"
-          :to="`/wahlen/${campaign.id}/katalog`"
-        >
-          {{ t.campaign.items.viewCatalogue }}
-        </RouterLink>
-      </p>
-      <p v-if="items.length === 0">
-        {{ t.campaign.items.none }}
-      </p>
-      <table
-        v-else
-        class="table"
+      <Collapsible
+        id="wahl:items"
+        :heading="t.campaign.items.heading"
       >
-        <thead>
-          <tr>
-            <th scope="col">
-              {{ t.common.field.number }}
-            </th>
-            <th scope="col">
-              {{ t.common.field.item }}
-            </th>
-            <th scope="col">
-              {{ t.common.field.teachers }}
-            </th>
-            <th scope="col">
-              {{ t.common.field.sessions }}
-            </th>
-            <th scope="col">
-              {{ t.common.field.places }}
-            </th>
-            <th scope="col">
-              {{ t.common.field.state }}
-            </th>
-            <th scope="col">
-              <span class="visually-hidden">{{ t.common.field.actions }}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="item in items"
-            :key="item.id"
-          >
-            <td>{{ item.number ?? '–' }}</td>
-            <td>
-              <strong>{{ item.title }}</strong>
-              <span
-                v-if="item.fixedClasses.length > 0"
-                class="muted"
-              > · {{ t.campaign.items.fixedFor(item.fixedClasses.join(', ')) }}</span>
-              <span
-                v-if="item.feeCents > 0"
-                class="muted"
-              > · {{ formatFee(item.feeCents) }}</span>
-              <p
-                v-if="item.reviewNote && (own(item) || organizes)"
-                class="muted"
-              >
-                {{ t.campaign.items.reviewNote(item.reviewNote) }}
-              </p>
-            </td>
-            <td>{{ item.teachers.map((teacher) => teacher.displayName).join(', ') }}</td>
-            <td>
-              <ul class="plain">
-                <li
-                  v-for="s in item.sessions"
-                  :key="s.id"
-                >
-                  {{ formatSpan(s.startsAt, s.endsAt) }}
-                </li>
-              </ul>
-            </td>
-            <td>{{ item.places }}</td>
-            <td><span :class="['badge', `badge-${item.state}`]">{{ ITEM_STATE_LABELS[item.state] ?? item.state }}</span></td>
-            <td class="row-actions">
-              <RouterLink
-                v-if="(own(item) && item.state === 'draft' && campaign.state === 'catalogue') || (organizes && item.state !== 'withdrawn')"
-                class="button ghost-link small"
-                :to="`/wahlen/${campaign.id}/aktivitaet/${item.id}`"
-              >
-                {{ t.common.edit }}
-              </RouterLink>
-              <RouterLink
-                v-if="own(item) && !organizes && resultsOut && item.state !== 'withdrawn'"
-                class="button ghost-link small"
-                :to="`/wahlen/${campaign.id}/aktivitaet/${item.id}`"
-              >
-                {{ t.campaign.items.participants }}
-              </RouterLink>
-              <button
-                v-if="own(item) && item.state === 'draft' && campaign.state === 'catalogue'"
-                type="button"
-                class="ghost"
-                @click="act(() => proposeItem(item.id), t.campaign.items.proposed)"
-              >
-                {{ t.campaign.items.propose }}
-              </button>
-              <button
-                v-if="own(item) && item.state === 'proposed' && campaign.state === 'catalogue' && !organizes"
-                type="button"
-                class="ghost"
-                @click="act(() => unproposeItem(item.id))"
-              >
-                {{ t.campaign.items.unpropose }}
-              </button>
-              <button
-                v-if="own(item) && item.state === 'draft'"
-                type="button"
-                class="ghost"
-                @click="act(() => deleteItem(item.id), t.campaign.items.deleted)"
-              >
-                {{ t.campaign.items.delete }}
-              </button>
-              <button
-                v-if="organizes && item.state === 'proposed'"
-                type="button"
-                @click="act(() => approveItem(item.id), t.campaign.items.approved)"
-              >
-                {{ t.campaign.items.approve }}
-              </button>
-              <button
-                v-if="organizes && campaign.state === 'catalogue' && (item.state === 'proposed' || item.state === 'approved')"
-                type="button"
-                class="ghost"
-                @click="ask(item, 'return')"
-              >
-                {{ t.campaign.items.return }}
-              </button>
-              <button
-                v-if="organizes && item.state !== 'withdrawn' && !(own(item) && item.state === 'draft')"
-                type="button"
-                class="ghost"
-                @click="ask(item, 'withdraw')"
-              >
-                {{ t.campaign.items.withdraw }}
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <form
-        v-if="pending"
-        class="panel"
-        :aria-label="pending.kind === 'return' ? t.campaign.pending.returnTitle(pending.item.title) : t.campaign.pending.withdrawTitle(pending.item.title)"
-        @submit.prevent="onSubmitPending"
-      >
-        <h3>{{ pending.kind === 'return' ? t.campaign.pending.returnTitle(pending.item.title) : t.campaign.pending.withdrawTitle(pending.item.title) }}</h3>
-        <p class="field">
-          <label for="pending-text">{{ pending.kind === 'return' ? t.campaign.pending.returnNote : t.common.field.reason }}</label>
-          <input
-            id="pending-text"
-            v-model="text"
-            required
-            maxlength="500"
-          >
-        </p>
         <p class="actions">
-          <button
-            type="submit"
-            :disabled="action.busy.value"
+          <RouterLink
+            v-if="view.may.propose"
+            class="button"
+            :to="`/wahlen/${campaign.id}/aktivitaet/neu`"
           >
-            {{ pending.kind === 'return' ? t.campaign.items.return : t.campaign.items.withdraw }}
-          </button>
-          <button
-            type="button"
-            class="ghost"
-            @click="pending = null"
+            {{ t.common.page.newItem }}
+          </RouterLink>
+          <RouterLink
+            v-if="teaches && campaign.state === 'catalogue'"
+            class="button ghost-link"
+            to="/verfuegbarkeit"
           >
-            {{ t.common.cancel }}
-          </button>
+            {{ t.availability.link }}
+          </RouterLink>
+          <RouterLink
+            v-if="published || organizes"
+            class="button ghost-link"
+            :to="`/wahlen/${campaign.id}/katalog`"
+          >
+            {{ t.campaign.items.viewCatalogue }}
+          </RouterLink>
         </p>
-      </form>
+        <p v-if="items.length === 0">
+          {{ t.campaign.items.none }}
+        </p>
+        <ListFilter
+          v-else
+          id="items"
+          v-model="itemFilter"
+          :fields="itemFields"
+          :shown="itemsShown.length"
+          :total="items.length"
+        />
+        <table
+          v-if="itemsShown.length > 0"
+          class="table"
+        >
+          <thead>
+            <tr>
+              <th scope="col">
+                {{ t.common.field.number }}
+              </th>
+              <th scope="col">
+                {{ t.common.field.item }}
+              </th>
+              <th scope="col">
+                {{ t.common.field.teachers }}
+              </th>
+              <th scope="col">
+                {{ t.common.field.sessions }}
+              </th>
+              <th scope="col">
+                {{ t.common.field.places }}
+              </th>
+              <th scope="col">
+                {{ t.common.field.state }}
+              </th>
+              <th scope="col">
+                <span class="visually-hidden">{{ t.common.field.actions }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="item in itemsShown"
+              :key="item.id"
+            >
+              <td>{{ item.number ?? '–' }}</td>
+              <td>
+                <strong>{{ item.title }}</strong>
+                <span
+                  v-if="item.fixedClasses.length > 0"
+                  class="muted"
+                > · {{ t.campaign.items.fixedFor(item.fixedClasses.join(', ')) }}</span>
+                <span
+                  v-if="item.feeCents > 0"
+                  class="muted"
+                > · {{ formatFee(item.feeCents) }}</span>
+                <p
+                  v-if="item.reviewNote && (own(item) || organizes)"
+                  class="muted"
+                >
+                  {{ t.campaign.items.reviewNote(item.reviewNote) }}
+                </p>
+              </td>
+              <td>{{ item.teachers.map((teacher) => teacher.displayName).join(', ') }}</td>
+              <td>
+                <ul class="plain">
+                  <li
+                    v-for="s in item.sessions"
+                    :key="s.id"
+                  >
+                    {{ formatSpan(s.startsAt, s.endsAt) }}
+                  </li>
+                </ul>
+              </td>
+              <td>{{ item.places }}</td>
+              <td><span :class="['badge', `badge-${item.state}`]">{{ ITEM_STATE_LABELS[item.state] ?? item.state }}</span></td>
+              <td class="row-actions">
+                <RouterLink
+                  v-if="(own(item) && item.state === 'draft' && campaign.state === 'catalogue') || (organizes && item.state !== 'withdrawn')"
+                  class="button ghost-link small"
+                  :to="`/wahlen/${campaign.id}/aktivitaet/${item.id}`"
+                >
+                  {{ t.common.edit }}
+                </RouterLink>
+                <RouterLink
+                  v-if="own(item) && !organizes && resultsOut && item.state !== 'withdrawn'"
+                  class="button ghost-link small"
+                  :to="`/wahlen/${campaign.id}/aktivitaet/${item.id}`"
+                >
+                  {{ t.campaign.items.participants }}
+                </RouterLink>
+                <button
+                  v-if="own(item) && item.state === 'draft' && campaign.state === 'catalogue'"
+                  type="button"
+                  class="ghost"
+                  @click="act(() => proposeItem(item.id), t.campaign.items.proposed)"
+                >
+                  {{ t.campaign.items.propose }}
+                </button>
+                <button
+                  v-if="own(item) && item.state === 'proposed' && campaign.state === 'catalogue' && !organizes"
+                  type="button"
+                  class="ghost"
+                  @click="act(() => unproposeItem(item.id))"
+                >
+                  {{ t.campaign.items.unpropose }}
+                </button>
+                <button
+                  v-if="own(item) && item.state === 'draft'"
+                  type="button"
+                  class="ghost"
+                  @click="act(() => deleteItem(item.id), t.campaign.items.deleted)"
+                >
+                  {{ t.campaign.items.delete }}
+                </button>
+                <button
+                  v-if="organizes && item.state === 'proposed'"
+                  type="button"
+                  @click="act(() => approveItem(item.id), t.campaign.items.approved)"
+                >
+                  {{ t.campaign.items.approve }}
+                </button>
+                <button
+                  v-if="organizes && campaign.state === 'catalogue' && (item.state === 'proposed' || item.state === 'approved')"
+                  type="button"
+                  class="ghost"
+                  @click="ask(item, 'return')"
+                >
+                  {{ t.campaign.items.return }}
+                </button>
+                <button
+                  v-if="organizes && item.state !== 'withdrawn' && !(own(item) && item.state === 'draft')"
+                  type="button"
+                  class="ghost"
+                  @click="ask(item, 'withdraw')"
+                >
+                  {{ t.campaign.items.withdraw }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <form
+          v-if="pending"
+          class="panel"
+          :aria-label="pending.kind === 'return' ? t.campaign.pending.returnTitle(pending.item.title) : t.campaign.pending.withdrawTitle(pending.item.title)"
+          @submit.prevent="onSubmitPending"
+        >
+          <h3>{{ pending.kind === 'return' ? t.campaign.pending.returnTitle(pending.item.title) : t.campaign.pending.withdrawTitle(pending.item.title) }}</h3>
+          <p class="field">
+            <label for="pending-text">{{ pending.kind === 'return' ? t.campaign.pending.returnNote : t.common.field.reason }}</label>
+            <input
+              id="pending-text"
+              v-model="text"
+              required
+              maxlength="500"
+            >
+          </p>
+          <p class="actions">
+            <button
+              type="submit"
+              :disabled="action.busy.value"
+            >
+              {{ pending.kind === 'return' ? t.campaign.items.return : t.campaign.items.withdraw }}
+            </button>
+            <button
+              type="button"
+              class="ghost"
+              @click="pending = null"
+            >
+              {{ t.common.cancel }}
+            </button>
+          </p>
+        </form>
+      </Collapsible>
     </section>
   </template>
 </template>
