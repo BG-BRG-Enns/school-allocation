@@ -39,6 +39,8 @@ There are also the [Excel files](./excel) provided at each step, and the [email 
 
 Open each registration under **Registrations**. At the top are the school year, project days and, once set, the registration period, late registration, swap period and number of choices per time block. The **Organisation** section shows the status and button for the next step, plus the settings, catalogue as an Excel file and links to teachers by day, class teachers and email templates. Below, depending on the status, are the registration status, places and demand, and activities.
 
+Long lists can be narrowed and folded: above the registration status, the activities, the teachers by day, the allocation and the import there are filters (a class, a state, a search word), and a heading with an arrow folds its section. The browser remembers both: a filter stays while you move between registration, class and allocation, and a folded section stays folded until you open it again. The counts (such as “12 of 700”) always count the whole list.
+
 ## Who sees what
 
 - The **Organisation** sees every registration, in every state.

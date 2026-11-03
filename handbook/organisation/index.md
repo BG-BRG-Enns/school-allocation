@@ -39,6 +39,8 @@ Dazu die [Excel-Dateien](./excel), die jeder Schritt liefert, und die [E-Mail-Vo
 
 Unter **Anmeldungen** öffnest du jede Anmeldung. Oben stehen das Schuljahr, die Projekttage und, sobald sie eingestellt sind, Anmeldezeitraum, Nachfrist, Tauschzeit und die Zahl der Wünsche je Zeitblock. Der Abschnitt **Organisation** zeigt den Stand und den Knopf für den nächsten Schritt, dazu die Einstellungen, den Katalog als Excel-Datei und die Links zu den Lehrkräften je Tag, den Klassenvorständen und den E-Mail-Vorlagen. Darunter folgen, je nach Stand, der Stand der Anmeldung, Plätze und Bedarf und die Aktivitäten.
 
+Lange Listen lassen sich eingrenzen und einklappen: Über dem Stand der Anmeldung, den Aktivitäten, den Lehrkräften je Tag, der Zuteilung und dem Import stehen Filter (eine Klasse, ein Stand, ein Suchwort), und eine Überschrift mit Pfeil klappt ihren Abschnitt zu. Beides merkt sich der Browser: Ein Filter bleibt, während du zwischen Anmeldung, Klasse und Zuteilung wechselst, und ein zugeklappter Abschnitt bleibt zu, bis du ihn wieder öffnest. Was gezählt wird (etwa „12 von 700“), zählt immer die ganze Liste.
+
 ## Wer was sieht
 
 - Die **Organisation** sieht jede Anmeldung, in jedem Stand.

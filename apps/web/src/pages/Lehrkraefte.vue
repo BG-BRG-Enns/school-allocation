@@ -7,11 +7,14 @@
 
 import { AVAILABILITY_STATUSES } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
+import Collapsible from '../components/Collapsible.vue'
+import ListFilter from '../components/ListFilter.vue'
 import { withBase } from '../lib/base.ts'
 import type { AvailabilityImportPreview } from '@school-allocation/api-contracts'
 import { setTeacherShortName } from '../lib/admin-api.ts'
 import { applyAvailabilityImport, availabilityTemplatePath, loadPlanning, planningExportPath, previewAvailabilityImport, setAvailabilityFor, type AvailabilityStatus, type PlanningResponse } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
+import { filtered, matchesText, useListFilter, type FilterField } from '../lib/list-filter.ts'
 import { formatDay } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
 import { AVAILABILITY_LABELS } from '../lib/labels.ts'
@@ -19,6 +22,14 @@ import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
 const props = defineProps<{ id: string }>()
+
+// The teachers filtered by name or abbreviation, and to those not plainly available on some day.
+const teacherFilter = useListFilter('planning:teachers', { restricted: false, text: '' })
+const teacherFields: FilterField[] = [
+  { key: 'restricted', kind: 'check', label: t.filters.onlyRestricted },
+  { key: 'text', kind: 'text', label: t.filters.nameOrShortName },
+]
+const teachersShown = filtered(() => planning.value?.teachers ?? [], teacherFilter, (teacher, f) => (f.restricted !== true || teacher.days.some((day) => day.status !== 'available')) && matchesText([teacher.displayName, teacher.shortName], f.text))
 
 usePageTitle(() => t.common.page.planning)
 const planning = ref<PlanningResponse | null>(null)
@@ -190,7 +201,17 @@ const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (
     </p>
     <template v-else>
       <p>{{ leadingNothing.length > 0 ? t.planning.leadsNothing(leadingNothing.join(', ')) : t.planning.everyoneLeads }}</p>
-      <table class="table">
+      <ListFilter
+        id="teachers"
+        v-model="teacherFilter"
+        :fields="teacherFields"
+        :shown="teachersShown.length"
+        :total="planning.teachers.length"
+      />
+      <table
+        v-if="teachersShown.length > 0"
+        class="table"
+      >
         <thead>
           <tr>
             <th scope="col">
@@ -207,7 +228,7 @@ const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (
         </thead>
         <tbody>
           <tr
-            v-for="teacher in planning.teachers"
+            v-for="teacher in teachersShown"
             :key="teacher.personId"
           >
             <th scope="row">
@@ -335,125 +356,131 @@ const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (
         v-if="preview"
         class="panel"
       >
-        <p
-          v-if="preview.ignoredColumns.length > 0"
-          class="muted"
+        <Collapsible
+          id="planning:preview"
+          :heading="t.planning.csv.preview"
+          :level="3"
         >
-          {{ t.planning.csv.ignored(preview.ignoredColumns.join(', ')) }}
-        </p>
-        <template v-if="preview.fileProblems.length > 0">
           <p
+            v-if="preview.ignoredColumns.length > 0"
+            class="muted"
+          >
+            {{ t.planning.csv.ignored(preview.ignoredColumns.join(', ')) }}
+          </p>
+          <template v-if="preview.fileProblems.length > 0">
+            <p
+              role="alert"
+              class="alert"
+            >
+              {{ t.planning.csv.fileProblems }}
+            </p>
+            <ul>
+              <li
+                v-for="(problem, i) in preview.fileProblems"
+                :key="i"
+              >
+                {{ FILE_PROBLEM_LABELS[problem.code] ?? problem.code }}<template v-if="problem.column !== undefined">
+                  – {{ problem.column }}
+                </template><template v-if="problem.line !== undefined">
+                  ({{ t.planning.csv.line(problem.line) }})
+                </template><template v-if="problem.days !== undefined">
+                  {{ t.planning.csv.registrationDays(problem.days.map(formatDay).join(', ')) }}
+                </template>
+              </li>
+            </ul>
+          </template>
+          <template v-if="preview.problems.length > 0">
+            <p
+              role="alert"
+              class="alert"
+            >
+              {{ t.planning.csv.problems }}
+            </p>
+            <ul>
+              <li
+                v-for="(problem, i) in preview.problems"
+                :key="i"
+              >
+                {{ t.planning.csv.line(problem.line) }}: {{ IMPORT_PROBLEM_LABELS[problem.code] ?? problem.code }}<template v-if="problem.key !== undefined">
+                  – {{ problem.key }}
+                </template>
+              </li>
+            </ul>
+          </template>
+          <p v-if="preview.fileProblems.length === 0 && preview.problems.length === 0 && !previewChanges">
+            {{ t.planning.csv.nothing }}
+          </p>
+          <table
+            v-if="preview.teachers.length > 0"
+            class="table"
+          >
+            <thead>
+              <tr>
+                <th scope="col">
+                  {{ t.common.field.name }}
+                </th>
+                <th
+                  v-for="date in preview.days"
+                  :key="date"
+                  scope="col"
+                >
+                  {{ formatDay(date) }}
+                </th>
+                <th scope="col">
+                  {{ t.planning.csv.noteHead }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="teacher in preview.teachers"
+                :key="teacher.personId"
+              >
+                <th scope="row">
+                  {{ teacher.displayName }}<template v-if="teacher.shortName !== null">
+                    ({{ teacher.shortName }})
+                  </template>
+                </th>
+                <td
+                  v-for="day in teacher.days"
+                  :key="day.date"
+                  :class="{ short: day.before !== day.after }"
+                >
+                  <template v-if="day.before === day.after">
+                    {{ AVAILABILITY_LABELS[day.after] }}
+                  </template>
+                  <template v-else>
+                    {{ AVAILABILITY_LABELS[day.before] }} → {{ AVAILABILITY_LABELS[day.after] }}
+                  </template>
+                </td>
+                <td>
+                  <template v-if="teacher.note === null">
+                    {{ t.planning.csv.none }}
+                  </template>
+                  <template v-else>
+                    {{ teacher.note.before ?? t.planning.csv.none }} → {{ teacher.note.after ?? t.planning.csv.none }}
+                  </template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="actions">
+            <button
+              type="button"
+              :disabled="!preview.applicable || !previewChanges || applying.busy.value"
+              @click="onApply"
+            >
+              {{ t.planning.csv.apply }}
+            </button>
+          </p>
+          <p
+            v-if="applying.error.value"
             role="alert"
             class="alert"
           >
-            {{ t.planning.csv.fileProblems }}
+            {{ applying.error.value }}
           </p>
-          <ul>
-            <li
-              v-for="(problem, i) in preview.fileProblems"
-              :key="i"
-            >
-              {{ FILE_PROBLEM_LABELS[problem.code] ?? problem.code }}<template v-if="problem.column !== undefined">
-                – {{ problem.column }}
-              </template><template v-if="problem.line !== undefined">
-                ({{ t.planning.csv.line(problem.line) }})
-              </template><template v-if="problem.days !== undefined">
-                {{ t.planning.csv.registrationDays(problem.days.map(formatDay).join(', ')) }}
-              </template>
-            </li>
-          </ul>
-        </template>
-        <template v-if="preview.problems.length > 0">
-          <p
-            role="alert"
-            class="alert"
-          >
-            {{ t.planning.csv.problems }}
-          </p>
-          <ul>
-            <li
-              v-for="(problem, i) in preview.problems"
-              :key="i"
-            >
-              {{ t.planning.csv.line(problem.line) }}: {{ IMPORT_PROBLEM_LABELS[problem.code] ?? problem.code }}<template v-if="problem.key !== undefined">
-                – {{ problem.key }}
-              </template>
-            </li>
-          </ul>
-        </template>
-        <p v-if="preview.fileProblems.length === 0 && preview.problems.length === 0 && !previewChanges">
-          {{ t.planning.csv.nothing }}
-        </p>
-        <table
-          v-if="preview.teachers.length > 0"
-          class="table"
-        >
-          <thead>
-            <tr>
-              <th scope="col">
-                {{ t.common.field.name }}
-              </th>
-              <th
-                v-for="date in preview.days"
-                :key="date"
-                scope="col"
-              >
-                {{ formatDay(date) }}
-              </th>
-              <th scope="col">
-                {{ t.planning.csv.noteHead }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="teacher in preview.teachers"
-              :key="teacher.personId"
-            >
-              <th scope="row">
-                {{ teacher.displayName }}<template v-if="teacher.shortName !== null">
-                  ({{ teacher.shortName }})
-                </template>
-              </th>
-              <td
-                v-for="day in teacher.days"
-                :key="day.date"
-                :class="{ short: day.before !== day.after }"
-              >
-                <template v-if="day.before === day.after">
-                  {{ AVAILABILITY_LABELS[day.after] }}
-                </template>
-                <template v-else>
-                  {{ AVAILABILITY_LABELS[day.before] }} → {{ AVAILABILITY_LABELS[day.after] }}
-                </template>
-              </td>
-              <td>
-                <template v-if="teacher.note === null">
-                  {{ t.planning.csv.none }}
-                </template>
-                <template v-else>
-                  {{ teacher.note.before ?? t.planning.csv.none }} → {{ teacher.note.after ?? t.planning.csv.none }}
-                </template>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <p class="actions">
-          <button
-            type="button"
-            :disabled="!preview.applicable || !previewChanges || applying.busy.value"
-            @click="onApply"
-          >
-            {{ t.planning.csv.apply }}
-          </button>
-        </p>
-        <p
-          v-if="applying.error.value"
-          role="alert"
-          class="alert"
-        >
-          {{ applying.error.value }}
-        </p>
+        </Collapsible>
       </div>
       <p
         v-if="applying.notice.value"

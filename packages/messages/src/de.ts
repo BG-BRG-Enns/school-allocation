@@ -571,6 +571,25 @@ export const de = {
     licences: 'SchulWahl ist freie Software unter der MIT-Lizenz. Die Lizenzen der Programmbibliotheken, die diese Seiten enthalten:',
   },
 
+  /** The controls over a long list (components/ListFilter.vue): the fields and what passes. */
+  filters: {
+    label: 'Filter',
+    all: 'Alle',
+    text: 'Suche',
+    className: 'Klasse',
+    state: 'Stand',
+    category: 'Kategorie',
+    kind: 'Art',
+    onlyIncomplete: 'Nur ohne vollständige Wünsche',
+    onlyRestricted: 'Nur eingeschränkt verfügbare',
+    reset: 'Filter zurücksetzen',
+    onlyCancelled: 'Nur abgesagte',
+    classOrName: 'Klasse oder Name',
+    nameOrShortName: 'Name oder Kürzel',
+    /** "12 von 700" rows pass the filter. */
+    shown: (shown: number, total: number) => `${shown} von ${total}`,
+    count: (total: number) => `${total} ${byCount(total, 'Eintrag', 'Einträge')}`,
+  },
   /** Wahlen.vue: the campaigns the person may see, and the organizer's form for a new one. */
   campaigns: {
     none: 'Noch keine Anmeldung.',
@@ -857,6 +876,7 @@ export const de = {
       title: 'Verfügbarkeit aus einer CSV-Datei',
       intro: 'Eine Zeile je Lehrkraft, benannt mit der E-Mail-Adresse oder dem Kürzel, und eine Spalte je Projekttag, mit dem Datum oder dem Wochentag als Namen (MO, DI, MI): leer heißt verfügbar, N nicht verfügbar, F nur wenn nötig. Die Liste der Schule mit den Spalten „Name“, „MO“, „DI“, „MI“, „Leitung“ und „Anmerkung“ wird so gelesen, wie die Tabelle sie exportiert; eine leere Spalte am Ende stört nicht. Eine Spalte „Anmerkung“ wird zur Notiz, eine Spalte „Leitung“ übergangen; jede andere Spalte ist ein Fehler, damit kein Tag unbemerkt verloren geht. Übernommen wird, was in der Datei steht; Zeilen mit einem Problem werden übersprungen; Lehrkräfte und Tage, die nicht darin stehen, bleiben.',
       template: 'Vorlage mit dem Stand von heute',
+      preview: 'Vorschau',
       file: 'Datei',
       paste: 'oder den Inhalt hier einfügen',
       check: 'Prüfen',

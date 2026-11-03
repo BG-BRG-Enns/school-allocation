@@ -9,6 +9,8 @@
 // with its reason) and takes the organizer's change by hand.
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import Collapsible from '../components/Collapsible.vue'
+import ListFilter from '../components/ListFilter.vue'
 import { assignmentsExportPath, attendanceExportPath, changeAssignment, loadChanges, loadRun, loadRuns, loadSolverStatus, publishRun, runExportPath, startRun, type AllocationRun, type AssignmentChange, type ReviewStudent, type RunReviewResponse, type SolverStatusResponse } from '../lib/allocation-api.ts'
 import { withBase } from '../lib/base.ts'
 import { loadCampaign, loadItems, type Campaign, type Item } from '../lib/campaigns-api.ts'
@@ -16,6 +18,7 @@ import { formatWhen, useFeedback } from '../lib/feedback.ts'
 import { formatDay } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
 import { ALLOCATION_PROBLEM_LABELS, ASSIGNMENT_SOURCE_LABELS, CAMPAIGN_STATE_LABELS, CHANGE_KIND_LABELS, levelLabel, RUN_FAILURE_LABELS, RUN_STATUS_LABELS, SOLVE_STATUS_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
+import { filtered, matchesOption, matchesText, useListFilter, type FilterField } from '../lib/list-filter.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string }>()
@@ -60,6 +63,28 @@ const published = ref<RunReviewResponse | null>(null)
 /** The catalogue as it stands, for the organizer's picker: an item withdrawn since publication is no target. */
 const catalogue = ref<Item[]>([])
 const changes = ref<AssignmentChange[]>([])
+// The lists' filters, kept by the browser; at setup level, so the polling that replaces the data leaves them alone.
+const classOptionsOf = (names: readonly string[]) => [...new Set(names)].sort((a, b) => a.localeCompare(b, 'de')).map((name) => ({ value: name, label: name }))
+const changeFilter = useListFilter('zuteilung:changes', { className: '', kind: '', text: '' })
+const changeFields = computed<FilterField[]>(() => [
+  { key: 'className', kind: 'select', label: t.filters.className, options: classOptionsOf(changes.value.map((c) => c.className)) },
+  { key: 'kind', kind: 'select', label: t.filters.kind, options: Object.entries(CHANGE_KIND_LABELS).map(([value, label]) => ({ value, label })) },
+  { key: 'text', kind: 'text', label: t.filters.text },
+])
+const changesShown = filtered(changes, changeFilter, (c, f) => matchesOption(c.className, f.className) && matchesOption(c.kind, f.kind) && matchesText([c.displayName, c.reason], f.text))
+const runItemFilter = useListFilter('zuteilung:items', { cancelled: false, text: '' })
+const runItemFields: FilterField[] = [
+  { key: 'cancelled', kind: 'check', label: t.filters.onlyCancelled },
+  { key: 'text', kind: 'text', label: t.filters.text },
+]
+const runItemsShown = filtered(() => selected.value?.items ?? [], runItemFilter, (item, f) => (f.cancelled !== true || item.cancelled) && matchesText([item.title, item.number === null ? null : String(item.number)], f.text))
+const studentFilter = useListFilter('zuteilung:students', { className: '', text: '' })
+const studentFields = computed<FilterField[]>(() => [
+  { key: 'className', kind: 'select', label: t.filters.className, options: classOptionsOf((selected.value?.students ?? []).map((s) => s.className)) },
+  { key: 'text', kind: 'text', label: t.filters.text },
+])
+const studentsShown = filtered(() => selected.value?.students ?? [], studentFilter, (s, f) => matchesOption(s.className, f.className) && matchesText([s.displayName], f.text))
+
 const changePerson = ref('')
 const changeTo = ref('')
 const changeFrom = ref('')
@@ -263,46 +288,61 @@ const levelDelta = (name: string): number | null => {
           :href="withBase(attendanceExportPath(props.id))"
         >{{ t.allocation.publication.attendanceExport }}</a>
       </p>
-      <h3>{{ t.allocation.publication.changes(changes.length) }}</h3>
-      <p
-        v-if="changes.length === 0"
-        class="muted"
-      >
-        {{ t.allocation.publication.noChanges }}
-      </p>
-      <table v-else>
-        <thead>
-          <tr>
-            <th>{{ t.common.field.number }}</th>
-            <th>{{ t.allocation.publication.when }}</th>
-            <th>{{ t.allocation.publication.kind }}</th>
-            <th>{{ t.common.field.student }}</th>
-            <th>{{ t.allocation.publication.left }}</th>
-            <th>{{ t.allocation.publication.to }}</th>
-            <th>{{ t.common.field.reason }}</th>
-            <th>{{ t.allocation.publication.by }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="c in changes"
-            :key="c.id"
+      <section>
+        <Collapsible
+          id="zuteilung:changes"
+          :heading="t.allocation.publication.changes(changes.length)"
+          :level="3"
+        >
+          <p
+            v-if="changes.length === 0"
+            class="muted"
           >
-            <td>{{ c.seq }}</td>
-            <td>{{ formatWhen(c.changedAt) }}</td>
-            <td>
-              {{ CHANGE_KIND_LABELS[c.kind] ?? c.kind }}<template v-if="c.forced">
-                · {{ t.allocation.publication.forced }}
-              </template>
-            </td>
-            <td>{{ c.displayName }} ({{ c.className }})</td>
-            <td>{{ c.leftItemIds.map(publishedLabel).join(', ') }}</td>
-            <td>{{ c.toItemId === null ? '' : publishedLabel(c.toItemId) }}</td>
-            <td>{{ c.reason ?? '' }}</td>
-            <td>{{ c.changedBy.displayName }}</td>
-          </tr>
-        </tbody>
-      </table>
+            {{ t.allocation.publication.noChanges }}
+          </p>
+          <ListFilter
+            v-else
+            id="changes"
+            v-model="changeFilter"
+            :fields="changeFields"
+            :shown="changesShown.length"
+            :total="changes.length"
+          />
+          <table v-if="changesShown.length > 0">
+            <thead>
+              <tr>
+                <th>{{ t.common.field.number }}</th>
+                <th>{{ t.allocation.publication.when }}</th>
+                <th>{{ t.allocation.publication.kind }}</th>
+                <th>{{ t.common.field.student }}</th>
+                <th>{{ t.allocation.publication.left }}</th>
+                <th>{{ t.allocation.publication.to }}</th>
+                <th>{{ t.common.field.reason }}</th>
+                <th>{{ t.allocation.publication.by }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="c in changesShown"
+                :key="c.id"
+              >
+                <td>{{ c.seq }}</td>
+                <td>{{ formatWhen(c.changedAt) }}</td>
+                <td>
+                  {{ CHANGE_KIND_LABELS[c.kind] ?? c.kind }}<template v-if="c.forced">
+                    · {{ t.allocation.publication.forced }}
+                  </template>
+                </td>
+                <td>{{ c.displayName }} ({{ c.className }})</td>
+                <td>{{ c.leftItemIds.map(publishedLabel).join(', ') }}</td>
+                <td>{{ c.toItemId === null ? '' : publishedLabel(c.toItemId) }}</td>
+                <td>{{ c.reason ?? '' }}</td>
+                <td>{{ c.changedBy.displayName }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </Collapsible>
+      </section>
       <form
         v-if="campaign.state === 'results' && published"
         :aria-label="t.allocation.change.title"
@@ -696,40 +736,47 @@ const levelDelta = (name: string): number | null => {
           <li><strong>{{ selected.summary.students.late }}</strong> {{ t.allocation.counts.late }}, <strong>{{ selected.summary.students.nonSubmitters }}</strong> {{ t.allocation.counts.nonSubmitters }}</li>
         </ul>
 
-        <h3>{{ t.allocation.review.levels }}</h3>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>{{ t.allocation.review.level }}</th>
-              <th>{{ t.allocation.review.firstPass }}</th>
-              <th>{{ t.allocation.review.secondPass }}</th>
-              <th v-if="other">
-                {{ t.allocation.review.comparison }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="level in levelsOf(selected)"
-              :key="level.name"
-            >
-              <td>{{ levelLabel(level.name) }}</td>
-              <td>{{ selected.run.passes[0]?.levels.find((l) => l.name === level.name)?.value ?? '–' }} <span class="muted">{{ selected.run.passes[0]?.levels.find((l) => l.name === level.name)?.proven ? '✓' : '≈' }}</span></td>
-              <td>{{ level.value }} <span class="muted">{{ level.proven ? t.allocation.review.proven : t.allocation.review.notProven }}</span></td>
-              <td v-if="other">
-                <template v-if="levelDelta(level.name) !== null">
-                  {{ levelDelta(level.name) === 0 ? t.allocation.review.equal : (levelDelta(level.name) as number) > 0 ? `+${levelDelta(level.name)}` : levelDelta(level.name) }}
-                </template>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <p class="muted">
-          {{ t.allocation.review.passes(passSummary(selected), selected.run.seed) }}
-          <template v-if="selected.rules.length > 0">
-            {{ t.allocation.review.passesRules }}
-          </template>
-        </p>
+        <section>
+          <Collapsible
+            id="zuteilung:levels"
+            :heading="t.allocation.review.levels"
+            :level="3"
+          >
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>{{ t.allocation.review.level }}</th>
+                  <th>{{ t.allocation.review.firstPass }}</th>
+                  <th>{{ t.allocation.review.secondPass }}</th>
+                  <th v-if="other">
+                    {{ t.allocation.review.comparison }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="level in levelsOf(selected)"
+                  :key="level.name"
+                >
+                  <td>{{ levelLabel(level.name) }}</td>
+                  <td>{{ selected.run.passes[0]?.levels.find((l) => l.name === level.name)?.value ?? '–' }} <span class="muted">{{ selected.run.passes[0]?.levels.find((l) => l.name === level.name)?.proven ? '✓' : '≈' }}</span></td>
+                  <td>{{ level.value }} <span class="muted">{{ level.proven ? t.allocation.review.proven : t.allocation.review.notProven }}</span></td>
+                  <td v-if="other">
+                    <template v-if="levelDelta(level.name) !== null">
+                      {{ levelDelta(level.name) === 0 ? t.allocation.review.equal : (levelDelta(level.name) as number) > 0 ? `+${levelDelta(level.name)}` : levelDelta(level.name) }}
+                    </template>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="muted">
+              {{ t.allocation.review.passes(passSummary(selected), selected.run.seed) }}
+              <template v-if="selected.rules.length > 0">
+                {{ t.allocation.review.passesRules }}
+              </template>
+            </p>
+          </Collapsible>
+        </section>
 
         <h3>{{ t.allocation.review.wishes }}</h3>
         <table class="table">
@@ -771,37 +818,44 @@ const levelDelta = (name: string): number | null => {
           </li>
         </ul>
 
-        <h3>{{ t.allocation.review.deficits(selected.summary.deficits.length) }}</h3>
-        <p
-          v-if="selected.summary.deficits.length === 0"
-          class="muted"
-        >
-          {{ t.allocation.review.noDeficits }}
-        </p>
-        <table
-          v-else
-          class="table"
-        >
-          <thead>
-            <tr>
-              <th>{{ t.common.field.student }}</th>
-              <th>{{ t.common.field.className }}</th>
-              <th>{{ t.common.field.day }}</th>
-              <th>{{ t.allocation.review.missing }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(d, index) in selected.summary.deficits"
-              :key="index"
+        <section>
+          <Collapsible
+            id="zuteilung:deficits"
+            :heading="t.allocation.review.deficits(selected.summary.deficits.length)"
+            :level="3"
+          >
+            <p
+              v-if="selected.summary.deficits.length === 0"
+              class="muted"
             >
-              <td>{{ studentName(selected, d.personId) }}</td>
-              <td>{{ selected.students.find((s) => s.personId === d.personId)?.className }}</td>
-              <td>{{ formatDay(d.date) }}</td>
-              <td>{{ t.common.minutes(d.minutes) }}</td>
-            </tr>
-          </tbody>
-        </table>
+              {{ t.allocation.review.noDeficits }}
+            </p>
+            <table
+              v-else
+              class="table"
+            >
+              <thead>
+                <tr>
+                  <th>{{ t.common.field.student }}</th>
+                  <th>{{ t.common.field.className }}</th>
+                  <th>{{ t.common.field.day }}</th>
+                  <th>{{ t.allocation.review.missing }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(d, index) in selected.summary.deficits"
+                  :key="index"
+                >
+                  <td>{{ studentName(selected, d.personId) }}</td>
+                  <td>{{ selected.students.find((s) => s.personId === d.personId)?.className }}</td>
+                  <td>{{ formatDay(d.date) }}</td>
+                  <td>{{ t.common.minutes(d.minutes) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </Collapsible>
+        </section>
 
         <h3>{{ t.allocation.review.fallbacks(selected.summary.fallbacks.length) }}</h3>
         <ul v-if="selected.summary.fallbacks.length > 0">
@@ -850,72 +904,96 @@ const levelDelta = (name: string): number | null => {
           </table>
         </template>
 
-        <h3>{{ t.allocation.review.items }}</h3>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>{{ t.common.field.number }}</th>
-              <th>{{ t.common.field.item }}</th>
-              <th>{{ t.common.field.places }}</th>
-              <th>{{ t.allocation.review.assigned }}</th>
-              <th>{{ t.allocation.review.fixedClasses }}</th>
-              <th>{{ t.allocation.review.minimum }}</th>
-              <th>{{ t.common.field.state }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="item in selected.items"
-              :key="item.itemId"
+        <section>
+          <Collapsible
+            id="zuteilung:items"
+            :heading="t.allocation.review.items"
+            :level="3"
+          >
+            <ListFilter
+              id="run-items"
+              v-model="runItemFilter"
+              :fields="runItemFields"
+              :shown="runItemsShown.length"
+              :total="selected.items.length"
+            />
+            <table
+              v-if="runItemsShown.length > 0"
+              class="table"
             >
-              <td>{{ item.number ?? '' }}</td>
-              <td>{{ item.title }}</td>
-              <td>{{ item.places }}</td>
-              <td>{{ item.assigned }}</td>
-              <td>{{ item.fixed }}</td>
-              <td>{{ item.minimum }}</td>
-              <td>
-                <span
-                  v-if="item.cancelled"
-                  class="badge badge-withdrawn"
-                >{{ t.allocation.review.itemCancelled }}</span>
-                <span
-                  v-else-if="item.assigned + item.fixed === 0"
-                  class="badge"
-                >{{ t.allocation.review.itemEmpty }}</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              <thead>
+                <tr>
+                  <th>{{ t.common.field.number }}</th>
+                  <th>{{ t.common.field.item }}</th>
+                  <th>{{ t.common.field.places }}</th>
+                  <th>{{ t.allocation.review.assigned }}</th>
+                  <th>{{ t.allocation.review.fixedClasses }}</th>
+                  <th>{{ t.allocation.review.minimum }}</th>
+                  <th>{{ t.common.field.state }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="item in runItemsShown"
+                  :key="item.itemId"
+                >
+                  <td>{{ item.number ?? '' }}</td>
+                  <td>{{ item.title }}</td>
+                  <td>{{ item.places }}</td>
+                  <td>{{ item.assigned }}</td>
+                  <td>{{ item.fixed }}</td>
+                  <td>{{ item.minimum }}</td>
+                  <td>
+                    <span
+                      v-if="item.cancelled"
+                      class="badge badge-withdrawn"
+                    >{{ t.allocation.review.itemCancelled }}</span>
+                    <span
+                      v-else-if="item.assigned + item.fixed === 0"
+                      class="badge"
+                    >{{ t.allocation.review.itemEmpty }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </Collapsible>
+        </section>
 
-        <h3>{{ t.allocation.review.classes }}</h3>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>{{ t.common.field.className }}</th>
-              <th>{{ t.common.field.students }}</th>
-              <th>{{ t.allocation.review.classWithDeficit }}</th>
-              <th>{{ t.allocation.review.classWithFallback }}</th>
-              <th v-if="selected.rules.length > 0">
-                {{ t.allocation.review.classMissingRule }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="c in selected.summary.classes"
-              :key="c.className"
-            >
-              <td>{{ c.className }}</td>
-              <td>{{ c.students }}</td>
-              <td>{{ c.withDeficit }}</td>
-              <td>{{ c.withFallback }}</td>
-              <td v-if="selected.rules.length > 0">
-                {{ c.missingRule }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <section>
+          <Collapsible
+            id="zuteilung:classes"
+            :heading="t.allocation.review.classes"
+            :level="3"
+          >
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>{{ t.common.field.className }}</th>
+                  <th>{{ t.common.field.students }}</th>
+                  <th>{{ t.allocation.review.classWithDeficit }}</th>
+                  <th>{{ t.allocation.review.classWithFallback }}</th>
+                  <th v-if="selected.rules.length > 0">
+                    {{ t.allocation.review.classMissingRule }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="c in selected.summary.classes"
+                  :key="c.className"
+                >
+                  <td>{{ c.className }}</td>
+                  <td>{{ c.students }}</td>
+                  <td>{{ c.withDeficit }}</td>
+                  <td>{{ c.withFallback }}</td>
+                  <td v-if="selected.rules.length > 0">
+                    {{ c.missingRule }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </Collapsible>
+        </section>
 
         <h3>{{ t.allocation.review.compare }}</h3>
         <div class="field">
@@ -953,57 +1031,74 @@ const levelDelta = (name: string): number | null => {
           </ul>
         </template>
 
-        <h3>{{ t.allocation.review.studentList(selected.students.length) }}</h3>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>{{ t.common.field.className }}</th>
-              <th>{{ t.common.field.name }}</th>
-              <th>{{ t.allocation.review.window }}</th>
-              <th
-                v-for="date in selected.projectDays"
-                :key="date"
-              >
-                {{ formatDay(date) }}
-              </th>
-              <th>{{ t.allocation.review.averageRank }}</th>
-              <th v-if="selected.rules.length > 0">
-                {{ t.allocation.review.rules }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="s in selected.students"
-              :key="s.personId"
+        <section>
+          <Collapsible
+            id="zuteilung:students"
+            :heading="t.allocation.review.studentList(selected.students.length)"
+            :level="3"
+          >
+            <ListFilter
+              id="run-students"
+              v-model="studentFilter"
+              :fields="studentFields"
+              :shown="studentsShown.length"
+              :total="selected.students.length"
+            />
+            <table
+              v-if="studentsShown.length > 0"
+              class="table"
             >
-              <td>{{ s.className }}</td>
-              <td>{{ s.displayName }}</td>
-              <td>{{ s.window === null ? t.allocation.review.noWishes : WINDOW_LABELS[s.window] ?? s.window }}</td>
-              <td
-                v-for="date in selected.projectDays"
-                :key="date"
-                :class="{ alert: (s.days.find((d) => d.date === date)?.deficit ?? 0) > 0 }"
-              >
-                {{ placeLabel(selected, s, date) || '–' }}
-                <span
-                  v-if="(s.days.find((d) => d.date === date)?.deficit ?? 0) > 0"
-                  class="muted"
-                >({{ t.allocation.review.minutesMissing(s.days.find((d) => d.date === date)?.deficit ?? 0) }})</span>
-              </td>
-              <td>{{ s.averageRank === null ? '–' : s.averageRank.toFixed(2) }}</td>
-              <td
-                v-if="selected.rules.length > 0"
-                :class="{ alert: s.rules.some((r) => !r.met) }"
-              >
-                {{ studentRules(selected, s) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <p class="muted">
-          {{ t.allocation.review.sources(Object.values(ASSIGNMENT_SOURCE_LABELS).join(', ')) }}
-        </p>
+              <thead>
+                <tr>
+                  <th>{{ t.common.field.className }}</th>
+                  <th>{{ t.common.field.name }}</th>
+                  <th>{{ t.allocation.review.window }}</th>
+                  <th
+                    v-for="date in selected.projectDays"
+                    :key="date"
+                  >
+                    {{ formatDay(date) }}
+                  </th>
+                  <th>{{ t.allocation.review.averageRank }}</th>
+                  <th v-if="selected.rules.length > 0">
+                    {{ t.allocation.review.rules }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="s in studentsShown"
+                  :key="s.personId"
+                >
+                  <td>{{ s.className }}</td>
+                  <td>{{ s.displayName }}</td>
+                  <td>{{ s.window === null ? t.allocation.review.noWishes : WINDOW_LABELS[s.window] ?? s.window }}</td>
+                  <td
+                    v-for="date in selected.projectDays"
+                    :key="date"
+                    :class="{ alert: (s.days.find((d) => d.date === date)?.deficit ?? 0) > 0 }"
+                  >
+                    {{ placeLabel(selected, s, date) || '–' }}
+                    <span
+                      v-if="(s.days.find((d) => d.date === date)?.deficit ?? 0) > 0"
+                      class="muted"
+                    >({{ t.allocation.review.minutesMissing(s.days.find((d) => d.date === date)?.deficit ?? 0) }})</span>
+                  </td>
+                  <td>{{ s.averageRank === null ? '–' : s.averageRank.toFixed(2) }}</td>
+                  <td
+                    v-if="selected.rules.length > 0"
+                    :class="{ alert: s.rules.some((r) => !r.met) }"
+                  >
+                    {{ studentRules(selected, s) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="muted">
+              {{ t.allocation.review.sources(Object.values(ASSIGNMENT_SOURCE_LABELS).join(', ')) }}
+            </p>
+          </Collapsible>
+        </section>
       </template>
     </section>
   </template>

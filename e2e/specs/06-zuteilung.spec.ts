@@ -61,7 +61,7 @@ test('die Nachfrist beginnt zu ihrer Zeit, die Organisation beendet sie und bere
   }
   await expect(page.getByRole('heading', { name: anyCount(t.allocation.review.ruleGaps) })).toBeVisible()
   await shot(page, '29-zuteilung')
-  await picture(page, 'zuteilung-pruefen', [page.getByRole('heading', { name: t.allocation.review.heading(1) }), page.getByRole('heading', { name: t.allocation.review.levels }).locator('xpath=following-sibling::p[1]')])
+  await picture(page, 'zuteilung-pruefen', [page.getByRole('heading', { name: t.allocation.review.heading(1) }), section(page, t.allocation.review.levels)])
   // Repeated with the same settings: a second run, which the comparison sets against the first.
   await runs.getByRole('row', { name: /^1 / }).getByRole('button', { name: t.allocation.runs.repeat }).click()
   await expect(page.getByRole('heading', { name: t.allocation.review.heading(2) })).toBeVisible()

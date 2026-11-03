@@ -231,6 +231,53 @@ textarea {
   margin-top: 0;
 }
 
+/* A section that folds (components/Collapsible.vue): its heading is the summary, with the browser's marker before it. */
+.collapsible > summary {
+  cursor: pointer;
+  list-style: disclosure-closed;
+  margin: 32px 0 8px;
+}
+
+.collapsible[open] > summary {
+  list-style: disclosure-open;
+}
+
+.collapsible > summary > h2,
+.collapsible > summary > h3 {
+  display: inline;
+  margin: 0;
+}
+
+.collapsible > summary:focus-visible {
+  outline: 3px solid #ffbf47;
+  outline-offset: 2px;
+}
+
+/* The controls of a list's filter (components/ListFilter.vue): in one row, the count at the end. */
+.list-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  align-items: end;
+  margin: 8px 0;
+}
+
+.list-filter .field {
+  margin: 0;
+}
+
+.list-filter input[type='search'] {
+  width: 12em;
+}
+
+.filter-check {
+  padding-bottom: 6px;
+}
+
+.filter-count {
+  margin: 0 0 6px auto;
+}
+
 .alert {
   padding: 8px 12px;
   border-left: 4px solid #b42318;

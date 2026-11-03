@@ -37,7 +37,9 @@ const MAX_HEIGHT = 1200
 export async function picture(page: Page, name: string, of: Locator | readonly Locator[], pad = 16): Promise<void> {
   if (!process.env.HANDBOOK_SHOTS) return
   if (!HANDBOOK_LANGUAGES.includes(LOCALE)) throw new Error(`The handbooks are in ${HANDBOOK_LANGUAGES.join(' and ')}, not ${LOCALE}`)
-  // From the top of the page, where a box's position in the viewport is its position in the page, which the clip needs.
+  // Every folded section open, so a picture shows what the handbook describes; then from the top of the page, where a
+  // box's position in the viewport is its position in the page, which the clip needs.
+  await expand(page)
   await page.evaluate(() => window.scrollTo(0, 0))
   const boxes = []
   for (const locator of [of].flat()) {
@@ -53,6 +55,13 @@ export async function picture(page: Page, name: string, of: Locator | readonly L
   const dir = path.join(import.meta.dirname, '..', '..', 'handbook', 'public', 'bilder', LOCALE)
   mkdirSync(dir, { recursive: true })
   await page.screenshot({ path: path.join(dir, `${name}.png`), fullPage: true, clip: { x: left, y: top, width: right - left, height: bottom - top } })
+}
+
+/** Opens every folded section of the page (components/Collapsible.vue), as the person would before reading it. */
+export async function expand(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    for (const details of document.querySelectorAll('details.collapsible')) (details as HTMLDetailsElement).open = true
+  })
 }
 
 /** The innermost section of the page under the heading `name`: what a picture usually shows. */

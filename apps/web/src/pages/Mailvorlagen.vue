@@ -9,6 +9,7 @@
 
 import type { MailKind } from '@school-allocation/api-contracts'
 import { computed, nextTick, onMounted, ref } from 'vue'
+import Collapsible from '../components/Collapsible.vue'
 import { loadMailTemplates, resetMailTemplate, saveMailTemplate, sendTestMail, type MailTemplate, type TemplateInvalidBody } from '../lib/admin-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { useFeedback } from '../lib/feedback.ts'
@@ -166,52 +167,56 @@ async function onTest(kind: MailKind): Promise<void> {
       v-for="template in templates"
       :key="template.kind"
     >
-      <h2>{{ MAIL_KIND_LABELS[template.kind] ?? template.kind }}</h2>
-      <p>
-        <span class="badge">{{ template.custom ? t.mailTemplates.customText : t.mailTemplates.defaultText }}</span>
-      </p>
-      <p
-        v-if="otherLanguage(template)"
-        class="alert"
+      <Collapsible
+        :id="`mailvorlagen:${template.kind}`"
+        :heading="MAIL_KIND_LABELS[template.kind] ?? template.kind"
       >
-        {{ otherLanguage(template) }}
-      </p>
-      <template v-if="editing?.kind !== template.kind">
-        <p><strong>{{ template.subject }}</strong></p>
-        <pre class="mail-body">{{ template.body }}</pre>
-        <p class="muted">
-          {{ t.mailTemplates.placeholders }}: {{ placeholderList(template) }}
+        <p>
+          <span class="badge">{{ template.custom ? t.mailTemplates.customText : t.mailTemplates.defaultText }}</span>
         </p>
-        <p class="actions">
-          <button
-            type="button"
-            class="ghost"
-            @click="startEditing(template)"
-          >
-            {{ t.common.edit }}
-          </button>
-          <button
-            v-if="template.custom"
-            type="button"
-            class="ghost"
-            :disabled="saving.busy.value"
-            @click="onReset(template.kind)"
-          >
-            {{ t.mailTemplates.reset }}
-          </button>
-          <button
-            v-if="mailEnabled"
-            type="button"
-            class="ghost"
-            :disabled="saving.busy.value"
-            @click="onTest(template.kind)"
-          >
-            {{ t.mailTemplates.sendTest }}
-          </button>
+        <p
+          v-if="otherLanguage(template)"
+          class="alert"
+        >
+          {{ otherLanguage(template) }}
         </p>
-      </template>
+        <template v-if="editing?.kind !== template.kind">
+          <p><strong>{{ template.subject }}</strong></p>
+          <pre class="mail-body">{{ template.body }}</pre>
+          <p class="muted">
+            {{ t.mailTemplates.placeholders }}: {{ placeholderList(template) }}
+          </p>
+          <p class="actions">
+            <button
+              type="button"
+              class="ghost"
+              @click="startEditing(template)"
+            >
+              {{ t.common.edit }}
+            </button>
+            <button
+              v-if="template.custom"
+              type="button"
+              class="ghost"
+              :disabled="saving.busy.value"
+              @click="onReset(template.kind)"
+            >
+              {{ t.mailTemplates.reset }}
+            </button>
+            <button
+              v-if="mailEnabled"
+              type="button"
+              class="ghost"
+              :disabled="saving.busy.value"
+              @click="onTest(template.kind)"
+            >
+              {{ t.mailTemplates.sendTest }}
+            </button>
+          </p>
+        </template>
+      </Collapsible>
       <form
-        v-else-if="editing"
+        v-if="editing && editing.kind === template.kind"
         class="panel"
         :aria-label="t.mailTemplates.editing(MAIL_KIND_LABELS[template.kind] ?? template.kind)"
         @submit.prevent="onSave"
