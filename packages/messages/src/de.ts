@@ -588,13 +588,13 @@ export const de = {
       grade: (grade: number) => `${grade}. Schulstufe`,
       wholeGrade: (grade: number) => `Ganze ${grade}. Schulstufe`,
       gone: 'Nicht mehr in den Klassenlisten',
-      noneInLists: 'Die Klassenlisten haben noch keine Klassen. Die Anmeldung lässt sich anlegen; welche Klassen teilnehmen, trägst du in den Einstellungen ein, sobald die Klassenlisten da sind.',
+      noneInLists: 'Die Klassenlisten haben noch keine Klassen. Die Anmeldung lässt sich anlegen; welche Klassen teilnehmen, steht in ihren Einstellungen, sobald die Klassenlisten da sind.',
       /** "7 Klassen, Schulstufen 5–11" beside the state; the grades where known. */
       summary: (classes: number, grades: [number, number] | null) => `${classes} ${byCount(classes, 'Klasse', 'Klassen')}${grades === null ? '' : grades[0] === grades[1] ? `, ${grades[0]}. Schulstufe` : `, Schulstufen ${grades[0]}–${grades[1]}`}`,
       /** On the registration's page, for the organization: the classes of the lists in force that are not in. */
       notTakingPart: (classes: string) => `Klassen der Klassenlisten, die nicht teilnehmen: ${classes}`,
       /** Why the list was refused: an activity or a rule still names these classes. */
-      inUse: (classes: string) => `Diese Klassen nennt noch eine Aktivität oder eine Regel: ${classes}. Ändere zuerst diese.`,
+      inUse: (classes: string) => `Diese Klassen nennt noch eine Aktivität oder eine Regel: ${classes}. Erst ohne sie dort lassen sie sich herausnehmen.`,
     },
   },
 

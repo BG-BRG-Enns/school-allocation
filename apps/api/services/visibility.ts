@@ -9,19 +9,24 @@ import type { Caller } from '../lib/actor.ts'
 import { campaignStudent, memberCampaignIds } from '../lib/dao/choices.ts'
 import type { Queryable } from '../lib/db.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
-import { canSee, isStudent } from '../lib/policies.ts'
+import { canSee, isOrganizer, isStudent } from '../lib/policies.ts'
+
+/** Whether the membership decides for the caller: a student without a privileged role (a role is granted in the app, never narrowed by the roster's kind). */
+function byMembership(caller: Pick<Caller, 'roles' | 'person'>): caller is Caller & { person: NonNullable<Caller['person']> } {
+  return isStudent(caller) && caller.person !== null && !isOrganizer(caller)
+}
 
 /** Whether the caller sees the campaign. */
 export async function mayView(db: Queryable, caller: Caller, campaign: Pick<Campaign, 'id' | 'state' | 'rosterBatchId'>): Promise<boolean> {
   if (!canSee(caller, campaign.state)) return false
-  if (!isStudent(caller) || caller.person === null) return true
+  if (!byMembership(caller)) return true
   return (await campaignStudent(db, campaign, caller.person.id)) !== undefined
 }
 
 /** The campaigns among `campaigns` the caller sees; for a student, their membership in one query. */
 export async function visibleAmong<C extends Pick<Campaign, 'id' | 'state'>>(db: Queryable, caller: Pick<Caller, 'roles' | 'person'>, campaigns: readonly C[]): Promise<C[]> {
   const byState = campaigns.filter((campaign) => canSee(caller, campaign.state))
-  if (!isStudent(caller) || caller.person === null || byState.length === 0) return byState
+  if (!byMembership(caller) || byState.length === 0) return byState
   const member = new Set(await memberCampaignIds(db, caller.person.id, byState.map((campaign) => campaign.id)))
   return byState.filter((campaign) => member.has(campaign.id))
 }

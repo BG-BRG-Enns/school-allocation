@@ -40,8 +40,11 @@ function set(names: readonly string[], on: boolean): void {
   emit('update:modelValue', [...next].sort((a, b) => a.localeCompare(b, 'de')))
 }
 
-/** What "all" chooses: the lists' classes; one gone from the lists is not brought back by it. */
+/** What "all" chooses: the lists' classes; one gone from the lists is not brought back by it. "None" clears every class, the gone ones too. */
 const all = computed(() => props.options.map((option) => option.className))
+function none(): void {
+  emit('update:modelValue', [])
+}
 function wholeGrade(group: Group): boolean {
   return group.classes.every((name) => chosen.value.has(name))
 }
@@ -62,7 +65,7 @@ function wholeGrade(group: Group): boolean {
         type="button"
         class="ghost small"
         :disabled="disabled"
-        @click="set(all, false)"
+        @click="none"
       >
         {{ t.campaigns.classes.selectNone }}
       </button>

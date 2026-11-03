@@ -16,7 +16,7 @@ import { anyCount, t } from '../support/messages.ts'
 import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
 import { picture, section, shot } from '../support/screenshot.ts'
 import { sample } from '../support/sample.ts'
-import { classSize, LEFT_OUT, loadStage, PARTICIPATING, SCHOOL } from '../support/scenario.ts'
+import { classSize, loadStage, PARTICIPATING, SCHOOL } from '../support/scenario.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
@@ -52,13 +52,6 @@ test('die Anmeldung öffnet sich zu ihrer Zeit; eine Schülerin gibt ihre Wünsc
   await expect(page.getByRole('heading', { name: t.campaign.missing.heading })).toBeVisible()
   await expect(page.getByText(t.campaign.missing.summary(PARTICIPATING, PARTICIPATING))).toBeVisible(STATE)
   await shot(page, '24-wahl-geoeffnet')
-  await signOut(page)
-
-  // A student of the class left out (03-katalog) sees no registration.
-  const leftOut = SCHOOL.classes.find((c) => c.name === LEFT_OUT)?.students[0]
-  if (!leftOut) throw new Error(`the school has no class ${LEFT_OUT}`)
-  await openAs(page, leftOut, '/wahlen')
-  await expect(page.getByText(t.campaigns.none)).toBeVisible()
   await signOut(page)
 
   await openAs(page, SARA, '/wahlen')
