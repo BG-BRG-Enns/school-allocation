@@ -15,16 +15,24 @@ export function isTeacher(caller: Pick<Caller, 'person'>): boolean {
 }
 
 /**
- * Whether the caller may see a campaign in `state`: organizers see all of
- * them, teachers also one taking proposals, everyone signed in what is
- * published, the archived campaign included (read-only: the result and
- * the attendance stay readable). A campaign that is not visible does not
- * exist for the caller.
+ * Whether the caller may see a campaign in `state`, by role: organizers
+ * see all of them, teachers also one taking proposals, everyone signed in
+ * what is published, the archived campaign included (read-only: the
+ * result and the attendance stay readable). A student sees only one a
+ * class of theirs takes part in, judged against the campaign's own roster
+ * (services/visibility.ts), never against the caller's current class: a
+ * class changes with the next school year, a retained result does not.
+ * A campaign that is not visible does not exist for the caller.
  */
 export function canSee(caller: Pick<Caller, 'roles' | 'person'>, state: CampaignState): boolean {
   if (isOrganizer(caller)) return true
   if (state === 'catalogue') return isTeacher(caller)
   return state !== 'draft'
+}
+
+/** Whether the caller is a student of the roster in force. */
+export function isStudent(caller: Pick<Caller, 'person'>): boolean {
+  return caller.person?.kind === 'student'
 }
 
 /** Who may propose: teachers of the roster in force, and organizers on anyone's behalf. They always see the teachers of an item. */

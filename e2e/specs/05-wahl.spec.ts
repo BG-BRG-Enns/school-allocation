@@ -16,7 +16,7 @@ import { anyCount, t } from '../support/messages.ts'
 import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
 import { picture, section, shot } from '../support/screenshot.ts'
 import { sample } from '../support/sample.ts'
-import { classSize, loadStage, SCHOOL, STUDENTS } from '../support/scenario.ts'
+import { classSize, loadStage, PARTICIPATING, SCHOOL } from '../support/scenario.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
 
 test.describe.configure({ mode: 'serial' })
@@ -50,7 +50,7 @@ test('die Anmeldung öffnet sich zu ihrer Zeit; eine Schülerin gibt ihre Wünsc
   await page.getByRole('link', { name: sample.projectWeek }).click()
   await expect(page.getByText(t.labels.campaignState.open)).toBeVisible()
   await expect(page.getByRole('heading', { name: t.campaign.missing.heading })).toBeVisible()
-  await expect(page.getByText(t.campaign.missing.summary(STUDENTS, STUDENTS))).toBeVisible(STATE)
+  await expect(page.getByText(t.campaign.missing.summary(PARTICIPATING, PARTICIPATING))).toBeVisible(STATE)
   await shot(page, '24-wahl-geoeffnet')
   await signOut(page)
 
@@ -89,12 +89,12 @@ test('einen Tag vor dem Ende wird erinnert, wer fehlt; die Organisation gibt fü
   test.slow()
   // The rest of the school saves until the reminder goes out, a day before the end (the registration's default): to everyone whose list is not complete, Tim among them, not to Sara.
   const saves = await loadStage(page, 'choices', REMINDER)
-  const incomplete = STUDENTS - 1 - saves.complete
+  const incomplete = PARTICIPATING - 1 - saves.complete
   await setClock(page, REMINDER)
   expect(await runTick()).toEqual({ transitions: 0, reminders: incomplete })
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
-  await expect(page.getByText(t.campaign.missing.summary(STUDENTS, incomplete))).toBeVisible(STATE)
+  await expect(page.getByText(t.campaign.missing.summary(PARTICIPATING, incomplete))).toBeVisible(STATE)
   const tim = page.getByRole('row', { name: new RegExp(TIM.name) })
   await expect(tim).toContainText(t.labels.choiceState.none)
   await expect(tim).toContainText(`${t.labels.mailKind.choice_reminder}: ${t.labels.mailState.queued}`)

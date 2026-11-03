@@ -55,7 +55,7 @@ export async function listClasses(db: Queryable): Promise<ClassWithTeachers[]> {
  * the right and the data are one year's: a class name recurs every year,
  * the right does not.
  */
-export async function classesTaught(db: Queryable, campaign: Pick<Campaign, 'rosterBatchId'>, personId: string): Promise<string[]> {
+export async function classesTaught(db: Queryable, campaign: Pick<Campaign, 'id' | 'rosterBatchId'>, personId: string): Promise<string[]> {
   const { rows } = await db.query<{ c: string }>(
     `with year as (select school_year from import_batch where id = ${campaignRosterBatch(campaign)}),
           batch as (select b.id from import_batch b, year where b.state = 'committed' and b.school_year = year.school_year order by b.decided_at desc limit 1),
@@ -66,8 +66,8 @@ export async function classesTaught(db: Queryable, campaign: Pick<Campaign, 'ros
        select s.class_name from roster_entry s, batch, me
         where s.batch_id = batch.id and s.kind = 'student' and s.class_name is not null
           and lower(s.class_teacher_mail) in (me.mail, me.upn)
-     ) k order by c`,
-    [personId],
+     ) k where c in (select class_name from campaign_class where campaign_id = $2) order by c`,
+    [personId, campaign.id],
   )
   return rows.map((row) => row.c)
 }

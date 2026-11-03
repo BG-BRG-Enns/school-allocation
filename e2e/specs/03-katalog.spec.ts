@@ -17,7 +17,7 @@ import { openAs, signOut } from '../support/sign-in.ts'
 import { refused } from '../support/console.ts'
 import { day, fee, literally, t } from '../support/messages.ts'
 import { sample } from '../support/sample.ts'
-import { CLIMBING, climbingNumber, loadStage } from '../support/scenario.ts'
+import { CLIMBING, climbingNumber, LEFT_OUT, loadStage, PARTICIPATING_CLASSES } from '../support/scenario.ts'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -35,11 +35,18 @@ test('die Organisation legt die Anmeldung an und öffnet sie für Aktivitäten',
   await expect(page.getByLabel(t.campaign.settings.projectDay(2))).toHaveValue('2034-07-04')
   await page.getByRole('button', { name: t.common.addDay }).click()
   await expect(page.getByLabel(t.campaign.settings.projectDay(3))).toHaveValue('2034-07-05')
+  // Every class of the class lists is preselected; one is taken out, and the registration says so afterwards.
+  const classes = page.getByRole('group', { name: t.campaigns.classes.legend })
+  await expect(classes.getByRole('checkbox', { name: LEFT_OUT, exact: true })).toBeChecked()
+  await classes.getByRole('checkbox', { name: LEFT_OUT, exact: true }).uncheck()
   await shot(page, '13-wahl-anlegen')
   await picture(page, 'anmeldung-anlegen', section(page, t.campaigns.new))
   await page.getByRole('button', { name: t.campaigns.create }).click()
   await expect(page.getByRole('heading', { name: sample.projectWeek })).toBeVisible()
   await expect(page.getByText(t.labels.campaignState.draft)).toBeVisible()
+  const grades = PARTICIPATING_CLASSES.map((c) => c.grade)
+  await expect(page.getByText(t.campaigns.classes.summary(PARTICIPATING_CLASSES.length, [Math.min(...grades), Math.max(...grades)]))).toBeVisible()
+  await expect(page.getByText(t.campaigns.classes.notTakingPart(LEFT_OUT))).toBeVisible()
   await shot(page, '14-wahl-in-vorbereitung')
   await picture(page, 'anmeldung-in-vorbereitung', [page.getByRole('heading', { name: sample.projectWeek }), section(page, t.campaign.organization.heading)])
   // Every step is asked once more, with what it does; the deletion is offered beside it while the registration is in preparation.

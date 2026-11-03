@@ -26,7 +26,8 @@ whole classes (a class trip): those students are pre-assigned, nobody else can c
 rank only the remaining time. Fees are shown, not consented to; whoever is assigned pays. After the
 window closes, an OR-Tools CP-SAT run allocates with a lexicographic "protect the worst-off first"
 objective; the run stores its input, seed, settings and result, and every explanation reads from that
-record. The TypeScript core re-validates the result before publication. All students take part in project week. WPF is
+record. The TypeScript core re-validates the result before publication. A registration names the classes taking part, every
+class of the lists unless the organizer takes some out (D-21). WPF is
 chosen in the 9th grade for all three years at once and validated by versioned rules; no history
 import; exceptions are handled outside the software.
 

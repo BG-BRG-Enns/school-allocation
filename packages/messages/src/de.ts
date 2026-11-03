@@ -504,6 +504,7 @@ export const de = {
     period_grid_invalid: 'Das Stundenraster passt noch nicht. Sieh dir bitte die Hinweise an.',
     no_roster: 'Es gibt noch keine Klassenlisten.',
     class_unknown: 'Diese Klasse gibt es in den Klassenlisten nicht.',
+    class_in_use: 'Eine Klasse, die herausgenommen werden soll, nennt noch eine Aktivität oder eine Regel.',
     teacher_unknown: 'Eine Lehrkraft steht nicht in den Klassenlisten.',
     teacher_list_invalid: 'Die Liste lässt sich so nicht übernehmen; die Zeilen mit Problemen stehen in der Prüfung.',
     availability_import_invalid: 'Die Liste lässt sich so nicht übernehmen; die Zeilen mit Problemen stehen in der Prüfung.',
@@ -578,6 +579,23 @@ export const de = {
     new: 'Neue Anmeldung',
     namePlaceholder: 'Projektwoche 2027',
     create: 'Anmeldung anlegen',
+    /** The classes a registration is for (ClassPicker.vue): the fieldset, its buttons, a grade's box. */
+    classes: {
+      legend: 'Klassen, die teilnehmen',
+      hint: 'Vorausgewählt sind alle Klassen der Klassenlisten. Eine Klasse, die nicht teilnimmt, sieht die Anmeldung nicht und bekommt keine Einladung.',
+      selectAll: 'Alle auswählen',
+      selectNone: 'Keine auswählen',
+      grade: (grade: number) => `${grade}. Schulstufe`,
+      wholeGrade: (grade: number) => `Ganze ${grade}. Schulstufe`,
+      gone: 'Nicht mehr in den Klassenlisten',
+      noneInLists: 'Die Klassenlisten haben noch keine Klassen. Die Anmeldung lässt sich anlegen; welche Klassen teilnehmen, steht in ihren Einstellungen, sobald die Klassenlisten da sind.',
+      /** "7 Klassen, Schulstufen 5–11" beside the state; the grades where known. */
+      summary: (classes: number, grades: [number, number] | null) => `${classes} ${byCount(classes, 'Klasse', 'Klassen')}${grades === null ? '' : grades[0] === grades[1] ? `, ${grades[0]}. Schulstufe` : `, Schulstufen ${grades[0]}–${grades[1]}`}`,
+      /** On the registration's page, for the organization: the classes of the lists in force that are not in. */
+      notTakingPart: (classes: string) => `Klassen der Klassenlisten, die nicht teilnehmen: ${classes}`,
+      /** Why the list was refused: an activity or a rule still names these classes. */
+      inUse: (classes: string) => `Diese Klassen nennt noch eine Aktivität oder eine Regel: ${classes}. Erst ohne sie dort lassen sie sich herausnehmen.`,
+    },
   },
 
   /** Wahl.vue: one campaign, its state and days, its activities, and what the person may do. */
@@ -633,6 +651,7 @@ export const de = {
       /** What the organizer should know before this very step, from the registration's state. */
       warnings: {
         noApproved: 'Keine Aktivität ist genehmigt: Der Katalog wäre leer.',
+        noClasses: 'Keine Klasse nimmt teil: Niemand sieht die Anmeldung, niemand wird eingeladen.',
         opensAtPast: (when: string) => `Der Beginn ${when} liegt in der Vergangenheit: Die Anmeldung öffnet gleich nach der Veröffentlichung von selbst.`,
         noEnd: 'Die Anmeldung hat kein Ende: Sie läuft, bis sie von Hand beendet wird.',
         noEndAck: 'Ich öffne die Anmeldung ohne Ende und beende sie von Hand.',
@@ -1278,6 +1297,8 @@ export const de = {
   /** Import.vue: one import, its changes against the list in force, its problems, and the decision. */
   rosterImport: {
     title: 'Import',
+    /** Above a list to take over, while a registration runs: a class new to the lists is not in it. */
+    runningRegistrations: 'Eine Anmeldung läuft gerade. Wer neu in einer Klasse steht, die teilnimmt, macht ab der Übernahme mit; eine neue Klasse nimmt an keiner Anmeldung teil, bis sie in deren Einstellungen eingetragen ist.',
     /** When the import was read, and by whom. */
     fetchedBy: (when: string, who: string) => `${when} von ${who}`,
     decided: 'Entschieden',

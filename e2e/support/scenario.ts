@@ -30,6 +30,13 @@ export const SCHOOL = LOCALE === 'en' ? inEnglish(scenario()) : scenario()
 /** The students of the school, in its 25 classes. */
 export const STUDENTS = SCHOOL.classes.reduce((sum, c) => sum + c.students.length, 0)
 
+/** The class the organizer takes out of the journeys' registration (03-katalog): its students see no registration and are invited to nothing. */
+export const LEFT_OUT = '4D'
+
+/** The classes taking part in the journeys' registration, and their students. */
+export const PARTICIPATING_CLASSES = SCHOOL.classes.filter((c) => c.name !== LEFT_OUT)
+export const PARTICIPATING = PARTICIPATING_CLASSES.reduce((sum, c) => sum + c.students.length, 0)
+
 /** Everyone in the tenant's labelled groups: the students and the teachers. */
 export const PEOPLE = STUDENTS + SCHOOL.teachers.length
 
@@ -49,7 +56,7 @@ export function demandOf(date: string, grade: number): [needing: number, target:
     ...SCHOOL.items.map((item) => ({ fixedClasses: item.fixedClasses, eligibleGrades: item.eligibleGrades, eligibleClasses: item.eligibleClasses, places: item.places, dates: [...new Set(item.sessions.map((s) => s.date))] })),
     { fixedClasses: [], eligibleGrades: CLIMBING.grades, eligibleClasses: [], places: CLIMBING.places, dates: [CLIMBING.date] },
   ]
-  const sizes = SCHOOL.classes.map((c) => ({ className: c.name, grade: c.grade, students: c.students.length }))
+  const sizes = PARTICIPATING_CLASSES.map((c) => ({ className: c.name, grade: c.grade, students: c.students.length }))
   const found = demandByDay(SCHOOL.projectDays, sizes, offered).find((d) => d.date === date)?.grades.find((g) => g.grade === grade)
   if (!found) throw new Error(`no demand for grade ${grade} on ${date}`)
   // The registration's headroom is the default, 20%.

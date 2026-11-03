@@ -107,6 +107,13 @@ export async function findProjectDays(db: Queryable, campaignId: string) {
   return row === undefined ? undefined : ({ projectDays: row.project_days })
 }
 
+/** The classes taking part in the campaign, by name: what an activity may name as fixed or eligible. */
+export async function listCampaignClasses(db: Queryable, campaignId: string) {
+  const { rows } = await db.query<{ class_name: string }>('select class_name from campaign_class where campaign_id = $1 order by class_name', [campaignId])
+  return rows.map((row) => ({ className: row.class_name }))
+}
+
+/** The classes of the roster in force, by name: what a registration may take in. */
 export async function listRosterClasses(db: Queryable) {
   const { rows } = await db.query<{ class_name: string }>(
     `select distinct e.class_name from roster_entry e

@@ -10,14 +10,14 @@ import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import * as store from '../lib/dao/campaigns.ts'
 import { lockedCampaign, readCampaign, rosterClassSizes } from '../lib/dao/campaigns.ts'
 import { knownCategories } from '../lib/dao/categories.ts'
-import { listCampaignItems, numberApprovedItems } from '../lib/dao/items.ts'
+import { listCampaignItems, listRosterClasses, numberApprovedItems } from '../lib/dao/items.ts'
 import type { Database, Queryable } from '../lib/db.ts'
-import { ApplicationError, RulesInvalid } from '../lib/errors.ts'
+import { ApplicationError, ClassInUse, RulesInvalid } from '../lib/errors.ts'
 import type { Campaign, CampaignChanges, CampaignWindow, NewCampaign, RuleInput } from '../lib/models/campaigns.ts'
 import type { WindowContext } from '../lib/models/window.ts'
-import { canSee } from '../lib/policies.ts'
 import { datesOfSpan } from '../lib/time.ts'
 import { uniqueSorted } from './catalogue-input.ts'
+import { visibleAmong } from './visibility.ts'
 import { windowEffects } from './window.ts'
 
 /** The states an organizer moves a campaign into by hand, the two steps back included (draft from catalogue, catalogue from published); the grace week comes by the clock alone, the allocation's states by a run and its publication. The archive closes the campaign after the event and the attendance: nothing changes afterwards. */
@@ -61,14 +61,31 @@ export function checkWindow(window: CampaignWindow): 'invalid_instant' | 'window
   return undefined
 }
 
+/**
+ * The classes a registration takes in, as the school's roster in force
+ * knows them: a class it does not know has no students to invite and would
+ * only mislead. Left out, every class of the roster, which is what a project
+ * week mostly wants and what the form preselects.
+ */
+async function classesTakenIn(client: Queryable, classes: readonly string[] | undefined): Promise<string[]> {
+  const known = (await listRosterClasses(client)).map((row) => row.className)
+  if (classes === undefined) return uniqueSorted(known)
+  const wanted = uniqueSorted(classes)
+  const unknown = wanted.filter((name) => !known.includes(name))
+  if (unknown.length > 0) throw new ApplicationError('class_unknown', unknown.join(', '))
+  return wanted
+}
+
 export async function createCampaign(db: Database, input: NewCampaign, actor: Actor): Promise<Campaign> {
   const id = await db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
+    const classes = await classesTakenIn(client, input.classes)
     const row = await store.insertCampaign(client, input, actor)
     if (!row) throw new Error('campaign insert returned no row')
+    await store.replaceClasses(client, row.id, classes)
     await appendAudit(client, {
       scopeId: SCHOOL_SCOPE, actor: auditActor(actor), action: 'campaign.created',
-      metadata: { campaignId: row.id, kind: input.kind, schoolYear: input.schoolYear, projectDays: input.projectDays.length },
+      metadata: { campaignId: row.id, kind: input.kind, schoolYear: input.schoolYear, projectDays: input.projectDays.length, classes: classes.length },
     })
     return row.id
   })
@@ -78,18 +95,25 @@ export async function createCampaign(db: Database, input: NewCampaign, actor: Ac
 }
 
 /**
- * Changes a campaign's name, year or days; only while it is being set up or
- * taking proposals, and never to days that would leave a session of an
- * activity outside them: the activities were checked against the days they
- * were proposed for, and a published catalogue must still satisfy that.
+ * Changes a campaign's name, year, days or classes; only while it is being
+ * set up or taking proposals, never to days that would leave a session of
+ * an activity outside them (the activities were checked against the days
+ * they were proposed for, and a published catalogue must still satisfy
+ * that), and never without a class an activity or a rule still names.
  */
 export async function updateCampaign(db: Database, rawId: string, changes: CampaignChanges, actor: Actor): Promise<Campaign> {
   const id = canonicalId(rawId)
   await db.tx(async (client) => {
+    // A class list is checked against the roster in force, which a roster commit replaces under the school's lock: the
+    // two go one after the other, the school before the campaign, as everywhere (createCampaign, the opening).
+    if (changes.classes !== undefined) await lockScope(client, SCHOOL_SCOPE)
     await lockScope(client, id)
     const current = await lockedCampaign(client, id)
     if (!current) throw new ApplicationError('not_found')
-    const setUpChanged = changes.name !== current.name || changes.schoolYear !== current.schoolYear || changes.projectDays.join() !== current.projectDays.join()
+    // Compared as sets: the stored list comes in the database's order, the sent one in the form's.
+    const classes = changes.classes === undefined ? undefined : uniqueSorted(changes.classes)
+    const classesChanged = classes !== undefined && (classes.length !== current.classes.length || classes.some((name) => !current.classes.includes(name)))
+    const setUpChanged = changes.name !== current.name || changes.schoolYear !== current.schoolYear || changes.projectDays.join() !== current.projectDays.join() || classesChanged
     if (setUpChanged && current.state !== 'draft' && current.state !== 'catalogue') throw new ApplicationError('campaign_state')
     const window: CampaignWindow = { ...current }
     for (const field of WINDOW_FIELDS) {
@@ -120,11 +144,27 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     if (sessions.some((s) => datesOfSpan(s.startsAt.getTime(), s.endsAt.getTime()).some((date) => !days.has(date)))) {
       throw new ApplicationError('sessions_outside_days')
     }
+    // A class an activity or a rule names stays in: taking it out would leave them naming nobody, or a class outside. The
+    // rules are those of the change, where it carries them: one save may replace both, and the result is what must hold.
+    const removed = classes === undefined || !classesChanged ? [] : current.classes.filter((name) => !classes.includes(name))
+    const resulting = classes ?? current.classes
+    const namedByRules = (rules ?? current.rules).flatMap((rule) => rule.classes).filter((name) => !resulting.includes(name))
+    if (classes !== undefined && classesChanged) await classesTakenIn(client, classes)
+    const inUse = uniqueSorted([...namedByRules, ...(removed.length === 0 ? [] : await store.classesInUse(client, id, removed))])
+    if (inUse.length > 0) throw new ClassInUse(inUse)
     await store.updateSettings(client, id, changes, window)
     await appendAudit(client, {
       scopeId: id, actor: auditActor(actor), action: 'campaign.changed',
       metadata: { campaignId: id, projectDays: changes.projectDays.length, setUp: setUpChanged, window: windowChanged },
     })
+    if (classes !== undefined && classesChanged) {
+      await store.replaceClasses(client, id, classes)
+      await appendAudit(client, {
+        scopeId: id, actor: auditActor(actor), action: 'campaign.classes-changed',
+        // By count: forty class names would crowd out the rest.
+        metadata: { campaignId: id, added: classes.filter((name) => !current.classes.includes(name)).length, removed: removed.length, classes: classes.length },
+      })
+    }
     if (rules !== undefined && rulesChanged) {
       await store.replaceRules(client, id, rules)
       await appendAudit(client, {
@@ -233,18 +273,17 @@ export async function deleteCampaign(db: Database, rawId: string, actor: Actor):
 
 /** The campaigns the caller may see, newest first. */
 export async function listCampaigns(db: Queryable, caller: Pick<Caller, 'roles' | 'person'>): Promise<Campaign[]> {
-  const rows = await store.listCampaigns(db)
-  return rows.filter((campaign) => canSee(caller, campaign.state))
+  return visibleAmong(db, caller, await store.listCampaigns(db))
 }
 
 /**
  * Places needed against places offered per project day and grade (D-13):
- * the roster's class sizes against the items that are proposed or approved,
- * by the dates their sessions touch. Drafts and withdrawn items count for
- * nothing.
+ * the sizes of the classes taking part against the items that are proposed
+ * or approved, by the dates their sessions touch. Drafts and withdrawn
+ * items count for nothing.
  */
 export async function campaignDemand(db: Queryable, campaign: Campaign): Promise<{ demand: DayDemand[], rules: RuleDemand[] }> {
-  const classes = await rosterClassSizes(db)
+  const classes = await rosterClassSizes(db, campaign)
   const rows = await store.listDemandSessions(db, campaign)
   // One row per session; an item counts once per date its sessions touch.
   const items = new Map<string, OfferedItem>()

@@ -501,6 +501,7 @@ export const en: Messages = {
     period_grid_invalid: 'The timetable is not ready yet. Please check the notes.',
     no_roster: 'There are no class lists yet.',
     class_unknown: 'This class is not in the class lists.',
+    class_in_use: 'A class to be taken out is still named by an activity or a rule.',
     teacher_unknown: 'A teacher is not in the class lists.',
     teacher_list_invalid: 'The list cannot be applied as it is; the rows with problems are in the check.',
     availability_import_invalid: 'The list cannot be applied as it is; the rows with problems are in the check.',
@@ -575,6 +576,23 @@ export const en: Messages = {
     new: 'New registration',
     namePlaceholder: 'Project week 2027',
     create: 'Create registration',
+    /** The classes a registration is for (ClassPicker.vue): the fieldset, its buttons, a grade's box. */
+    classes: {
+      legend: 'Classes taking part',
+      hint: 'Every class of the class lists is preselected. A class that does not take part does not see the registration and gets no invitation.',
+      selectAll: 'Select all',
+      selectNone: 'Select none',
+      grade: (grade: number) => `Year ${grade}`,
+      wholeGrade: (grade: number) => `All of year ${grade}`,
+      gone: 'No longer in the class lists',
+      noneInLists: 'The class lists have no classes yet. The registration can be created; which classes take part is set in its settings once the class lists are there.',
+      /** "7 classes, years 5–11" beside the state; the grades where known. */
+      summary: (classes: number, grades: [number, number] | null) => `${classes} ${byCount(classes, 'class', 'classes')}${grades === null ? '' : grades[0] === grades[1] ? `, year ${grades[0]}` : `, years ${grades[0]}–${grades[1]}`}`,
+      /** On the registration's page, for the organization: the classes of the lists in force that are not in. */
+      notTakingPart: (classes: string) => `Classes of the class lists not taking part: ${classes}`,
+      /** Why the list was refused: an activity or a rule still names these classes. */
+      inUse: (classes: string) => `An activity or a rule still names these classes: ${classes}. Change those first.`,
+    },
   },
 
   /** Wahl.vue: one campaign, its state and days, its activities, and what the person may do. */
@@ -629,6 +647,7 @@ export const en: Messages = {
       /** What the organizer should know before this very step, from the registration's state. */
       warnings: {
         noApproved: 'No activity is approved: the catalogue would be empty.',
+        noClasses: 'No class takes part: nobody sees the registration, nobody is invited.',
         opensAtPast: (when: string) => `The start ${when} is in the past: registration opens by itself right after publication.`,
         noEnd: 'Registration has no end: it runs until it is ended by hand.',
         noEndAck: 'I open the registration without an end and will end it by hand.',
@@ -1262,6 +1281,8 @@ export const en: Messages = {
   /** Import.vue: one import, its changes against the list in force, its problems, and the decision. */
   rosterImport: {
     title: 'Import',
+    /** Above a list to take over, while a registration runs: a class new to the lists is not in it. */
+    runningRegistrations: 'A registration is running. Anyone new in a class that takes part is in from the moment the list is taken over; a new class takes part in no registration until it is entered in that registration\'s settings.',
     /** When the import was read, and by whom. */
     fetchedBy: (when: string, who: string) => `${when} by ${who}`,
     decided: 'Decided',

@@ -153,7 +153,7 @@ lifecycle, and is tested with synthetic data only.
 
 **W2 · WPF campaign.**
 
-- Campaign eligibility by class prefix (`5` for the 9th grade).
+- The WPF registration names the 9th grade's classes (the class list per registration, D-21).
 - Multi-year plan choice, validation and explanations; Matura information. Exceptions are outside the
   software (D-19).
 - Exports; missed-deadline notices.

@@ -35,6 +35,16 @@ export class ItemInvalid extends Error {
   }
 }
 
+/** A class was not taken out of a registration: an activity or a rule of it still names these classes. */
+export class ClassInUse extends Error {
+  override name = 'ClassInUse'
+  readonly classes: string[]
+  constructor(classes: string[]) {
+    super('class_in_use')
+    this.classes = classes
+  }
+}
+
 /** A registration's rules break school-core's checkRules; the problems name the rule by its position. */
 export class RulesInvalid extends Error {
   override name = 'RulesInvalid'

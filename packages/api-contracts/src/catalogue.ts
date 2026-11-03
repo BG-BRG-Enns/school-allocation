@@ -13,12 +13,20 @@ const Grade = Type.Integer({ minimum: GRADES.min, maximum: GRADES.max })
 /** An ISO 8601 instant with an offset or Z, as the browser sends a chosen time. */
 const Instant = Type.String({ pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2}(\\.[0-9]+)?)?(Z|[+-][0-9]{2}:[0-9]{2})$' })
 
+/** The classes a registration is for; a whole school has a few dozen. Empty is allowed: nobody is in, and the page says so before publishing. */
+const ClassList = Type.Array(ClassName, { maxItems: 100 })
+
 export const CampaignBody = StrictObject({
   kind: Type.Literal('project_week'),
   name: SingleLineText(200),
   schoolYear: Type.String({ pattern: '^[0-9]{4}/[0-9]{2}$' }),
   projectDays: Type.Array(LocalDate, { minItems: 1, maxItems: 10 }),
+  /** The classes taking part; left out, every class of the class lists in force. */
+  classes: Type.Optional(ClassList),
 })
+
+/** Why a class was not taken out of a registration: an activity or a rule of it still names these classes. */
+export const ClassInUseResponse = StrictObject({ error: Type.Literal('class_in_use'), classes: Type.Array(Type.String()) })
 
 const InstantOrNull = Type.Union([Instant, Type.Null()])
 
@@ -40,6 +48,8 @@ export const CampaignChangesBody = StrictObject({
   name: SingleLineText(200),
   schoolYear: Type.String({ pattern: '^[0-9]{4}/[0-9]{2}$' }),
   projectDays: Type.Array(LocalDate, { minItems: 1, maxItems: 10 }),
+  /** The classes taking part, replacing the list; left out, it stays. Changed while the registration is set up or takes proposals. */
+  classes: Type.Optional(ClassList),
   // The window and what it asks (D-05, D-06, D-13); left out, a setting stays.
   opensAt: Type.Optional(InstantOrNull),
   closesAt: Type.Optional(InstantOrNull),

@@ -53,7 +53,7 @@ Rules for both:
 | Layer | Source | Meaning |
 | ----- | ------ | ------- |
 | **Kind** (`student` / `teacher`) | The roster: the administrator marks each imported group (or CSV) as students or teachers | A person in both sets is refused with an error, never silently resolved |
-| **Eligibility** | The campaign's rule (`all`, or `class prefix` such as `5` for WPF) applied to the frozen roster batch | Decides who may choose in a campaign and which items they may see |
+| **Taking part** | The campaign's list of classes (D-21), applied to the roster it goes by: the batch frozen at its close, else the one in force | Decides who sees a campaign and may choose in it; an item's own `eligible_grades` / `eligible_classes` narrow further |
 | **Privileged roles** `campaign_organizer`, `school_admin`, `read_only_auditor` | Granted in the app by a `school_admin`, audited, optionally scoped to a campaign | Never derived from Entra |
 | **Bootstrap** | Configuration lists the UPNs or `oid`s of the first administrators | Applied at their first sign-in |
 | **Class teacher (KV)** | Assigned per class and school year in the app by an organizer or admin, or taken from a CSV column | Base data of the school year, the same for every campaign of it: a campaign's class pages, placements and attendance open to the class teachers of its school year (the year of the roster its students come from), not to a later year's teacher of a class of the same name. Also a teacher of the roster in force |
@@ -94,9 +94,9 @@ Reads are authorized per request. Status codes: 401 no session, 403 wrong role, 
 
 | Event | Effect |
 | ----- | ------ |
-| New student (appears in a newer batch) | Eligible from that batch; pre-provisioned (Graph) or bound at first sign-in (CSV) |
-| Class change between batches | Eligibility re-evaluated; existing choices flagged for organizer review, not deleted |
-| Student leaves (missing from the newest batch) | Loses eligibility on the next request; choices and assignments kept and marked as withdrawn |
+| New student (appears in a newer batch) | In from that batch when their class takes part; a class new to the lists takes part in no campaign until the organizer enters it; pre-provisioned (Graph) or bound at first sign-in (CSV) |
+| Class change between batches | While the campaign goes by the lists in force (until its close): taking part re-evaluated by the new class; existing choices flagged for organizer review, not deleted. A closed campaign keeps the batch frozen at its close, so nothing moves |
+| Student leaves (missing from the newest batch) | Out on the next request; choices and assignments kept and marked as withdrawn |
 | Account disabled in Entra | No new sign-in; the existing session ends at the latest after 8 h, and earlier if an admin blocks the person |
 | Name, e-mail or UPN change | No effect: the key is `(tid, oid)` |
 | New `oid` for the same person (account recreated) | Admin re-attaches the roster entry, audited |

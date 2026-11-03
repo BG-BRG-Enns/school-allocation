@@ -4,6 +4,7 @@
 
 import { computed, onMounted, ref, watch } from 'vue'
 import { commitBatch, discardBatch, loadBatch, type BatchDetail, type StoredEntry } from '../lib/admin-api.ts'
+import { loadCampaigns } from '../lib/campaigns-api.ts'
 import { formatWhen, useFeedback } from '../lib/feedback.ts'
 import { t } from '../lib/i18n.ts'
 import { BATCH_STATE_LABELS, FIELD_LABELS, KIND_LABELS, PROBLEM_LABELS, SOURCE_LABELS, WARNING_LABELS } from '../lib/labels.ts'
@@ -13,12 +14,16 @@ const props = defineProps<{ id: string }>()
 usePageTitle(() => t.rosterImport.title)
 
 const batch = ref<BatchDetail | null>(null)
+/** Whether a registration is taking wishes right now: a class new to the list would not be in it. */
+const registrationRunning = ref(false)
 const loading = useFeedback()
 const decision = useFeedback()
 
 async function load(): Promise<void> {
   await loading.run(async () => {
-    batch.value = await loadBatch(props.id)
+    const [detail, list] = await Promise.all([loadBatch(props.id), loadCampaigns()])
+    batch.value = detail
+    registrationRunning.value = list.campaigns.some((c) => c.state === 'open' || c.state === 'grace')
   })
 }
 onMounted(load)
@@ -92,6 +97,12 @@ function field(entry: StoredEntry, name: string): string {
         {{ formatWhen(batch.decidedAt) }}
       </dd>
     </dl>
+    <p
+      v-if="registrationRunning && batch.state === 'pending'"
+      class="muted"
+    >
+      {{ t.rosterImport.runningRegistrations }}
+    </p>
 
     <section v-if="batch.problems.length > 0">
       <h2>{{ t.rosterImport.problems.title }}</h2>

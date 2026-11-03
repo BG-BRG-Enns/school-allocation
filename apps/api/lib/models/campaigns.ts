@@ -12,6 +12,8 @@ export interface NewCampaign {
   name: string
   schoolYear: string
   projectDays: string[]
+  /** The classes taking part; left out, every class of the class lists in force. */
+  classes?: string[]
 }
 
 /** What an organizer changes: the set-up (while it is being set up or taking proposals), the window settings and the rules (until the window opens). */

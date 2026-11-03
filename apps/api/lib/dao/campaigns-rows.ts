@@ -19,6 +19,7 @@ export interface CampaignRow {
   reminder_days: number
   place_headroom_percent: number
   rules: CampaignRule[]
+  classes: string[]
   roster_batch_id: string | null
   created_at: Date
   updated_at: Date

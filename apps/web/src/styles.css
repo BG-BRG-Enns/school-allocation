@@ -401,6 +401,19 @@ button.small {
   gap: 6px 16px;
 }
 
+/* The classes of a registration: a row per grade, its box before the grid. */
+.class-grade {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: baseline;
+  margin: 6px 0;
+}
+
+.class-grade-label {
+  min-width: 9em;
+}
+
 @media print {
   .shell-header,
   .no-print {

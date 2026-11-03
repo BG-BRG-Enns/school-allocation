@@ -30,8 +30,8 @@ date, address, insurance number or any other field from it.
 | `oid` (Graph source only) | Pre-provisioned identity |
 | `upn` and/or `mail` | CSV binding at first sign-in; notifications |
 | `display_name` (or given + family name) | Lists for organizers and teachers |
-| `class` | Eligibility, class-teacher scope, lists |
-| `grade` (Schulstufe) | Eligibility, daily minimum per grade |
+| `class` | Taking part in a campaign (its class list, D-21), class-teacher scope, lists |
+| `grade` (Schulstufe) | Items offered per grade, daily minimum per grade |
 | `kind` (student / teacher) | From which group set or CSV the row came |
 | `school_year` | Batch consistency |
 
@@ -88,7 +88,7 @@ class-teacher assignment itself comes with attendance (S5).
   not form a roster is stored as **rejected**, with the problems, and can be neither.
 - A pending batch's diff was taken against the roster in force at that moment; once another batch
   is committed, the pending one is stale and its commit is refused.
-- **Allocation always runs against one frozen batch.** Eligibility must not change under a running
+- **Allocation always runs against one frozen batch.** Who takes part must not change under a running
   allocation.
 - A batch with the same `oid`/e-mail twice, a person in both the student and teacher set, one
   address on two entries, or nobody in it at all is **rejected whole**.
