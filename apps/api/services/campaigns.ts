@@ -141,13 +141,14 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     if (sessions.some((s) => datesOfSpan(s.startsAt.getTime(), s.endsAt.getTime()).some((date) => !days.has(date)))) {
       throw new ApplicationError('sessions_outside_days')
     }
-    // A class an activity or a rule names stays in: taking it out would leave them naming nobody, or a class outside.
+    // A class an activity or a rule names stays in: taking it out would leave them naming nobody, or a class outside. The
+    // rules are those of the change, where it carries them: one save may replace both, and the result is what must hold.
     const removed = classes === undefined || !classesChanged ? [] : current.classes.filter((name) => !classes.includes(name))
-    if (classes !== undefined && classesChanged) {
-      await classesTakenIn(client, classes)
-      const inUse = removed.length === 0 ? [] : await store.classesInUse(client, id, removed)
-      if (inUse.length > 0) throw new ClassInUse(inUse)
-    }
+    const resulting = classes ?? current.classes
+    const namedByRules = (rules ?? current.rules).flatMap((rule) => rule.classes).filter((name) => !resulting.includes(name))
+    if (classes !== undefined && classesChanged) await classesTakenIn(client, classes)
+    const inUse = uniqueSorted([...namedByRules, ...(removed.length === 0 ? [] : await store.classesInUse(client, id, removed))])
+    if (inUse.length > 0) throw new ClassInUse(inUse)
     await store.updateSettings(client, id, changes, window)
     await appendAudit(client, {
       scopeId: id, actor: auditActor(actor), action: 'campaign.changed',

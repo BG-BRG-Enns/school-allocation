@@ -49,13 +49,11 @@ export async function replaceClasses(db: Queryable, id: string, classes: readonl
   if (classes.length > 0) await db.query('insert into campaign_class (campaign_id, class_name) select $1, unnest($2::text[])', [id, classes])
 }
 
-/** Which of `classes` an activity of the campaign (not withdrawn) or one of its rules names, so a class in use is not taken out. */
+/** Which of `classes` an activity of the campaign (not withdrawn) names as fixed or eligible, so a class in use is not taken out; the rules are the service's, which may be replacing them in the same change. */
 export async function classesInUse(db: Queryable, id: string, classes: readonly string[]): Promise<string[]> {
   const { rows } = await db.query<{ class_name: string }>(
     `select distinct x.class_name from (
        select unnest(i.fixed_classes || i.eligible_classes) as class_name from catalog_item i where i.campaign_id = $1 and i.state <> 'withdrawn'
-       union all
-       select unnest(r.classes) from campaign_rule r where r.campaign_id = $1
      ) x where x.class_name = any($2::text[]) order by x.class_name`,
     [id, classes],
   )

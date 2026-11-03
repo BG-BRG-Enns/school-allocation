@@ -77,6 +77,12 @@ test('a registration takes every class of the roster unless the organizer names 
   assert.equal((await settings(s, id, { rules: [{ categoryId, grades: [9], classes: ['5A'], unit: 'items', minimum: 1 }] })).status, 200)
   const ruled = await settings(s, id, { classes: ['8B'] })
   assert.deepEqual([ruled.status, (ruled.body as unknown as { classes: string[] }).classes], [409, ['5A']])
+  // One save replacing both: a rule naming a class the same save takes out is refused; the rule and the class going together pass.
+  const both = await settings(s, id, { classes: ['5A'], rules: [{ categoryId, grades: [12], classes: ['8B'], unit: 'items', minimum: 1 }] })
+  assert.deepEqual([both.status, (both.body as unknown as { classes: string[] }).classes], [409, ['8B']])
+  const together = await settings(s, id, { classes: ['8B'], rules: [] })
+  assert.deepEqual([together.status, together.body.classes, together.body.rules], [200, ['8B'], []])
+  assert.deepEqual((await settings(s, id, { classes: ['5A', '8B'] })).body.classes, ['5A', '8B'])
   // From publication on, the list is fixed; the window's settings still change without it.
   assert.equal((await move(s, id, 'published')).status, 200)
   assert.equal((await settings(s, id, { classes: ['5A'] })).body.error, 'campaign_state')
