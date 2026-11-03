@@ -59,7 +59,8 @@ $$;
 
 -- The retention purge of a year (purge_school_year) reads the year's campaigns and takes their audit chains with them; a
 -- campaign deleted in preparation left its chain behind, under its tombstone. This takes those chains and the tombstones
--- once the year's retention has ended, the same rule as the purge's; the service calls both in one transaction.
+-- once the year's retention has ended and every campaign of the year is archived, the same rules as the purge's, held
+-- here for whoever calls; the service calls both in one transaction.
 create function purge_deleted_campaigns(year text) returns table (relation text, removed bigint)
 language plpgsql security definer set search_path = public, pg_catalog as $$
 declare
@@ -71,6 +72,9 @@ begin
   end if;
   if now() < make_timestamptz(substring(year from 1 for 4)::integer + 2, 9, 1, 0, 0, 0, 'Europe/Vienna') then
     raise exception 'the retention of % has not ended', year using errcode = '55000';
+  end if;
+  if exists (select 1 from campaign where school_year = year and state <> 'archived') then
+    raise exception 'a campaign of % is not archived', year using errcode = '55000';
   end if;
   select coalesce(array_agg(id), '{}') into scopes from deleted_campaign where school_year = year;
   perform set_config('schulwahl.purge', 'on', true);

@@ -271,8 +271,8 @@ function stepLabel(step: Step): string {
 
 async function startStep(step: Step): Promise<void> {
   noEndAcknowledged.value = false
-  stepPending.value = step
-  // The mail server's absence is worth a line before the opening: the invitations would wait.
+  // The mail server's absence is worth a line before the opening: the invitations would wait. Asked before the form shows,
+  // so a quick click cannot confirm without the line.
   if (step === 'open') {
     try {
       mailEnabled.value = (await loadMailStatus()).mailEnabled
@@ -280,6 +280,7 @@ async function startStep(step: Step): Promise<void> {
       mailEnabled.value = true
     }
   }
+  stepPending.value = step
 }
 
 /** What the step does and what the registration's state adds to it. */
