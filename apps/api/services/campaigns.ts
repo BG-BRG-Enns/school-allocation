@@ -20,8 +20,8 @@ import { datesOfSpan } from '../lib/time.ts'
 import { uniqueSorted } from './catalogue-input.ts'
 import { windowEffects } from './window.ts'
 
-/** The states an organizer moves a campaign into by hand; the grace week comes by the clock alone, the allocation's states by a run and its publication. The archive closes the campaign after the event and the attendance: nothing changes afterwards. */
-export const AVAILABLE_TRANSITIONS: readonly CampaignState[] = ['catalogue', 'published', 'open', 'closed', 'archived']
+/** The states an organizer moves a campaign into by hand, the two steps back included (draft from catalogue, catalogue from published); the grace week comes by the clock alone, the allocation's states by a run and its publication. The archive closes the campaign after the event and the attendance: nothing changes afterwards. */
+export const AVAILABLE_TRANSITIONS: readonly CampaignState[] = ['draft', 'catalogue', 'published', 'open', 'closed', 'archived']
 
 /** The states in which the window's settings may still change: everything before the window opens. */
 const WINDOW_SETTABLE: readonly CampaignState[] = ['draft', 'catalogue', 'published']
@@ -195,6 +195,40 @@ export async function transitionCampaign(db: Database, rawId: string, to: Campai
     })
   })
   return requireCampaign(db, id)
+}
+
+/**
+ * Deletes a registration still in preparation: the database's definer
+ * function takes the rules and the draft items, and refuses anything else
+ * (an item past draft or once numbered, a grant scoped to the campaign, a
+ * notice, a placement) as SQLSTATE 55000, which is answered as
+ * `campaign_state`. Audited in the school's chain with the name and what
+ * went; the registration's own chain stays.
+ */
+export async function deleteCampaign(db: Database, rawId: string, actor: Actor): Promise<{ removed: { relation: string, count: number }[] }> {
+  const id = canonicalId(rawId)
+  return db.tx(async (client) => {
+    await lockScope(client, SCHOOL_SCOPE)
+    await lockScope(client, id)
+    const current = await lockedCampaign(client, id)
+    if (!current) throw new ApplicationError('not_found')
+    if (current.state !== 'draft') throw new ApplicationError('campaign_state')
+    const counts = await store.campaignCounts(client, id)
+    if (counts.proposed + counts.approved + counts.withdrawn > 0) throw new ApplicationError('campaign_state')
+    let removed: { relation: string, count: number }[]
+    try {
+      removed = await store.deleteDraftCampaign(client, id)
+    } catch (error) {
+      // The function's own refusals (a draft that once had a number, a grant scoped to the campaign): the state's, not a fault.
+      if ((error as { code?: string }).code === '55000') throw new ApplicationError('campaign_state')
+      throw error
+    }
+    await appendAudit(client, {
+      scopeId: SCHOOL_SCOPE, actor: auditActor(actor), action: 'campaign.deleted',
+      metadata: { campaignId: id, name: current.name, schoolYear: current.schoolYear, removed: Object.fromEntries(removed.map((r) => [r.relation, r.count])) },
+    })
+    return { removed }
+  })
 }
 
 /** The campaigns the caller may see, newest first. */

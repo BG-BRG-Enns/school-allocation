@@ -4,19 +4,23 @@ Eine **Anmeldung** führt die Schule von den ersten Aktivitäten bis zur fertige
 
 ## Der Ablauf
 
-Jede Anmeldung geht durch dieselben Stände. Den nächsten Schritt machst du mit einem Knopf auf der Seite der Anmeldung; Beginn und Ende der Anmeldung kommen auch von selbst, zu den Zeiten aus den [Einstellungen](./einstellungen).
+Jede Anmeldung geht durch dieselben Stände. Den nächsten Schritt machst du mit einem Knopf auf der Seite der Anmeldung; jeder Schritt wird noch einmal bestätigt, und dabei steht, was er bewirkt und ob es einen Weg zurück gibt. Beginn und Ende der Anmeldung kommen auch von selbst, zu den Zeiten aus den [Einstellungen](./einstellungen).
 
-| Stand | Was geschieht | Weiter mit |
-| ----- | ------------- | ---------- |
-| In Vorbereitung | Du legst die Anmeldung an; außer der Organisation sieht sie niemand | **Angebote sammeln** |
-| Angebote werden gesammelt | Lehrkräfte reichen Aktivitäten ein, du prüfst sie | **Katalog veröffentlichen** |
-| Katalog veröffentlicht | Alle sehen den nummerierten Katalog | **Anmeldung öffnen**, oder von selbst zum Beginn |
-| Anmeldung läuft | Schüler\*innen geben ihre Wünsche ab | von selbst zum Ende, oder **Anmeldung beenden** |
-| Nachfrist | Wer noch keine vollständigen Wünsche hat, holt sie nach | von selbst zum Ende der Nachfrist, oder **Anmeldung beenden** |
-| Anmeldung beendet | Die Klassenlisten der Anmeldung sind festgehalten | **Zuteilung berechnen** |
-| Zuteilung in Prüfung | Du prüfst und vergleichst Berechnungen | **Veröffentlichen** |
-| Einteilung veröffentlicht | Alle sehen ihre Einteilung; Tausch, Einteilung durch die Klassenvorstände, Änderungen von Hand | **Anmeldung abschließen** |
-| Abgeschlossen | Alles bleibt lesbar, nichts ändert sich mehr | – |
+![Ein Schritt wird bestätigt: der Knopf Angebote sammeln, darunter, was der Schritt bewirkt und der Rückweg, und der Knopf Ja](/bilder/de/schritt-bestaetigen.png)
+
+| Stand | Was geschieht | Weiter mit | Zurück |
+| ----- | ------------- | ---------- | ------ |
+| In Vorbereitung | Du legst die Anmeldung an; außer der Organisation sieht sie niemand | **Angebote sammeln** | **Anmeldung löschen** |
+| Angebote werden gesammelt | Lehrkräfte reichen Aktivitäten ein, du prüfst sie | **Katalog veröffentlichen** | **Zurück zur Vorbereitung** |
+| Katalog veröffentlicht | Alle sehen den nummerierten Katalog | **Anmeldung öffnen**, oder von selbst zum Beginn | **Zurück zum Sammeln**; die Nummern bleiben |
+| Anmeldung läuft | Schüler\*innen geben ihre Wünsche ab | von selbst zum Ende, oder **Anmeldung beenden** | – |
+| Nachfrist | Wer noch keine vollständigen Wünsche hat, holt sie nach | von selbst zum Ende der Nachfrist, oder **Anmeldung beenden** | – |
+| Anmeldung beendet | Die Klassenlisten der Anmeldung sind festgehalten | **Zuteilung berechnen** | – |
+| Zuteilung in Prüfung | Du prüfst und vergleichst Berechnungen | **Veröffentlichen** | – |
+| Einteilung veröffentlicht | Alle sehen ihre Einteilung; Tausch, Einteilung durch die Klassenvorstände, Änderungen von Hand | **Anmeldung abschließen** | – |
+| Abgeschlossen | Alles bleibt lesbar, nichts ändert sich mehr | – | – |
+
+Ab dem Öffnen gibt es keinen Weg zurück: Die Einladungen sind hinaus, die Schüler\*innen wählen.
 
 Die Schritte im Einzelnen:
 

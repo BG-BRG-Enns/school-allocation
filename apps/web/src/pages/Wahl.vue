@@ -6,12 +6,13 @@
 
 import { MAX_RULES, placeTarget, RULE_LIMITS, RULE_UNITS } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
-import { loadMailQueue } from '../lib/admin-api.ts'
-import { approveItem, catalogueExportPath, deleteItem, loadCampaign, loadCategories, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignRule, type CampaignView, type Category, type DayDemand, type Item, type MissingStudent, type RuleDemand, type RuleUnit } from '../lib/campaigns-api.ts'
+import { useRouter } from 'vue-router'
+import { loadMailQueue, loadMailStatus } from '../lib/admin-api.ts'
+import { approveItem, catalogueExportPath, deleteCampaign, deleteItem, loadCampaign, loadCategories, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignRule, type CampaignView, type Category, type DayDemand, type Item, type MissingStudent, type RuleDemand, type RuleUnit } from '../lib/campaigns-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf } from '../lib/format.ts'
+import { formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf, nextDay } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
 import { CAMPAIGN_STATE_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS, MAIL_KIND_LABELS, MAIL_STATE_LABELS, RULE_PROBLEM_LABELS, RULE_UNIT_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
@@ -248,12 +249,75 @@ async function onSaveSettings(): Promise<void> {
     await load()
   }
 }
-async function onTransition(to: 'catalogue' | 'published' | 'open' | 'closed' | 'archived'): Promise<void> {
-  // The archive is the end: nothing of the campaign changes afterwards, so it is asked once more.
-  if (to === 'archived' && !window.confirm(t.campaign.organization.archiveConfirm)) return
+// A step by hand: asked on the page with what it does and whether there is a way back, then taken. The deletion of a
+// registration in preparation is a step like the others.
+type Step = 'draft' | 'catalogue' | 'published' | 'open' | 'closed' | 'archived' | 'delete'
+const router = useRouter()
+const stepPending = ref<Step | null>(null)
+const noEndAcknowledged = ref(false)
+const mailEnabled = ref(true)
+
+/** The step's name, as its button says it; the way back to catalogue has its own. */
+function stepLabel(step: Step): string {
+  const o = t.campaign.organization
+  if (step === 'draft') return o.backToDraft
+  if (step === 'catalogue') return campaign.value?.state === 'published' ? o.backToCatalogue : o.collect
+  if (step === 'published') return o.publish
+  if (step === 'open') return o.open
+  if (step === 'closed') return o.close
+  if (step === 'archived') return o.archive
+  return o.delete
+}
+
+async function startStep(step: Step): Promise<void> {
+  noEndAcknowledged.value = false
+  // The mail server's absence is worth a line before the opening: the invitations would wait. Asked before the form shows,
+  // so a quick click cannot confirm without the line.
+  if (step === 'open') {
+    try {
+      mailEnabled.value = (await loadMailStatus()).mailEnabled
+    } catch {
+      mailEnabled.value = true
+    }
+  }
+  stepPending.value = step
+}
+
+/** What the step does and what the registration's state adds to it. */
+const consequences = computed<string[]>(() => {
+  const step = stepPending.value
+  const c = campaign.value
+  if (step === null || !c) return []
+  const key = step === 'catalogue' && c.state === 'published' ? 'backToCatalogue' : step
+  const lines = [...t.campaign.transitions.consequences[key]]
+  const w = t.campaign.transitions.warnings
+  if (step === 'published') {
+    if ((view.value?.counts?.approved ?? 0) === 0) lines.push(w.noApproved)
+    if (c.opensAt !== null && Date.parse(c.opensAt) <= Date.now()) lines.push(w.opensAtPast(formatWhenShort(c.opensAt)))
+  }
+  if (step === 'open') {
+    if (c.closesAt === null) lines.push(w.noEnd)
+    if (!mailEnabled.value) lines.push(w.mailOff)
+  }
+  return lines
+})
+/** Opening without an end is taken only with the box ticked. */
+const needsNoEndAck = computed(() => stepPending.value === 'open' && campaign.value?.closesAt === null)
+
+async function confirmStep(): Promise<void> {
+  const step = stepPending.value
+  if (step === null || (needsNoEndAck.value && !noEndAcknowledged.value)) return
+  if (step === 'delete') {
+    const ok = await action.run(async () => {
+      await deleteCampaign(props.id)
+    })
+    if (ok) await router.push('/wahlen')
+    return
+  }
   const ok = await action.run(async () => {
-    await transitionCampaign(props.id, to)
+    await transitionCampaign(props.id, step)
   })
+  stepPending.value = null
   if (ok) await load()
 }
 
@@ -359,12 +423,53 @@ function onSubmitPending(): void {
           <br>{{ ruleText(rule) }}
         </template>
       </p>
+      <form
+        v-if="stepPending"
+        class="panel"
+        :aria-label="t.campaign.transitions.confirm"
+        @submit.prevent="confirmStep"
+      >
+        <h3>{{ stepLabel(stepPending) }}</h3>
+        <ul>
+          <li
+            v-for="line in consequences"
+            :key="line"
+          >
+            {{ line }}
+          </li>
+        </ul>
+        <label
+          v-if="needsNoEndAck"
+          class="checks"
+        >
+          <input
+            v-model="noEndAcknowledged"
+            type="checkbox"
+          >
+          {{ t.campaign.transitions.warnings.noEndAck }}
+        </label>
+        <p class="actions">
+          <button
+            type="submit"
+            :disabled="action.busy.value || (needsNoEndAck && !noEndAcknowledged)"
+          >
+            {{ t.campaign.transitions.submit(stepLabel(stepPending)) }}
+          </button>
+          <button
+            type="button"
+            class="ghost"
+            @click="stepPending = null"
+          >
+            {{ t.common.cancel }}
+          </button>
+        </p>
+      </form>
       <p class="actions">
         <button
           v-if="campaign.state === 'draft'"
           type="button"
           :disabled="action.busy.value"
-          @click="onTransition('catalogue')"
+          @click="startStep('catalogue')"
         >
           {{ t.campaign.organization.collect }}
         </button>
@@ -372,7 +477,7 @@ function onSubmitPending(): void {
           v-if="campaign.state === 'catalogue'"
           type="button"
           :disabled="action.busy.value"
-          @click="onTransition('published')"
+          @click="startStep('published')"
         >
           {{ t.campaign.organization.publish }}
         </button>
@@ -380,7 +485,7 @@ function onSubmitPending(): void {
           v-if="campaign.state === 'published'"
           type="button"
           :disabled="action.busy.value"
-          @click="onTransition('open')"
+          @click="startStep('open')"
         >
           {{ t.campaign.organization.open }}
         </button>
@@ -389,7 +494,7 @@ function onSubmitPending(): void {
           type="button"
           class="ghost"
           :disabled="action.busy.value"
-          @click="onTransition('archived')"
+          @click="startStep('archived')"
         >
           {{ t.campaign.organization.archive }}
         </button>
@@ -398,9 +503,36 @@ function onSubmitPending(): void {
           type="button"
           class="ghost"
           :disabled="action.busy.value"
-          @click="onTransition('closed')"
+          @click="startStep('closed')"
         >
           {{ t.campaign.organization.close }}
+        </button>
+        <button
+          v-if="campaign.state === 'catalogue'"
+          type="button"
+          class="ghost"
+          :disabled="action.busy.value"
+          @click="startStep('draft')"
+        >
+          {{ t.campaign.organization.backToDraft }}
+        </button>
+        <button
+          v-if="campaign.state === 'published'"
+          type="button"
+          class="ghost"
+          :disabled="action.busy.value"
+          @click="startStep('catalogue')"
+        >
+          {{ t.campaign.organization.backToCatalogue }}
+        </button>
+        <button
+          v-if="campaign.state === 'draft'"
+          type="button"
+          class="ghost"
+          :disabled="action.busy.value"
+          @click="startStep('delete')"
+        >
+          {{ t.campaign.organization.delete }}
         </button>
         <RouterLink
           v-if="['closed', 'allocating', 'review', 'results', 'archived'].includes(campaign.state)"
@@ -489,6 +621,10 @@ function onSubmitPending(): void {
               type="date"
               required
             >
+            <span
+              v-if="days[index]"
+              class="muted"
+            >{{ formatDay(days[index]) }}</span>
             <button
               v-if="days.length > 1"
               type="button"
@@ -503,7 +639,7 @@ function onSubmitPending(): void {
               type="button"
               class="ghost"
               :disabled="days.length >= 10"
-              @click="days.push('')"
+              @click="days.push(nextDay(days.at(-1) ?? ''))"
             >
               {{ t.common.addDay }}
             </button>
@@ -520,6 +656,10 @@ function onSubmitPending(): void {
                 :disabled="!windowEditable"
                 type="datetime-local"
               >
+              <span
+                v-if="opensAt"
+                class="muted"
+              >{{ formatWhenShort(instantOrNull(opensAt)) }}</span>
             </p>
             <p class="field">
               <label for="edit-closes">{{ t.campaign.settings.closes }}</label>
@@ -529,6 +669,10 @@ function onSubmitPending(): void {
                 :disabled="!windowEditable"
                 type="datetime-local"
               >
+              <span
+                v-if="closesAt"
+                class="muted"
+              >{{ formatWhenShort(instantOrNull(closesAt)) }}</span>
             </p>
             <p class="field">
               <label for="edit-late">{{ t.campaign.settings.lateUntil }}</label>
@@ -538,6 +682,10 @@ function onSubmitPending(): void {
                 :disabled="!windowEditable"
                 type="datetime-local"
               >
+              <span
+                v-if="lateUntil"
+                class="muted"
+              >{{ formatWhenShort(instantOrNull(lateUntil)) }}</span>
             </p>
           </div>
           <div class="row">
@@ -549,6 +697,10 @@ function onSubmitPending(): void {
                 :disabled="!swapEditable"
                 type="datetime-local"
               >
+              <span
+                v-if="swapFrom"
+                class="muted"
+              >{{ formatWhenShort(instantOrNull(swapFrom)) }}</span>
             </p>
             <p class="field">
               <label for="edit-swap-until">{{ t.campaign.settings.swapUntil }}</label>
@@ -558,6 +710,10 @@ function onSubmitPending(): void {
                 :disabled="!swapEditable"
                 type="datetime-local"
               >
+              <span
+                v-if="swapUntil"
+                class="muted"
+              >{{ formatWhenShort(instantOrNull(swapUntil)) }}</span>
             </p>
             <p class="field">
               <label for="edit-wishes">{{ t.campaign.settings.wishesPerGroup }}</label>

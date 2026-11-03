@@ -12,7 +12,7 @@ export interface SchoolYearRecords {
 /** Every school year any record names, newest first. */
 export async function schoolYearRecords(db: Queryable): Promise<SchoolYearRecords[]> {
   const { rows } = await db.query<{ school_year: string, campaigns: { id: string, name: string, state: string }[], batches: string, class_teachers: string }>(
-    `with years as (select school_year from campaign union select school_year from import_batch union select school_year from class_teacher)
+    `with years as (select school_year from campaign union select school_year from import_batch union select school_year from class_teacher union select school_year from deleted_campaign)
      select y.school_year,
             coalesce((select json_agg(json_build_object('id', c.id, 'name', c.name, 'state', c.state) order by c.created_at) from campaign c where c.school_year = y.school_year), '[]') as campaigns,
             (select count(*) from import_batch b where b.school_year = y.school_year) as batches,
@@ -33,6 +33,12 @@ export async function purgeAvailability(client: Queryable, schoolYear: string): 
   const [first, second] = yearsOf(schoolYear)
   const { rowCount } = await client.query('delete from teacher_availability where day between $1 and $2', [`${first}-09-01`, `${second}-08-31`])
   return rowCount ?? 0
+}
+
+/** Runs the purge of the chains of registrations deleted in preparation (purge_deleted_campaigns), after the year's purge. */
+export async function purgeDeletedCampaigns(client: Queryable, schoolYear: string): Promise<{ relation: string, count: number }[]> {
+  const { rows } = await client.query<{ relation: string, removed: string }>('select relation, removed from purge_deleted_campaigns($1)', [schoolYear])
+  return rows.map((row) => ({ relation: row.relation, count: Number(row.removed) }))
 }
 
 /** Runs the purge (purge_school_year) and returns what it removed, per relation, in order. */

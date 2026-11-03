@@ -18,6 +18,15 @@ export function formatDay(date: string): string {
   return day.format(new Date(`${date}T12:00:00Z`))
 }
 
+/** The day after a local date (YYYY-MM-DD), for the next project day a form proposes; '' for none. */
+export function nextDay(date: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return ''
+  const next = new Date(`${date}T12:00:00Z`)
+  if (Number.isNaN(next.getTime())) return ''
+  next.setUTCDate(next.getUTCDate() + 1)
+  return next.toISOString().slice(0, 10)
+}
+
 /** The school's date an instant falls on, as "Sa., 01.09.2035": for an end that is a whole day, such as the retention's. */
 export function formatDateOf(iso: string): string {
   return day.format(new Date(iso))

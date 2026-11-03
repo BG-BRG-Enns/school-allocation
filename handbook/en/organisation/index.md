@@ -4,19 +4,23 @@ A **registration** takes the school from the first activities to the finished al
 
 ## The process
 
-Every registration goes through the same states. You take the next step with a button on the registration page; registration also starts and ends automatically at the times in the [settings](./einstellungen).
+Every registration goes through the same states. You take the next step with a button on the registration page; every step is confirmed once more, with what it does and whether there is a way back. Registration also starts and ends automatically at the times in the [settings](./einstellungen).
 
-| Status | What happens | Continue with |
-| ------ | ------------ | ------------- |
-| In preparation | You create the registration; only the organisation can see it | **Collect activities** |
-| Collecting activities | Teachers submit activities, you review them | **Publish catalogue** |
-| Catalogue published | Everyone sees the numbered catalogue | **Open registration**, or automatically at the start |
-| Registration open | Students submit their choices | automatically at the end, or **End registration** |
-| Late registration | Anyone without complete choices submits them | automatically at the end of late registration, or **End registration** |
-| Registration closed | The registration's class lists are frozen | **Calculate allocation** |
-| Allocation in review | You review and compare calculations | **Publish** |
-| Allocation published | Everyone sees their allocation; swaps, placements by class teachers, changes by hand | **Close registration** |
-| Closed | Everything stays readable, nothing changes any more | – |
+![A step being confirmed: the Collect activities button, below it what the step does and the way back, and the Yes button](/bilder/en/schritt-bestaetigen.png)
+
+| Status | What happens | Continue with | Back |
+| ------ | ------------ | ------------- | ---- |
+| In preparation | You create the registration; only the organisation can see it | **Collect activities** | **Delete registration** |
+| Collecting activities | Teachers submit activities, you review them | **Publish catalogue** | **Back to preparation** |
+| Catalogue published | Everyone sees the numbered catalogue | **Open registration**, or automatically at the start | **Back to collecting**; the numbers stay |
+| Registration open | Students submit their choices | automatically at the end, or **End registration** | – |
+| Late registration | Anyone without complete choices submits them | automatically at the end of late registration, or **End registration** | – |
+| Registration closed | The registration's class lists are frozen | **Calculate allocation** | – |
+| Allocation in review | You review and compare calculations | **Publish** | – |
+| Allocation published | Everyone sees their allocation; swaps, placements by class teachers, changes by hand | **Close registration** | – |
+| Closed | Everything stays readable, nothing changes any more | – | – |
+
+From the opening on there is no way back: the invitations are out, the students are choosing.
 
 The steps in detail:
 

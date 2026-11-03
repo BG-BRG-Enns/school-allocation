@@ -29,10 +29,12 @@ test('die Organisation legt die Anmeldung an und öffnet sie für Aktivitäten',
   await page.getByLabel(t.campaign.settings.name, { exact: true }).fill(sample.projectWeek)
   await page.getByLabel(t.common.field.schoolYear).fill('2033/34')
   await page.getByLabel(t.campaign.settings.projectDay(1)).fill('2034-07-03')
+  // The weekday beside the date shows a slip of the month; the next day is proposed and the third follows it.
+  await expect(page.getByText(day('2034-07-03'))).toBeVisible()
   await page.getByRole('button', { name: t.common.addDay }).click()
-  await page.getByLabel(t.campaign.settings.projectDay(2)).fill('2034-07-04')
+  await expect(page.getByLabel(t.campaign.settings.projectDay(2))).toHaveValue('2034-07-04')
   await page.getByRole('button', { name: t.common.addDay }).click()
-  await page.getByLabel(t.campaign.settings.projectDay(3)).fill('2034-07-05')
+  await expect(page.getByLabel(t.campaign.settings.projectDay(3))).toHaveValue('2034-07-05')
   await shot(page, '13-wahl-anlegen')
   await picture(page, 'anmeldung-anlegen', section(page, t.campaigns.new))
   await page.getByRole('button', { name: t.campaigns.create }).click()
@@ -40,7 +42,13 @@ test('die Organisation legt die Anmeldung an und öffnet sie für Aktivitäten',
   await expect(page.getByText(t.labels.campaignState.draft)).toBeVisible()
   await shot(page, '14-wahl-in-vorbereitung')
   await picture(page, 'anmeldung-in-vorbereitung', [page.getByRole('heading', { name: sample.projectWeek }), section(page, t.campaign.organization.heading)])
+  // Every step is asked once more, with what it does; the deletion is offered beside it while the registration is in preparation.
+  await expect(page.getByRole('button', { name: t.campaign.organization.delete })).toBeVisible()
   await page.getByRole('button', { name: t.campaign.organization.collect }).click()
+  const confirm = page.getByRole('form', { name: t.campaign.transitions.confirm })
+  await expect(confirm).toContainText(t.campaign.transitions.consequences.catalogue[0] ?? '')
+  await picture(page, 'schritt-bestaetigen', confirm)
+  await confirm.getByRole('button', { name: t.campaign.transitions.submit(t.campaign.organization.collect) }).click()
   await expect(page.getByText(t.labels.campaignState.catalogue)).toBeVisible()
 
   // The school's categories, for the rule the registration gets with its window (04-einstellungen); a name once, in any case.
@@ -163,7 +171,9 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await picture(page, 'lehrkraefte-je-tag', page.locator('main'))
   await page.getByRole('link', { name: `← ${t.common.backToCampaign}` }).click()
   await page.getByRole('button', { name: t.campaign.organization.publish }).click()
+  await page.getByRole('form', { name: t.campaign.transitions.confirm }).getByRole('button', { name: t.campaign.transitions.submit(t.campaign.organization.publish) }).click()
   await expect(page.getByText(t.labels.campaignState.published)).toBeVisible()
+  await expect(page.getByRole('button', { name: t.campaign.organization.backToCatalogue })).toBeVisible()
   // Numbered in the order of the printed catalogue: by first session, then by title.
   await expect(page.getByRole('row', { name: climbing }).getByRole('cell').first()).toHaveText(String(climbingNumber(sample.climbing)))
   await expect(page.getByRole('link', { name: t.campaign.organization.catalogueExport })).toBeVisible()

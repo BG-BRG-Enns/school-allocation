@@ -39,6 +39,7 @@ test('die Nachfrist beginnt zu ihrer Zeit, die Organisation beendet sie und bere
   await expect(page.getByText(t.labels.campaignState.grace, { exact: true })).toBeVisible()
   // The late lists are in: the organizer ends the late registration before its time. The daily minimums the run needs were set with the window (04-einstellungen).
   await page.getByRole('button', { name: t.campaign.organization.close }).click()
+  await page.getByRole('form', { name: t.campaign.transitions.confirm }).getByRole('button', { name: t.campaign.transitions.submit(t.campaign.organization.close) }).click()
   await expect(page.getByText(t.labels.campaignState.closed)).toBeVisible()
   await page.getByRole('link', { name: t.common.page.allocation }).click()
   await expect(page.getByRole('heading', { name: t.common.page.allocation })).toBeVisible()

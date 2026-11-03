@@ -17,7 +17,7 @@ test('every state is reachable from draft, and archived is the end', () => {
   assert.deepEqual(CAMPAIGN_TRANSITIONS.archived, [])
 })
 
-test('the forward path runs in order; review may go back to allocating but nothing else goes back', () => {
+test('the forward path runs in order; review may go back to allocating, catalogue to draft and published to catalogue, nothing else goes back', () => {
   const forward: CampaignState[] = ['draft', 'catalogue', 'published', 'open', 'grace', 'closed', 'allocating', 'review', 'results', 'archived']
   for (let i = 0; i + 1 < forward.length; i++) {
     const from = forward[i] as CampaignState
@@ -25,9 +25,12 @@ test('the forward path runs in order; review may go back to allocating but nothi
     assert.deepEqual(transition(from, to), { ok: true, state: to })
   }
   assert.deepEqual(transition('review', 'allocating'), { ok: true, state: 'allocating' })
+  assert.deepEqual(transition('catalogue', 'draft'), { ok: true, state: 'draft' })
+  assert.deepEqual(transition('published', 'catalogue'), { ok: true, state: 'catalogue' })
+  const back = new Set(['review>allocating', 'catalogue>draft', 'published>catalogue'])
   for (const [from, targets] of Object.entries(CAMPAIGN_TRANSITIONS) as [CampaignState, readonly CampaignState[]][]) {
     for (const to of targets) {
-      if (from === 'review' && to === 'allocating') continue
+      if (back.has(`${from}>${to}`)) continue
       assert.ok(forward.indexOf(to) > forward.indexOf(from), `${from} -> ${to} goes backwards`)
     }
   }

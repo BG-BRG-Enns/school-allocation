@@ -75,6 +75,8 @@ export const patchAdminCampaignsById = { method: 'PATCH', path: '/api/admin/camp
 
 export const postAdminCampaignsByIdTransition = { method: 'POST', path: '/api/admin/campaigns/:id/transition', transport: 'json' } as const satisfies EndpointMetadata
 
+export const deleteAdminCampaignsById = { method: 'DELETE', path: '/api/admin/campaigns/:id', transport: 'json' } as const satisfies EndpointMetadata
+
 export const getCampaignsByIdDemand = { method: 'GET', path: '/api/campaigns/:id/demand', transport: 'json' } as const satisfies EndpointMetadata
 
 export const getCampaignsByIdClassesByClassNameStatus = { method: 'GET', path: '/api/campaigns/:id/classes/:className/status', transport: 'json' } as const satisfies EndpointMetadata

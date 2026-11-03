@@ -4,6 +4,7 @@
 
 import { ref } from 'vue'
 import { errorMessage } from './api-rules.ts'
+import { SCHOOL_TIME_ZONE } from './format.ts'
 import { INTL_LOCALE } from './i18n.ts'
 
 export function useFeedback() {
@@ -31,8 +32,10 @@ export function useFeedback() {
   return { busy, error, notice, run }
 }
 
-/** A date and time as the lists show them, in the school's locale. */
+const when = new Intl.DateTimeFormat(INTL_LOCALE, { timeZone: SCHOOL_TIME_ZONE, weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+
+/** A date and time as the lists show them, in the school's locale and time zone (an instant near midnight keeps the school's date in a browser elsewhere). */
 export function formatWhen(iso: string | null | undefined): string {
   if (!iso) return '–'
-  return new Date(iso).toLocaleString(INTL_LOCALE, { dateStyle: 'medium', timeStyle: 'short' })
+  return when.format(new Date(iso))
 }

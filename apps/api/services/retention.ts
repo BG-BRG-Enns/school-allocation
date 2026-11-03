@@ -41,7 +41,8 @@ export async function purgeSchoolYear(db: Database, schoolYear: string, reason: 
     const records = (await store.schoolYearRecords(client)).find((year) => year.schoolYear === schoolYear)
     if (!records) throw new ApplicationError('not_found')
     const availability = await store.purgeAvailability(client, schoolYear)
-    const removed = [{ relation: 'teacher_availability', count: availability }, ...await store.purgeSchoolYear(client, schoolYear)]
+    // The year's records, then the audit chains of its registrations deleted in preparation, which the purge no longer finds.
+    const removed = [{ relation: 'teacher_availability', count: availability }, ...await store.purgeSchoolYear(client, schoolYear), ...await store.purgeDeletedCampaigns(client, schoolYear)]
     await appendAudit(client, {
       scopeId: SCHOOL_SCOPE, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: 'retention.purged',
       metadata: { schoolYear, reason, removed: Object.fromEntries(removed.map((r) => [r.relation, r.count])) },

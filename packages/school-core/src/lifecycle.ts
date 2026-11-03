@@ -33,8 +33,10 @@ export type CampaignState = typeof CAMPAIGN_STATES[number]
 /** The states a campaign may move to from each state. */
 export const CAMPAIGN_TRANSITIONS: Readonly<Record<CampaignState, readonly CampaignState[]>> = {
   draft: ['catalogue'],
-  catalogue: ['published'],
-  published: ['open'],
+  // Back to the preparation while nothing but proposals happened: teachers lose sight of it, their drafts stay.
+  catalogue: ['published', 'draft'],
+  // Back to collecting: the numbers given stay with their items, a second publication numbers only the rest.
+  published: ['open', 'catalogue'],
   // Into the grace week when there is one, straight to closed when not.
   open: ['grace', 'closed'],
   grace: ['closed'],

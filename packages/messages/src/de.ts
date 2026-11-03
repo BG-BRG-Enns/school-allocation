@@ -603,14 +603,42 @@ export const de = {
       publish: 'Katalog veröffentlichen',
       open: 'Anmeldung öffnen',
       archive: 'Anmeldung abschließen',
-      archiveConfirm: 'Die Anmeldung abschließen? Danach ändert sich nichts mehr: kein Tausch, keine Einteilung, keine Anwesenheit.',
       close: 'Anmeldung beenden',
+      backToDraft: 'Zurück zur Vorbereitung',
+      backToCatalogue: 'Zurück zum Sammeln',
+      delete: 'Anmeldung löschen',
       editSettings: 'Einstellungen ändern',
       editMinimumAndSwap: 'Mindestminuten und Tauschzeit ändern',
       editSwap: 'Tauschzeit ändern',
       catalogueExport: 'Katalog als Excel',
       /** Before the registration's rules, one per line. */
       rules: 'Regeln',
+    },
+    /** The step an organizer takes by hand, confirmed on the page with what it does and whether there is a way back. */
+    transitions: {
+      confirm: 'Schritt bestätigen',
+      /** The confirmation's button, after the step's own name. */
+      submit: (step: string) => `Ja: ${step}`,
+      /** What each step does, a line each; the key is the step as the button names it (backToCatalogue: published → catalogue). */
+      consequences: {
+        catalogue: ['Lehrkräfte sehen die Anmeldung und reichen ihre Aktivitäten ein.', 'Rückweg: zur Vorbereitung, solange der Katalog nicht veröffentlicht ist.'],
+        published: ['Keine neuen Vorschläge mehr; Bezeichnung, Schuljahr und Projekttage stehen fest.', 'Die genehmigten Aktivitäten bekommen Nummern, die bleiben.', 'Alle sehen den Katalog, auch die Schüler*innen; zum Beginn aus den Einstellungen öffnet die Anmeldung von selbst.', 'Rückweg: zum Sammeln; die Nummern bleiben.'],
+        open: ['Jede Schüler*in der Klassenlisten bekommt die Einladung per E-Mail.', 'Klassenaktivitäten nehmen ihre Klassen mit.', 'Kein Rückweg.'],
+        closed: ['Die Anmeldung endet jetzt; eine Nachfrist gibt es dann nicht.', 'Die Klassenlisten dieser Anmeldung werden festgehalten; wer keine vollständigen Wünsche hat, bekommt eine E-Mail, die Klassenvorstände ihre Liste.', 'Kein Rückweg.'],
+        archived: ['Danach ändert sich nichts mehr: kein Tausch, keine Einteilung, keine Anwesenheit.', 'Alles bleibt lesbar.', 'Kein Rückweg.'],
+        draft: ['Lehrkräfte sehen die Anmeldung nicht mehr; ihre Entwürfe bleiben.', 'Rückweg: Angebote sammeln.'],
+        backToCatalogue: ['Lehrkräfte reichen wieder ein; die Schüler*innen sehen den Katalog nicht mehr.', 'Vergebene Nummern bleiben; eine neue Veröffentlichung nummeriert nur die weiteren.'],
+        delete: ['Die Anmeldung, ihre Regeln und die Entwürfe ihrer Aktivitäten werden gelöscht.', 'Das Protokoll der Schule hält fest, dass es sie gab.', 'Kein Rückweg.'],
+      },
+      /** What the organizer should know before this very step, from the registration's state. */
+      warnings: {
+        noApproved: 'Keine Aktivität ist genehmigt: Der Katalog wäre leer.',
+        opensAtPast: (when: string) => `Der Beginn ${when} liegt in der Vergangenheit: Die Anmeldung öffnet gleich nach der Veröffentlichung von selbst.`,
+        noEnd: 'Die Anmeldung hat kein Ende: Sie läuft, bis sie von Hand beendet wird.',
+        noEndAck: 'Ich öffne die Anmeldung ohne Ende und beende sie von Hand.',
+        mailOff: 'Der E-Mail-Versand ist auf diesem Server nicht eingerichtet: Die Einladungen warten im Postausgang, bis er es ist.',
+      },
+      deleted: 'Anmeldung gelöscht.',
     },
     /** The organizer's rules in the settings form. */
     rulesEditor: {
