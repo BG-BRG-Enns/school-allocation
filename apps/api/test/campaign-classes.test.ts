@@ -13,7 +13,7 @@ import type { Campaign } from '../lib/models/campaigns.ts'
 import type { Item } from '../lib/models/items.ts'
 import type { BatchDetail } from '../lib/models/roster.ts'
 import type { CookieJar } from './helpers/fake-entra.ts'
-import { DB, get, harness, send, signIn, type Harness } from './helpers/harness.ts'
+import { DB, get, harness, me, send, signIn, type Harness } from './helpers/harness.ts'
 import { ANNA, BERND, CARLA, SARA, TIM } from './helpers/personas.ts'
 
 const ADMIN = { BOOTSTRAP_ADMINS: ANNA.email ?? '' }
@@ -119,6 +119,14 @@ test('a student of a class left out sees nothing of the registration; the openin
   assert.equal((await get(s, s.tim, `/api/campaigns/${id}`)).status, 404)
   assert.equal((await get(s, s.tim, `/api/campaigns/${id}/my-choice`)).status, 404)
   assert.equal((await get(s, s.sara, `/api/campaigns/${id}`)).status, 200)
+  // A role reads by what it grants, never narrowed by the roster's kind: Tim as auditor sees the registration his class is not in.
+  const timId = (await me(s, s.tim)).body.id
+  const audits = await send<{ id: string }>(s, s.anna, 'POST', '/api/admin/roles', { userId: timId, role: 'read_only_auditor', reason: 'Prüfung' })
+  assert.equal(audits.status, 201)
+  assert.equal((await get(s, s.tim, `/api/campaigns/${id}`)).status, 200, 'an auditor in 8B reads the registration of 5A')
+  assert.deepEqual((await get<{ campaigns: Campaign[] }>(s, s.tim, '/api/campaigns')).body.campaigns.map((c) => c.id), [id])
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/roles/${audits.body.id}/revoke`, { reason: 'Prüfung beendet' })).status, 204)
+  assert.equal((await get(s, s.tim, `/api/campaigns/${id}`)).status, 404)
   // Carla is class teacher of 5A and 8B; in this registration, of 5A alone.
   const view = await get<{ may: { classTeacherOf: string[] } }>(s, s.carla, `/api/campaigns/${id}`)
   assert.deepEqual(view.body.may.classTeacherOf, ['5A'])

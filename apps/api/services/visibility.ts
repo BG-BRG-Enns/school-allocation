@@ -9,11 +9,11 @@ import type { Caller } from '../lib/actor.ts'
 import { campaignStudent, memberCampaignIds } from '../lib/dao/choices.ts'
 import type { Queryable } from '../lib/db.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
-import { canSee, isOrganizer, isStudent } from '../lib/policies.ts'
+import { canSee, isStudent } from '../lib/policies.ts'
 
-/** Whether the membership decides for the caller: a student without a privileged role (a role is granted in the app, never narrowed by the roster's kind). */
+/** Whether the membership decides for the caller: a student without a role. Every role is granted in the app (an organizer, an administrator, an auditor) and reads by what it grants, never narrowed by the roster's kind. */
 function byMembership(caller: Pick<Caller, 'roles' | 'person'>): caller is Caller & { person: NonNullable<Caller['person']> } {
-  return isStudent(caller) && caller.person !== null && !isOrganizer(caller)
+  return isStudent(caller) && caller.person !== null && caller.roles.length === 0
 }
 
 /** Whether the caller sees the campaign. */

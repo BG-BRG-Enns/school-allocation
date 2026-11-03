@@ -29,11 +29,13 @@ const classes = ref<string[]>([])
 const creating = useFeedback()
 
 onMounted(() => loading.run(async () => {
-  campaigns.value = (await loadCampaigns()).campaigns
-  if (organizes.value) {
-    classOptions.value = (await loadClasses()).classes.map((c) => ({ className: c.className, grade: c.grade }))
+  // The form shows with the list, so the classes are there first: a registration created before they arrived would name none.
+  const [list, roster] = await Promise.all([loadCampaigns(), organizes.value ? loadClasses() : Promise.resolve(null)])
+  if (roster) {
+    classOptions.value = roster.classes.map((c) => ({ className: c.className, grade: c.grade }))
     classes.value = classOptions.value.map((c) => c.className)
   }
+  campaigns.value = list.campaigns
 }))
 
 /** The next day proposed is the one after the last: a project week runs on, and a wrong month shows beside the date. */

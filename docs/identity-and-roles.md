@@ -95,7 +95,7 @@ Reads are authorized per request. Status codes: 401 no session, 403 wrong role, 
 | Event | Effect |
 | ----- | ------ |
 | New student (appears in a newer batch) | In from that batch when their class takes part; a class new to the lists takes part in no campaign until the organizer enters it; pre-provisioned (Graph) or bound at first sign-in (CSV) |
-| Class change between batches | Taking part re-evaluated by the new class; existing choices flagged for organizer review, not deleted |
+| Class change between batches | While the campaign goes by the lists in force (until its close): taking part re-evaluated by the new class; existing choices flagged for organizer review, not deleted. A closed campaign keeps the batch frozen at its close, so nothing moves |
 | Student leaves (missing from the newest batch) | Out on the next request; choices and assignments kept and marked as withdrawn |
 | Account disabled in Entra | No new sign-in; the existing session ends at the latest after 8 h, and earlier if an admin blocks the person |
 | Name, e-mail or UPN change | No effect: the key is `(tid, oid)` |

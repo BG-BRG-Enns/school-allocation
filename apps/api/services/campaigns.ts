@@ -104,6 +104,9 @@ export async function createCampaign(db: Database, input: NewCampaign, actor: Ac
 export async function updateCampaign(db: Database, rawId: string, changes: CampaignChanges, actor: Actor): Promise<Campaign> {
   const id = canonicalId(rawId)
   await db.tx(async (client) => {
+    // A class list is checked against the roster in force, which a roster commit replaces under the school's lock: the
+    // two go one after the other, the school before the campaign, as everywhere (createCampaign, the opening).
+    if (changes.classes !== undefined) await lockScope(client, SCHOOL_SCOPE)
     await lockScope(client, id)
     const current = await lockedCampaign(client, id)
     if (!current) throw new ApplicationError('not_found')
