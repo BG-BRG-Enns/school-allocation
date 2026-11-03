@@ -38,6 +38,7 @@ export const APPLICATION_ERROR_STATUS = {
   item_full: 409,
   item_state: 409,
   last_admin: 409,
+  mail_state: 409,
   leaves_fixed: 422,
   mail_off: 409,
   no_address: 409,

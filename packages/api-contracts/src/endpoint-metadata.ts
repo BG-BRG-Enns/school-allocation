@@ -131,6 +131,12 @@ export const getAdminMailStatus = { method: 'GET', path: '/api/admin/mail/status
 
 export const putAdminMailPaused = { method: 'PUT', path: '/api/admin/mail/paused', transport: 'json' } as const satisfies EndpointMetadata
 
+export const getAdminMail = { method: 'GET', path: '/api/admin/mail', transport: 'json' } as const satisfies EndpointMetadata
+
+export const postAdminMailDiscard = { method: 'POST', path: '/api/admin/mail/discard', transport: 'json' } as const satisfies EndpointMetadata
+
+export const postAdminMailByIdRetry = { method: 'POST', path: '/api/admin/mail/:id/retry', transport: 'json' } as const satisfies EndpointMetadata
+
 export const getAdminRosterGraphStart = { method: 'GET', path: '/api/admin/roster/graph/start', transport: 'redirect' } as const satisfies EndpointMetadata
 
 export const getAdminRosterGraphCallback = { method: 'GET', path: '/api/admin/roster/graph/callback', transport: 'redirect' } as const satisfies EndpointMetadata

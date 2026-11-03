@@ -76,6 +76,12 @@ async function onSaveLanguage(): Promise<void> {
         <p>{{ t.admin.mailTemplates }}</p>
       </li>
       <li>
+        <RouterLink to="/verwaltung/e-mails">
+          {{ t.common.page.mails }}
+        </RouterLink>
+        <p>{{ t.admin.mails }}</p>
+      </li>
+      <li>
         <RouterLink to="/verwaltung/aufbewahrung">
           {{ t.common.page.retention }}
         </RouterLink>

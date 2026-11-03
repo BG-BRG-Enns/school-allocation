@@ -18,13 +18,7 @@ SchulWahl schickt an festen Stellen einer Anmeldung E-Mails. Ihre Texte kommen a
 
 ## Der Versand
 
-SchulWahl schickt die E-Mails eine nach der anderen, höchstens 200 pro Stunde; der Betrieb kann den Server langsamer einstellen. Die Einladung an 600 Schüler\*innen dauert so etwa drei Stunden. Zuerst gehen die persönlichen E-Mails hinaus (eine Tauschbestätigung, eine geänderte Einteilung, die Test-E-Mail), dann die an Lehrkräfte und Klassenvorstände, zuletzt die an die Schüler\*innen: Wer einen Fehler melden kann, sieht ihn als Erster. Unter **Versand** steht, wie viele E-Mails warten und wann die letzte voraussichtlich verschickt ist.
-
-![Der Versand: das Tempo, wie viele E-Mails warten und wann die letzte voraussichtlich verschickt ist, und der Knopf Versand anhalten](/bilder/de/e-mail-versand.png)
-
-Steckt ein Fehler in den E-Mails, halte den Versand mit **Versand anhalten** an; **Versand fortsetzen** schickt weiter, wo er stand. Eine E-Mail bekommt ihren Text, wenn sie zu warten beginnt: Eine geänderte Vorlage gilt erst für die E-Mails danach, und was schon wartet, geht so hinaus, wie es ist.
-
-Eine Erinnerung, die beim Ende ihres Anmeldezeitraums oder ihrer Nachfrist noch wartet, wird nicht mehr gesendet; in der Liste der Anmeldung steht sie als „nicht mehr gesendet“.
+Was wartet, was gesendet ist und was fehlschlug, das Tempo und der Knopf zum Anhalten stehen unter **Verwaltung** → **E-Mails** ([E-Mails](./e-mails)). Eine E-Mail bekommt ihren Text, wenn sie zu warten beginnt: Eine geänderte Vorlage gilt erst für die E-Mails danach, und was schon wartet, geht so hinaus, wie es ist.
 
 ## Eine Vorlage bearbeiten
 
@@ -36,7 +30,7 @@ Nach dem **Speichern** steht bei der Vorlage „Eigener Text der Schule“. **Zu
 
 ## Test-E-Mail
 
-**Test-E-Mail an mich** schickt die Vorlage an deine Adresse, mit Beispielwerten in jedem Platzhalter. Steht oben, dass der E-Mail-Versand auf diesem Server nicht eingerichtet ist, warten alle E-Mails, bis er es ist; einrichten kann ihn der Betrieb.
+**Test-E-Mail an mich** schickt die Vorlage an deine Adresse, mit Beispielwerten in jedem Platzhalter. Steht oben, dass der E-Mail-Versand auf diesem Server nicht eingerichtet ist, warten alle E-Mails, bis er es ist; einrichten kann ihn der Betrieb, und bis dahin zeigt sie die Seite [E-Mails](./e-mails).
 
 ## Die Sprache der Vorlagen
 

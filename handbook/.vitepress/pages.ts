@@ -41,6 +41,7 @@ export const HANDBOOKS: readonly Handbook[] = [
       ['abschluss', 'Abschluss', 'Closing'],
       ['excel', 'Excel-Dateien', 'Excel files'],
       ['e-mail-vorlagen', 'E-Mail-Vorlagen', 'Email templates'],
+      ['e-mails', 'E-Mails', 'Emails'],
     ],
   },
   {

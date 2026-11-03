@@ -1,7 +1,7 @@
 // The administration's API, typed as the server answers it
 // (apps/api/routes/admin-roster.ts, admin-users.ts, categories.ts).
 
-import type { MailKind, Role } from '@school-allocation/api-contracts'
+import type { MailKind, MailQueueQuery, Role } from '@school-allocation/api-contracts'
 import { endpointPath } from '@school-allocation/api-contracts/client-endpoint'
 import * as endpoints from '@school-allocation/api-contracts/endpoint-metadata'
 import type { Locale } from '@school-allocation/messages'
@@ -44,6 +44,10 @@ export const resetMailTemplate = (kind: MailKind) => apiRequest(endpoints.delete
 export const sendTestMail = (kind: MailKind) => apiRequest(endpoints.postAdminMailTemplatesByKindTest, { params: { kind: kind } })
 export const loadMailStatus = () => apiRequest(endpoints.getAdminMailStatus, { })
 export const setMailPaused = (paused: boolean) => apiRequest(endpoints.putAdminMailPaused, { body: { paused } })
+export type { MailQueueQuery, QueueMail } from '@school-allocation/api-contracts'
+export const loadMailQueue = (query: MailQueueQuery) => apiRequest(endpoints.getAdminMail, { query })
+export const discardMails = (selection: { ids: string[] } | { campaignId: string }) => apiRequest(endpoints.postAdminMailDiscard, { body: selection })
+export const retryMail = (id: string) => apiRequest(endpoints.postAdminMailByIdRetry, { params: { id } })
 
 export const loadAccounts = (q: string, unboundOnly: boolean) => apiRequest(endpoints.getAdminUsers, { query: { q, ...(unboundOnly ? { unbound: 'true' as const } : {}) } })
 export const blockAccount = (id: string, reason: string) => apiRequest(endpoints.postAdminUsersByIdBlock, { params: { id: id }, body: { reason } })

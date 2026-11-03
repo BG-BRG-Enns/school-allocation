@@ -6,6 +6,7 @@
 
 import { MAX_RULES, placeTarget, RULE_LIMITS, RULE_UNITS } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
+import { loadMailQueue } from '../lib/admin-api.ts'
 import { approveItem, catalogueExportPath, deleteItem, loadCampaign, loadCategories, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignRule, type CampaignView, type Category, type DayDemand, type Item, type MissingStudent, type RuleDemand, type RuleUnit } from '../lib/campaigns-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
@@ -64,6 +65,18 @@ async function loadMissing(): Promise<void> {
 }
 watch(view, loadMissing)
 const missingCount = computed(() => missing.value.filter((s) => s.state !== 'complete').length)
+
+// The registration's mails still waiting to be sent: a link to the mails page, where they can be looked at or discarded.
+const mailsWaiting = ref(0)
+async function loadMailsWaiting(): Promise<void> {
+  if (!organizes.value) return
+  mailsWaiting.value = (await loadMailQueue({ campaignId: props.id, state: 'queued', limit: '1' })).total
+}
+watch(view, () => {
+  void loadMailsWaiting().catch(() => {
+    mailsWaiting.value = 0
+  })
+})
 
 /** What was sent to a student, as "kind: state" pairs; a dash for nothing. */
 function mailSummary(s: MissingStudent): string {
@@ -328,6 +341,11 @@ function onSubmitPending(): void {
         class="muted"
       >
         {{ t.campaign.organization.itemCounts(view.counts) }}
+      </p>
+      <p v-if="mailsWaiting > 0">
+        <RouterLink :to="{ path: '/verwaltung/e-mails', query: { campaign: campaign.id } }">
+          {{ t.campaign.organization.mailsWaiting(mailsWaiting) }}
+        </RouterLink>
       </p>
       <p
         v-if="campaign.rules.length > 0"

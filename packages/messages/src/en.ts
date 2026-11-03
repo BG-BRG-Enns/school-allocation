@@ -51,6 +51,7 @@ export const en: Messages = {
       classTeachers: 'Class teachers',
       periods: 'Timetable',
       mailTemplates: 'Email templates',
+      mails: 'Emails',
       retention: 'Retention',
       wishes: 'My choices',
       result: 'My allocation',
@@ -462,6 +463,7 @@ export const en: Messages = {
     csv_invalid: 'The file is not a class list in the expected format. Please use the template.',
     csv_file_invalid: 'The CSV file cannot be read as it is; the check says why.',
     short_name_held: 'Another teacher already has this abbreviation.',
+    mail_state: 'Only a failed or discarded email is sent again.',
     invalid_school_year: 'Write the school year as 2026/27.',
     batch_not_pending: 'This import has already been decided on.',
     batch_superseded: 'Another import has been applied since this one. Please import the class lists again.',
@@ -592,6 +594,8 @@ export const en: Messages = {
     organization: {
       heading: 'Organisation',
       itemCounts: (counts: { draft: number, proposed: number, approved: number, withdrawn: number }) => `${counts.draft} ${byCount(counts.draft, 'draft', 'drafts')} · ${counts.proposed} submitted · ${counts.approved} approved · ${counts.withdrawn} withdrawn`,
+      /** A link to the mails page, filtered to this registration. */
+      mailsWaiting: (n: number) => `${n} ${byCount(n, 'email', 'emails')} of this registration ${byCount(n, 'waits', 'wait')} to be sent`,
       collect: 'Collect activities',
       publish: 'Publish catalogue',
       open: 'Open registration',
@@ -914,6 +918,30 @@ export const en: Messages = {
     choicesLater: 'This page shows who has already registered once registration is open.',
   },
 
+  /** Mails.vue: the queue, what waits and what became of every mail; the sending's pace and pause (mailTemplates.sending). */
+  mails: {
+    editorsOnly: 'The emails are seen by the administration and the organisation.',
+    intro: 'Every email SchulWahl has sent or will send, without subject or text: to whom, from which registration, in which state. Waiting ones can be discarded, failed and discarded ones sent again.',
+    heading: 'All emails',
+    filter: { state: 'State', kind: 'Kind', campaign: 'Registration', all: 'all', apply: 'Show' },
+    column: { kind: 'Kind', campaign: 'Registration', to: 'To', state: 'State', created: 'Since', detail: 'Reply' },
+    /** The list's size against the whole match, as "200 of 612 emails". */
+    shown: (shown: number, total: number) => `${shown} of ${total} ${byCount(total, 'email', 'emails')}`,
+    none: 'No email matches.',
+    noCampaign: 'no registration',
+    /** A waiting mail an organizer took out of the queue (state expired, detail discarded). */
+    discardedState: 'discarded',
+    selectAll: 'Select all',
+    selectNone: 'Select none',
+    select: (to: string) => `Select the email to ${to}`,
+    discardSelected: (n: number) => `Discard ${n} selected`,
+    discardCampaign: (name: string) => `Discard all waiting of “${name}”`,
+    discardConfirm: (n: number) => `Discard ${n} waiting ${byCount(n, 'email', 'emails')}? ${byCount(n, 'It', 'They')} will not be sent.`,
+    discarded: (n: number) => `${n} ${byCount(n, 'email', 'emails')} discarded.`,
+    retry: 'Send again',
+    retried: 'The email waits to be sent again, as a new copy.',
+  },
+
   /** Zuteilung.vue: the organizer's runs, their review and the changes after publication. */
   allocation: {
     published: 'The allocation is published; the emails are on their way.',
@@ -1125,6 +1153,7 @@ export const en: Messages = {
     classTeachers: 'Who leads each class and sees its registration status.',
     periods: 'The school periods teachers use to specify their sessions.',
     mailTemplates: 'The emails a registration sends: invitations, reminders, lists for class teachers.',
+    mails: 'What waits to be sent, what was sent, what failed; pause sending, discard what waits.',
     retention: 'Which school years have data and how long it is kept; delete a school year one year after its end.',
     categories: 'Categories such as sport or careers guidance, for the registrations\' rules.',
     /** The school's language, chosen here for everyone; the page then loads again in it. */
@@ -1354,6 +1383,8 @@ export const en: Messages = {
   /** Mailvorlagen.vue: the texts of the mails a campaign sends; their defaults are the group `mail`, a school's own texts are stored. */
   mailTemplates: {
     editorsOnly: 'The administration and organisation change the email templates.',
+    /** Before the link to the mails page, which took the sending over. */
+    queueLink: 'Sending, what waits and what was sent are on the page',
     intro: 'The emails a registration sends. SchulWahl fills placeholders such as {{first_name}} when sending; click one to insert it.',
     mailOff: 'Sending email is not configured on this server: emails will wait until it is.',
     saved: 'Template saved.',
