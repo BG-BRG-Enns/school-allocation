@@ -28,13 +28,13 @@ test('die Organisation legt die Anmeldung an und öffnet sie für Aktivitäten',
   await expect(page.getByRole('heading', { name: t.common.page.campaigns })).toBeVisible()
   await page.getByLabel(t.campaign.settings.name, { exact: true }).fill(sample.projectWeek)
   await page.getByLabel(t.common.field.schoolYear).fill('2033/34')
-  await page.getByLabel(t.campaign.settings.projectDay(1)).fill('2034-07-03')
-  // The weekday beside the date shows a slip of the month; the next day is proposed and the third follows it.
+  await page.getByLabel(t.campaign.settings.projectDay(1), { exact: true }).fill('2034-07-03')
+  // The weekday beside the date shows a slip of the month; the next day is proposed and the third follows it. Exact: the frame selects beside a day name it too.
   await expect(page.getByText(day('2034-07-03'))).toBeVisible()
   await page.getByRole('button', { name: t.common.addDay }).click()
-  await expect(page.getByLabel(t.campaign.settings.projectDay(2))).toHaveValue('2034-07-04')
+  await expect(page.getByLabel(t.campaign.settings.projectDay(2), { exact: true })).toHaveValue('2034-07-04')
   await page.getByRole('button', { name: t.common.addDay }).click()
-  await expect(page.getByLabel(t.campaign.settings.projectDay(3))).toHaveValue('2034-07-05')
+  await expect(page.getByLabel(t.campaign.settings.projectDay(3), { exact: true })).toHaveValue('2034-07-05')
   // Every class of the class lists is preselected; one is taken out, and the registration says so afterwards.
   const classes = page.getByRole('group', { name: t.campaigns.classes.legend })
   await expect(classes.getByRole('checkbox', { name: LEFT_OUT, exact: true })).toBeChecked()
