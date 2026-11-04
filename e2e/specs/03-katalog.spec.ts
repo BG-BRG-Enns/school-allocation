@@ -231,7 +231,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(check.getByRole('row', { name: new RegExp(literally(CARLA.name)) })).toContainText(`${t.labels.availability.available} → ${t.labels.availability.if_needed}`)
   await picture(page, 'verfuegbarkeit-import', check)
   await check.getByRole('button', { name: t.planning.csv.apply }).click()
-  await expect(check.getByRole('status')).toHaveText(t.planning.csv.applied(1, 1, 0))
+  await expect(check.getByRole('status')).toHaveText(t.planning.csv.applied(1, 1, 0, 1))
   const carla = page.getByRole('row', { name: new RegExp(literally(CARLA.name)) }).first()
   await expect(carla).toContainText(sample.reserveOnly)
   await expect(page.getByLabel(t.planning.statusOf(CARLA.name, day('2034-07-03')))).toHaveValue('if_needed')
