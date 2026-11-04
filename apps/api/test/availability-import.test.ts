@@ -136,7 +136,8 @@ test('rows naming someone the registration does not know, an address and an abbr
   assert.equal(refused.status, 422)
   assert.equal(refused.body.error, 'availability_import_invalid')
   assert.equal(refused.body.problems.length, 1)
-  const noDay = await send<{ error: string }>(s, s.anna, 'POST', url, { csv: 'email;Leitung\nx@schule.example.org;N\n' })
+  // A file with the Leitung column alone says who has no duty to lead, so it is a file; one with the key column alone is not.
+  const noDay = await send<{ error: string }>(s, s.anna, 'POST', url, { csv: 'email\nx@schule.example.org\n' })
   assert.equal(noDay.body.error, 'csv_file_invalid', `${noDay.status} ${JSON.stringify(noDay.body)}`)
   // A weekday none of the registration's days falls on names the days.
   const otherWeek = await send<AvailabilityImportPreview>(s, s.anna, 'POST', `${url}/preview`, { csv: 'Name;MO;MI\nPfB;;N\n' })

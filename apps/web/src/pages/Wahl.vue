@@ -456,6 +456,8 @@ async function act(fn: () => Promise<unknown>, done?: string): Promise<void> {
   }, done)
   if (ok) {
     pending.value = null
+    // The planning read for the note is of before the change: the next question loads it anew.
+    planningData.value = null
     await load()
   }
 }

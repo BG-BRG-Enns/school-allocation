@@ -51,7 +51,8 @@ export async function applyAvailabilityImport(db: Database, rawId: string, csv: 
     if (!preview.applicable) throw new AvailabilityImportInvalid(preview.problems)
     for (const [personId, write] of writes) {
       for (const [date, status] of write.days) await planningStore.writeAvailability(client, personId, date, status)
-      if (write.note !== undefined || write.leadDuty !== undefined) await detailStore.writeDetail(client, personId, { shortName: write.current.shortName, note: write.note ?? write.current.note, leadDuty: write.leadDuty ?? write.current.leadDuty })
+      // An empty note cell clears the note (null is a value here); a column the file lacks leaves what the detail has.
+      if (write.note !== undefined || write.leadDuty !== undefined) await detailStore.writeDetail(client, personId, { shortName: write.current.shortName, note: write.note === undefined ? write.current.note : write.note, leadDuty: write.leadDuty === undefined ? write.current.leadDuty : write.leadDuty })
     }
     await appendAudit(client, {
       scopeId: id, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: 'availability.imported',
