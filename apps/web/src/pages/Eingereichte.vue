@@ -151,16 +151,15 @@ function ask(kind: 'return' | 'withdraw'): void {
 async function decide(fn: (id: string) => Promise<unknown>, notice: string): Promise<void> {
   const item = current.value
   if (!item) return
-  const ok = await action.run(async () => {
+  await action.run(async () => {
     await fn(item.id)
-  }, notice)
-  if (ok) {
     asking.value = null
     done.value += 1
-    // The list and the demand anew: the table counts the one just approved. The cursor stays, so the next one comes up; past the end, the skipped ones come again.
+    // The list and the demand anew before the buttons come back, so a decision taken next is on the next one: the table counts the one just
+    // approved; the cursor stays, so the next one comes up; past the end, the skipped ones come again.
     await load()
     if (cursor.value >= queue.value.length) cursor.value = 0
-  }
+  }, notice)
 }
 function skip(): void {
   if (!current.value) return
