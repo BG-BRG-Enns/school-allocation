@@ -955,7 +955,7 @@ export const de = {
       edit: (name: string) => `Kürzel von ${name} ändern`,
       label: (name: string) => `Kürzel von ${name}`,
       save: 'Kürzel speichern',
-      saved: 'Kürzel gespeichert.',
+      saved: 'Gespeichert.',
     },
   },
 

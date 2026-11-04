@@ -35,8 +35,8 @@ const ALIASES: Readonly<Record<string, 'email' | 'short_name' | 'note' | 'lead_d
   'lead_duty': 'lead_duty',
 }
 
-/** A "Leitung" cell's spellings, lower case and trimmed: empty for the duty to lead, N for none. */
-const DUTY: Readonly<Record<string, boolean>> = { '': true, 'j': true, 'ja': true, 'y': true, 'yes': true, 'n': false, 'nein': false, 'no': false }
+/** A "Leitung" cell, lower case and trimmed: empty for the duty to lead, N for none, as the sheet is documented; anything else is the row's problem. */
+const DUTY: Readonly<Record<string, boolean>> = { '': true, 'n': false }
 
 /** A weekday's spellings, lower case, to its ISO number (Monday 1). */
 const WEEKDAYS: Readonly<Record<string, number>> = {

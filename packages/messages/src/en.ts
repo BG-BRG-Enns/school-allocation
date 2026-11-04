@@ -934,7 +934,7 @@ export const en: Messages = {
       edit: (name: string) => `Change the abbreviation of ${name}`,
       label: (name: string) => `Abbreviation of ${name}`,
       save: 'Save abbreviation',
-      saved: 'Abbreviation saved.',
+      saved: 'Saved.',
     },
   },
 
