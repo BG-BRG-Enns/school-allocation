@@ -123,6 +123,8 @@ export const de = {
     period: (period: number) => `${period}. EH`,
     /** A span of periods: "2.–3. EH", one period as "2. EH". */
     periods: (from: number, to: number) => from === to ? `${from}. EH` : `${from}.–${to}. EH`,
+    /** The same spoken: "2. und 3. EH" for two neighbours, else as `periods`. */
+    periodsSpoken: (from: number, to: number) => to === from + 1 ? `${from}. und ${to}. EH` : (from === to ? `${from}. EH` : `${from}.–${to}. EH`),
     /** An amount already formatted as a number, with the currency: "15,00 €". */
     euros: (amount: string) => `${amount} €`,
   },
@@ -490,6 +492,8 @@ export const de = {
     project_day_twice: 'Ein Projekttag ist zweimal eingetragen.',
     invalid_date: 'Ein Datum gibt es im Kalender nicht.',
     frame_invalid: 'Ein Anwesenheitsrahmen passt nicht: Er endet vor seinem Beginn, nennt eine Einheit, die das Stundenraster nicht hat, oder einen Tag, der kein Projekttag ist.',
+    class_conflict: 'Eine Klasse ist zur selben Zeit schon in einer anderen Klassenaktivität. Sieh dir bitte den Hinweis an.',
+    target_reached: 'In jedem Feld, in das diese Aktivität Plätze brächte, ist das Ziel schon erreicht. Sieh dir bitte den Hinweis an.',
     sessions_outside_days: 'An den gestrichenen Tagen gibt es schon Termine. Ändere bitte zuerst die betroffenen Aktivitäten.',
     item_invalid: 'Die Aktivität passt noch nicht. Sieh dir bitte die Hinweise an.',
     window_order: 'Die Anmeldung muss enden, nachdem sie begonnen hat.',
@@ -676,6 +680,8 @@ export const de = {
         noEnd: 'Die Anmeldung hat kein Ende: Sie läuft, bis sie von Hand beendet wird.',
         noEndAck: 'Ich öffne die Anmeldung ohne Ende und beende sie von Hand.',
         mailOff: 'Der E-Mail-Versand ist auf diesem Server nicht eingerichtet: Die Einladungen warten im Postausgang, bis er es ist.',
+        /** Class activities that put a class into two at once, as "5A: Wanderung, Finale". */
+        classConflicts: (list: string) => `Eine Klasse ist zur selben Zeit in zwei Klassenaktivitäten: ${list}. So lässt sich die Zuteilung nicht berechnen; nimm die Klasse aus einer der beiden heraus.`,
       },
       deleted: 'Anmeldung gelöscht.',
     },
@@ -715,6 +721,8 @@ export const de = {
       frameTo: (day: number) => `bis Einheit, Projekttag ${day}`,
       noFrame: 'kein Rahmen',
       frameHint: 'Der Anwesenheitsrahmen eines Projekttags sind die Einheiten, in denen alle in der Schule sind, etwa 2. bis 6. Einheit. Mit Rahmen zählt Plätze und Bedarf jede Einheit einzeln; ohne Rahmen zählt der ganze Tag.',
+      lockNewOffers: 'Neue Angebote sperren, sobald das Ziel erreicht ist',
+      lockHint: 'Mit der Sperre kann eine Lehrkraft eine Aktivität nur einreichen, wenn mindestens ein Feld, in das ihre Plätze gehen, noch unter dem Ziel liegt. Klassenaktivitäten sind ausgenommen; die Organisation darf immer anlegen und genehmigen.',
     },
     student: {
       viewResult: 'Meine Einteilung ansehen',
@@ -748,6 +756,18 @@ export const de = {
       heading: 'Aktivitäten',
       viewCatalogue: 'Katalog ansehen',
       none: 'Noch keine Aktivitäten.',
+      firstProposedAt: 'Eingereicht am',
+      /** The order of the table: as the catalogue numbers them, or by the first submission. */
+      order: 'Reihenfolge',
+      orderNumber: 'Nummer und Anlage',
+      orderProposed: 'Eingereicht am',
+      grades: 'Schulstufen',
+      allGrades: 'alle',
+      /** Where a submitted activity's places go, the cells still short of the target: "5. Schulstufe, 4.–5. EH". */
+      brings: (cells: string) => `bringt Plätze in: ${cells}`,
+      bringsNothing: 'nur, wo das Ziel erreicht ist',
+      /** The lead is not plainly available on a day of the activity; the days as format.ts formatDay writes them. */
+      leadLimited: (days: string) => `Leitung am ${days} nicht oder nur wenn nötig verfügbar`,
       fixedFor: (classes: string) => wholeClasses(classes),
       reviewNote: (note: string) => `Rückmeldung: ${note}`,
       participants: 'Teilnehmer*innen',
@@ -849,6 +869,18 @@ export const de = {
       none: 'Die Schule hat noch keine Kategorien.',
     },
     saveAndPropose: 'Speichern und einreichen',
+    /** The gate on new offers (the registration's lock) and what the activity brings, below the sessions. */
+    gate: {
+      brings: (cells: string) => `Diese Aktivität bringt Plätze dorthin, wo noch welche fehlen: ${cells}.`,
+      bringsNothing: 'Diese Aktivität bringt Plätze nur dorthin, wo das Ziel schon erreicht ist.',
+      servesNothing: 'Diese Aktivität liegt außerhalb der Anwesenheitsrahmen: Plätze und Bedarf zählen sie nirgends.',
+      /** The refusal, a sentence per day; `periods` null for a day counted whole. */
+      refused: (day: string, periods: string | null) => periods === null ? `Am ${day} hat jede Schulstufe dieser Aktivität ihr Ziel erreicht.` : `Am ${day} hat jede Schulstufe dieser Aktivität in der ${periods} ihr Ziel erreicht.`,
+      advice: 'Wähle eine Zeit, in der noch Plätze fehlen, oder nimm eine Schulstufe dazu, der noch Plätze fehlen.',
+      organizerAnyway: 'Als Organisation kannst du sie trotzdem einreichen und genehmigen.',
+    },
+    /** A class in two class activities at once: the other one, with its lead and the time they share. */
+    conflict: (className: string, day: string, from: string, to: string, title: string, lead: string) => `Die ${className} ist am ${day} von ${from} bis ${to} schon in ‚${title}‘ (Leitung: ${lead}). Eine Klasse kann zur selben Zeit nur in einer Klassenaktivität sein.`,
     participants: {
       heading: (count: number) => `Teilnehmer*innen (${count})`,
       cancelled: 'Diese Aktivität fällt aus: Für ihre Mindestzahl kamen zu wenige Wünsche.',

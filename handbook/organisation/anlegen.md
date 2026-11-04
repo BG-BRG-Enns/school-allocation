@@ -16,13 +16,15 @@ Die **Leitung** einer Aktivität hat, wer sie angelegt hat, solange sie oder er 
 
 ![Eine eingereichte Aktivität in der Liste der Anmeldung: Titel und Kosten, Lehrkraft, Termin, Plätze, Stand und die Knöpfe Bearbeiten, Genehmigen, Zurückgeben und Zurückziehen](/bilder/de/aktivitaeten-pruefen.png)
 
-Die Tabelle zeigt jede Aktivität mit Lehrkräften, Terminen, Plätzen, Kosten und Stand; der Abschnitt Organisation zählt Entwürfe, eingereichte, genehmigte und zurückgezogene. Für eine eingereichte Aktivität hast du drei Knöpfe:
+Die Tabelle zeigt jede Aktivität mit Schulstufen, Lehrkräften (Leitung und Begleitung), Terminen, dem Datum der ersten Einreichung (**Eingereicht am**: Zurückgeben und noch einmal Einreichen ändern es nicht, eine Korrektur schiebt also niemanden nach hinten), Plätzen, Kosten und Stand; **Reihenfolge** ordnet sie nach der Nummer oder nach der Einreichung, die früheste zuerst. Bei einer eingereichten Aktivität steht, wohin ihre Plätze gehen: in welche Felder unter dem Ziel („bringt Plätze in: 5. Schulstufe, 4.–5. EH“) oder „nur, wo das Ziel erreicht ist“. Ist die Leitung an einem Tag der Aktivität nicht oder nur wenn nötig verfügbar, steht das bei ihr. Der Abschnitt Organisation zählt Entwürfe, eingereichte, genehmigte und zurückgezogene. Für eine eingereichte Aktivität hast du drei Knöpfe:
 
 - **Genehmigen** nimmt sie in den Katalog.
 - **Zurückgeben** schickt sie mit einer **Rückmeldung an die Lehrkräfte** zurück. Sie ist dann wieder ein Entwurf, und die Lehrkräfte sehen deine Rückmeldung.
 - **Zurückziehen** nimmt sie mit einer Begründung heraus.
 
 **Bearbeiten** öffnet jede Aktivität. Was du an der Aktivität einer Lehrkraft änderst, wird protokolliert.
+
+**Eine Klasse ist zur selben Zeit nur in einer Klassenaktivität.** Eine Klassenaktivität, deren Klasse zu einer sich überschneidenden Zeit schon in einer eingereichten oder genehmigten Klassenaktivität ist, wird beim Einreichen abgelehnt, nicht nur gewarnt: Mit einer doppelt eingetragenen Klasse lässt sich die Zuteilung nicht berechnen. Wer zuerst einreicht, hat die Klasse; zwei Klassenaktivitäten am selben Tag ohne Überschneidung sind erlaubt, ein mehrtägiger Ausflug überschneidet sich an jedem seiner Tage. Dasselbe gilt, wenn du bei einer eingereichten oder genehmigten Klassenaktivität die Klassen oder die Zeiten änderst. Einen Konflikt löst du: Trag die Klasse aus der einen Aktivität aus, dann reicht die Lehrkraft die andere ein. Vor **Katalog veröffentlichen** warnt der Schritt vor Konflikten zwischen genehmigten Klassenaktivitäten, die schon vor dieser Regel bestanden.
 
 ## Plätze und Bedarf
 

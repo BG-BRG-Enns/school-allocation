@@ -48,6 +48,10 @@ Under **Categories** you choose what the activity belongs to, such as sport or c
 - **Save** keeps the activity as a draft. Only you, the activity's other teachers and the organisation see it.
 - **Save and submit** submits it to the organisation.
 
+![The lock in the form: the activity brings places only where the target is reached, the day on which every year has reached its target, and the advice to pick another time or add a year](/bilder/en/sperre.png)
+
+Below the sessions the form says, as you fill it in, where the activity's places go: into which cells of Places and demand places are still missing, or that they go only where the target is reached already. If the organisation has turned on **Lock new offers**, the submission refuses an activity that goes only into cells that have reached the target: "On Mon, 21/06 every year of this activity has reached its target in P2 and P3." Then choose a time where places are still missing, or add a year that still lacks places; making it longer is welcome, as the extra places in a full period do no harm. Class activities are exempt from the lock. A class activity whose class is already in another submitted or approved class activity at the same time is refused and names it: "5A is already in 'Hike' (lead: ZwA) on Mon, 21/06 from 09:00 to 11:00." The form shows the conflict on the draft already; the organisation takes the class out of one activity, then you submit the other. If your activity is returned and you submit it again, the first submission still counts, and the lock checks only what you add in places, years, classes or times.
+
 In the **Activities** table, a draft has the **Edit**, **Submit** and **Delete** buttons. You can take a submitted activity **Back to draft** while activities are being collected. If something is wrong, the form says what, such as “A session is outside the project days” or “The minimum is greater than the number of places”.
 
 If the organisation returns your activity, it becomes a draft again, and the **Feedback from the organisation** appears at the top. Change what it mentions and submit it again. Approved activities enter the catalogue when it is published.

@@ -16,13 +16,15 @@ An activity's **lead** is whoever created it, as long as they are among its teac
 
 ![A submitted activity in the registration's list: title and cost, teacher, session, places, state and the Edit, Approve, Return and Withdraw buttons](/bilder/en/aktivitaeten-pruefen.png)
 
-The table shows each activity with its teachers, sessions, places, cost and status; the Organisation section counts drafts, submitted, approved and withdrawn activities. For a submitted activity you have three buttons:
+The table shows each activity with its years, teachers (lead and companions), sessions, the date of its first submission (**Submitted on**: returning and resubmitting do not change it, so a correction moves nobody back), places, cost and status; **Order** sorts them by number or by submission, the earliest first. A submitted activity says where its places go: into which cells short of the target ("brings places to: Year 5, P4–5") or "only where the target is reached". If the lead is not available, or only if needed, on a day of the activity, that is noted beside them. The Organisation section counts drafts, submitted, approved and withdrawn activities. For a submitted activity you have three buttons:
 
 - **Approve** adds it to the catalogue.
 - **Return** sends it back with **Feedback to the teachers**. It becomes a draft again, and the teachers see your feedback.
 - **Withdraw** removes it with a reason.
 
 **Edit** opens any activity. Changes you make to a teacher's activity are recorded.
+
+**A class is in one class activity at a time.** A class activity whose class is already in a submitted or approved class activity at an overlapping time is refused at submission, not merely warned about: with a class entered twice, the allocation cannot be calculated. Whoever submits first has the class; two class activities on the same day without overlap are allowed, a trip over several days overlaps on each of them. The same applies when you change the classes or the times of a submitted or approved class activity. You resolve a conflict: take the class out of one activity, then the teacher submits the other. Before **Publish catalogue**, the step warns of conflicts among approved class activities that existed before this rule.
 
 ## Places and demand
 

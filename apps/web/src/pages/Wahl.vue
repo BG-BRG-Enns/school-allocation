@@ -4,7 +4,7 @@
 // organizers review, move the campaign on, set its rules and export the
 // catalogue.
 
-import { ITEM_STATES, MAX_RULES, RULE_LIMITS, RULE_UNITS, type Frame, type Period } from '@school-allocation/school-core'
+import { allClassConflicts, ITEM_STATES, MAX_RULES, RULE_LIMITS, RULE_UNITS, type Frame, type Period } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import ClassPicker from '../components/ClassPicker.vue'
@@ -13,11 +13,13 @@ import DemandTable from '../components/DemandTable.vue'
 import FrameSelect from '../components/FrameSelect.vue'
 import ListFilter from '../components/ListFilter.vue'
 import { loadClasses as loadRosterClasses, loadMailQueue, loadMailStatus, loadPeriods } from '../lib/admin-api.ts'
-import { approveItem, catalogueExportPath, deleteCampaign, deleteItem, loadCampaign, loadCategories, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignRule, type CampaignView, type Category, type DayDemand, type Item, type MissingStudent, type RuleDemand, type RuleUnit } from '../lib/campaigns-api.ts'
+import { approveItem, catalogueExportPath, deleteCampaign, deleteItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignRule, type CampaignView, type Category, type DayDemand, type Item, type ItemShare, type MissingStudent, type RuleDemand, type RuleUnit } from '../lib/campaigns-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf, nextDay } from '../lib/format.ts'
+import { datesBetween, formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf, nextDay } from '../lib/format.ts'
+import { bringsText, daysOf, offerOf } from '../lib/offer-cells.ts'
+import { useUiState } from '../lib/ui-state.ts'
 import { t } from '../lib/i18n.ts'
 import { CAMPAIGN_STATE_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS, MAIL_KIND_LABELS, MAIL_STATE_LABELS, RULE_PROBLEM_LABELS, RULE_UNIT_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
 import { filtered, matchesOneOf, matchesOption, matchesText, useListFilter, type FilterField } from '../lib/list-filter.ts'
@@ -29,6 +31,10 @@ const view = ref<CampaignView | null>(null)
 const items = ref<Item[]>([])
 const demand = ref<DayDemand[]>([])
 const ruleDemand = ref<RuleDemand[]>([])
+/** Per activity where its places go (organizers), for the "bringt" line of the table. */
+const shares = ref<ItemShare[]>([])
+/** The teachers not plainly available on the registration's days, for the lead's marker in the table. */
+const limited = ref<{ personId: string, date: string, status: 'unavailable' | 'if_needed' }[]>([])
 /** The classes taking part, with their grades, for those who see the demand. */
 const memberClasses = ref<{ className: string, grade: number }[]>([])
 const grades = computed(() => [...new Set(memberClasses.value.map((cl) => cl.grade))].sort((a, b) => a - b))
@@ -48,9 +54,10 @@ async function load(): Promise<void> {
     view.value = v
     items.value = list.items
     // The rest at once: a request still on its way when the person signs out is answered 401.
-    const [d, c, roster, periods, school] = await Promise.all([
+    const [d, c, a, roster, periods, school] = await Promise.all([
       v.may.seeDemand ? loadDemand(props.id) : null,
       v.may.seeDemand ? loadClasses(props.id) : null,
+      v.may.seeDemand ? loadCampaignAvailability(props.id) : null,
       v.may.organize ? loadRosterClasses() : null,
       v.may.organize ? loadPeriods() : null,
       v.may.organize || v.campaign.rules.length > 0 ? loadCategories() : null,
@@ -58,8 +65,10 @@ async function load(): Promise<void> {
     if (d) {
       demand.value = d.demand
       ruleDemand.value = d.rules
+      shares.value = d.shares
     }
     if (c) memberClasses.value = c.classes
+    if (a) limited.value = a.limited
     if (roster) rosterClasses.value = roster.classes.map((cl) => ({ className: cl.className, grade: cl.grade }))
     if (periods) grid.value = periods.periods
     if (school) categories.value = school.categories
@@ -113,6 +122,50 @@ const itemFields = computed<FilterField[]>(() => [
   { key: 'text', kind: 'text', label: t.filters.text },
 ])
 const itemsShown = filtered(items, itemFilter, (item, f) => matchesOption(item.state, f.state) && matchesOneOf(item.categoryIds, f.category) && matchesText([item.title, ...item.teachers.map((teacher) => teacher.displayName)], f.text))
+// The order: as the catalogue numbers them (the server's), or by the first submission, the earliest first and the never submitted last; the browser remembers it.
+const itemOrder = useUiState<string>('wahl:items:order', 'number')
+const itemsOrdered = computed(() => itemOrder.value === 'proposed'
+  ? [...itemsShown.value].sort((a, b) => (a.firstProposedAt ?? '\uffff').localeCompare(b.firstProposedAt ?? '\uffff', 'en') || a.createdAt.localeCompare(b.createdAt, 'en'))
+  : itemsShown.value)
+
+/** The grades an activity is offered to, as the table says them: its grades, else its classes, else "alle". */
+function gradesText(item: Item): string {
+  if (item.eligibleGrades.length > 0) return item.eligibleGrades.map((grade) => `${grade}.`).join(', ')
+  if (item.eligibleClasses.length > 0) return item.eligibleClasses.join(', ')
+  return t.campaign.items.allGrades
+}
+
+/** The teachers as "Leitung: X · Begleitung: Y, Z". */
+function teachersText(item: Item): string {
+  const lead = item.teachers.find((teacher) => teacher.lead)
+  const companions = item.teachers.filter((teacher) => !teacher.lead).map((teacher) => teacher.displayName)
+  return [...(lead ? [t.item.participants.lead(lead.displayName)] : []), ...(companions.length > 0 ? [t.item.participants.companions(companions.join(', '))] : [])].join(' · ')
+}
+
+/** The days of the activity its lead is not plainly available on, as a line; '' when none. */
+function leadLimitedText(item: Item): string {
+  const lead = item.teachers.find((teacher) => teacher.lead)
+  if (!lead) return ''
+  const dates = new Set(item.sessions.flatMap((s) => datesBetween(localDateOf(s.startsAt), localDateOf(new Date(Date.parse(s.endsAt) - 1).toISOString()))))
+  const days = limited.value.filter((d) => d.personId === lead.personId && dates.has(d.date)).map((d) => d.date).sort((a, b) => a.localeCompare(b, 'en'))
+  return days.length === 0 ? '' : t.campaign.items.leadLimited(days.map(formatDay).join(', '))
+}
+
+/** What a submitted activity brings (organizers, who have the shares): the cells short of the target its places go to; '' where there is nothing to say. */
+const bringsOf = computed(() => {
+  const c = campaign.value
+  if (!c || !organizes.value || demand.value.length === 0 || grid.value.length === 0) return new Map<string, string>()
+  const days = daysOf(demand.value, grid.value)
+  const classes = memberClasses.value.map((cl) => ({ ...cl, students: 0 }))
+  return new Map(items.value.filter((item) => item.state === 'proposed' && item.places > 0).map((item) => [item.id, bringsText({ id: item.id, ...offerOf(item) }, demand.value, days, classes, shares.value, c.placeHeadroomPercent) ?? '']))
+})
+
+/** Class activities that put a class into two at once, among the approved ones: what the publication warns of. */
+const approvedConflicts = computed(() => {
+  const activities = items.value.filter((item) => item.state === 'approved' && item.fixedClasses.length > 0).map((item) => ({ id: item.id, ...offerOf(item) }))
+  const titles = new Map(items.value.map((item) => [item.id, item.title]))
+  return [...new Set(allClassConflicts(activities).map((c) => `${c.className}: ${titles.get(activities.find((a) => a.sessions.some((s) => s.startMs <= c.startMs && s.endMs >= c.endMs) && a.fixedClasses.includes(c.className) && a.id !== c.itemId)?.id ?? '') ?? ''}, ${titles.get(c.itemId) ?? ''}`))]
+})
 
 // The registration's mails still waiting to be sent: a link to the mails page, where they can be looked at or discarded.
 const mailsWaiting = ref(0)
@@ -206,6 +259,7 @@ const wishesPerGroup = ref(3)
 const dailyMinimum = ref<Record<string, string | number>>({})
 const showTeachers = ref(true)
 const placeHeadroomPercent = ref(20)
+const lockNewOffers = ref(false)
 /** The rules as the form holds them: the classes as typed, the minimum as a number input gives it. */
 interface RuleDraft { categoryId: string, grades: number[], classes: string, unit: RuleUnit, minimum: number | string }
 const rules = ref<RuleDraft[]>([])
@@ -236,6 +290,7 @@ function startEditing(): void {
   dailyMinimum.value = Object.fromEntries(minimumGrades.map((grade) => [String(grade), c.dailyMinimum[String(grade)] === undefined ? '' : String(c.dailyMinimum[String(grade)])]))
   showTeachers.value = c.showTeachers
   placeHeadroomPercent.value = c.placeHeadroomPercent
+  lockNewOffers.value = c.lockNewOffers
   rules.value = c.rules.map((rule) => ({ categoryId: rule.categoryId, grades: [...rule.grades], classes: rule.classes.join(', '), unit: rule.unit, minimum: rule.minimum }))
   ruleProblems.value = []
   editing.value = true
@@ -253,6 +308,7 @@ async function onSaveSettings(): Promise<void> {
       changes.wishesPerGroup = Number(wishesPerGroup.value)
       changes.showTeachers = showTeachers.value
       changes.placeHeadroomPercent = Number(placeHeadroomPercent.value)
+      changes.lockNewOffers = lockNewOffers.value
       changes.frames = Object.fromEntries(days.value.flatMap((day, index) => (day && frames.value[index] ? [[day, frames.value[index]]] : [])))
       changes.rules = rules.value.map((rule) => ({
         categoryId: rule.categoryId,
@@ -334,6 +390,7 @@ const consequences = computed<string[]>(() => {
   if ((step === 'published' || step === 'open') && c.classes.length === 0) lines.push(w.noClasses)
   if (step === 'published') {
     if ((view.value?.counts?.approved ?? 0) === 0) lines.push(w.noApproved)
+    if (approvedConflicts.value.length > 0) lines.push(w.classConflicts(approvedConflicts.value.join('; ')))
     if (c.opensAt !== null && Date.parse(c.opensAt) <= Date.now()) lines.push(w.opensAtPast(formatWhenShort(c.opensAt)))
   }
   if (step === 'open') {
@@ -811,6 +868,17 @@ function onSubmitPending(): void {
               >
             </p>
           </div>
+          <p class="field">
+            <label>
+              <input
+                v-model="lockNewOffers"
+                :disabled="!windowEditable"
+                type="checkbox"
+              >
+              {{ t.campaign.settings.lockNewOffers }}
+            </label>
+            <span class="muted">{{ t.campaign.settings.lockHint }}</span>
+          </p>
           <div class="row">
             <p
               v-for="grade in Object.keys(dailyMinimum)"
@@ -1180,6 +1248,23 @@ function onSubmitPending(): void {
           :shown="itemsShown.length"
           :total="items.length"
         />
+        <p
+          v-if="items.length > 0"
+          class="field"
+        >
+          <label for="items-order">{{ t.campaign.items.order }}</label>
+          <select
+            id="items-order"
+            v-model="itemOrder"
+          >
+            <option value="number">
+              {{ t.campaign.items.orderNumber }}
+            </option>
+            <option value="proposed">
+              {{ t.campaign.items.orderProposed }}
+            </option>
+          </select>
+        </p>
         <table
           v-if="itemsShown.length > 0"
           class="table"
@@ -1193,10 +1278,16 @@ function onSubmitPending(): void {
                 {{ t.common.field.item }}
               </th>
               <th scope="col">
+                {{ t.campaign.items.grades }}
+              </th>
+              <th scope="col">
                 {{ t.common.field.teachers }}
               </th>
               <th scope="col">
                 {{ t.common.field.sessions }}
+              </th>
+              <th scope="col">
+                {{ t.campaign.items.firstProposedAt }}
               </th>
               <th scope="col">
                 {{ t.common.field.places }}
@@ -1211,7 +1302,7 @@ function onSubmitPending(): void {
           </thead>
           <tbody>
             <tr
-              v-for="item in itemsShown"
+              v-for="item in itemsOrdered"
               :key="item.id"
             >
               <td>{{ item.number ?? '–' }}</td>
@@ -1231,8 +1322,23 @@ function onSubmitPending(): void {
                 >
                   {{ t.campaign.items.reviewNote(item.reviewNote) }}
                 </p>
+                <p
+                  v-if="bringsOf.get(item.id)"
+                  class="muted"
+                >
+                  {{ bringsOf.get(item.id) }}
+                </p>
               </td>
-              <td>{{ item.teachers.map((teacher) => teacher.displayName).join(', ') }}</td>
+              <td>{{ gradesText(item) }}</td>
+              <td>
+                {{ teachersText(item) }}
+                <p
+                  v-if="leadLimitedText(item)"
+                  class="muted short"
+                >
+                  {{ leadLimitedText(item) }}
+                </p>
+              </td>
               <td>
                 <ul class="plain">
                   <li
@@ -1243,6 +1349,7 @@ function onSubmitPending(): void {
                   </li>
                 </ul>
               </td>
+              <td>{{ formatWhenShort(item.firstProposedAt) }}</td>
               <td>{{ item.places }}</td>
               <td><span :class="['badge', `badge-${item.state}`]">{{ ITEM_STATE_LABELS[item.state] ?? item.state }}</span></td>
               <td class="row-actions">

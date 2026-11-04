@@ -32,6 +32,10 @@ Für jede Schulstufe: wie viele Minuten an Aktivitäten Schüler\*innen an einem
 
 Um wie viel Prozent die Aktivitäten mehr Plätze anbieten sollen, als Schüler\*innen einen suchen, 20, solange du nichts anderes einträgst. Daraus rechnet **Plätze und Bedarf** das Ziel je Projekttag und Schulstufe ([Anlegen und Katalog](./anlegen)). Mehr Plätze als nötig lassen den Wünschen Raum.
 
+## Neue Angebote sperren
+
+**Neue Angebote sperren, sobald das Ziel erreicht ist** hält die Angebote dort, wo Plätze fehlen: Eine Lehrkraft kann eine Aktivität nur einreichen, wenn mindestens ein Feld von [Plätze und Bedarf](./anlegen#plätze-und-bedarf), in das ihre Plätze gehen (jede Einheit, die sie berührt, mal jede Schulstufe, für die sie angeboten wird, an jedem ihrer Tage), noch unter dem Ziel liegt. Das Ziel ist das der **Plätze über dem Bedarf**; eine zweite Zahl gibt es nicht. Abgelehnt wird nur, wenn alle diese Felder das Ziel schon erreicht haben; eine Aktivität, die kein Feld berührt, wird nicht geprüft. Klassenaktivitäten sind ausgenommen, auch mit zusätzlichen Plätzen. Die Organisation darf immer anlegen, einreichen und genehmigen und sieht nur den Hinweis. Eine zurückgegebene oder zum Entwurf zurückgeholte Aktivität wird beim Einreichen nur für die Felder geprüft, die mehr Plätze bekommen als bei ihrer letzten Einreichung: Eine Korrektur sperrt niemanden aus. Die Sperre ist aus, solange du sie nicht einschaltest, und lässt sich ändern, bis die Anmeldung öffnet.
+
 ## Regeln
 
 Eine Regel verlangt von den Schüler\*innen einer Schulstufe (oder nur einiger ihrer Klassen) mindestens so viele Aktivitäten oder Minuten aus einer Kategorie. Wie du Regeln anlegst und was sie bewirken, steht unter [Kategorien und Regeln](./kategorien-und-regeln).
@@ -45,6 +49,6 @@ Eine Regel verlangt von den Schüler\*innen einer Schulstufe (oder nur einiger i
 | Einstellung | Änderbar, bis |
 | ----------- | ------------- |
 | Bezeichnung, Schuljahr, Projekttage | der Katalog veröffentlicht ist |
-| Anwesenheitsrahmen, Anmeldezeitraum, Nachfrist, Wünsche je Zeitblock, Plätze über dem Bedarf, Regeln, Lehrkräfte im Katalog | die Anmeldung öffnet |
+| Anwesenheitsrahmen, Anmeldezeitraum, Nachfrist, Wünsche je Zeitblock, Plätze über dem Bedarf, Neue Angebote sperren, Regeln, Lehrkräfte im Katalog | die Anmeldung öffnet |
 | Mindestminuten je Tag | die Einteilung veröffentlicht ist |
 | Tauschzeit | die Tauschzeit beginnt |

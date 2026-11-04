@@ -41,6 +41,15 @@ export const deFormal = {
     rules_invalid: 'Die Regeln passen noch nicht. Bitte die Hinweise ansehen.',
     category_in_use: 'Eine Aktivität oder eine Regel verwendet diese Kategorie. Umbenennen geht, entfernen nicht.',
     category_unknown: 'Eine der Kategorien gibt es nicht mehr. Bitte die Seite neu laden.',
+    class_conflict: 'Eine Klasse ist zur selben Zeit schon in einer anderen Klassenaktivität. Bitte den Hinweis ansehen.',
+    target_reached: 'In jedem Feld, in das diese Aktivität Plätze brächte, ist das Ziel schon erreicht. Bitte den Hinweis ansehen.',
+  },
+  campaign: {
+    transitions: {
+      warnings: {
+        classConflicts: (list: string) => `Eine Klasse ist zur selben Zeit in zwei Klassenaktivitäten: ${list}. So lässt sich die Zuteilung nicht berechnen; nehmen Sie die Klasse aus einer der beiden heraus.`,
+      },
+    },
   },
   signIn: {
     intro: 'Bitte mit dem Schulkonto (Microsoft) einloggen.',
@@ -54,6 +63,10 @@ export const deFormal = {
   item: {
     sessions: {
       intro: 'Ein Termin liegt in den Einheiten der Schule oder, etwa bei einem Ausflug, nach der Uhrzeit. Angerechnet werden die Minuten, die Sie je Projekttag angeben; Anreise und Pausen zählen nicht.',
+    },
+    gate: {
+      advice: 'Wählen Sie eine Zeit, in der noch Plätze fehlen, oder nehmen Sie eine Schulstufe dazu, der noch Plätze fehlen.',
+      organizerAnyway: 'Als Organisation können Sie sie trotzdem einreichen und genehmigen.',
     },
   },
   wishes: {

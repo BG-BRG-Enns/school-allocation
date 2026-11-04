@@ -37,7 +37,8 @@ export async function campaignView(db: Database, campaign: Campaign, caller: Cal
 
 export async function demandView(db: Database, campaign: Campaign, caller: Caller) {
   if (!maySeeDemand(caller, campaign)) throw new ApplicationError('forbidden')
-  return campaignDemand(db, campaign)
+  // The shares per activity name every proposal by id: the organizer's, who sees them all.
+  return campaignDemand(db, campaign, isOrganizer(caller))
 }
 
 export async function classStatus(db: Database, campaign: Campaign, caller: Caller, className: string) {

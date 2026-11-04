@@ -150,6 +150,8 @@ export interface Scenario {
     placeHeadroomPercent: number
     /** The attendance frame per project day: Monday's sports day is at school from the 2nd to the 6th period. */
     frames: Record<string, Frame>
+    /** Whether a teacher's submission is refused once every cell it serves has reached its target. */
+    lockNewOffers: boolean
     rules: ScenarioRule[]
   }
   /** The administrator: Anna, whose address is in BOOTSTRAP_ADMINS. */
@@ -336,6 +338,7 @@ export function scenario(seed = SCENARIO_SEED): Scenario {
       reminderDays: 2,
       placeHeadroomPercent: 20,
       frames: { [MONDAY]: { from: 2, to: 6 } },
+      lockNewOffers: true,
       rules: [
         { category: sport, grades: [5, 6, 7, 8, 9, 10, 11], classes: [], unit: 'items', minimum: 1 },
         { category: careers, grades: [7], classes: [], unit: 'minutes', minimum: 200 },

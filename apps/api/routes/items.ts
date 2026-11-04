@@ -9,7 +9,7 @@ import type { Database } from '../lib/db.ts'
 import { isOrganizer, mayPropose } from '../lib/policies.ts'
 import { itemInput } from '../services/catalogue-input.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
-import { approveItem, createItem, deleteDraft, proposeItem, returnItem, unproposeItem, updateItem, withVisibleItem } from '../services/items.ts'
+import { approveItem, checkItemOffer, createItem, deleteDraft, proposeItem, returnItem, unproposeItem, updateItem, withVisibleItem } from '../services/items.ts'
 import { withdrawItem } from '../services/withdrawal.ts'
 
 export interface ItemsRoutesOptions {
@@ -33,6 +33,14 @@ export async function itemsRoutes(app: FastifyInstance, { db, guards, baseUrl, w
     const caller = callerOf(request)
     if (!mayPropose(caller)) return reply.code(403).send({ error: 'forbidden' })
     return reply.code(201).send(await createItem(db, campaign.id, itemInput(request.body, caller, true), caller))
+  })
+
+  // What a submission would meet, for the form's hints and the review: nothing is written.
+  registerEndpoint(app, endpoints.postCampaignsByIdItemsCheck, { ...signedIn }, async (request, reply) => {
+    const campaign = await visibleCampaign(db, callerOf(request), request.params.id)
+    const caller = callerOf(request)
+    if (!mayPropose(caller)) return reply.code(403).send({ error: 'forbidden' })
+    return checkItemOffer(db, campaign, request.body, caller)
   })
 
   registerEndpoint(app, endpoints.patchItemsById, { ...signedIn }, async (request) => {

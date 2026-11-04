@@ -4,7 +4,8 @@
 // they are: organizers see every campaign, teachers also the ones taking
 // proposals, everyone else what has been published.
 
-import { checkFrame, checkRules, demandByDay, demandCells, ruleDemand, transition, type CampaignState, type DayDemand, type Frame, type OfferedItem, type RuleDemand } from '@school-allocation/school-core'
+import { checkFrame, checkRules, demandByDay, demandCells, itemShares, ruleDemand, transition, type CampaignState, type ClassSize, type DayDemand, type DemandDay, type Frame, type OfferedItem, type RuleDemand } from '@school-allocation/school-core'
+import type { ItemShare } from '@school-allocation/api-contracts/campaigns'
 import { type Actor, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import * as store from '../lib/dao/campaigns.ts'
@@ -33,7 +34,7 @@ const SWAP_FIELDS: ReadonlySet<string> = new Set(['swapFrom', 'swapUntil'])
 /** The daily minimum is the allocation's input, not the window's: it may change until a run is published, so a grade forgotten or imported late does not block the campaign. A run already made notices through its stale mark. */
 const LATE_FIELDS: ReadonlySet<string> = new Set(['dailyMinimum', ...SWAP_FIELDS])
 
-const WINDOW_FIELDS = ['opensAt', 'closesAt', 'lateUntil', 'swapFrom', 'swapUntil', 'wishesPerGroup', 'dailyMinimum', 'showTeachers', 'reminderDays', 'placeHeadroomPercent'] as const
+const WINDOW_FIELDS = ['opensAt', 'closesAt', 'lateUntil', 'swapFrom', 'swapUntil', 'wishesPerGroup', 'dailyMinimum', 'showTeachers', 'reminderDays', 'placeHeadroomPercent', 'lockNewOffers'] as const
 
 /**
  * The window as it would be after `changes`, or the rule it breaks: the
@@ -313,14 +314,15 @@ export async function listCampaigns(db: Queryable, caller: Pick<Caller, 'roles' 
   return visibleAmong(db, caller, await store.listCampaigns(db))
 }
 
-/**
- * Places needed against places offered per project day, cell and grade
- * (D-13): the sizes of the classes taking part against the items that are
- * proposed or approved, by the cells their sessions touch: the periods of a
- * day's attendance frame, or the whole day. Drafts and withdrawn items
- * count for nothing.
- */
-export async function campaignDemand(db: Queryable, campaign: Campaign): Promise<{ demand: DayDemand[], rules: RuleDemand[] }> {
+/** What the demand is computed from: the classes taking part with their sizes, the days with their cells, and the proposed and approved activities by id. */
+export interface DemandInputs {
+  classes: ClassSize[]
+  days: DemandDay[]
+  items: Map<string, OfferedItem>
+}
+
+/** The demand's inputs as the campaign stands (docs/domain-and-api.md §8): the offer gate and the check read them too, leaving one activity out. */
+export async function demandInputs(db: Queryable, campaign: Campaign): Promise<DemandInputs> {
   const classes = await rosterClassSizes(db, campaign)
   const grid = await readPeriods(db)
   const rows = await store.listDemandSessions(db, campaign)
@@ -331,10 +333,25 @@ export async function campaignDemand(db: Queryable, campaign: Campaign): Promise
     items.set(row.id, { ...item, sessions: [...item.sessions, { startMs: row.startsAt.getTime(), endMs: row.endsAt.getTime() }] })
   }
   const days = campaign.days.map((day) => ({ date: day.date, frame: day.frame, cells: demandCells(day.frame, grid, (time) => instantInSchoolZone(day.date, time), dayBounds(day.date)) }))
+  return { classes, days, items }
+}
+
+/**
+ * Places needed against places offered per project day, cell and grade
+ * (D-13): the sizes of the classes taking part against the items that are
+ * proposed or approved, by the cells their sessions touch: the periods of a
+ * day's attendance frame, or the whole day. Drafts and withdrawn items
+ * count for nothing. With `withShares`, per activity where its places go
+ * (the organizer's table says what an activity brings).
+ */
+export async function campaignDemand(db: Queryable, campaign: Campaign, withShares = false): Promise<{ demand: DayDemand[], rules: RuleDemand[], shares: ItemShare[] }> {
+  const { classes, days, items } = await demandInputs(db, campaign)
   const demand = demandByDay(days, classes, [...items.values()])
-  if (campaign.rules.length === 0) return { demand, rules: [] }
+  const idOf = new Map([...items].map(([id, item]) => [item, id]))
+  const shares = withShares ? itemShares(days, classes, [...items.values()]).map((s) => ({ itemId: idOf.get(s.item) as string, date: s.date, period: s.period, grade: s.grade, places: s.places })) : []
+  if (campaign.rules.length === 0) return { demand, rules: [], shares }
   const offered = (await listCampaignItems(db, campaign.id)).filter((item) => item.state === 'proposed' || item.state === 'approved')
-  return { demand, rules: ruleDemand(campaign.rules, classes, offered, campaign.projectDays) }
+  return { demand, rules: ruleDemand(campaign.rules, classes, offered, campaign.projectDays), shares }
 }
 
 function auditActor(actor: Actor) {

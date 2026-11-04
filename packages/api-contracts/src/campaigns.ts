@@ -41,6 +41,8 @@ export const CampaignWindowSchema = StrictObject({
   reminderDays: Type.Number(),
   /** How many places beyond the need a day should offer a grade, in percent (school-core placeTarget). */
   placeHeadroomPercent: Type.Number(),
+  /** Whether a teacher's submission is refused once every cell it would serve has reached its target (the offer gate). */
+  lockNewOffers: Type.Boolean(),
   /** The rules per category, in the order the organizer set them. */
   rules: Type.Array(RuleSchema),
 })
@@ -150,6 +152,8 @@ export const ItemSchema = StrictObject({
   createdAt: Type.String(),
   updatedAt: Type.String(),
   approvedAt: Type.Union([Type.String(), Type.Null()]),
+  /** When it was first submitted; a return and a resubmission keep it. Null for a draft never submitted. */
+  firstProposedAt: Type.Union([Type.String(), Type.Null()]),
   withdrawnAt: Type.Union([Type.String(), Type.Null()]),
   withdrawReason: Type.Union([Type.String(), Type.Null()]),
 })
@@ -167,7 +171,11 @@ export type CatalogueResponse = Static<typeof CatalogueResponse>
 /** A rule for one grade before any list (school-core ruleDemand): the need left after class activities against the category's places. */
 export const RuleDemandSchema = StrictObject({ ruleId: Type.String(), grade: Type.Number(), students: Type.Number(), needed: Type.Number(), offered: Type.Number() })
 
-export const DemandResponse = StrictObject({ demand: Type.Array(DayDemandSchema), rules: Type.Array(RuleDemandSchema) })
+/** What one activity offers one grade in one cell (school-core itemShares), for the organizer's table: where an activity's places go. */
+export const ItemShareSchema = StrictObject({ itemId: Type.String(), date: Type.String(), period: Type.Union([Type.Number(), Type.Null()]), grade: Type.Number(), places: Type.Number() })
+export type ItemShare = Static<typeof ItemShareSchema>
+
+export const DemandResponse = StrictObject({ demand: Type.Array(DayDemandSchema), rules: Type.Array(RuleDemandSchema), /** The shares per activity, for organizers; empty for everyone else. */ shares: Type.Array(ItemShareSchema) })
 export type DemandResponse = Static<typeof DemandResponse>
 
 export const RosterClassesResponse = StrictObject({ classes: Type.Array(StrictObject({ className: Type.String(), grade: Type.Number() })) })

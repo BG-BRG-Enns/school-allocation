@@ -15,9 +15,9 @@ import { ANNA, BERND, CARLA, SARA } from '../support/personas.ts'
 import { picture, section, shot } from '../support/screenshot.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
 import { refused } from '../support/console.ts'
-import { day, fee, literally, t } from '../support/messages.ts'
+import { anyText, day, fee, literally, t } from '../support/messages.ts'
 import { sample } from '../support/sample.ts'
-import { CLIMBING, climbingNumber, LEFT_OUT, loadStage, PARTICIPATING_CLASSES } from '../support/scenario.ts'
+import { CLIMBING, climbingNumber, LEFT_OUT, loadStage, PARTICIPATING_CLASSES, SCHOOL } from '../support/scenario.ts'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -114,13 +114,45 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await picture(page, 'aktivitaet-beschreibung', [page.getByRole('heading', { name: t.common.page.newItem }), page.getByLabel(t.item.teachers.search)])
   await picture(page, 'aktivitaet-termine', [page.getByRole('heading', { name: t.common.field.sessions, exact: true }), page.getByRole('button', { name: t.item.sessions.add })])
   await picture(page, 'aktivitaet-teilnahme', [page.getByRole('heading', { name: t.item.participation.heading }), page.getByRole('button', { name: t.item.saveAndPropose })])
+  // Below the sessions the form says where the places go: the school's activities reached the upper school's Monday target already.
+  await expect(page.getByText(t.item.gate.bringsNothing)).toBeVisible()
   await page.getByRole('button', { name: t.item.saveAndPropose }).click()
   await expect(page.getByRole('heading', { name: sample.projectWeek })).toBeVisible()
   const row = page.getByRole('row', { name: climbing })
   await expect(row).toContainText(t.labels.itemState.proposed)
-  await expect(row).toContainText(BERND.name)
+  await expect(row).toContainText(t.item.participants.lead(BERND.name))
   await expect(row).toContainText(fee(1500))
   await shot(page, '16-wahl-eingereicht')
+  await signOut(page)
+
+  // The organization locks new offers: from now on an activity that goes only where the target is reached is refused to a teacher.
+  await openAs(page, ANNA, '/wahlen')
+  await page.getByRole('link', { name: sample.projectWeek }).click()
+  await page.getByRole('button', { name: t.campaign.organization.editSettings }).click()
+  const settings = page.getByRole('form', { name: t.campaign.settings.label })
+  await settings.getByLabel(t.campaign.settings.lockNewOffers).check()
+  await settings.getByRole('button', { name: t.common.save }).click()
+  await expect(page.getByRole('status')).toHaveText(t.common.saved)
+  await signOut(page)
+
+  await openAs(page, BERND, '/wahlen')
+  await page.getByRole('link', { name: sample.projectWeek }).click()
+  await page.getByRole('link', { name: t.common.page.newItem }).click()
+  await page.getByLabel(t.item.title).fill(sample.yoga)
+  await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-03')
+  await page.getByLabel(t.item.sessions.count, { exact: true }).fill('1')
+  for (const grade of CLIMBING.grades) await page.getByRole('group', { name: t.item.participation.eligibleGrades }).getByLabel(`${grade}.`, { exact: true }).check()
+  // The form says so before the submission, and the submission is refused with the day; the activity stays a draft.
+  await expect(page.getByText(anyText((d) => t.item.gate.refused(d, null)))).toBeVisible()
+  await expect(page.getByText(t.item.gate.advice)).toBeVisible()
+  await picture(page, 'sperre', [page.getByText(t.item.gate.bringsNothing), page.getByText(t.item.gate.advice)])
+  await refused(page, 409, () => page.getByRole('button', { name: t.item.saveAndPropose }).click())
+  await expect(page.getByRole('alert')).toContainText(t.item.gate.refused(day('2034-07-03'), null))
+  await page.getByRole('link', { name: `← ${t.common.backToCampaign}` }).click()
+  const yoga = page.getByRole('row', { name: new RegExp(literally(sample.yoga)) })
+  await expect(yoga).toContainText(t.labels.itemState.draft)
+  await yoga.getByRole('button', { name: t.campaign.items.delete }).click()
+  await expect(page.getByRole('row', { name: new RegExp(literally(sample.yoga)) })).toHaveCount(0)
 
   // A class activity takes whole classes: its places become the extra ones other students may rank, and it has no minimum, since it always takes place.
   await page.getByRole('link', { name: t.common.page.newItem }).click()
@@ -132,14 +164,33 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-04')
   await expect(page.getByText(t.item.teachers.unavailableOn(BERND.name, day('2034-07-04')))).toBeVisible()
   await picture(page, 'klassenaktivitaet', [page.getByRole('heading', { name: t.item.participation.heading }), page.getByRole('group', { name: t.item.participation.eligibleClasses })])
-  // Left unsaved: the journeys after this one go by a catalogue without it.
+  // With 1A instead, on Tuesday morning: 1A is at the zoo then (the school's trip), so the form says so, and the submission is refused with it.
+  const zoo = SCHOOL.items.find((item) => item.key === 'tue-1a-zoo')
+  const zooLead = SCHOOL.teachers.find((teacher) => teacher.oid === zoo?.teachers[0])
+  if (!zoo || !zooLead) throw new Error('the scenario takes 1A to the zoo on Tuesday')
+  await page.getByRole('group', { name: t.item.participation.fixedClasses }).getByLabel('5A').uncheck()
+  await page.getByRole('group', { name: t.item.participation.fixedClasses }).getByLabel('1A').check()
+  const conflict = t.item.conflict('1A', day('2034-07-04'), '08:30', '10:15', zoo.title, zooLead.name)
+  await expect(page.getByText(conflict)).toBeVisible()
+  await refused(page, 409, () => page.getByRole('button', { name: t.item.saveAndPropose }).click())
+  await expect(page.getByRole('alert')).toContainText(conflict)
+  // Saved as a draft by the refused submission; deleted, so the journeys after this one go by a catalogue without it.
   await page.getByRole('link', { name: `← ${t.common.backToCampaign}` }).click()
   await expect(page.getByRole('row', { name: climbing })).toBeVisible()
+  const vienna = page.getByRole('row', { name: new RegExp(literally(sample.vienna)) })
+  await expect(vienna).toContainText(t.labels.itemState.draft)
+  await vienna.getByRole('button', { name: t.campaign.items.delete }).click()
   await expect(page.getByRole('row', { name: new RegExp(literally(sample.vienna)) })).toHaveCount(0)
   await signOut(page)
 
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
+  // Each activity says when it was first submitted; by that order the climbing, submitted last, comes last, and its row says where its places would go.
+  await expect(page.getByRole('columnheader', { name: t.campaign.items.firstProposedAt })).toBeVisible()
+  await page.getByLabel(t.campaign.items.order).selectOption('proposed')
+  await expect(page.getByRole('row').last()).toContainText(sample.climbing)
+  await expect(page.getByRole('row', { name: climbing })).toContainText(t.campaign.items.bringsNothing)
+  await page.getByLabel(t.campaign.items.order).selectOption('number')
   // The submitted climbing, the last of the school's activities: its row, buttons included where the table runs past the column.
   await picture(page, 'aktivitaeten-pruefen', page.getByRole('row', { name: climbing }))
   await page.getByRole('row', { name: climbing }).getByRole('button', { name: t.campaign.items.approve }).click()

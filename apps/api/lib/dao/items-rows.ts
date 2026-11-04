@@ -22,6 +22,7 @@ export interface ItemRow {
   created_at: Date
   updated_at: Date
   approved_at: Date | null
+  first_proposed_at: Date | null
   withdrawn_at: Date | null
   withdraw_reason: string | null
   teachers: { personId: string, displayName: string }[]

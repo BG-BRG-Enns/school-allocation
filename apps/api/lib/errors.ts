@@ -1,4 +1,5 @@
-import type { CatalogueProblem, MoveProblemCode, PeriodProblemCode, RankingProblem, RuleProblem } from '@school-allocation/school-core'
+import type { CatalogueProblem, GateCell, MoveProblemCode, PeriodProblemCode, RankingProblem, RuleProblem } from '@school-allocation/school-core'
+import type { ClassConflictView } from '@school-allocation/api-contracts/catalogue'
 import type { TeacherListProblem } from '@school-allocation/api-contracts/settings'
 import type { AvailabilityImportProblem } from '@school-allocation/api-contracts/planning'
 import type { TemplateProblem } from './models/mail-templates.ts'
@@ -32,6 +33,26 @@ export class ItemInvalid extends Error {
     super('item_invalid')
     this.problems = problems
     this.unknownTeachers = unknownTeachers
+  }
+}
+
+/** A class activity was refused: a class it names is in another class activity at the same time (the school's wish 3). */
+export class ClassConflictError extends Error {
+  override name = 'ClassConflictError'
+  readonly conflicts: ClassConflictView[]
+  constructor(conflicts: ClassConflictView[]) {
+    super('class_conflict')
+    this.conflicts = conflicts
+  }
+}
+
+/** A teacher's submission was refused by the gate: every cell it would serve has reached its target (the school's wish 1). */
+export class TargetReached extends Error {
+  override name = 'TargetReached'
+  readonly cells: GateCell[]
+  constructor(cells: GateCell[]) {
+    super('target_reached')
+    this.cells = cells
   }
 }
 

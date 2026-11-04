@@ -4,7 +4,7 @@
 
 import { CLASS_NAME, GRADES, MAX_RULES, RULE_LIMITS, RULE_PROBLEM_CODES, RULE_UNITS } from '@school-allocation/school-core'
 import { Type, type Static } from 'typebox'
-import { CatalogueProblemSchema } from './campaigns.ts'
+import { CatalogueProblemSchema, DayDemandSchema } from './campaigns.ts'
 import { Literals, MultiLineText, SingleLineText, StrictObject, Uuid } from './common.ts'
 
 export const LocalDate = Type.String({ pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' })
@@ -73,6 +73,8 @@ export const CampaignChangesBody = StrictObject({
   reminderDays: Type.Optional(Type.Integer({ minimum: 0, maximum: 14 })),
   /** Places beyond the need the demand aims for, in percent. */
   placeHeadroomPercent: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
+  /** Whether new offers are locked once their cells have reached the target. */
+  lockNewOffers: Type.Optional(Type.Boolean()),
   /** What the registration asks per category; the list replaces the one before. */
   rules: Type.Optional(Type.Array(RuleBody, { maxItems: MAX_RULES })),
 })
@@ -127,6 +129,39 @@ export const ItemBody = StrictObject({
   /** The school's categories it belongs to; left out, it keeps the ones it has. */
   categories: Type.Optional(Type.Array(Uuid, { maxItems: 10 })),
 })
+
+/** A cell an activity would serve, judged against the demand without it (school-core GateCell). */
+export const GateCellSchema = StrictObject({ date: Type.String(), period: Type.Union([Type.Number(), Type.Null()]), grade: Type.Number(), needing: Type.Number(), target: Type.Number(), offered: Type.Number(), reached: Type.Boolean() })
+export type GateCellView = Static<typeof GateCellSchema>
+
+/** A class activity's conflict with another: the class, the other activity with its lead, and the span they share. */
+export const ClassConflictSchema = StrictObject({
+  className: Type.String(),
+  itemId: Type.String(),
+  title: Type.String(),
+  lead: StrictObject({ displayName: Type.String(), shortName: Type.Union([Type.String(), Type.Null()]) }),
+  startsAt: Type.String(),
+  endsAt: Type.String(),
+})
+export type ClassConflictView = Static<typeof ClassConflictSchema>
+
+/** What a submission would meet: the activity as the form holds it, or a stored one by id. */
+export const ItemCheckBody = StrictObject({ item: Type.Optional(ItemBody), itemId: Type.Optional(Uuid) })
+export type ItemCheckBody = Static<typeof ItemCheckBody>
+
+/** The answer: the demand without and with the activity, the cells it serves (the ones a resubmission is judged by), whether a teacher's submission would be refused, whether the registration locks new offers, and its class conflicts. */
+export const ItemCheckResponse = StrictObject({
+  before: Type.Array(DayDemandSchema),
+  after: Type.Array(DayDemandSchema),
+  cells: Type.Array(GateCellSchema),
+  refused: Type.Boolean(),
+  locked: Type.Boolean(),
+  conflicts: Type.Array(ClassConflictSchema),
+})
+export type ItemCheckResponse = Static<typeof ItemCheckResponse>
+
+export const ClassConflictResponse = StrictObject({ error: Type.Literal('class_conflict'), conflicts: Type.Array(ClassConflictSchema) })
+export const TargetReachedResponse = StrictObject({ error: Type.Literal('target_reached'), cells: Type.Array(GateCellSchema) })
 
 export const NoteBody = StrictObject({ note: MultiLineText(1000, 1) })
 export const ReasonBody = StrictObject({ reason: SingleLineText(500) })

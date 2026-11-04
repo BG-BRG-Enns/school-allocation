@@ -1,4 +1,4 @@
-import { ApplicationError, type ApplicationErrorCode, AvailabilityImportInvalid, ChoiceInvalid, ClassInUse, ItemInvalid, PeriodsInvalid, RulesInvalid, TeacherListInvalid, TemplateInvalid } from './errors.ts'
+import { ApplicationError, type ApplicationErrorCode, AvailabilityImportInvalid, ChoiceInvalid, ClassConflictError, ClassInUse, ItemInvalid, PeriodsInvalid, RulesInvalid, TargetReached, TeacherListInvalid, TemplateInvalid } from './errors.ts'
 
 /** Every new application code must choose its HTTP status at compile time. */
 export const APPLICATION_ERROR_STATUS = {
@@ -80,6 +80,8 @@ export function applicationFailure(error: unknown): { status: number, body: obje
   if (error instanceof ChoiceInvalid) return { status: 422, body: { error: 'ranking_invalid', problems: error.problems } }
   if (error instanceof RulesInvalid) return { status: 422, body: { error: 'rules_invalid', problems: error.problems } }
   if (error instanceof ClassInUse) return { status: 409, body: { error: 'class_in_use', classes: error.classes } }
+  if (error instanceof ClassConflictError) return { status: 409, body: { error: 'class_conflict', conflicts: error.conflicts } }
+  if (error instanceof TargetReached) return { status: 409, body: { error: 'target_reached', cells: error.cells } }
   if (error instanceof PeriodsInvalid) return { status: 422, body: { error: 'period_grid_invalid', problems: error.problems } }
   if (error instanceof TeacherListInvalid) return { status: 422, body: { error: 'teacher_list_invalid', problems: error.problems } }
   if (error instanceof AvailabilityImportInvalid) return { status: 422, body: { error: 'availability_import_invalid', problems: error.problems } }
