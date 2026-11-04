@@ -10,7 +10,7 @@ import { requireFound } from '../lib/errors.ts'
 import type { ItemCheckBody, ItemCheckResponse, ClassConflictView } from '@school-allocation/api-contracts/catalogue'
 import { acceptsProposals, addedCells, checkItem, classConflicts, demandByDay, gateCells, gateRefused, itemTransition, servedCells, type CampaignState, type ClassActivity, type GateCell, type ItemState, type OfferedItem } from '@school-allocation/school-core'
 import { actorOf, type Caller } from '../lib/actor.ts'
-import { appendAudit, lockScope } from '../lib/audit.ts'
+import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { lockedCampaign, readCampaign } from '../lib/dao/campaigns.ts'
 import { knownCategories } from '../lib/dao/categories.ts'
 import * as store from '../lib/dao/items.ts'
@@ -78,6 +78,11 @@ function sessionsKey(list: readonly { startsAt: string, endsAt: string, location
   return list.map((s) => `${Date.parse(s.startsAt)}-${Date.parse(s.endsAt)}@${s.location ?? ''}:${[...s.credits].sort((a, b) => a.date.localeCompare(b.date, 'en')).map((c) => `${c.date}=${c.minutes}`).join('+')}`).join('|')
 }
 
+/** The sessions' times alone: what a class conflict is about. */
+function timesKey(list: readonly { startsAt: string, endsAt: string }[]): string {
+  return list.map((s) => `${Date.parse(s.startsAt)}-${Date.parse(s.endsAt)}`).join('|')
+}
+
 /** The sessions' times and credits alone, the locations left out. */
 function timedSessionsKey(list: readonly { startsAt: string, endsAt: string, credits: readonly { date: string, minutes: number }[] }[]): string {
   return sessionsKey(list.map((s) => ({ ...s, location: '' })))
@@ -125,7 +130,7 @@ export async function updateItem(db: Database, id: string, sent: ItemInput, call
     await validate(client, current.campaignId, input)
     // A class is in one class activity at a time: an organizer's change of classes or times to an activity already
     // submitted or approved must not make two (a teacher's draft is checked when it is submitted).
-    const classesOrTimesChanged = [...current.fixedClasses].sort().join() !== [...input.fixedClasses].sort().join() || timedSessionsKey(current.sessions) !== timedSessionsKey(input.sessions)
+    const classesOrTimesChanged = [...current.fixedClasses].sort().join() !== [...input.fixedClasses].sort().join() || timesKey(current.sessions) !== timesKey(input.sessions)
     if ((current.state === 'proposed' || current.state === 'approved') && classesOrTimesChanged) await refuseClassConflicts(client, current.campaignId, { id, ...shapeOf(input) })
     await store.updateContent(client, id, input)
     await store.deleteTeachers(client, id)
@@ -267,6 +272,9 @@ async function moveItem(db: Database, id: string, to: ItemState, caller: Caller,
     // The campaign's scope lock before its rows, in the order every change of the published run takes them (assignment-changes lock).
     const seen = await readItem(client, id)
     if (!seen) throw new ApplicationError('not_found')
+    // A submission is judged by the roster's classes and the period grid, which the school's scope lock protects: taken
+    // first, before the campaign's, in the order the retention purge takes them, so the decision reads one snapshot.
+    if (to === 'proposed') await lockScope(client, SCHOOL_SCOPE)
     await lockScope(client, seen.campaignId)
     const current = await lockedItem(client, id)
     if (!current) throw new ApplicationError('not_found')

@@ -75,7 +75,10 @@ function shortOf(cell: CellDemand): number {
             :key="cell.period ?? 'day'"
             :class="{ short: shortOf(cell) > 0, served: served(day.date, g.grade, cell) }"
           >
-            {{ t.campaign.demand.cell(cell.needing, targetOf(cell), cell.offered) }}
+            {{ t.campaign.demand.cell(cell.needing, targetOf(cell), cell.offered) }}<span
+              v-if="served(day.date, g.grade, cell)"
+              class="visually-hidden"
+            > {{ t.campaign.demand.served }}</span>
             <template v-if="shortOf(cell) > 0">
               <br>{{ t.campaign.demand.short(shortOf(cell)) }}
             </template>

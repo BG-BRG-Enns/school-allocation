@@ -745,6 +745,8 @@ export const de = {
       day: 'Tag',
       framed: (periods: string) => `Anwesenheitsrahmen ${periods}, je Einheit gezählt`,
       unframed: 'ohne Anwesenheitsrahmen, je Tag gezählt',
+      /** A cell the activity on the form or under review serves, for a screen reader; the eye sees the outline. */
+      served: '(diese Aktivität)',
       cell: (needing: number, target: number, offered: number) => `${needing} ohne Platz · Ziel ${target} · ${offered} angeboten`,
       short: (missing: number) => `${missing} unter dem Ziel`,
       rulesIntro: 'Je Regel und Schulstufe: was den Schüler*innen nach ihren Klassenaktivitäten noch fehlt, und höchstens was die Plätze der Aktivitäten der Kategorie bringen, die sie wählen können. Eine Regel, für die das nicht reicht, ist markiert.',

@@ -30,9 +30,10 @@ test('what an activity brings: the cells short of the target once its own share 
   const demand = demandByDay(days, classes, [big, small])
   const shares = [{ itemId: 'small', date: MONDAY, period: 2, grade: 5, places: 20 }, { itemId: 'big', date: MONDAY, period: 2, grade: 5, places: 110 }]
   assert.equal(bringsText(small, demand, days, classes, shares, 20), 'bringt Plätze in: Mo., 21.06.2027: 5. Schulstufe, 2. EH', 'without it the cell offers 110 of 120')
-  // A third course there brings places only where the target is reached.
+  // A third course there, its ten places in the cell, brings places only where the target is reached; one the split gives no places anywhere has nothing to say.
   const third = item('third', 10, '08:30', '09:20', [5])
-  assert.equal(bringsText(third, demand, days, classes, shares, 20), 'nur, wo das Ziel erreicht ist')
+  assert.equal(bringsText(third, demand, days, classes, [...shares, { itemId: 'third', date: MONDAY, period: 2, grade: 5, places: 10 }], 20), 'nur, wo das Ziel erreicht ist')
+  assert.equal(bringsText(third, demand, days, classes, shares, 20), null, 'no share: no cell it brings places to')
   assert.equal(bringsText(item('late', 10, '13:15', '14:05'), demand, days, classes, shares, 20), null)
 })
 

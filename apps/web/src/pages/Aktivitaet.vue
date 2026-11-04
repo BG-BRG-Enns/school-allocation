@@ -148,6 +148,8 @@ watch(() => [props.id, props.itemId], load)
  * refuses (a date not yet chosen) leaves the last answer.
  */
 let checkTimer: ReturnType<typeof setTimeout> | undefined
+/** The check last asked for: an answer to an earlier one is dropped, so the hints are the form's as it stands. */
+let checkSeq = 0
 let gone = false
 // A check still pending when the page is left is dropped: the draft it would name may be deleted by then, and the browser logs the 404.
 onBeforeUnmount(() => {
@@ -156,11 +158,13 @@ onBeforeUnmount(() => {
 })
 async function runCheck(): Promise<void> {
   if (gone || !campaign.value || !(campaign.value.state === 'catalogue' || organizes.value)) return
+  const seq = ++checkSeq
   try {
     const shape = input()
-    check.value = await checkItem(props.id, { item: { ...shape, title: shape.title || '–' }, ...(existing.value ? { itemId: existing.value.id } : {}) })
-  } catch (err) {
-    if (!(err instanceof ApiError)) throw err
+    const answer = await checkItem(props.id, { item: { ...shape, title: shape.title || '–' }, ...(existing.value ? { itemId: existing.value.id } : {}) })
+    if (seq === checkSeq) check.value = answer
+  } catch {
+    // A hint only: a form the schema refuses, a date not yet whole, or a server that says no leaves the last answer standing.
   }
 }
 watch([places, fixedClasses, eligibleGrades, eligibleClasses, sessions, existing, () => loading.busy.value], () => {

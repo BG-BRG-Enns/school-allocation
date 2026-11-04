@@ -38,10 +38,13 @@ export function cellsText(described: readonly DescribedCells[], spoken = false):
 /**
  * What an activity brings, as the organizer's table says it: the cells
  * short of the target once the activity's own share is taken off what the
- * demand offers there; null when it serves no cell.
+ * demand offers there; null when it serves no cell. A cell the split gives
+ * none of its places (a grade whose share rounds to nothing, a class
+ * activity's own classes) is not one it brings places to.
  */
 export function bringsText(item: OfferedItem & { id: string }, demand: readonly DayDemand[], days: readonly DemandDay[], classes: readonly ClassSize[], shares: readonly ItemShare[], percent: number): string | null {
-  const served = servedCells(item, days, classes)
+  const shareOf = (cell: { date: string, period: number | null, grade: number }) => shares.find((s) => s.itemId === item.id && s.date === cell.date && s.period === cell.period && s.grade === cell.grade)?.places ?? 0
+  const served = servedCells(item, days, classes).filter((cell) => shareOf(cell) > 0)
   if (served.length === 0) return null
   const without: DayDemand[] = demand.map((day) => ({
     ...day,

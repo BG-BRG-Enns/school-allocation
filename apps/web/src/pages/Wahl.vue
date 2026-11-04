@@ -4,7 +4,7 @@
 // organizers review, move the campaign on, set its rules and export the
 // catalogue.
 
-import { allClassConflicts, ITEM_STATES, MAX_RULES, RULE_LIMITS, RULE_UNITS, type Frame, type Period } from '@school-allocation/school-core'
+import { classConflicts, ITEM_STATES, MAX_RULES, RULE_LIMITS, RULE_UNITS, type Frame, type Period } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import ClassPicker from '../components/ClassPicker.vue'
@@ -128,10 +128,14 @@ const itemsOrdered = computed(() => itemOrder.value === 'proposed'
   ? [...itemsShown.value].sort((a, b) => (a.firstProposedAt ?? '\uffff').localeCompare(b.firstProposedAt ?? '\uffff', 'en') || a.createdAt.localeCompare(b.createdAt, 'en'))
   : itemsShown.value)
 
-/** The grades an activity is offered to, as the table says them: its grades, else its classes, else "alle". */
+/** The grades an activity is offered to, as the table says them: its grades, else the grades of its classes (the class names where the page does not know them), else "alle". */
 function gradesText(item: Item): string {
   if (item.eligibleGrades.length > 0) return item.eligibleGrades.map((grade) => `${grade}.`).join(', ')
-  if (item.eligibleClasses.length > 0) return item.eligibleClasses.join(', ')
+  if (item.eligibleClasses.length > 0) {
+    const grades = [...new Set(item.eligibleClasses.map((name) => memberClasses.value.find((c) => c.className === name)?.grade).filter((grade): grade is number => grade !== undefined))].sort((a, b) => a - b)
+    const known = item.eligibleClasses.every((name) => memberClasses.value.some((c) => c.className === name))
+    return known ? grades.map((grade) => `${grade}.`).join(', ') : item.eligibleClasses.join(', ')
+  }
   return t.campaign.items.allGrades
 }
 
@@ -164,7 +168,8 @@ const bringsOf = computed(() => {
 const approvedConflicts = computed(() => {
   const activities = items.value.filter((item) => item.state === 'approved' && item.fixedClasses.length > 0).map((item) => ({ id: item.id, ...offerOf(item) }))
   const titles = new Map(items.value.map((item) => [item.id, item.title]))
-  return [...new Set(allClassConflicts(activities).map((c) => `${c.className}: ${titles.get(activities.find((a) => a.sessions.some((s) => s.startMs <= c.startMs && s.endMs >= c.endMs) && a.fixedClasses.includes(c.className) && a.id !== c.itemId)?.id ?? '') ?? ''}, ${titles.get(c.itemId) ?? ''}`))]
+  // Each pair once, the earlier one as the candidate, so the line names the two activities that meet, whatever else overlaps them.
+  return [...new Set(activities.flatMap((candidate, index) => classConflicts(candidate, activities.slice(index + 1)).map((c) => `${c.className}: ${titles.get(candidate.id) ?? ''}, ${titles.get(c.itemId) ?? ''}`)))]
 })
 
 // The registration's mails still waiting to be sent: a link to the mails page, where they can be looked at or discarded.

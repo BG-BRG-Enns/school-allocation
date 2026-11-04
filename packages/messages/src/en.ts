@@ -735,6 +735,8 @@ export const en: Messages = {
       day: 'Day',
       framed: (periods: string) => `attendance frame ${periods}, counted per period`,
       unframed: 'no attendance frame, counted per day',
+      /** A cell the activity on the form or under review serves, for a screen reader; the eye sees the outline. */
+      served: '(this activity)',
       cell: (needing: number, target: number, offered: number) => `${needing} needed · target ${target} · ${offered} offered`,
       short: (missing: number) => `${missing} short of the target`,
       rulesIntro: 'For each rule and year: what students still need after their class activities, and at most what the places of the category\'s activities they can choose bring. A rule that cannot be met is marked.',
