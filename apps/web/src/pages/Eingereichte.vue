@@ -35,10 +35,10 @@ const loading = useFeedback()
 const checking = useFeedback()
 const action = useFeedback()
 
-/** The ids skipped in this visit, in order: they come again at the end. */
-const skipped = ref<string[]>([])
-/** The id under review; null picks the first of the queue. */
-const currentId = ref<string | null>(null)
+/** Where in the queue the review stands; a skip moves it on, and past the end it starts the queue over. */
+const cursor = ref(0)
+/** How many were decided in this visit: "3 von 12" counts them and the ones skipped before the current one. */
+const done = ref(0)
 
 async function load(): Promise<void> {
   await loading.run(async () => {
@@ -61,23 +61,25 @@ onMounted(load)
 watch(() => props.id, load)
 
 const campaign = computed(() => view.value?.campaign)
-/** The submitted activities by their first submission, the earliest first, never submitted last; the ones skipped this visit at the end, in the order skipped. */
+/** The submitted activities by their first submission, the earliest first, never submitted last. */
 const queue = computed(() => {
   const proposed = items.value.filter((item) => item.state === 'proposed')
-  const ordered = [...proposed].sort((a, b) => (a.firstProposedAt ?? '\uffff').localeCompare(b.firstProposedAt ?? '\uffff', 'en') || a.createdAt.localeCompare(b.createdAt, 'en'))
-  const later = skipped.value.map((id) => ordered.find((item) => item.id === id)).filter((item): item is Item => item !== undefined)
-  return [...ordered.filter((item) => !skipped.value.includes(item.id)), ...later]
+  return [...proposed].sort((a, b) => (a.firstProposedAt ?? '\uffff').localeCompare(b.firstProposedAt ?? '\uffff', 'en') || a.createdAt.localeCompare(b.createdAt, 'en'))
 })
-const current = computed(() => (currentId.value === null ? queue.value[0] : queue.value.find((item) => item.id === currentId.value)) ?? queue.value[0] ?? null)
-const position = computed(() => (current.value ? queue.value.findIndex((item) => item.id === current.value?.id) + 1 : 0))
+const at = computed(() => Math.min(cursor.value, Math.max(0, queue.value.length - 1)))
+const current = computed(() => queue.value[at.value] ?? null)
+/** "3 von 12": the decided ones and the ones before the current one in the queue, of what there was at the start of this visit (and whatever was submitted since). */
+const total = computed(() => done.value + queue.value.length)
+const position = computed(() => (current.value ? done.value + at.value + 1 : 0))
 
-/** The check of the activity under review: the demand without and with it, the cells it serves, its conflicts. */
+/** The check of the activity under review: the demand without and with it, the cells it serves, its conflicts. An answer for an activity no longer under review is dropped. */
 watch(current, async (item) => {
   check.value = null
   if (!item) return
   await checking.run(async () => {
     try {
-      check.value = await checkItem(props.id, { itemId: item.id })
+      const answer = await checkItem(props.id, { itemId: item.id })
+      if (current.value?.id === item.id) check.value = answer
     } catch (err) {
       if (!(err instanceof ApiError)) throw err
     }
@@ -123,8 +125,8 @@ const brings = computed(() => {
   const item = current.value
   if (!c || !item) return ''
   if (item.fixedClasses.length > 0 && item.places === 0) return ''
-  if (c.cells.length === 0) return t.item.gate.servesNothing
-  const under = c.cells.filter((cell) => !cell.reached)
+  if (c.served.length === 0) return t.item.gate.servesNothing
+  const under = c.served.filter((cell) => !cell.reached)
   return under.length > 0 ? t.campaign.items.brings(cellsText(describeCells(under, c.before))) : t.campaign.items.bringsNothing
 })
 const conflicts = computed(() => (check.value?.conflicts ?? []).map((c: ClassConflictView) => t.item.conflict(c.className, formatDay(localDateOf(c.startsAt)), localTimeOf(c.startsAt), localTimeOf(c.endsAt), c.title, c.lead.shortName ?? c.lead.displayName)))
@@ -146,25 +148,23 @@ function ask(kind: 'return' | 'withdraw'): void {
   asking.value = kind
   text.value = ''
 }
-async function decide(fn: (id: string) => Promise<unknown>, done: string): Promise<void> {
+async function decide(fn: (id: string) => Promise<unknown>, notice: string): Promise<void> {
   const item = current.value
   if (!item) return
   const ok = await action.run(async () => {
     await fn(item.id)
-  }, done)
+  }, notice)
   if (ok) {
     asking.value = null
-    skipped.value = skipped.value.filter((id) => id !== item.id)
-    currentId.value = null
-    // The list and the demand anew: the table counts the one just approved.
+    done.value += 1
+    // The list and the demand anew: the table counts the one just approved. The cursor stays, so the next one comes up; past the end, the skipped ones come again.
     await load()
+    if (cursor.value >= queue.value.length) cursor.value = 0
   }
 }
 function skip(): void {
-  const item = current.value
-  if (!item) return
-  skipped.value = [...skipped.value.filter((id) => id !== item.id), item.id]
-  currentId.value = null
+  if (!current.value) return
+  cursor.value = at.value + 1 >= queue.value.length ? 0 : at.value + 1
   asking.value = null
 }
 function onSubmitAsking(): void {
@@ -211,7 +211,7 @@ function onSubmitAsking(): void {
     </p>
     <template v-else>
       <p>
-        <strong>{{ t.review.position(position, queue.length) }}</strong>
+        <strong>{{ t.review.position(position, total) }}</strong>
       </p>
       <section>
         <h2>{{ current.title }}</h2>
@@ -289,6 +289,7 @@ function onSubmitAsking(): void {
             {{ t.campaign.items.approve }}
           </button>
           <button
+            v-if="campaign.state === 'catalogue'"
             type="button"
             class="ghost"
             :disabled="action.busy.value"
@@ -366,7 +367,7 @@ function onSubmitAsking(): void {
           <DemandTable
             :demand="check.before"
             :percent="campaign.placeHeadroomPercent"
-            :highlight="check.cells"
+            :highlight="check.served"
           />
         </Collapsible>
         <Collapsible
@@ -376,7 +377,7 @@ function onSubmitAsking(): void {
           <DemandTable
             :demand="check.after"
             :percent="campaign.placeHeadroomPercent"
-            :highlight="check.cells"
+            :highlight="check.served"
           />
         </Collapsible>
       </section>
