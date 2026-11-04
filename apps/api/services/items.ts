@@ -297,8 +297,10 @@ function shapeOf(item: Pick<ItemInput, 'places' | 'fixedClasses' | 'eligibleGrad
 /** A class activity's conflicts with the campaign's other proposed and approved class activities, each with the other's title and lead. */
 async function classConflictsOf(client: Queryable, campaignId: string, candidate: ClassActivity): Promise<ClassConflictView[]> {
   if (candidate.fixedClasses.length === 0) return []
-  const others = (await store.listCampaignItems(client, campaignId)).filter((item) => (item.state === 'proposed' || item.state === 'approved') && item.fixedClasses.length > 0 && item.id !== candidate.id)
-  const found = classConflicts(candidate, others.map((item) => ({ id: item.id, ...shapeOf(item) })))
+  // The candidate's id as the store spells it: a URL may carry it in capitals, and the activity must not meet itself.
+  const self = { ...candidate, id: candidate.id.toLowerCase() }
+  const others = (await store.listCampaignItems(client, campaignId)).filter((item) => (item.state === 'proposed' || item.state === 'approved') && item.fixedClasses.length > 0 && item.id !== self.id)
+  const found = classConflicts(self, others.map((item) => ({ id: item.id, ...shapeOf(item) })))
   if (found.length === 0) return []
   const byId = new Map(others.map((item) => [item.id, item]))
   const leads = new Map(others.map((item) => [item.id, item.teachers.find((teacher) => teacher.lead) ?? null]))
@@ -328,9 +330,11 @@ async function refuseClassConflicts(client: Queryable, campaignId: string, candi
  * proposed and approved activity), the cells it would serve, judged, and
  * whether a teacher's submission is refused. A resubmission (`previous`,
  * the shape of its last submission) is judged by the cells that get more
- * places than before. The demand with it, for a page that shows both.
+ * places than before; `served` is every cell it serves, judged the same
+ * way, for the page that says where its places go. The demand with it,
+ * for a page that shows both.
  */
-async function gateFor(client: Queryable, campaign: Campaign, itemId: string | null, shape: OfferedItem, previous: StoredShape | null): Promise<{ before: ReturnType<typeof demandByDay>, after: ReturnType<typeof demandByDay>, cells: GateCell[], refused: boolean }> {
+async function gateFor(client: Queryable, campaign: Campaign, itemId: string | null, shape: OfferedItem, previous: StoredShape | null): Promise<{ before: ReturnType<typeof demandByDay>, after: ReturnType<typeof demandByDay>, served: GateCell[], cells: GateCell[], refused: boolean }> {
   const { classes, days, items } = await demandInputs(client, campaign)
   if (itemId !== null) items.delete(itemId)
   const others = [...items.values()]
@@ -338,7 +342,7 @@ async function gateFor(client: Queryable, campaign: Campaign, itemId: string | n
   const served = servedCells(shape, days, classes)
   const judged = previous === null ? served : addedCells(servedCells(previous, days, classes), served, shape.places > previous.places)
   const cells = gateCells(judged, before, campaign.placeHeadroomPercent)
-  return { before, after: demandByDay(days, classes, [...others, shape]), cells, refused: gateRefused(cells) }
+  return { before, after: demandByDay(days, classes, [...others, shape]), served: gateCells(served, before, campaign.placeHeadroomPercent), cells, refused: gateRefused(cells) }
 }
 
 /**
@@ -364,11 +368,12 @@ export async function checkItemOffer(db: Database, campaign: Campaign, body: Ite
   }
   if (body.item !== undefined) shape = shapeOf(itemInput(body.item, caller, true))
   if (shape === null) throw new ApplicationError('validation_failed')
-  const { before, after, cells, refused } = await gateFor(db, campaign, itemId, shape, previous)
+  const { before, after, served, cells, refused } = await gateFor(db, campaign, itemId, shape, previous)
   const classActivity = shape.fixedClasses.length > 0
   return {
     before,
     after,
+    served,
     cells,
     refused: campaign.lockNewOffers && !classActivity && refused,
     locked: campaign.lockNewOffers,

@@ -149,10 +149,11 @@ export type ClassConflictView = Static<typeof ClassConflictSchema>
 export const ItemCheckBody = StrictObject({ item: Type.Optional(ItemBody), itemId: Type.Optional(Uuid) })
 export type ItemCheckBody = Static<typeof ItemCheckBody>
 
-/** The answer: the demand without and with the activity, the cells it serves (the ones a resubmission is judged by), whether a teacher's submission would be refused, whether the registration locks new offers, and its class conflicts. */
+/** The answer: the demand without and with the activity, every cell it serves, the cells the gate judges (a resubmission's by what it adds; none when nothing was), whether a teacher's submission would be refused, whether the registration locks new offers, and its class conflicts. */
 export const ItemCheckResponse = StrictObject({
   before: Type.Array(DayDemandSchema),
   after: Type.Array(DayDemandSchema),
+  served: Type.Array(GateCellSchema),
   cells: Type.Array(GateCellSchema),
   refused: Type.Boolean(),
   locked: Type.Boolean(),

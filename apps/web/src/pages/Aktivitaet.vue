@@ -170,9 +170,9 @@ const gateHints = computed<{ text: string, alert: boolean }[]>(() => {
   const c = check.value
   if (!c || isFixed.value) return []
   const lines: { text: string, alert: boolean }[] = []
-  if (c.cells.length === 0 && sessions.value.length > 0) lines.push({ text: t.item.gate.servesNothing, alert: false })
+  if (c.served.length === 0 && sessions.value.length > 0) lines.push({ text: t.item.gate.servesNothing, alert: false })
   else {
-    const under = c.cells.filter((cell) => !cell.reached)
+    const under = c.served.filter((cell) => !cell.reached)
     lines.push(under.length > 0 ? { text: t.item.gate.brings(cellsText(describeCells(under, c.before))), alert: false } : { text: t.item.gate.bringsNothing, alert: c.locked })
   }
   if (c.locked && c.refused) {
@@ -694,7 +694,7 @@ async function save(propose: boolean): Promise<void> {
       <DemandTable
         :demand="check?.before ?? demand"
         :percent="campaign.placeHeadroomPercent"
-        :highlight="check?.cells ?? []"
+        :highlight="check?.served ?? []"
       />
     </Collapsible>
 

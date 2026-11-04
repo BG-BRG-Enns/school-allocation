@@ -32,7 +32,7 @@ interface Ready extends Harness {
 
 type GateCell = { date: string, period: number | null, grade: number, needing: number, target: number, offered: number, reached: boolean }
 type Conflict = { className: string, itemId: string, title: string, lead: { displayName: string, shortName: string | null }, startsAt: string, endsAt: string }
-type Check = { before: unknown[], after: unknown[], cells: GateCell[], refused: boolean, locked: boolean, conflicts: Conflict[] }
+type Check = { before: unknown[], after: unknown[], served: GateCell[], cells: GateCell[], refused: boolean, locked: boolean, conflicts: Conflict[] }
 
 /** Sara and Tim in 5A (grade 9, so the target of a cell is 3 places), three teachers; a registration taking proposals, Monday framed 2–6. */
 async function school(t: Parameters<typeof harness>[0]): Promise<Ready> {
@@ -112,7 +112,8 @@ test('with the lock on, a teacher\'s submission is refused once every cell it se
   const third = await send<Item>(s, s.anna, 'POST', url, { title: 'Tanz', places: 10, teachers: [s.carlaPerson], sessions: [session(MONDAY, '08:30', '09:20', 50)] })
   assert.equal((await send(s, s.anna, 'POST', `/api/items/${third.body.id}/propose`)).status, 200)
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${second.body.id}/return`, { note: 'Bitte den Ort angeben.' })).status, 200)
-  assert.equal((await send<Check>(s, s.bernd, 'POST', `/api/campaigns/${id}/items/check`, { itemId: second.body.id })).body.cells.length, 0, 'nothing added: no cell to judge')
+  const unchanged = await send<Check>(s, s.bernd, 'POST', `/api/campaigns/${id}/items/check`, { itemId: second.body.id })
+  assert.deepEqual([unchanged.body.cells.length, unchanged.body.served.length, unchanged.body.refused], [0, 3, false], 'nothing added: no cell to judge, the three it serves still named')
   // The form's shape with the stored id: judged as the resubmission it would be (more places: every cell), the stored activity left out of the demand.
   const grownCheck = await send<Check>(s, s.bernd, 'POST', `/api/campaigns/${id}/items/check`, { itemId: second.body.id, item: { title: 'Yoga', places: 8, teachers: [s.berndPerson], sessions: [session(MONDAY, '08:30', '11:20', 150)] } })
   assert.deepEqual([grownCheck.body.refused, grownCheck.body.cells.length], [true, 3])
@@ -172,7 +173,7 @@ test('a class is in one class activity at a time: refused at the submission with
   assert.equal((await send(s, s.anna, 'PATCH', `/api/items/${hike.body.id}`, { title: 'Nachtwanderung am Dienstag', places: 0, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [s.berndPerson], sessions: [session(TUESDAY, '18:00', '20:00', 100)] })).status, 200)
   // Approving the trip and the hike: no conflict between them; the organizer withdrawing the trip frees its time.
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${trip.body.id}/approve`)).status, 200)
-  assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${hike.body.id}/approve`)).status, 200)
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${hike.body.id.toUpperCase()}/approve`)).status, 200, 'the id in capitals: the activity does not meet itself')
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${trip.body.id}/withdraw`, { reason: 'Kein Bus.' })).status, 200)
   const morning = await send<Item>(s, s.bernd, 'POST', url, { title: 'Morgenwanderung', places: 0, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [s.berndPerson], sessions: [session(TUESDAY, '09:00', '12:00', 150)] })
   assert.equal((await send(s, s.bernd, 'POST', `/api/items/${morning.body.id}/propose`)).status, 200, 'a withdrawn activity holds no class')

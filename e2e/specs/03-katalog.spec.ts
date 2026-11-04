@@ -135,7 +135,8 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(page.getByRole('status')).toHaveText(t.common.saved)
   await signOut(page)
 
-  await openAs(page, BERND, '/wahlen')
+  // Carla, a teacher and nothing more (Bernd organizes too, and the gate lets an organizer through).
+  await openAs(page, CARLA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
   await page.getByRole('link', { name: t.common.page.newItem }).click()
   await page.getByLabel(t.item.title).fill(sample.yoga)
@@ -153,8 +154,11 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(yoga).toContainText(t.labels.itemState.draft)
   await yoga.getByRole('button', { name: t.campaign.items.delete }).click()
   await expect(page.getByRole('row', { name: new RegExp(literally(sample.yoga)) })).toHaveCount(0)
+  await signOut(page)
 
   // A class activity takes whole classes: its places become the extra ones other students may rank, and it has no minimum, since it always takes place.
+  await openAs(page, BERND, '/wahlen')
+  await page.getByRole('link', { name: sample.projectWeek }).click()
   await page.getByRole('link', { name: t.common.page.newItem }).click()
   await page.getByLabel(t.item.title).fill(sample.vienna)
   await page.getByRole('group', { name: t.item.participation.fixedClasses }).getByLabel('5A').check()
