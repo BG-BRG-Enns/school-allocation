@@ -134,9 +134,10 @@ export async function createCampaign(db: Database, input: NewCampaign, actor: Ac
 export async function updateCampaign(db: Database, rawId: string, changes: CampaignChanges, actor: Actor): Promise<Campaign> {
   const id = canonicalId(rawId)
   await db.tx(async (client) => {
-    // A class list is checked against the roster in force, which a roster commit replaces under the school's lock: the
-    // two go one after the other, the school before the campaign, as everywhere (createCampaign, the opening).
-    if (changes.classes !== undefined) await lockScope(client, SCHOOL_SCOPE)
+    // A class list is checked against the roster in force, which a roster commit replaces under the school's lock, and
+    // a frame against the grid, which an administrator replaces under it too: the two go one after the other, the school
+    // before the campaign, as everywhere (createCampaign, the opening).
+    if (changes.classes !== undefined || changes.frames !== undefined) await lockScope(client, SCHOOL_SCOPE)
     await lockScope(client, id)
     const current = await lockedCampaign(client, id)
     if (!current) throw new ApplicationError('not_found')
@@ -160,7 +161,7 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     const order = checkWindow(window)
     if (order !== undefined) throw new ApplicationError(order)
     // The frames go with the window's settings: the demand reads them while proposals come in, and from the opening the
-    // days are what the students chose by. A frame of a day that goes goes with it.
+    // days are what the students chose by. A frame goes with its day when the day is taken out.
     const frames = await framesOf(client, changes.frames, changes.projectDays, framesIn(current))
     const framesChanged = JSON.stringify(changes.projectDays.map((date) => frames[date] ?? null)) !== JSON.stringify(changes.projectDays.map((date) => framesIn(current)[date] ?? null))
     if (framesChanged && !WINDOW_SETTABLE.includes(current.state)) throw new ApplicationError('campaign_state')

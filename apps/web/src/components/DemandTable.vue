@@ -36,7 +36,7 @@ function shortOf(cell: CellDemand): number {
   >
     <h3>{{ formatDay(day.date) }}</h3>
     <p class="muted">
-      {{ day.frame ? t.campaign.demand.framed(t.format.periods(day.frame.from, day.frame.to)) : t.campaign.demand.unframed }}
+      {{ day.frame && day.periods.some((period) => period !== null) ? t.campaign.demand.framed(t.format.periods(day.frame.from, day.frame.to)) : t.campaign.demand.unframed }}
     </p>
     <table
       class="table"
