@@ -1,5 +1,5 @@
-import type { Item } from '@school-allocation/api-contracts'
-import { type CampaignState, type Credit, type ItemRules } from '@school-allocation/school-core'
+import { type Credit, type ItemRules } from '@school-allocation/school-core'
+import type { Campaign } from './campaigns.ts'
 import type { Queryable } from '../db.ts'
 
 export interface SessionInput {
@@ -26,6 +26,16 @@ export interface ItemInput extends ItemRules {
 export interface Session extends SessionInput {
   id: string
 }
+import type { Item } from '@school-allocation/api-contracts'
 export type { Item } from '@school-allocation/api-contracts'
 
-export type Move = (client: Queryable, current: Item, campaignState: CampaignState) => Promise<void>
+export type Move = (client: Queryable, current: Item, campaign: Campaign) => Promise<void>
+
+/** What the gate reads of an activity, as stored at a submission (catalog_item.proposed_shape): its places, whom it is for, when it takes place (epoch milliseconds). Never on the wire. */
+export interface StoredShape {
+  places: number
+  fixedClasses: string[]
+  eligibleGrades: number[]
+  eligibleClasses: string[]
+  sessions: { startMs: number, endMs: number }[]
+}

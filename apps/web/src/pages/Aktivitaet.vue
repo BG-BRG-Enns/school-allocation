@@ -6,7 +6,7 @@
 // periods") or, for a trip, by the clock. The rules are the server's
 // (school-core); a refusal names them here.
 
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { leadOf, spanOfPeriods, type DayDemand, type Period } from '@school-allocation/school-core'
 import Collapsible from '../components/Collapsible.vue'
@@ -14,9 +14,11 @@ import DemandTable from '../components/DemandTable.vue'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { loadParticipants, type ParticipantsResponse } from '../lib/allocation-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
-import { createItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Category, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
+import { checkItem, createItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Category, type ClassConflictView, type GateCellView, type Item, type ItemCheckResponse, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodsOnGrid, touchedDates } from '../lib/format.ts'
+import { cellsText, refusalText } from '../lib/offer-cells.ts'
+import { describeCells } from '@school-allocation/school-core'
 import { t } from '../lib/i18n.ts'
 import { ASSIGNMENT_SOURCE_LABELS, CATALOGUE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
@@ -57,6 +59,11 @@ const teacherResults = ref<{ personId: string, displayName: string }[]>([])
 const limited = ref<{ personId: string, date: string, status: 'unavailable' | 'if_needed' }[]>([])
 /** Places and demand, for whoever may see it: where places are still missing, before proposing. */
 const demand = ref<DayDemand[]>([])
+/** What a submission would meet, asked of the server as the form changes: the cells the activity serves, the gate's verdict, its class conflicts. */
+const check = ref<ItemCheckResponse | null>(null)
+const organizes = ref(false)
+/** Refusals of the submission itself (409), rendered as the hints are. */
+const refusals = ref<string[]>([])
 
 /** The default a session starts from: the 2nd period, two periods long. */
 const DEFAULT_FROM = 2
@@ -93,6 +100,7 @@ async function load(): Promise<void> {
     // An organizer edits activities after the catalogue too, when nobody proposes any more.
     limited.value = view.may.propose || view.may.organize ? (await loadCampaignAvailability(props.id)).limited : []
     demand.value = view.may.seeDemand ? (await loadDemand(props.id)).demand : []
+    organizes.value = view.may.organize
     if (props.itemId) {
       const item = (await loadItems(props.id)).items.find((i) => i.id === props.itemId)
       if (!item) throw new ApiError(404, 'not_found')
@@ -131,6 +139,63 @@ async function load(): Promise<void> {
 }
 onMounted(load)
 watch(() => [props.id, props.itemId], load)
+
+/**
+ * The server's check of the form as it stands, a moment after the last
+ * change: the shape alone counts, so a title not yet typed is sent as a
+ * dash; a stored activity goes with its id, so it is left out of the
+ * demand and a resubmission is judged by what it adds. A form the schema
+ * refuses (a date not yet chosen) leaves the last answer.
+ */
+let checkTimer: ReturnType<typeof setTimeout> | undefined
+/** The check last asked for: an answer to an earlier one is dropped, so the hints are the form's as it stands. */
+let checkSeq = 0
+let gone = false
+// A check still pending when the page is left is dropped: the draft it would name may be deleted by then, and the browser logs the 404.
+onBeforeUnmount(() => {
+  gone = true
+  clearTimeout(checkTimer)
+})
+async function runCheck(): Promise<void> {
+  if (gone || !campaign.value || !(campaign.value.state === 'catalogue' || organizes.value)) return
+  const seq = ++checkSeq
+  try {
+    const shape = input()
+    const answer = await checkItem(props.id, { item: { ...shape, title: shape.title || '–' }, ...(existing.value ? { itemId: existing.value.id } : {}) })
+    if (seq === checkSeq) check.value = answer
+  } catch {
+    // A hint only: a form the schema refuses, a date not yet whole, or a server that says no leaves the last answer standing.
+  }
+}
+watch([places, fixedClasses, eligibleGrades, eligibleClasses, sessions, existing, () => loading.busy.value], () => {
+  if (loading.busy.value || !campaign.value) return
+  clearTimeout(checkTimer)
+  checkTimer = setTimeout(() => {
+    void runCheck()
+  }, 400)
+}, { deep: true })
+
+/** The hints from the check: what the activity brings, whether the gate would refuse a teacher's submission, the conflicts. */
+const gateHints = computed<{ text: string, alert: boolean }[]>(() => {
+  const c = check.value
+  if (!c || isFixed.value) return []
+  const lines: { text: string, alert: boolean }[] = []
+  if (c.served.length === 0 && sessions.value.length > 0) lines.push({ text: t.item.gate.servesNothing, alert: false })
+  else {
+    const under = c.served.filter((cell) => !cell.reached)
+    lines.push(under.length > 0 ? { text: t.item.gate.brings(cellsText(describeCells(under, c.before))), alert: false } : { text: t.item.gate.bringsNothing, alert: c.locked })
+  }
+  if (c.locked && c.refused) {
+    for (const sentence of refusalText(c.cells, c.before)) lines.push({ text: sentence, alert: !organizes.value })
+    lines.push({ text: organizes.value ? t.item.gate.organizerAnyway : t.item.gate.advice, alert: !organizes.value })
+  }
+  return lines
+})
+const conflictHints = computed(() => (check.value?.conflicts ?? []).map(conflictText))
+
+function conflictText(c: ClassConflictView): string {
+  return t.item.conflict(c.className, formatDay(localDateOf(c.startsAt)), localTimeOf(c.startsAt), localTimeOf(c.endsAt), c.title, c.lead.shortName ?? c.lead.displayName)
+}
 
 /** A stored session as the form shows it: on the grid when its times are the grid's, by the clock otherwise. */
 function fromStored(s: Item['sessions'][number]): SessionForm {
@@ -295,11 +360,21 @@ function input(): ItemInput {
 
 async function save(propose: boolean): Promise<void> {
   problems.value = []
+  refusals.value = []
   const ok = await saving.run(async () => {
     try {
       const item = existing.value ? await updateItem(existing.value.id, input()) : await createItem(props.id, input())
+      // Saved: a refused submission leaves this draft, and the next save changes it rather than making another.
+      existing.value = item
       if (propose && item.state === 'draft') await proposeItem(item.id)
     } catch (err) {
+      // The submission refused by the school's rules: the activity is saved as a draft, the refusal says what to change.
+      if (err instanceof ApiError && err.code === 'class_conflict' && Array.isArray(err.body.conflicts)) {
+        refusals.value = (err.body.conflicts as ClassConflictView[]).map(conflictText)
+      }
+      if (err instanceof ApiError && err.code === 'target_reached' && Array.isArray(err.body.cells)) {
+        refusals.value = [...refusalText(err.body.cells as GateCellView[], check.value?.before ?? demand.value), t.item.gate.advice]
+      }
       if (err instanceof ApiError && err.code === 'item_invalid') {
         const body = err.body as unknown as ItemInvalidBody
         problems.value = [
@@ -603,6 +678,21 @@ async function save(propose: boolean): Promise<void> {
         {{ t.item.sessions.add }}
       </button>
     </p>
+    <p
+      v-for="hint in conflictHints"
+      :key="hint"
+      class="alert"
+      role="status"
+    >
+      {{ hint }}
+    </p>
+    <p
+      v-for="hint in gateHints"
+      :key="hint.text"
+      :class="hint.alert ? 'alert' : 'notice'"
+    >
+      {{ hint.text }}
+    </p>
     <Collapsible
       v-if="demand.length > 0"
       id="aktivitaet:demand"
@@ -612,8 +702,9 @@ async function save(propose: boolean): Promise<void> {
         {{ t.campaign.demand.intro(campaign.placeHeadroomPercent) }}
       </p>
       <DemandTable
-        :demand="demand"
+        :demand="check?.before ?? demand"
         :percent="campaign.placeHeadroomPercent"
+        :highlight="check?.served ?? []"
       />
     </Collapsible>
 
@@ -748,12 +839,12 @@ async function save(propose: boolean): Promise<void> {
     </p>
 
     <ul
-      v-if="problems.length > 0"
+      v-if="problems.length > 0 || refusals.length > 0"
       class="alert"
       role="alert"
     >
       <li
-        v-for="problem in problems"
+        v-for="problem in [...problems, ...refusals]"
         :key="problem"
       >
         {{ problem }}

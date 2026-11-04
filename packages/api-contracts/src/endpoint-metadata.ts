@@ -111,6 +111,8 @@ export const patchItemsById = { method: 'PATCH', path: '/api/items/:id', transpo
 
 export const deleteItemsById = { method: 'DELETE', path: '/api/items/:id', transport: 'empty' } as const satisfies EndpointMetadata
 
+export const postCampaignsByIdItemsCheck = { method: 'POST', path: '/api/campaigns/:id/items/check', transport: 'json' } as const satisfies EndpointMetadata
+
 export const postItemsByIdPropose = { method: 'POST', path: '/api/items/:id/propose', transport: 'json' } as const satisfies EndpointMetadata
 
 export const postItemsByIdUnpropose = { method: 'POST', path: '/api/items/:id/unpropose', transport: 'json' } as const satisfies EndpointMetadata

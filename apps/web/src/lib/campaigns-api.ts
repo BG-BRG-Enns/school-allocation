@@ -5,10 +5,10 @@ import { endpointPath } from '@school-allocation/api-contracts/client-endpoint'
 import * as endpoints from '@school-allocation/api-contracts/endpoint-metadata'
 export type { CampaignRule, DayDemand, RuleDemand, RuleUnit } from '@school-allocation/school-core'
 
-import type { AvailabilityStatus, CampaignChanges, ItemInput } from '@school-allocation/api-contracts'
+import type { AvailabilityStatus, CampaignChanges, ItemCheckBody, ItemInput } from '@school-allocation/api-contracts'
 import { apiRequest } from './api.ts'
 
-export type { Campaign, CampaignChanges, Category, CampaignCounts, CampaignView, CampaignWindow, ChoiceState, ChoiceView, ClassStatus, GroupView, Item, ItemInput, ItemInvalidBody, MissingStudent, RankingInvalidBody, SessionInput } from '@school-allocation/api-contracts'
+export type { Campaign, CampaignChanges, Category, CampaignCounts, CampaignView, CampaignWindow, ChoiceState, ChoiceView, ClassConflictView, ClassStatus, GateCellView, GroupView, Item, ItemCheckResponse, ItemInput, ItemInvalidBody, ItemShare, MissingStudent, RankingInvalidBody, SessionInput } from '@school-allocation/api-contracts'
 /** The school's categories, for the activity form, the catalogue, the choice page and the rules. */
 export const loadCategories = () => apiRequest(endpoints.getCategories, { })
 export const loadCampaigns = () => apiRequest(endpoints.getCampaigns, { })
@@ -22,6 +22,8 @@ export const updateItem = (id: string, input: ItemInput) => apiRequest(endpoints
 export const deleteItem = (id: string) => apiRequest(endpoints.deleteItemsById, { params: { id: id } })
 export const proposeItem = (id: string) => apiRequest(endpoints.postItemsByIdPropose, { params: { id: id } })
 export const unproposeItem = (id: string) => apiRequest(endpoints.postItemsByIdUnpropose, { params: { id: id } })
+/** What a submission would meet: the gate's cells and verdict, the class conflicts, the demand without and with the activity; writes nothing. */
+export const checkItem = (campaignId: string, body: ItemCheckBody) => apiRequest(endpoints.postCampaignsByIdItemsCheck, { params: { id: campaignId }, body })
 
 export const createCampaign = (input: { kind: 'project_week', name: string, schoolYear: string, projectDays: string[], classes?: string[], frames?: Record<string, { from: number, to: number }> }) => apiRequest(endpoints.postAdminCampaigns, { body: input })
 

@@ -86,7 +86,7 @@ export async function rosterTeachers(db: Queryable, q: string): Promise<RosterTe
 // local midnight, which is not what a project day is.
 const SELECT = `select c.id, c.kind, c.name, c.school_year, c.state, c.project_days::text[] as project_days,
   c.opens_at, c.closes_at, c.late_until, c.swap_from, c.swap_until, c.wishes_per_group, c.daily_minimum, c.show_teachers, c.reminder_days,
-  c.place_headroom_percent, c.roster_batch_id, c.created_at, c.updated_at,
+  c.place_headroom_percent, c.lock_new_offers, c.roster_batch_id, c.created_at, c.updated_at,
   coalesce((select json_agg(json_build_object('id', r.id, 'categoryId', r.category_id, 'grades', r.grades, 'classes', r.classes, 'unit', r.unit, 'minimum', r.minimum) order by r.position)
               from campaign_rule r where r.campaign_id = c.id), '[]') as rules,
   coalesce((select json_agg(cc.class_name order by cc.class_name) from campaign_class cc where cc.campaign_id = c.id), '[]') as classes,
@@ -114,6 +114,7 @@ function toCampaign(row: CampaignRow): Campaign {
     showTeachers: row.show_teachers,
     reminderDays: row.reminder_days,
     placeHeadroomPercent: row.place_headroom_percent,
+    lockNewOffers: row.lock_new_offers,
     rules: row.rules,
     classes: row.classes,
     rosterBatchId: row.roster_batch_id,
@@ -140,9 +141,9 @@ export async function listActiveSessions(db: Queryable, id: string) {
 export async function updateSettings(db: Queryable, id: string, changes: CampaignChanges, window: CampaignWindow) {
   await db.query(
     `update campaign set name = $2, school_year = $3, project_days = $4::date[], opens_at = $5, closes_at = $6, late_until = $7, swap_from = $8, swap_until = $9,
-              wishes_per_group = $10, daily_minimum = $11, show_teachers = $12, reminder_days = $13, place_headroom_percent = $14, updated_at = app_now() where id = $1`,
+              wishes_per_group = $10, daily_minimum = $11, show_teachers = $12, reminder_days = $13, place_headroom_percent = $14, lock_new_offers = $15, updated_at = app_now() where id = $1`,
     [id, changes.name, changes.schoolYear, changes.projectDays, window.opensAt, window.closesAt, window.lateUntil, window.swapFrom, window.swapUntil,
-      window.wishesPerGroup, JSON.stringify(window.dailyMinimum), window.showTeachers, window.reminderDays, window.placeHeadroomPercent],
+      window.wishesPerGroup, JSON.stringify(window.dailyMinimum), window.showTeachers, window.reminderDays, window.placeHeadroomPercent, window.lockNewOffers],
   )
 }
 

@@ -7,7 +7,7 @@
 // is the server's (school-core demandByDay); the target is computed here
 // from the same function the server's pages would use.
 
-import { placeTarget, type CellDemand, type DayDemand } from '@school-allocation/school-core'
+import { placeTarget, type CellDemand, type DayDemand, type ServedCell } from '@school-allocation/school-core'
 import { formatDay } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
 
@@ -15,7 +15,13 @@ const props = defineProps<{
   demand: DayDemand[]
   /** The registration's places above the need, in percent. */
   percent: number
+  /** Cells to mark: the ones an activity serves. */
+  highlight?: readonly ServedCell[]
 }>()
+
+function served(date: string, grade: number, cell: CellDemand): boolean {
+  return (props.highlight ?? []).some((c) => c.date === date && c.grade === grade && c.period === cell.period)
+}
 
 /** The places a grade should be offered in a cell: what it needs and the headroom on top. */
 function targetOf(cell: CellDemand): number {
@@ -67,9 +73,12 @@ function shortOf(cell: CellDemand): number {
           <td
             v-for="cell in g.cells"
             :key="cell.period ?? 'day'"
-            :class="{ short: shortOf(cell) > 0 }"
+            :class="{ short: shortOf(cell) > 0, served: served(day.date, g.grade, cell) }"
           >
-            {{ t.campaign.demand.cell(cell.needing, targetOf(cell), cell.offered) }}
+            {{ t.campaign.demand.cell(cell.needing, targetOf(cell), cell.offered) }}<span
+              v-if="served(day.date, g.grade, cell)"
+              class="visually-hidden"
+            > {{ t.campaign.demand.served }}</span>
             <template v-if="shortOf(cell) > 0">
               <br>{{ t.campaign.demand.short(shortOf(cell)) }}
             </template>

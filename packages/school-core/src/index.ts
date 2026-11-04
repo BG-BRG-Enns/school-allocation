@@ -117,7 +117,11 @@ export {
   type PeriodProblemCode,
 } from './periods.ts'
 
-export { checkFrame, DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, demandCells, FRAME_PROBLEM_CODES, framePeriods, placeTarget, type CellDemand, type ClassSize, type DayDemand, type DemandCell, type DemandDay, type Frame, type FrameProblemCode, type GradeDemand, type OfferedItem } from './demand.ts'
+export { checkFrame, DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, demandCells, FRAME_PROBLEM_CODES, framePeriods, itemShares, placeTarget, type CellDemand, type ClassSize, type DayDemand, type DemandCell, type DemandDay, type Frame, type FrameProblemCode, type GradeDemand, type ItemShare, type OfferedItem } from './demand.ts'
+
+export { addedCells, demandAround, describeCells, gateCells, gateRefused, gradesOpenTo, servedCells, type DescribedCells, type GateCell, type GateShape, type ServedCell } from './offer-gate.ts'
+
+export { allClassConflicts, classConflicts, type ClassActivity, type ClassConflict } from './class-conflicts.ts'
 
 export { AVAILABILITY_STATUSES, leadOf, mayTakePlace, type AvailabilityStatus } from './planning.ts'
 

@@ -121,8 +121,7 @@ function touches(item: OfferedItem, cell: DemandCell): boolean {
  */
 export function demandByDay(days: readonly DemandDay[], classes: readonly ClassSize[], items: readonly OfferedItem[]): DayDemand[] {
   const grades = [...new Set(classes.map((c) => c.grade))].sort((a, b) => a - b)
-  // The spans each class is fixed into, over every class activity: an item overlapping one of them is not for that class.
-  const fixedSpans = new Map(classes.map((c) => [c.className, items.filter((item) => item.fixedClasses.includes(c.className)).flatMap((item) => item.sessions)]))
+  const fixedSpans = fixedSpansOf(classes, items)
   return days.map((day) => {
     const cells = day.cells.map((cell) => cellDemand(cell, classes, items.filter((item) => touches(item, cell)), fixedSpans))
     return {
@@ -145,22 +144,62 @@ export function demandByDay(days: readonly DemandDay[], classes: readonly ClassS
   })
 }
 
-/** Per class of one cell: who still needs a place, and the places offered them, over the items touching the cell. */
-function cellDemand(cell: DemandCell, classes: readonly ClassSize[], inCell: readonly OfferedItem[], fixedSpans: ReadonlyMap<string, readonly { startMs: number, endMs: number }[]>): { period: number | null, needing: Map<string, number>, offered: Map<string, number> } {
+/** What one item offers one class in one cell. */
+export interface ItemShare {
+  item: OfferedItem
+  grade: number
+  date: string
+  period: number | null
+  places: number
+}
+
+/**
+ * Per item, what it offers each grade in each cell: the shares the demand
+ * sums, so a page can say where an activity's places go and what a cell
+ * offers without it. Items without places offer nothing.
+ */
+export function itemShares(days: readonly DemandDay[], classes: readonly ClassSize[], items: readonly OfferedItem[]): ItemShare[] {
+  const fixedSpans = fixedSpansOf(classes, items)
+  const shares: ItemShare[] = []
+  for (const day of days) {
+    for (const cell of day.cells) {
+      const { byItem } = cellDemand(cell, classes, items.filter((item) => touches(item, cell)), fixedSpans)
+      for (const [item, perClass] of byItem) {
+        for (const grade of [...new Set(classes.map((c) => c.grade))].sort((a, b) => a - b)) {
+          const places = classes.filter((c) => c.grade === grade).reduce((sum, c) => sum + (perClass.get(c.className) ?? 0), 0)
+          if (places > 0) shares.push({ item, grade, date: day.date, period: cell.period, places })
+        }
+      }
+    }
+  }
+  return shares
+}
+
+/** The spans each class is fixed into, over every class activity: an item overlapping one of them is not for that class. */
+function fixedSpansOf(classes: readonly ClassSize[], items: readonly OfferedItem[]): Map<string, { startMs: number, endMs: number }[]> {
+  return new Map(classes.map((c) => [c.className, items.filter((item) => item.fixedClasses.includes(c.className)).flatMap((item) => item.sessions)]))
+}
+
+/** Per class of one cell: who still needs a place, and the places offered them, over the items touching the cell; and per item its share per class. */
+function cellDemand(cell: DemandCell, classes: readonly ClassSize[], inCell: readonly OfferedItem[], fixedSpans: ReadonlyMap<string, readonly { startMs: number, endMs: number }[]>): { period: number | null, needing: Map<string, number>, offered: Map<string, number>, byItem: Map<OfferedItem, Map<string, number>> } {
   const fixedClasses = new Set(inCell.flatMap((item) => item.fixedClasses))
   const needing = new Map(classes.map((c) => [c.className, fixedClasses.has(c.className) ? 0 : c.students]))
   const offered = new Map(classes.map((c) => [c.className, 0]))
+  const byItem = new Map<OfferedItem, Map<string, number>>()
   for (const item of inCell) {
     if (item.places <= 0) continue
     const eligible = classes.filter((c) => mayRank(c, item) && !overlapsFixed(item, fixedSpans.get(c.className) ?? []))
     const need = eligible.reduce((sum, c) => sum + (needing.get(c.className) ?? 0), 0)
     // Nobody left to place in any eligible class: the places go nowhere.
     if (need === 0) continue
+    const mine = new Map<string, number>()
     for (const [className, share] of splitWhole(item.places, eligible.map((c) => [c.className, (needing.get(c.className) ?? 0) / need]))) {
       offered.set(className, (offered.get(className) ?? 0) + share)
+      mine.set(className, share)
     }
+    byItem.set(item, mine)
   }
-  return { period: cell.period, needing, offered }
+  return { period: cell.period, needing, offered, byItem }
 }
 
 /**

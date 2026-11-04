@@ -2,6 +2,7 @@ import { leadOf, type CampaignState } from '@school-allocation/school-core'
 import { type Caller } from '../actor.ts'
 import type { Queryable } from '../db.ts'
 import type { Item, ItemInput } from '../models/items.ts'
+import type { StoredShape } from '../models/items.ts'
 import type { ItemRow } from './items-rows.ts'
 import { CURRENT_BATCH_ID } from './roster-selection.ts'
 
@@ -57,7 +58,7 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
             i.cancellable_below_min, i.fixed_classes, i.eligible_grades, i.eligible_classes, i.state, i.review_note, i.proposed_by,
             u.display_name as proposer_name,
             (select b.person_id from identity_binding b where b.tid = u.tid and b.oid = u.oid and b.unbound_at is null) as proposer_person,
-            i.created_at, i.updated_at, i.approved_at, i.withdrawn_at, i.withdraw_reason,
+            i.created_at, i.updated_at, i.approved_at, i.first_proposed_at, i.withdrawn_at, i.withdraw_reason,
             coalesce((select json_agg(json_build_object('personId', t.person_id, 'displayName', coalesce(e.display_name, '?')) order by t.position)
                         from item_teacher t
                         left join roster_entry e on e.person_id = t.person_id
@@ -97,6 +98,7 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     approvedAt: row.approved_at?.toISOString() ?? null,
+    firstProposedAt: row.first_proposed_at?.toISOString() ?? null,
     withdrawnAt: row.withdrawn_at?.toISOString() ?? null,
     withdrawReason: row.withdraw_reason,
   }))
@@ -188,8 +190,15 @@ export async function deleteItem(db: Queryable, id: string) {
   await db.query('delete from catalog_item where id = $1', [id])
 }
 
-export async function proposeItem(db: Queryable, id: string) {
-  await db.query('update catalog_item set state = $2, review_note = \'\', updated_at = app_now() where id = $1', [id, 'proposed'])
+/** The shape an item was last submitted with (the gate judges a resubmission by it); null before its first submission. It never leaves the API. */
+export async function readProposedShape(db: Queryable, id: string): Promise<StoredShape | null> {
+  const { rows: [row] } = await db.query<{ proposed_shape: StoredShape | null }>('select proposed_shape from catalog_item where id = $1', [id])
+  return row?.proposed_shape ?? null
+}
+
+/** Submits the item: the first submission's time stays, the shape is the one of this submission. */
+export async function proposeItem(db: Queryable, id: string, shape: StoredShape) {
+  await db.query('update catalog_item set state = $2, review_note = \'\', first_proposed_at = coalesce(first_proposed_at, app_now()), proposed_shape = $3, updated_at = app_now() where id = $1', [id, 'proposed', JSON.stringify(shape)])
 }
 
 export async function unproposeItem(db: Queryable, id: string) {

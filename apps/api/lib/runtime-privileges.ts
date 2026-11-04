@@ -52,7 +52,7 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
     updateColumns: [
       'name', 'school_year', 'project_days', 'config', 'state', 'roster_batch_id', 'updated_at',
       'opens_at', 'closes_at', 'late_until', 'swap_from', 'swap_until', 'wishes_per_group', 'daily_minimum', 'show_teachers', 'reminder_days',
-      'place_headroom_percent',
+      'place_headroom_percent', 'lock_new_offers',
     ],
   },
   // An activity is edited while it is a draft or by an organizer, reviewed,
@@ -62,7 +62,7 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
     updateColumns: [
       'number', 'title', 'description', 'location', 'fee_cents', 'fee_note', 'places', 'min_participants', 'cancellable_below_min',
       'fixed_classes', 'eligible_grades', 'eligible_classes', 'state', 'updated_at', 'review_note', 'approved_at', 'approved_by',
-      'withdrawn_at', 'withdrawn_by', 'withdraw_reason',
+      'withdrawn_at', 'withdrawn_by', 'withdraw_reason', 'first_proposed_at', 'proposed_shape',
     ],
   },
   // Teachers of an item are replaced as a whole when it is edited; sessions too when their times change, else a
