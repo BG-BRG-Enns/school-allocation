@@ -4,18 +4,19 @@
 // they are: organizers see every campaign, teachers also the ones taking
 // proposals, everyone else what has been published.
 
-import { checkRules, demandByDay, ruleDemand, transition, type CampaignState, type DayDemand, type OfferedItem, type RuleDemand } from '@school-allocation/school-core'
+import { checkFrame, checkRules, demandByDay, demandCells, ruleDemand, transition, type CampaignState, type DayDemand, type Frame, type OfferedItem, type RuleDemand } from '@school-allocation/school-core'
 import { type Actor, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import * as store from '../lib/dao/campaigns.ts'
 import { lockedCampaign, readCampaign, rosterClassSizes } from '../lib/dao/campaigns.ts'
 import { knownCategories } from '../lib/dao/categories.ts'
 import { listCampaignItems, listRosterClasses, numberApprovedItems } from '../lib/dao/items.ts'
+import { readPeriods } from '../lib/dao/settings.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError, ClassInUse, RulesInvalid } from '../lib/errors.ts'
 import type { Campaign, CampaignChanges, CampaignWindow, NewCampaign, RuleInput } from '../lib/models/campaigns.ts'
 import type { WindowContext } from '../lib/models/window.ts'
-import { datesOfSpan } from '../lib/time.ts'
+import { datesOfSpan, dayBounds, instantInSchoolZone } from '../lib/time.ts'
 import { uniqueSorted } from './catalogue-input.ts'
 import { visibleAmong } from './visibility.ts'
 import { windowEffects } from './window.ts'
@@ -76,16 +77,45 @@ async function classesTakenIn(client: Queryable, classes: readonly string[] | un
   return wanted
 }
 
+/**
+ * The frames as stored: one per project day that has one, each a span of
+ * periods the grid has (school-core checkFrame); a day the registration does
+ * not have, or a frame off the grid, is refused as `frame_invalid` naming
+ * the day. Left out, `fallback` (none at creation, the frames in force on a
+ * change) for the days that stay.
+ */
+async function framesOf(client: Queryable, frames: Readonly<Record<string, Frame>> | undefined, projectDays: readonly string[], fallback: Readonly<Record<string, Frame>> = {}): Promise<Record<string, Frame>> {
+  const wanted = frames ?? fallback
+  const result: Record<string, Frame> = {}
+  const grid = frames === undefined ? [] : await readPeriods(client)
+  for (const date of projectDays) {
+    const frame = wanted[date]
+    if (frame === undefined) continue
+    if (frames !== undefined && checkFrame(frame, grid) !== undefined) throw new ApplicationError('frame_invalid', date)
+    result[date] = { from: frame.from, to: frame.to }
+  }
+  const strangers = Object.keys(frames ?? {}).filter((date) => !projectDays.includes(date))
+  if (strangers.length > 0) throw new ApplicationError('frame_invalid', strangers.join(', '))
+  return result
+}
+
+/** The frames of a campaign as stored, by date. */
+function framesIn(campaign: Pick<Campaign, 'days'>): Record<string, Frame> {
+  return Object.fromEntries(campaign.days.flatMap((day) => (day.frame === null ? [] : [[day.date, day.frame] as const])))
+}
+
 export async function createCampaign(db: Database, input: NewCampaign, actor: Actor): Promise<Campaign> {
   const id = await db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
     const classes = await classesTakenIn(client, input.classes)
+    const frames = await framesOf(client, input.frames, input.projectDays)
     const row = await store.insertCampaign(client, input, actor)
     if (!row) throw new Error('campaign insert returned no row')
     await store.replaceClasses(client, row.id, classes)
+    await store.replaceDays(client, row.id, input.projectDays, frames)
     await appendAudit(client, {
       scopeId: SCHOOL_SCOPE, actor: auditActor(actor), action: 'campaign.created',
-      metadata: { campaignId: row.id, kind: input.kind, schoolYear: input.schoolYear, projectDays: input.projectDays.length, classes: classes.length },
+      metadata: { campaignId: row.id, kind: input.kind, schoolYear: input.schoolYear, projectDays: input.projectDays.length, classes: classes.length, frames: Object.keys(frames).length },
     })
     return row.id
   })
@@ -104,9 +134,10 @@ export async function createCampaign(db: Database, input: NewCampaign, actor: Ac
 export async function updateCampaign(db: Database, rawId: string, changes: CampaignChanges, actor: Actor): Promise<Campaign> {
   const id = canonicalId(rawId)
   await db.tx(async (client) => {
-    // A class list is checked against the roster in force, which a roster commit replaces under the school's lock: the
-    // two go one after the other, the school before the campaign, as everywhere (createCampaign, the opening).
-    if (changes.classes !== undefined) await lockScope(client, SCHOOL_SCOPE)
+    // A class list is checked against the roster in force, which a roster commit replaces under the school's lock, and
+    // a frame against the grid, which an administrator replaces under it too: the two go one after the other, the school
+    // before the campaign, as everywhere (createCampaign, the opening).
+    if (changes.classes !== undefined || changes.frames !== undefined) await lockScope(client, SCHOOL_SCOPE)
     await lockScope(client, id)
     const current = await lockedCampaign(client, id)
     if (!current) throw new ApplicationError('not_found')
@@ -129,6 +160,11 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     }
     const order = checkWindow(window)
     if (order !== undefined) throw new ApplicationError(order)
+    // The frames go with the window's settings: the demand reads them while proposals come in, and from the opening the
+    // days are what the students chose by. A frame goes with its day when the day is taken out.
+    const frames = await framesOf(client, changes.frames, changes.projectDays, framesIn(current))
+    const framesChanged = JSON.stringify(changes.projectDays.map((date) => frames[date] ?? null)) !== JSON.stringify(changes.projectDays.map((date) => framesIn(current)[date] ?? null))
+    if (framesChanged && !WINDOW_SETTABLE.includes(current.state)) throw new ApplicationError('campaign_state')
     // The rules: students rank against them, so they are fixed from the opening like the window; ids are the database's,
     // so a list sent again unchanged keeps them and marks no run stale.
     const rules = changes.rules?.map(canonicalRule)
@@ -153,9 +189,10 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     const inUse = uniqueSorted([...namedByRules, ...(removed.length === 0 ? [] : await store.classesInUse(client, id, removed))])
     if (inUse.length > 0) throw new ClassInUse(inUse)
     await store.updateSettings(client, id, changes, window)
+    await store.replaceDays(client, id, changes.projectDays, frames)
     await appendAudit(client, {
       scopeId: id, actor: auditActor(actor), action: 'campaign.changed',
-      metadata: { campaignId: id, projectDays: changes.projectDays.length, setUp: setUpChanged, window: windowChanged },
+      metadata: { campaignId: id, projectDays: changes.projectDays.length, setUp: setUpChanged, window: windowChanged, frames: framesChanged },
     })
     if (classes !== undefined && classesChanged) {
       await store.replaceClasses(client, id, classes)
@@ -277,22 +314,24 @@ export async function listCampaigns(db: Queryable, caller: Pick<Caller, 'roles' 
 }
 
 /**
- * Places needed against places offered per project day and grade (D-13):
- * the sizes of the classes taking part against the items that are proposed
- * or approved, by the dates their sessions touch. Drafts and withdrawn
- * items count for nothing.
+ * Places needed against places offered per project day, cell and grade
+ * (D-13): the sizes of the classes taking part against the items that are
+ * proposed or approved, by the cells their sessions touch: the periods of a
+ * day's attendance frame, or the whole day. Drafts and withdrawn items
+ * count for nothing.
  */
 export async function campaignDemand(db: Queryable, campaign: Campaign): Promise<{ demand: DayDemand[], rules: RuleDemand[] }> {
   const classes = await rosterClassSizes(db, campaign)
+  const grid = await readPeriods(db)
   const rows = await store.listDemandSessions(db, campaign)
-  // One row per session; an item counts once per date its sessions touch.
+  // One row per session; an item counts in every cell one of its sessions touches.
   const items = new Map<string, OfferedItem>()
   for (const row of rows) {
-    const item = items.get(row.id) ?? { fixedClasses: row.fixedClasses, eligibleGrades: row.eligibleGrades, eligibleClasses: row.eligibleClasses, places: row.places, dates: [] }
-    const dates = new Set([...item.dates, ...datesOfSpan(row.startsAt.getTime(), row.endsAt.getTime())])
-    items.set(row.id, { ...item, dates: [...dates] })
+    const item = items.get(row.id) ?? { fixedClasses: row.fixedClasses, eligibleGrades: row.eligibleGrades, eligibleClasses: row.eligibleClasses, places: row.places, sessions: [] }
+    items.set(row.id, { ...item, sessions: [...item.sessions, { startMs: row.startsAt.getTime(), endMs: row.endsAt.getTime() }] })
   }
-  const demand = demandByDay(campaign.projectDays, classes, [...items.values()])
+  const days = campaign.days.map((day) => ({ date: day.date, frame: day.frame, cells: demandCells(day.frame, grid, (time) => instantInSchoolZone(day.date, time), dayBounds(day.date)) }))
+  const demand = demandByDay(days, classes, [...items.values()])
   if (campaign.rules.length === 0) return { demand, rules: [] }
   const offered = (await listCampaignItems(db, campaign.id)).filter((item) => item.state === 'proposed' || item.state === 'approved')
   return { demand, rules: ruleDemand(campaign.rules, classes, offered, campaign.projectDays) }

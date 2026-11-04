@@ -26,9 +26,9 @@ Die Tabelle zeigt jede Aktivität mit Lehrkräften, Terminen, Plätzen, Kosten u
 
 ## Plätze und Bedarf
 
-![Plätze und Bedarf: je Projekttag und Schulstufe, wie viele Schüler\*innen noch einen Platz suchen, das Ziel und wie viele die Aktivitäten anbieten](/bilder/de/bedarf.png)
+![Plätze und Bedarf: je Projekttag eine Tabelle, die Schulstufen als Zeilen, am Montag mit Anwesenheitsrahmen eine Spalte je Einheit, mit Bedarf, Ziel und Angebot](/bilder/de/bedarf.png)
 
-Je Projekttag und Schulstufe steht hier, wie viele Schüler\*innen noch einen Platz suchen, das **Ziel** und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Wer schon mit der ganzen Klasse in einer Klassenaktivität ist, zählt nicht mit. Das Ziel liegt um die **Plätze über dem Bedarf** darüber, 20 %, wenn du in den [Einstellungen](./einstellungen) nichts anderes einträgst: So haben die Wünsche Platz. Eine Schulstufe unter dem Ziel ist markiert; dort fehlen noch Aktivitäten. Die Lehrkräfte sehen diese Tabelle auch, solange Angebote gesammelt werden.
+Je Projekttag steht hier eine Tabelle: für jede Schulstufe, wie viele Schüler\*innen noch einen Platz suchen, das **Ziel** und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Wer gerade mit der ganzen Klasse in einer Klassenaktivität ist, zählt nicht mit. Hat der Tag einen [Anwesenheitsrahmen](./einstellungen#anwesenheitsrahmen-je-projekttag), hat die Tabelle eine Spalte je Einheit: Eine Aktivität zählt in jeder Einheit, die sie berührt, auch wenn sie nur einen Teil davon einnimmt (ein Ausflug bis 11:00 zählt für die 4. Einheit, die um 11:20 endet), und eine Klasse auf einem Ausflug bis 11:00 sucht ab der 5. Einheit wieder Plätze. So fällt auf, wenn 200 Plätze in einstündigen Kursen wie zwei Plätze je Kind aussehen, aber nur eine Einheit füllen. Ohne Rahmen zählt der ganze Tag in einer Spalte. Das Ziel liegt um die **Plätze über dem Bedarf** darüber, 20 %, wenn du in den [Einstellungen](./einstellungen) nichts anderes einträgst: So haben die Wünsche Platz. Ein Feld unter dem Ziel ist markiert; dort fehlen noch Aktivitäten. Die Lehrkräfte sehen diese Tabellen auch, solange Angebote gesammelt werden, auf der Seite der Anmeldung und im Formular der Aktivität.
 
 ## Lehrkräfte je Tag
 

@@ -2,7 +2,11 @@
 
 **Change settings** on the registration page opens the form. What you can change depends on the status; the button later becomes **Change minimum minutes and swap period** and finally **Change swap period**.
 
-![The Registration settings form: name, school year, project days, registration period with start, end and late registration, swap period, choices per time block and places above the need](/bilder/en/einstellungen.png)
+![The Registration settings form: name, school year, project days with their attendance frame, registration period with start, end and late registration, swap period, choices per time block and places above the need](/bilder/en/einstellungen.png)
+
+## Attendance frame per project day
+
+Beside each project day is its **attendance frame**: the periods of the [timetable](/en/verwaltung/stundenraster) everyone is at school in that day, say **periods 2 to 6** on a sports day with short courses. With a frame, [Places and demand](./anlegen#places-and-demand) counts the day period by period; without one (**no frame**, the default) it counts the whole day, which suits days of full-day activities. The frame can be changed until registration opens.
 
 ## Registration period and late registration
 
@@ -41,6 +45,6 @@ A rule asks the students of a year (or only some of its classes) for at least so
 | Setting | Can be changed until |
 | ------- | -------------------- |
 | Name, school year, project days | the catalogue is published |
-| Registration period, late registration, choices per time block, places above the need, rules, teachers in the catalogue | registration opens |
+| Attendance frame, registration period, late registration, choices per time block, places above the need, rules, teachers in the catalogue | registration opens |
 | Minimum minutes per day | the allocation is published |
 | Swap period | the swap period starts |

@@ -8,11 +8,13 @@
 
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { leadOf, spanOfPeriods, type Period } from '@school-allocation/school-core'
+import { leadOf, spanOfPeriods, type DayDemand, type Period } from '@school-allocation/school-core'
+import Collapsible from '../components/Collapsible.vue'
+import DemandTable from '../components/DemandTable.vue'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { loadParticipants, type ParticipantsResponse } from '../lib/allocation-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
-import { createItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Category, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
+import { createItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Category, type Item, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodsOnGrid, touchedDates } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
@@ -53,6 +55,8 @@ const teacherQuery = ref('')
 const teacherResults = ref<{ personId: string, displayName: string }[]>([])
 /** The teachers not plainly available on the registration's days, for the warnings beside the chosen ones. */
 const limited = ref<{ personId: string, date: string, status: 'unavailable' | 'if_needed' }[]>([])
+/** Places and demand, for whoever may see it: where places are still missing, before proposing. */
+const demand = ref<DayDemand[]>([])
 
 /** The default a session starts from: the 2nd period, two periods long. */
 const DEFAULT_FROM = 2
@@ -88,6 +92,7 @@ async function load(): Promise<void> {
     categories.value = school.categories
     // An organizer edits activities after the catalogue too, when nobody proposes any more.
     limited.value = view.may.propose || view.may.organize ? (await loadCampaignAvailability(props.id)).limited : []
+    demand.value = view.may.seeDemand ? (await loadDemand(props.id)).demand : []
     if (props.itemId) {
       const item = (await loadItems(props.id)).items.find((i) => i.id === props.itemId)
       if (!item) throw new ApiError(404, 'not_found')
@@ -598,6 +603,19 @@ async function save(propose: boolean): Promise<void> {
         {{ t.item.sessions.add }}
       </button>
     </p>
+    <Collapsible
+      v-if="demand.length > 0"
+      id="aktivitaet:demand"
+      :heading="t.campaign.demand.heading"
+    >
+      <p class="muted">
+        {{ t.campaign.demand.intro(campaign.placeHeadroomPercent) }}
+      </p>
+      <DemandTable
+        :demand="demand"
+        :percent="campaign.placeHeadroomPercent"
+      />
+    </Collapsible>
 
     <h2>{{ t.item.participation.heading }}</h2>
     <fieldset class="field">

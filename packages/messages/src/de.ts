@@ -489,6 +489,7 @@ export const de = {
     transition_not_available: 'Diesen Schritt gibt es in dieser Version noch nicht.',
     project_day_twice: 'Ein Projekttag ist zweimal eingetragen.',
     invalid_date: 'Ein Datum gibt es im Kalender nicht.',
+    frame_invalid: 'Ein Anwesenheitsrahmen passt nicht: Er endet vor seinem Beginn, nennt eine Einheit, die das Stundenraster nicht hat, oder einen Tag, der kein Projekttag ist.',
     sessions_outside_days: 'An den gestrichenen Tagen gibt es schon Termine. Ändere bitte zuerst die betroffenen Aktivitäten.',
     item_invalid: 'Die Aktivität passt noch nicht. Sieh dir bitte die Hinweise an.',
     window_order: 'Die Anmeldung muss enden, nachdem sie begonnen hat.',
@@ -709,6 +710,11 @@ export const de = {
       dailyMinimum: (grade: number) => `Mindestminuten je Tag, ${grade}. Schulstufe`,
       showTeachers: 'Der Katalog nennt die Lehrkräfte der Aktivitäten',
       placeHeadroomPercent: 'Plätze über dem Bedarf, in Prozent',
+      /** The attendance frame of a project day, two selects beside its date. */
+      frameFrom: (day: number) => `Anwesenheitsrahmen ab Einheit, Projekttag ${day}`,
+      frameTo: (day: number) => `bis Einheit, Projekttag ${day}`,
+      noFrame: 'kein Rahmen',
+      frameHint: 'Der Anwesenheitsrahmen eines Projekttags sind die Einheiten, in denen alle in der Schule sind, etwa 2. bis 6. Einheit. Mit Rahmen zählt Plätze und Bedarf jede Einheit einzeln; ohne Rahmen zählt der ganze Tag.',
     },
     student: {
       viewResult: 'Meine Einteilung ansehen',
@@ -724,7 +730,13 @@ export const de = {
     },
     demand: {
       heading: 'Plätze und Bedarf',
-      intro: (percent: number) => `Je Projekttag und Schulstufe: wie viele Schüler*innen noch einen Platz suchen (ohne die in einer Klassenaktivität), das Ziel mit ${percent} % darüber, damit die Wünsche Platz haben, und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Eine Schulstufe unter dem Ziel ist markiert.`,
+      intro: (percent: number) => `Je Projekttag und Schulstufe: wie viele Schüler*innen noch einen Platz suchen (ohne die in einer Klassenaktivität), das Ziel mit ${percent} % darüber, damit die Wünsche Platz haben, und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Ein Tag mit Anwesenheitsrahmen wird je Einheit gezählt: Eine Aktivität zählt in jeder Einheit, die sie berührt, auch zum Teil. Ein Feld unter dem Ziel ist markiert.`,
+      /** One day's table, for a screen reader. */
+      table: (day: string) => `Plätze und Bedarf am ${day}`,
+      /** The one column of a day counted whole. */
+      day: 'Tag',
+      framed: (periods: string) => `Anwesenheitsrahmen ${periods}, je Einheit gezählt`,
+      unframed: 'ohne Anwesenheitsrahmen, je Tag gezählt',
       cell: (needing: number, target: number, offered: number) => `${needing} ohne Platz · Ziel ${target} · ${offered} angeboten`,
       short: (missing: number) => `${missing} unter dem Ziel`,
       rulesIntro: 'Je Regel und Schulstufe: was den Schüler*innen nach ihren Klassenaktivitäten noch fehlt, und höchstens was die Plätze der Aktivitäten der Kategorie bringen, die sie wählen können. Eine Regel, für die das nicht reicht, ist markiert.',

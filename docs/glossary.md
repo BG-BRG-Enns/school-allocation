@@ -63,7 +63,9 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | choice window | Anmeldezeitraum | registration period | |
 | grace week | Nachfrist | late registration | |
 | swap window | Tauschzeit | swap period | |
-| demand view | Plätze und Bedarf | places and demand | |
+| demand view | Plätze und Bedarf | places and demand | per project day a table, the grades as rows, the day's cells as columns |
+| attendance frame (`Frame`, `campaign_day`) | Anwesenheitsrahmen; "2.–6. EH"; "kein Rahmen" | attendance frame; "no frame" | the periods everyone is at school in on a project day; with one the demand counts the day per period |
+| demand cell | Feld (einer Einheit oder eines Tags, je Schulstufe) | cell | a period of the frame, or the whole day, for one grade |
 | place headroom (`placeHeadroomPercent`) | Ziel; "Plätze über dem Bedarf, in Prozent"; "unter dem Ziel" | target; "places above the need, in percent"; "short of the target" | the need and 20 % on top by default |
 | availability | Verfügbarkeit; verfügbar · nicht verfügbar · nur wenn nötig | availability; available · unavailable · if needed | no reason is ever asked |
 | lead, companions | Leitung, leitet; Begleitung, begleitet | lead, leads; companions, accompanies | the one who created the activity, else the first named |

@@ -117,7 +117,7 @@ export {
   type PeriodProblemCode,
 } from './periods.ts'
 
-export { DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, placeTarget, type ClassSize, type DayDemand, type GradeDemand, type OfferedItem } from './demand.ts'
+export { checkFrame, DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, demandCells, FRAME_PROBLEM_CODES, framePeriods, placeTarget, type CellDemand, type ClassSize, type DayDemand, type DemandCell, type DemandDay, type Frame, type FrameProblemCode, type GradeDemand, type OfferedItem } from './demand.ts'
 
 export { AVAILABILITY_STATUSES, leadOf, mayTakePlace, type AvailabilityStatus } from './planning.ts'
 

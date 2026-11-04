@@ -16,6 +16,11 @@ const Instant = Type.String({ pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-
 /** The classes a registration is for; a whole school has a few dozen. Empty is allowed: nobody is in, and the page says so before publishing. */
 const ClassList = Type.Array(ClassName, { maxItems: 100 })
 
+/** An attendance frame as sent: the first and the last period of the grid everyone is at school in; school-core checkFrame holds it to the grid. */
+export const FrameBody = StrictObject({ from: Type.Integer({ minimum: 1, maximum: 20 }), to: Type.Integer({ minimum: 1, maximum: 20 }) })
+/** The frames by project day (YYYY-MM-DD); a day named here must be one of the registration's. */
+const Frames = Type.Record(Type.String({ pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' }), FrameBody, { maxProperties: 10, additionalProperties: false })
+
 export const CampaignBody = StrictObject({
   kind: Type.Literal('project_week'),
   name: SingleLineText(200),
@@ -23,6 +28,8 @@ export const CampaignBody = StrictObject({
   projectDays: Type.Array(LocalDate, { minItems: 1, maxItems: 10 }),
   /** The classes taking part; left out, every class of the class lists in force. */
   classes: Type.Optional(ClassList),
+  /** The attendance frame per project day; a day left out has none. */
+  frames: Type.Optional(Frames),
 })
 
 /** Why a class was not taken out of a registration: an activity or a rule of it still names these classes. */
@@ -50,6 +57,8 @@ export const CampaignChangesBody = StrictObject({
   projectDays: Type.Array(LocalDate, { minItems: 1, maxItems: 10 }),
   /** The classes taking part, replacing the list; left out, it stays. Changed while the registration is set up or takes proposals. */
   classes: Type.Optional(ClassList),
+  /** The attendance frames by project day, replacing them; left out, the days that stay keep theirs. Changed until the window opens. */
+  frames: Type.Optional(Frames),
   // The window and what it asks (D-05, D-06, D-13); left out, a setting stays.
   opensAt: Type.Optional(InstantOrNull),
   closesAt: Type.Optional(InstantOrNull),

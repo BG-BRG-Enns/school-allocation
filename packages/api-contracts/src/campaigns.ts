@@ -46,6 +46,14 @@ export const CampaignWindowSchema = StrictObject({
 })
 export type CampaignWindow = Static<typeof CampaignWindowSchema>
 
+/** The attendance frame of a project day: from this period of the grid to that one, everyone is at school (school-core Frame). */
+export const FrameSchema = StrictObject({ from: Type.Number(), to: Type.Number() })
+export type Frame = Static<typeof FrameSchema>
+
+/** A project day with its settings: the date and its frame, if any. */
+export const CampaignDaySchema = StrictObject({ date: Type.String(), frame: Type.Union([FrameSchema, Type.Null()]) })
+export type CampaignDay = Static<typeof CampaignDaySchema>
+
 export const CampaignSchema = StrictObject({
   ...CampaignWindowSchema.properties,
   id: Type.String(),
@@ -54,6 +62,8 @@ export const CampaignSchema = StrictObject({
   schoolYear: Type.String(),
   state: Literals(CAMPAIGN_STATES),
   projectDays: Type.Array(Type.String()),
+  /** The project days again, each with its attendance frame; the demand counts a framed day period by period. */
+  days: Type.Array(CampaignDaySchema),
   /** The classes taking part, by name, sorted; every reader of "the registration's students" goes by them. */
   classes: Type.Array(Type.String()),
   rosterBatchId: Type.Union([Type.String(), Type.Null()]),
@@ -82,14 +92,20 @@ export const CampaignViewSchema = StrictObject({
 })
 export type CampaignView = Static<typeof CampaignViewSchema>
 
+/** The demand of a project day, cell by cell (school-core DayDemand): a cell per period of the frame, or one for the whole day. */
 export const DayDemandSchema = StrictObject({
   date: Type.String(),
+  frame: Type.Union([FrameSchema, Type.Null()]),
+  periods: Type.Array(Type.Union([Type.Number(), Type.Null()])),
   grades: Type.Array(StrictObject({
     grade: Type.Number(),
     students: Type.Number(),
-    fixed: Type.Number(),
-    needing: Type.Number(),
-    offered: Type.Number(),
+    cells: Type.Array(StrictObject({
+      period: Type.Union([Type.Number(), Type.Null()]),
+      fixed: Type.Number(),
+      needing: Type.Number(),
+      offered: Type.Number(),
+    })),
   })),
 })
 

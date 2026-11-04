@@ -110,8 +110,8 @@ test('a student of a class left out sees nothing of the registration; the openin
   await propose({ title: 'Wien', places: 2, fixedClasses: ['5A'], cancellableBelowMin: false, sessions: [{ startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-22T18:00:00+02:00', credits: [{ date: '2027-06-22', minutes: 420 }] }] })
   // The classes offered to the proposal form and the demand: 5A alone.
   assert.deepEqual((await get<{ classes: { className: string }[] }>(s, s.bernd, `/api/campaigns/${id}/classes`)).body.classes.map((c) => c.className), ['5A'])
-  const demand = await get<{ demand: { date: string, grades: { grade: number, needing: number }[] }[] }>(s, s.anna, `/api/campaigns/${id}/demand`)
-  assert.deepEqual(demand.body.demand.map((d) => d.grades.map((g) => [g.grade, g.needing])), [[[9, 1]], [[9, 0]]], 'the 12th grade is not asked for')
+  const demand = await get<{ demand: { date: string, grades: { grade: number, cells: { needing: number }[] }[] }[] }>(s, s.anna, `/api/campaigns/${id}/demand`)
+  assert.deepEqual(demand.body.demand.map((d) => d.grades.map((g) => [g.grade, g.cells[0]?.needing])), [[[9, 1]], [[9, 0]]], 'the 12th grade is not asked for')
   assert.equal((await settings(s, id, { opensAt: '2027-03-01T08:00:00+01:00', closesAt: '2027-03-08T20:00:00+01:00' })).status, 200)
   assert.equal((await move(s, id, 'published')).status, 200)
   // Tim, in 8B: no registration in his list, none by its id, no list to give; Sara sees it.

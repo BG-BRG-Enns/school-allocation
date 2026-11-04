@@ -1,4 +1,4 @@
-import { type ClassSize } from '@school-allocation/school-core'
+import { type ClassSize, type Frame } from '@school-allocation/school-core'
 import { type Actor } from '../actor.ts'
 import type { Queryable } from '../db.ts'
 import type { Campaign, CampaignChanges, CampaignCounts, CampaignWindow, NewCampaign, RosterClass, RosterTeacher, RuleInput } from '../models/campaigns.ts'
@@ -43,6 +43,15 @@ export async function rosterClassSizes(db: Queryable, campaign: Pick<Campaign, '
   return rows.map((row) => ({ className: row.class_name, grade: row.grade, students: Number(row.students) }))
 }
 
+/** Replaces the campaign's day rows: one per project day, with its frame where `frames` has one. */
+export async function replaceDays(db: Queryable, id: string, days: readonly string[], frames: Readonly<Record<string, Frame>>) {
+  await db.query('delete from campaign_day where campaign_id = $1', [id])
+  for (const day of days) {
+    const frame = frames[day]
+    await db.query('insert into campaign_day (campaign_id, day, frame_from, frame_to) values ($1, $2::date, $3, $4)', [id, day, frame?.from ?? null, frame?.to ?? null])
+  }
+}
+
 /** Replaces the campaign's classes with `classes`. */
 export async function replaceClasses(db: Queryable, id: string, classes: readonly string[]) {
   await db.query('delete from campaign_class where campaign_id = $1', [id])
@@ -80,7 +89,8 @@ const SELECT = `select c.id, c.kind, c.name, c.school_year, c.state, c.project_d
   c.place_headroom_percent, c.roster_batch_id, c.created_at, c.updated_at,
   coalesce((select json_agg(json_build_object('id', r.id, 'categoryId', r.category_id, 'grades', r.grades, 'classes', r.classes, 'unit', r.unit, 'minimum', r.minimum) order by r.position)
               from campaign_rule r where r.campaign_id = c.id), '[]') as rules,
-  coalesce((select json_agg(cc.class_name order by cc.class_name) from campaign_class cc where cc.campaign_id = c.id), '[]') as classes
+  coalesce((select json_agg(cc.class_name order by cc.class_name) from campaign_class cc where cc.campaign_id = c.id), '[]') as classes,
+  coalesce((select json_object_agg(d.day::text, json_build_object('from', d.frame_from, 'to', d.frame_to)) from campaign_day d where d.campaign_id = c.id and d.frame_from is not null), '{}') as frames
   from campaign c`
 
 function toCampaign(row: CampaignRow): Campaign {
@@ -92,6 +102,8 @@ function toCampaign(row: CampaignRow): Campaign {
     schoolYear: row.school_year,
     state: row.state,
     projectDays: row.project_days,
+    // The days are the array's; a day's row carries its frame, and a day without a row has none.
+    days: row.project_days.map((date) => ({ date, frame: row.frames[date] ?? null })),
     opensAt: iso(row.opens_at),
     closesAt: iso(row.closes_at),
     lateUntil: iso(row.late_until),

@@ -11,7 +11,7 @@
 // classes away for two days), with generic names and places: nothing in
 // it points at a real school, venue or person.
 
-import { demandByDay, placeTarget, type ClassSize, type DayDemand, type OfferedItem } from '@school-allocation/school-core'
+import { demandByDay, placeTarget, type ClassSize, type DayDemand, type DemandDay, type Frame, type OfferedItem } from '@school-allocation/school-core'
 import { CLASS_5A_GROUP, TEACHERS_GROUP } from '../../apps/api/test/helpers/fake-graph.ts'
 import { ANNA, BERND, CARLA, SARA, TIM, type Person } from '../../apps/api/test/helpers/personas.ts'
 import { FAMILY_NAMES, STUDENT_FIRST_NAMES, TEACHER_FIRST_NAMES } from './names.ts'
@@ -148,6 +148,8 @@ export interface Scenario {
     showTeachers: boolean
     reminderDays: number
     placeHeadroomPercent: number
+    /** The attendance frame per project day: Monday's sports day is at school from the 2nd to the 6th period. */
+    frames: Record<string, Frame>
     rules: ScenarioRule[]
   }
   /** The administrator: Anna, whose address is in BOOTSTRAP_ADMINS. */
@@ -333,6 +335,7 @@ export function scenario(seed = SCENARIO_SEED): Scenario {
       showTeachers: true,
       reminderDays: 2,
       placeHeadroomPercent: 20,
+      frames: { [MONDAY]: { from: 2, to: 6 } },
       rules: [
         { category: sport, grades: [5, 6, 7, 8, 9, 10, 11], classes: [], unit: 'items', minimum: 1 },
         { category: careers, grades: [7], classes: [], unit: 'minutes', minimum: 200 },
@@ -491,17 +494,32 @@ function itemsOf(classes: readonly ScenarioClass[], teachers: readonly ScenarioT
   return ordered2
 }
 
-/** The demand as the app computes it, per day and grade, for the scenario's classes and items. */
-export function scenarioDemand(classes: readonly ScenarioClass[], items: readonly ScenarioItem[]): DayDemand[] {
-  const sizes: ClassSize[] = classes.map((c) => ({ className: c.name, grade: c.grade, students: c.students.length }))
-  const offered: OfferedItem[] = items.map((item) => ({
+/** A wall-clock time of a project day as an instant: the days are in July, summer time. */
+export function scenarioInstant(date: string, time: string): number {
+  return Date.parse(`${date}T${time}:00+02:00`)
+}
+
+/** The scenario's items as the demand sees them. */
+export function scenarioOffer(items: readonly ScenarioItem[]): OfferedItem[] {
+  return items.map((item) => ({
     fixedClasses: item.fixedClasses,
     eligibleGrades: item.eligibleGrades,
     eligibleClasses: item.eligibleClasses,
     places: item.places,
-    dates: [...new Set(item.sessions.map((s) => s.date))],
+    sessions: item.sessions.map((s) => ({ startMs: scenarioInstant(s.date, s.from), endMs: scenarioInstant(s.date, s.to) })),
   }))
-  return demandByDay(PROJECT_DAYS, sizes, offered)
+}
+
+/** A project day counted whole, as the demand counts a day without a frame. */
+export function wholeDay(date: string): DemandDay {
+  const startMs = scenarioInstant(date, '00:00')
+  return { date, frame: null, cells: [{ period: null, startMs, endMs: startMs + 24 * 60 * 60 * 1000 }] }
+}
+
+/** The demand as the app computes it per day and grade, every day counted whole: what the places were drawn to. */
+export function scenarioDemand(classes: readonly ScenarioClass[], items: readonly ScenarioItem[]): DayDemand[] {
+  const sizes: ClassSize[] = classes.map((c) => ({ className: c.name, grade: c.grade, students: c.students.length }))
+  return demandByDay(PROJECT_DAYS.map(wholeDay), sizes, scenarioOffer(items))
 }
 
 /** The places a grade should be offered on a day: the 20% target, except the one grade-day left short on purpose. */
@@ -519,7 +537,7 @@ function drawPlaces(classes: readonly ScenarioClass[], items: ScenarioItem[]): v
   const open = new Set(CATALOGUE.filter((s) => s.places === undefined).map((s) => s.key))
   const weight = new Map(CATALOGUE.map((s) => [s.key, s.weight ?? 1]))
   for (let round = 0; round < 100_000; round++) {
-    const short = scenarioDemand(classes, items).flatMap((day) => day.grades.map((g) => ({ date: day.date, ...g })))
+    const short = scenarioDemand(classes, items).flatMap((day) => day.grades.map((g) => ({ date: day.date, grade: g.grade, ...(g.cells[0] as { needing: number, offered: number }) })))
       .find((g) => g.offered < targetOf(g.grade, g.date, g.needing))
     if (!short) return
     const gradeClasses = classes.filter((c) => c.grade === short.grade).map((c) => c.name)

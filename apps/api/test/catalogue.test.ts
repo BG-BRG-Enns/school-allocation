@@ -58,9 +58,11 @@ async function campaignTakingProposals(s: Ready): Promise<Campaign> {
 
 test('a campaign is visible by role and state; its settings change only while it is set up; the later states are not available yet', DB, async (t) => {
   const s = await school(t)
-  const created = await send<Campaign>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'Projektwoche 2027', schoolYear: '2026/27', projectDays: DAYS })
+  const created = await send<Campaign>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'Projektwoche 2027', schoolYear: '2026/27', projectDays: DAYS, frames: { '2027-06-23': { from: 2, to: 6 } } })
   assert.equal(created.status, 201)
   const id = created.body.id
+  assert.deepEqual(created.body.days, [{ date: '2027-06-21', frame: null }, { date: '2027-06-22', frame: null }, { date: '2027-06-23', frame: { from: 2, to: 6 } }], 'a day has its frame or none')
+  assert.equal((await send<{ error: string }>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'x', schoolYear: '2026/27', projectDays: DAYS, frames: { '2027-06-24': { from: 2, to: 6 } } })).body.error, 'frame_invalid', 'a frame on a day the registration does not have')
   assert.equal((await send(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'x', schoolYear: '2026/27', projectDays: ['2027-06-21', '2027-06-21'] })).status, 422)
   // A day the calendar does not have passes the shape and is refused here, not by the database.
   assert.equal((await send<{ error: string }>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'x', schoolYear: '2026/27', projectDays: ['2027-02-31'] })).body.error, 'invalid_date')
@@ -73,7 +75,9 @@ test('a campaign is visible by role and state; its settings change only while it
   assert.equal((await get<{ campaigns: Campaign[] }>(s, s.anna, '/api/campaigns')).body.campaigns.length, 1)
 
   // The id in whatever case the URL carries it: the audit scope stays the stored one.
-  assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id.toUpperCase()}`, { name: 'Projektwoche Juni 2027', schoolYear: '2026/27', projectDays: DAYS.slice(0, 2) })).status, 200)
+  const shortened = await send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id.toUpperCase()}`, { name: 'Projektwoche Juni 2027', schoolYear: '2026/27', projectDays: DAYS.slice(0, 2) })
+  assert.equal(shortened.status, 200)
+  assert.deepEqual(shortened.body.days.map((d) => d.frame), [null, null], 'the frame went with its day')
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'published' })).status, 409, 'published does not follow draft')
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'allocating' })).status, 400, 'not a transition this release offers')
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'catalogue' })).status, 200)
@@ -86,6 +90,15 @@ test('a campaign is visible by role and state; its settings change only while it
   assert.equal((await get(s, s.sara, `/api/campaigns/${id}`)).status, 404)
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'published' })).status, 200)
   assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: 'x', schoolYear: '2026/27', projectDays: DAYS })).status, 409, 'published, the days are final')
+  // The frames go with the window's settings: still set while published, fixed from the opening.
+  const published = await get<{ campaign: Campaign }>(s, s.anna, `/api/campaigns/${id}`)
+  const framed = await send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: published.body.campaign.name, schoolYear: '2026/27', projectDays: published.body.campaign.projectDays, frames: { '2027-06-21': { from: 1, to: 4 } } })
+  assert.equal(framed.status, 200, JSON.stringify(framed.body))
+  assert.deepEqual(framed.body.days[0]?.frame, { from: 1, to: 4 })
+  await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: published.body.campaign.name, schoolYear: '2026/27', projectDays: published.body.campaign.projectDays, opensAt: '2027-03-01T08:00:00+01:00', closesAt: '2027-03-08T20:00:00+01:00' })
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'open' })).status, 200)
+  assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: published.body.campaign.name, schoolYear: '2026/27', projectDays: published.body.campaign.projectDays, frames: {} })).body.error, 'campaign_state', 'open, the frames are what the students chose by')
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: published.body.campaign.name, schoolYear: '2026/27', projectDays: published.body.campaign.projectDays, frames: { '2027-06-21': { from: 1, to: 4 } } })).status, 200, 'the same frames again change nothing')
   const sara = await get<{ campaign: Campaign, may: { propose: boolean } }>(s, s.sara, `/api/campaigns/${id}`)
   assert.equal(sara.status, 200)
   assert.equal(sara.body.may.propose, false)
@@ -94,7 +107,8 @@ test('a campaign is visible by role and state; its settings change only while it
   const db = createDatabase(s.ownerUrl, () => {})
   t.after(() => db.close())
   const events = await readAudit(db, id)
-  assert.deepEqual(events.map((e) => e.action), ['campaign.changed', 'campaign.transitioned', 'campaign.transitioned'])
+  assert.deepEqual(events.map((e) => e.action), ['campaign.changed', 'campaign.transitioned', 'campaign.transitioned', 'campaign.changed', 'campaign.changed', 'campaign.transitioned', 'campaign.changed'])
+  assert.deepEqual(events.filter((e) => e.action === 'campaign.changed').map((e) => e.metadata.frames), [false, true, false, false], 'a frame goes with its day as a change of the set-up, one is set, the window alone, the same frames again')
   assert.equal(verifyAuditChain(events).valid, true)
 })
 

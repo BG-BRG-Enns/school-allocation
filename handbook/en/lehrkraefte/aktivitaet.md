@@ -54,6 +54,6 @@ If the organisation returns your activity, it becomes a draft again, and the **F
 
 ## Places and demand
 
-![Places and demand: for each project day and year, how many students need a place, the target and how many are offered](/bilder/en/bedarf.png)
+![Places and demand: a table per project day, the years as rows, Monday with its attendance frame a column per period, with need, target and offer](/bilder/en/bedarf.png)
 
-While activities are being collected, the registration page shows, for each project day and year, how many students need a place, the **target** and how many places the submitted and approved activities offer. The target lies above the need by a share the organisation sets, usually 20%, so the choices have room. A year short of the target is marked; another activity helps most there.
+While activities are being collected, the registration page and the activity form show under **Places and demand**, for each project day and year, how many students need a place, the **target** and how many places the submitted and approved activities offer. If a day has an attendance frame, that is shown per period; an activity counts in every period it touches. The target lies above the need by a share the organisation sets, usually 20%, so the choices have room. A cell short of the target is marked; another activity helps most there, and that is where a session is worth placing.

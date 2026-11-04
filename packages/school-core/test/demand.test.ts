@@ -1,56 +1,132 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, placeTarget, type ClassSize, type OfferedItem } from '../src/demand.ts'
+import { checkFrame, DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, demandCells, framePeriods, placeTarget, type ClassSize, type DemandCell, type DemandDay, type OfferedItem } from '../src/demand.ts'
+import { DEFAULT_PERIODS } from '../src/periods.ts'
 
-const DAYS = ['2027-06-21', '2027-06-22']
+const MINUTE = 60_000
+const DAY = 24 * 60 * MINUTE
+const MONDAY = '2027-06-21'
+const TUESDAY = '2027-06-22'
+/** Monday starts at instant 0, Tuesday a day later; a clock time of a day as an instant. */
+const at = (date: string, time: string): number => (date === MONDAY ? 0 : DAY) + (Number(time.slice(0, 2)) * 60 + Number(time.slice(3))) * MINUTE
+const whole = (date: string): DemandDay => ({ date, frame: null, cells: [{ period: null, startMs: at(date, '00:00'), endMs: at(date, '00:00') + DAY }] })
+const framed = (date: string, from: number, to: number): DemandDay => ({ date, frame: { from, to }, cells: demandCells({ from, to }, DEFAULT_PERIODS, (time) => at(date, time), { startMs: at(date, '00:00'), endMs: at(date, '00:00') + DAY }) })
+const DAYS = [whole(MONDAY), whole(TUESDAY)]
 const classes: ClassSize[] = [
   { className: '1A', grade: 5, students: 20 },
   { className: '1B', grade: 5, students: 20 },
   { className: '2A', grade: 6, students: 30 },
 ]
-const open = (places: number, dates: string[], rules: Partial<OfferedItem> = {}): OfferedItem => ({ fixedClasses: [], eligibleGrades: [], eligibleClasses: [], places, dates, ...rules })
+/** A session over clock times of a day. */
+const session = (date: string, from: string, to: string) => ({ startMs: at(date, from), endMs: at(date, to) })
+const open = (places: number, sessions: OfferedItem['sessions'], rules: Partial<OfferedItem> = {}): OfferedItem => ({ fixedClasses: [], eligibleGrades: [], eligibleClasses: [], places, sessions, ...rules })
+const onDay = (date: string) => [session(date, '08:30', '12:15')]
+/** The one cell of a day counted whole, per grade. */
+const cellsOf = (day: ReturnType<typeof demandByDay>[number] | undefined) => day?.grades.map((g) => g.cells[0])
 
 test('without items every student needs a place and nothing is offered', () => {
   assert.deepEqual(demandByDay(DAYS, classes, []), [
-    { date: '2027-06-21', grades: [{ grade: 5, students: 40, fixed: 0, needing: 40, offered: 0 }, { grade: 6, students: 30, fixed: 0, needing: 30, offered: 0 }] },
-    { date: '2027-06-22', grades: [{ grade: 5, students: 40, fixed: 0, needing: 40, offered: 0 }, { grade: 6, students: 30, fixed: 0, needing: 30, offered: 0 }] },
+    { date: MONDAY, frame: null, periods: [null], grades: [{ grade: 5, students: 40, cells: [{ period: null, fixed: 0, needing: 40, offered: 0 }] }, { grade: 6, students: 30, cells: [{ period: null, fixed: 0, needing: 30, offered: 0 }] }] },
+    { date: TUESDAY, frame: null, periods: [null], grades: [{ grade: 5, students: 40, cells: [{ period: null, fixed: 0, needing: 40, offered: 0 }] }, { grade: 6, students: 30, cells: [{ period: null, fixed: 0, needing: 30, offered: 0 }] }] },
   ])
 })
 
 test('a class activity takes its class out of the day; its extra places count like any item', () => {
-  const trip = open(10, ['2027-06-21'], { fixedClasses: ['1A'] })
+  const trip = open(10, onDay(MONDAY), { fixedClasses: ['1A'] })
   const [monday, tuesday] = demandByDay(DAYS, classes, [trip])
-  assert.deepEqual(monday?.grades[0], { grade: 5, students: 40, fixed: 20, needing: 20, offered: 4 }, '10 places split 20:30 between 1B and 2A, 1A is in it already')
-  assert.deepEqual(monday?.grades[1], { grade: 6, students: 30, fixed: 0, needing: 30, offered: 6 })
-  assert.equal(tuesday?.grades[0]?.fixed, 0, 'the trip is Monday only')
+  assert.deepEqual(cellsOf(monday)?.[0], { period: null, fixed: 20, needing: 20, offered: 4 }, '10 places split 20:30 between 1B and 2A, 1A is in it already')
+  assert.deepEqual(cellsOf(monday)?.[1], { period: null, fixed: 0, needing: 30, offered: 6 })
+  assert.equal(cellsOf(tuesday)?.[0]?.fixed, 0, 'the trip is Monday only')
 })
 
 test('places of an item open to several grades split by what each still needs, and go to the only grade left when the others are covered', () => {
-  const course = open(18, ['2027-06-21'], { eligibleGrades: [5, 6] })
+  const course = open(18, onDay(MONDAY), { eligibleGrades: [5, 6] })
   const [day] = demandByDay(DAYS, classes, [course])
   // 18 places over 40 fifth graders and 30 sixth graders: 10.3 and 7.7, rounded.
-  assert.deepEqual(day?.grades.map((g) => g.offered), [10, 8])
-  const [covered] = demandByDay(DAYS, classes, [course, open(0, ['2027-06-21'], { fixedClasses: ['1A', '1B'] })])
-  assert.deepEqual(covered?.grades.map((g) => [g.needing, g.offered]), [[0, 0], [30, 18]], 'the fifth grade is away, the sixth gets every place')
+  assert.deepEqual(cellsOf(day)?.map((c) => c?.offered), [10, 8])
+  const [covered] = demandByDay(DAYS, classes, [course, open(0, onDay(MONDAY), { fixedClasses: ['1A', '1B'] })])
+  assert.deepEqual(cellsOf(covered)?.map((c) => [c?.needing, c?.offered]), [[0, 0], [30, 18]], 'the fifth grade is away, the sixth gets every place')
 })
 
 test('the shares of an item add up to its places exactly, whatever the rounding would do', () => {
   // One place over two grades: rounding each half would make two.
-  const [day] = demandByDay(['2027-06-21'], classes, [open(1, ['2027-06-21'])])
-  assert.equal(day?.grades.reduce((sum, g) => sum + g.offered, 0), 1)
+  const [day] = demandByDay([whole(MONDAY)], classes, [open(1, onDay(MONDAY))])
+  assert.equal(cellsOf(day)?.reduce((sum, c) => sum + (c?.offered ?? 0), 0), 1)
   // Seven places over three classes of 20, 20 and 30: 2, 2, 3 by the largest remainder.
-  const [seven] = demandByDay(['2027-06-21'], classes, [open(7, ['2027-06-21'])])
-  assert.deepEqual(seven?.grades.map((g) => g.offered), [4, 3])
+  const [seven] = demandByDay([whole(MONDAY)], classes, [open(7, onDay(MONDAY))])
+  assert.deepEqual(cellsOf(seven)?.map((c) => c?.offered), [4, 3])
 })
 
 test('eligibility by class narrows the split, an item nobody can rank offers nothing, and a day without items is reported too', () => {
-  const only1B = open(12, ['2027-06-22'], { eligibleClasses: ['1B'] })
+  const only1B = open(12, onDay(TUESDAY), { eligibleClasses: ['1B'] })
   const [, tuesday] = demandByDay(DAYS, classes, [only1B])
-  assert.deepEqual(tuesday?.grades[0]?.offered, 12)
-  assert.deepEqual(tuesday?.grades[1]?.offered, 0)
-  const noPlaces = open(0, ['2027-06-22'])
-  assert.deepEqual(demandByDay(['2027-06-22'], classes, [noPlaces])[0]?.grades.map((g) => g.offered), [0, 0])
-  assert.deepEqual(demandByDay(['2027-06-23'], classes, [only1B])[0]?.grades.map((g) => g.offered), [0, 0])
+  assert.deepEqual(cellsOf(tuesday)?.[0]?.offered, 12)
+  assert.deepEqual(cellsOf(tuesday)?.[1]?.offered, 0)
+  const noPlaces = open(0, onDay(TUESDAY))
+  assert.deepEqual(cellsOf(demandByDay([whole(TUESDAY)], classes, [noPlaces])[0])?.map((c) => c?.offered), [0, 0])
+  assert.deepEqual(cellsOf(demandByDay([whole(MONDAY)], classes, [only1B])[0])?.map((c) => c?.offered), [0, 0])
+})
+
+test('a framed day is counted per period: an activity counts in every period it touches, a part of one included', () => {
+  // The document's table: 100 students, frame 2–6, the finale for all in the 6th; courses of 140, 125, 90, 60 places over the periods.
+  const lower: ClassSize[] = [{ className: '1A', grade: 5, students: 50 }, { className: '1B', grade: 5, students: 50 }]
+  const finale = open(0, [session(MONDAY, '12:20', '13:10')], { fixedClasses: ['1A', '1B'] })
+  const items = [
+    finale,
+    open(140, [session(MONDAY, '08:30', '09:20')]),
+    open(125, [session(MONDAY, '09:25', '10:15')]),
+    open(90, [session(MONDAY, '10:30', '11:20')]),
+    // Ends at 11:00: touches the 4th period (10:30–11:20) too, so it counts there.
+    open(60, [session(MONDAY, '10:30', '12:15')]),
+  ]
+  const [day] = demandByDay([framed(MONDAY, 2, 6)], lower, items)
+  assert.deepEqual(day?.periods, [2, 3, 4, 5, 6])
+  assert.deepEqual(day?.frame, { from: 2, to: 6 })
+  assert.deepEqual(day?.grades[0]?.cells.map((c) => [c.needing, c.offered]), [[100, 140], [100, 125], [100, 150], [100, 60], [0, 0]])
+  // A trip until 11:00 takes its class out of the 2nd to the 4th period and gives it back from the 5th.
+  const trip = open(0, [session(MONDAY, '08:00', '11:00')], { fixedClasses: ['1A'] })
+  const [withTrip] = demandByDay([framed(MONDAY, 2, 6)], lower, [trip])
+  assert.deepEqual(withTrip?.grades[0]?.cells.map((c) => [c.fixed, c.needing]), [[50, 50], [50, 50], [50, 50], [0, 100], [0, 100]])
+})
+
+test('an activity overlapping a class\'s class activity offers that class nothing, in any cell: its students never rank it', () => {
+  // 1A is on a trip in the 2nd period; a course over the 2nd to the 5th period overlaps it, so 1A is never offered it, back from the trip or not.
+  const trip = open(0, [session(MONDAY, '08:30', '09:20')], { fixedClasses: ['1A'] })
+  const course = open(20, [session(MONDAY, '08:30', '12:15')], { eligibleGrades: [5] })
+  const [day] = demandByDay([framed(MONDAY, 2, 5)], classes, [trip, course])
+  assert.deepEqual(day?.grades[0]?.cells.map((c) => [c.fixed, c.needing, c.offered]), [[20, 20, 20], [0, 40, 20], [0, 40, 20], [0, 40, 20]], 'every place goes to 1B, in every period')
+  // A course after the trip is for both classes again.
+  const later = open(20, [session(MONDAY, '10:30', '12:15')], { eligibleGrades: [5] })
+  const [afterwards] = demandByDay([framed(MONDAY, 2, 5)], classes, [trip, later])
+  assert.deepEqual(afterwards?.grades[0]?.cells.map((c) => c.offered), [0, 0, 20, 20])
+})
+
+test('a multi-grade item splits per cell by the need left there; a session over midnight touches both days\' cells', () => {
+  const course = open(20, [session(MONDAY, '08:30', '10:15')], { eligibleGrades: [5, 6] })
+  const away = open(0, [session(MONDAY, '08:30', '09:20')], { fixedClasses: ['1A', '1B'] })
+  const [day] = demandByDay([framed(MONDAY, 2, 3)], classes, [course, away])
+  // The fifth grade is away in the 2nd period and the course overlaps that, so its students never rank it: every place is the sixth grade's, in both periods.
+  assert.deepEqual(day?.grades.map((g) => g.cells.map((c) => c.offered)), [[0, 0], [20, 20]])
+  // A course after the fifth grade is back splits in the 3rd period per class: 5.7 + 5.7 + 8.6, rounded by the largest remainders to 6 + 6 + 8.
+  const [later] = demandByDay([framed(MONDAY, 2, 3)], classes, [open(20, [session(MONDAY, '09:25', '10:15')], { eligibleGrades: [5, 6] }), away])
+  assert.deepEqual(later?.grades.map((g) => g.cells.map((c) => c.offered)), [[0, 12], [0, 8]], 'nothing in the 2nd period, which the course does not touch')
+  const overnight = open(10, [{ startMs: at(MONDAY, '20:00'), endMs: at(TUESDAY, '09:00') }])
+  const [monday, tuesday] = demandByDay([framed(MONDAY, 2, 6), framed(TUESDAY, 2, 6)], classes, [overnight])
+  assert.deepEqual(monday?.grades[0]?.cells.map((c) => c.offered), [0, 0, 0, 0, 0], 'Monday evening is outside the frame')
+  assert.deepEqual(tuesday?.grades[0]?.cells.map((c) => c.offered), [6, 0, 0, 0, 0], 'Tuesday\'s 2nd period is touched until nine')
+})
+
+test('the cells of a day follow the grid; a frame the grid lost counts the day whole; a frame is checked against the grid', () => {
+  const toMs = (time: string) => at(MONDAY, time)
+  const day = { startMs: 0, endMs: DAY }
+  assert.deepEqual(demandCells(null, DEFAULT_PERIODS, toMs, day), [{ period: null, startMs: 0, endMs: DAY }])
+  assert.deepEqual(demandCells({ from: 2, to: 3 }, DEFAULT_PERIODS, toMs, day) satisfies DemandCell[], [{ period: 2, startMs: at(MONDAY, '08:30'), endMs: at(MONDAY, '09:20') }, { period: 3, startMs: at(MONDAY, '09:25'), endMs: at(MONDAY, '10:15') }])
+  assert.deepEqual(demandCells({ from: 12, to: 14 }, DEFAULT_PERIODS, toMs, day), [{ period: null, startMs: 0, endMs: DAY }])
+  assert.deepEqual(framePeriods({ from: 9, to: 12 }, DEFAULT_PERIODS).map((p) => p.period), [9, 10])
+  assert.equal(checkFrame({ from: 2, to: 6 }, DEFAULT_PERIODS), undefined)
+  assert.equal(checkFrame({ from: 6, to: 2 }, DEFAULT_PERIODS), 'frame_order')
+  assert.equal(checkFrame({ from: 2, to: 11 }, DEFAULT_PERIODS), 'frame_period_unknown')
+  assert.equal(checkFrame({ from: 1.5, to: 3 }, DEFAULT_PERIODS), 'frame_order')
 })
 
 test('the target is the need and the headroom on top, rounded up to a whole place', () => {

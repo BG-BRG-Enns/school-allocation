@@ -26,9 +26,9 @@ The table shows each activity with its teachers, sessions, places, cost and stat
 
 ## Places and demand
 
-![Places and demand: for each project day and year, how many students need a place, the target and how many the activities offer](/bilder/en/bedarf.png)
+![Places and demand: a table per project day, the years as rows, Monday with its attendance frame a column per period, with need, target and offer](/bilder/en/bedarf.png)
 
-For each project day and year, this shows how many students need a place, the **target** and how many places the submitted and approved activities offer them. Anyone already in a class activity with their whole class is not counted. The target lies above the need by the **places above the need**, 20% unless you enter otherwise in the [settings](./einstellungen), so the choices have room. A year short of the target is marked; more activities are needed there. Teachers also see this table while activities are being collected.
+For each project day there is a table: for each year, how many students need a place, the **target** and how many places the submitted and approved activities offer them. Anyone in a class activity with their whole class at that time is not counted. If the day has an [attendance frame](./einstellungen#attendance-frame-per-project-day), the table has a column per period: an activity counts in every period it touches, even in part (a trip until 11:00 counts for period 4, which ends at 11:20), and a class on a trip until 11:00 needs places again from period 5. That shows when 200 places in one-hour courses look like two places per child but fill one period only. Without a frame the whole day is one column. The target lies above the need by the **places above the need**, 20% unless you enter otherwise in the [settings](./einstellungen), so the choices have room. A cell short of the target is marked; more activities are needed there. Teachers also see these tables while activities are being collected, on the registration page and in the activity form.
 
 ## Teachers by day
 

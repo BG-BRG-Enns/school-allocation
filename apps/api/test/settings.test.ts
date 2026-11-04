@@ -222,17 +222,29 @@ test('the window\'s settings are kept in order and changeable until it opens; th
     sessions: [{ startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-22T18:00:00+02:00', credits: [{ date: '2027-06-22', minutes: 420 }] }],
   })
   assert.equal(trip.status, 201)
-  type Demand = { date: string, grades: { grade: number, students: number, fixed: number, needing: number, offered: number }[] }[]
+  type Demand = { date: string, frame: { from: number, to: number } | null, periods: (number | null)[], grades: { grade: number, students: number, cells: { period: number | null, fixed: number, needing: number, offered: number }[] }[] }[]
   const drafts = await get<{ demand: Demand }>(s, s.bernd, `/api/campaigns/${id}/demand`)
   assert.equal(drafts.status, 200)
-  assert.deepEqual(drafts.body.demand.map((d) => d.grades[0]?.offered), [0, 0], 'drafts count for nothing')
+  assert.deepEqual(drafts.body.demand.map((d) => d.grades[0]?.cells[0]?.offered), [0, 0], 'drafts count for nothing')
   await send(s, s.bernd, 'POST', `/api/items/${course.body.id}/propose`)
   await send(s, s.carla, 'POST', `/api/items/${trip.body.id}/propose`)
   const demand = await get<{ demand: Demand }>(s, s.anna, `/api/campaigns/${id}/demand`)
   assert.deepEqual(demand.body.demand, [
-    { date: '2027-06-21', grades: [{ grade: 9, students: 2, fixed: 0, needing: 2, offered: 12 }] },
-    { date: '2027-06-22', grades: [{ grade: 9, students: 2, fixed: 2, needing: 0, offered: 0 }] },
+    { date: '2027-06-21', frame: null, periods: [null], grades: [{ grade: 9, students: 2, cells: [{ period: null, fixed: 0, needing: 2, offered: 12 }] }] },
+    { date: '2027-06-22', frame: null, periods: [null], grades: [{ grade: 9, students: 2, cells: [{ period: null, fixed: 2, needing: 0, offered: 0 }] }] },
   ])
+  // With a frame on Monday the day is counted per period: the course from 9:00 to 13:00 touches every period of the frame, the 2nd (08:30–09:20) by its last twenty minutes.
+  const framed = await send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, frames: { '2027-06-21': { from: 2, to: 6 } } })
+  assert.equal(framed.status, 200, JSON.stringify(framed.body))
+  assert.deepEqual(framed.body.days, [{ date: '2027-06-21', frame: { from: 2, to: 6 } }, { date: '2027-06-22', frame: null }])
+  const perPeriod = await get<{ demand: Demand }>(s, s.anna, `/api/campaigns/${id}/demand`)
+  assert.deepEqual(perPeriod.body.demand[0]?.periods, [2, 3, 4, 5, 6])
+  assert.deepEqual(perPeriod.body.demand[0]?.grades[0]?.cells.map((c) => [c.period, c.needing, c.offered]), [[2, 2, 12], [3, 2, 12], [4, 2, 12], [5, 2, 12], [6, 2, 12]])
+  // A frame off the grid, reversed, or on a day the registration does not have is refused; left out, the frames stay.
+  assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, frames: { '2027-06-21': { from: 2, to: 11 } } })).body.error, 'frame_invalid')
+  assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, frames: { '2027-06-21': { from: 6, to: 2 } } })).body.error, 'frame_invalid')
+  assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, frames: { '2027-06-23': { from: 2, to: 6 } } })).body.error, 'frame_invalid')
+  assert.deepEqual((await send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp })).body.days[0]?.frame, { from: 2, to: 6 })
   assert.equal((await get(s, s.sara, `/api/campaigns/${id}/demand`)).status, 404, 'a campaign taking proposals does not exist for a student')
 
   await send(s, s.anna, 'POST', `/api/admin/items/${course.body.id}/approve`)
