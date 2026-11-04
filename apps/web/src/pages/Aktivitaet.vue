@@ -443,7 +443,7 @@ async function save(propose: boolean): Promise<void> {
   </p>
   <form
     v-if="campaign"
-    @submit.prevent="save(false)"
+    @submit.prevent="companionsOnly && !organizes ? saveCompanions() : save(false)"
   >
     <p
       v-if="existing?.reviewNote"
@@ -942,7 +942,10 @@ async function save(propose: boolean): Promise<void> {
     >
       {{ saving.error.value }}
     </p>
-    <p class="actions">
+    <p
+      v-if="!(companionsOnly && !organizes)"
+      class="actions"
+    >
       <button
         type="submit"
         :disabled="saving.busy.value"

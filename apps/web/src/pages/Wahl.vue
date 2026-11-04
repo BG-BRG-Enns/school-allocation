@@ -125,7 +125,7 @@ const itemFields = computed<FilterField[]>(() => [
 ])
 /** How many companions an activity still seeks: the number its lead wants less the teachers beside the lead. */
 const soughtOf = (item: Item): number => Math.max(0, item.companionsWanted - item.teachers.filter((teacher) => !teacher.lead).length)
-const itemsShown = filtered(items, itemFilter, (item, f) => matchesOption(item.state, f.state) && matchesOneOf(item.categoryIds, f.category) && (!f.companionsMissing || soughtOf(item) > 0) && matchesText([item.title, ...item.teachers.map((teacher) => teacher.displayName)], f.text))
+const itemsShown = filtered(items, itemFilter, (item, f) => matchesOption(item.state, f.state) && matchesOneOf(item.categoryIds, f.category) && (!f.companionsMissing || !(teaches.value || organizes.value) || soughtOf(item) > 0) && matchesText([item.title, ...item.teachers.map((teacher) => teacher.displayName)], f.text))
 // The order: as the catalogue numbers them (the server's), or by the first submission, the earliest first and the never submitted last; the browser remembers it.
 const itemOrder = useUiState<string>('wahl:items:order', 'number')
 const itemsOrdered = computed(() => itemOrder.value === 'proposed'
