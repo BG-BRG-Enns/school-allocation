@@ -232,17 +232,19 @@ function render(all: readonly School[]): string {
     return l === undefined ? '' : `${l.value}${l.proven ? '' : ', not proven'}`
   }))]), [false, ...levelHead.map(() => true)])
 
-  add('## Demand and the target', '', 'Per day and grade for the first school, as the organizer\'s demand page shows it: who needs a place, the target (need plus the headroom, rounded up), the places offered by the demand arithmetic, and what an exact split of the shared activities would give before rounding to whole places.', '')
+  add('## Demand and the target', '', 'Per day, cell and grade for the first school, as the organizer\'s demand page shows it: who needs a place, the target (need plus the headroom, rounded up), the places offered by the demand arithmetic, and, for a day counted whole, what an exact split of the shared activities would give before rounding to whole places. A day with an attendance frame is counted per period.', '')
   const exact = exactShares(s.classes, s.items)
   const demandRows: (string | number)[][] = []
   for (const day of first.demand.demand) {
     for (const g of day.grades) {
-      if (g.needing === 0) continue
-      const target = placeTarget(g.needing, s.campaign.placeHeadroomPercent)
-      demandRows.push([DAY_NAMES[day.date] ?? day.date, g.grade, g.needing, target, g.offered, (exact.get(`${day.date}:${g.grade}`) ?? 0).toFixed(1), g.offered < target ? 'short' : ''])
+      for (const cell of g.cells) {
+        if (cell.needing === 0) continue
+        const target = placeTarget(cell.needing, s.campaign.placeHeadroomPercent)
+        demandRows.push([DAY_NAMES[day.date] ?? day.date, cell.period === null ? 'day' : `P${cell.period}`, g.grade, cell.needing, target, cell.offered, cell.period === null ? (exact.get(`${day.date}:${g.grade}`) ?? 0).toFixed(1) : '', cell.offered < target ? 'short' : ''])
+      }
     }
   }
-  table(['Day', 'Grade', 'Needing', 'Target', 'Offered', 'Exact split', 'Marker'], demandRows, [false, true, true, true, true, true, false])
+  table(['Day', 'Cell', 'Grade', 'Needing', 'Target', 'Offered', 'Exact split', 'Marker'], demandRows, [false, false, true, true, true, true, true, false])
   add('Per rule and grade, as the same page shows it: what the students need of the rule after their class activities, and what the category\'s activities open to them could bring, an activity open to several grades counted for each. Beside it, the grades that share those activities taken together: their need against what the shared activities can bring once.', '')
   const ruleRows: (string | number)[][] = []
   for (const r of first.demand.rules) {

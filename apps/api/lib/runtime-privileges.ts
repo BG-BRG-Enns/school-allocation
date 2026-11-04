@@ -80,6 +80,8 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   campaign_rule: { table: ['SELECT', 'INSERT', 'DELETE'] },
   // The classes a registration is for (0004): replaced as a whole while it is set up or takes proposals.
   campaign_class: { table: ['SELECT', 'INSERT', 'DELETE'] },
+  // A registration's days with their attendance frame (0005): replaced as a whole with the days and the settings.
+  campaign_day: { table: ['SELECT', 'INSERT', 'DELETE'] },
   // A teacher's availability on a day: set by the teacher or an organizer (audited), removed when available again or
   // with the school year's records.
   teacher_availability: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['status', 'updated_at'] },

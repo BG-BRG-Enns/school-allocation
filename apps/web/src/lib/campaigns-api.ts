@@ -23,7 +23,7 @@ export const deleteItem = (id: string) => apiRequest(endpoints.deleteItemsById, 
 export const proposeItem = (id: string) => apiRequest(endpoints.postItemsByIdPropose, { params: { id: id } })
 export const unproposeItem = (id: string) => apiRequest(endpoints.postItemsByIdUnpropose, { params: { id: id } })
 
-export const createCampaign = (input: { kind: 'project_week', name: string, schoolYear: string, projectDays: string[], classes?: string[] }) => apiRequest(endpoints.postAdminCampaigns, { body: input })
+export const createCampaign = (input: { kind: 'project_week', name: string, schoolYear: string, projectDays: string[], classes?: string[], frames?: Record<string, { from: number, to: number }> }) => apiRequest(endpoints.postAdminCampaigns, { body: input })
 
 export const loadMyChoice = (id: string) => apiRequest(endpoints.getCampaignsByIdMyChoice, { params: { id: id } })
 export const saveMyChoice = (id: string, ranking: Record<string, string[]>) => apiRequest(endpoints.putCampaignsByIdMyChoice, { params: { id: id }, body: { ranking } })

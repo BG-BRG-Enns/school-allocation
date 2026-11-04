@@ -54,6 +54,6 @@ Gibt die Organisation deine Aktivität zurück, ist sie wieder ein Entwurf, und 
 
 ## Plätze und Bedarf
 
-![Plätze und Bedarf: je Projekttag und Schulstufe, wie viele Schüler\*innen noch einen Platz suchen, das Ziel und wie viele angeboten sind](/bilder/de/bedarf.png)
+![Plätze und Bedarf: je Projekttag eine Tabelle, die Schulstufen als Zeilen, am Montag mit Anwesenheitsrahmen eine Spalte je Einheit, mit Bedarf, Ziel und Angebot](/bilder/de/bedarf.png)
 
-Solange Angebote gesammelt werden, zeigt die Seite der Anmeldung je Projekttag und Schulstufe, wie viele Schüler\*innen noch einen Platz suchen, das **Ziel** und wie viele Plätze die eingereichten und genehmigten Aktivitäten anbieten. Das Ziel liegt um einen Anteil über dem Bedarf, den die Organisation festlegt, meist 20 %: So haben die Wünsche Platz. Eine Schulstufe unter dem Ziel ist markiert; dort hilft eine weitere Aktivität am meisten.
+Solange Angebote gesammelt werden, zeigen die Seite der Anmeldung und das Formular der Aktivität unter **Plätze und Bedarf** je Projekttag und Schulstufe, wie viele Schüler\*innen noch einen Platz suchen, das **Ziel** und wie viele Plätze die eingereichten und genehmigten Aktivitäten anbieten. Hat ein Tag einen Anwesenheitsrahmen, steht das je Einheit; eine Aktivität zählt in jeder Einheit, die sie berührt. Das Ziel liegt um einen Anteil über dem Bedarf, den die Organisation festlegt, meist 20 %: So haben die Wünsche Platz. Ein Feld unter dem Ziel ist markiert; dort hilft eine weitere Aktivität am meisten, und dort lohnt es sich, einen Termin hinzulegen.

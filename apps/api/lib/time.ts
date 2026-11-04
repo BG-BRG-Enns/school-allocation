@@ -47,3 +47,32 @@ export function instantOf(iso: string): number | undefined {
   const ms = Date.parse(iso)
   return Number.isFinite(ms) ? ms : undefined
 }
+
+const zoneParts = new Intl.DateTimeFormat('en-US', { timeZone: SCHOOL_TIME_ZONE, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
+/** Minutes the school's zone is ahead of UTC at `ms`. */
+function zoneOffsetMinutes(ms: number): number {
+  const part = (type: string) => Number(zoneParts.formatToParts(new Date(ms)).find((p) => p.type === type)?.value)
+  const asUtc = Date.UTC(part('year'), part('month') - 1, part('day'), part('hour'), part('minute'), part('second'))
+  return Math.round((asUtc - ms) / 60_000)
+}
+
+/**
+ * The instant at a wall-clock date (YYYY-MM-DD) and time (HH:MM) in the
+ * school's zone, as the web app computes it (apps/web/src/lib/format.ts):
+ * the offset is read from the zone for that moment, twice around a change
+ * of summer time.
+ */
+export function instantInSchoolZone(date: string, time: string): number {
+  const wall = Date.parse(`${date}T${time}:00Z`)
+  let ms = wall - zoneOffsetMinutes(wall) * 60_000
+  const again = wall - zoneOffsetMinutes(ms) * 60_000
+  if (again !== ms) ms = again
+  return ms
+}
+
+/** The span of a local date in the school's zone: from its midnight to the next day's. */
+export function dayBounds(date: string): { startMs: number, endMs: number } {
+  const next = new Date(Date.parse(`${date}T00:00:00Z`) + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  return { startMs: instantInSchoolZone(date, '00:00'), endMs: instantInSchoolZone(next, '00:00') }
+}

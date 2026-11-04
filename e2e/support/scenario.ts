@@ -16,9 +16,9 @@
 // the browser's clock follows it.
 
 import type { Page } from '@playwright/test'
-import { demandByDay, placeTarget } from '@school-allocation/school-core'
+import { DEFAULT_PERIODS, demandByDay, demandCells, placeTarget, type DemandDay } from '@school-allocation/school-core'
 import { inEnglish } from '../scenario/english.ts'
-import { MONDAY, scenario } from '../scenario/school.ts'
+import { MONDAY, scenario, scenarioInstant, scenarioOffer, wholeDay } from '../scenario/school.ts'
 import { control, followClock } from './clock.ts'
 import { LOCALE } from './messages.ts'
 
@@ -48,17 +48,26 @@ export function classSize(name: string): number {
 }
 
 /** The journeys' own activity in the project week (03-katalog): Bernd's climbing, Monday 08:30 – 12:15, for the 9th and 10th grade. */
-export const CLIMBING = { date: MONDAY, startsAt: `${MONDAY}T08:30:00+02:00`, places: 12, grades: [9, 10] } as const
+export const CLIMBING = { date: MONDAY, startsAt: `${MONDAY}T08:30:00+02:00`, endsAt: `${MONDAY}T12:15:00+02:00`, places: 12, grades: [9, 10] } as const
 
-/** What the demand shows for `grade` on `date` with the school's activities and the journeys' climbing: needing, target, offered. */
-export function demandOf(date: string, grade: number): [needing: number, target: number, offered: number] {
+/**
+ * What the demand shows for `grade` on `date` with the school's activities
+ * and the journeys' climbing: needing, target, offered. The day counted
+ * whole, or, with `period`, the cell of that period under the scenario's
+ * frame for the day (the seeded grid, which the journeys shorten by its last
+ * period only).
+ */
+export function demandOf(date: string, grade: number, period: number | null = null): [needing: number, target: number, offered: number] {
   const offered = [
-    ...SCHOOL.items.map((item) => ({ fixedClasses: item.fixedClasses, eligibleGrades: item.eligibleGrades, eligibleClasses: item.eligibleClasses, places: item.places, dates: [...new Set(item.sessions.map((s) => s.date))] })),
-    { fixedClasses: [], eligibleGrades: CLIMBING.grades, eligibleClasses: [], places: CLIMBING.places, dates: [CLIMBING.date] },
+    ...scenarioOffer(SCHOOL.items),
+    { fixedClasses: [], eligibleGrades: [...CLIMBING.grades], eligibleClasses: [], places: CLIMBING.places, sessions: [{ startMs: Date.parse(CLIMBING.startsAt), endMs: Date.parse(CLIMBING.endsAt) }] },
   ]
   const sizes = PARTICIPATING_CLASSES.map((c) => ({ className: c.name, grade: c.grade, students: c.students.length }))
-  const found = demandByDay(SCHOOL.projectDays, sizes, offered).find((d) => d.date === date)?.grades.find((g) => g.grade === grade)
-  if (!found) throw new Error(`no demand for grade ${grade} on ${date}`)
+  const frame = SCHOOL.campaign.frames[date] ?? null
+  const whole = wholeDay(date)
+  const day: DemandDay = period === null || frame === null ? whole : { date, frame, cells: demandCells(frame, DEFAULT_PERIODS, (time) => scenarioInstant(date, time), whole.cells[0] as { startMs: number, endMs: number }) }
+  const found = demandByDay([day], sizes, offered)[0]?.grades.find((g) => g.grade === grade)?.cells.find((c) => c.period === period)
+  if (!found) throw new Error(`no demand for grade ${grade} on ${date}, period ${period}`)
   // The registration's headroom is the default, 20%.
   return [found.needing, placeTarget(found.needing, 20), found.offered]
 }

@@ -1,4 +1,5 @@
 import type { CampaignWindow, RuleInput } from '@school-allocation/api-contracts'
+import type { Frame } from '@school-allocation/school-core'
 
 export type CampaignKind = typeof CAMPAIGN_KINDS[number]
 export type { CampaignWindow, RuleInput } from '@school-allocation/api-contracts'
@@ -14,6 +15,8 @@ export interface NewCampaign {
   projectDays: string[]
   /** The classes taking part; left out, every class of the class lists in force. */
   classes?: string[]
+  /** The attendance frame per project day, by date; a day left out has none (at creation) or keeps its frame (on a change). */
+  frames?: Record<string, Frame>
 }
 
 /** What an organizer changes: the set-up (while it is being set up or taking proposals), the window settings and the rules (until the window opens). */

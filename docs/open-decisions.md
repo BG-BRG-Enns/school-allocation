@@ -163,6 +163,12 @@ Before the first release, while nothing is frozen:
   computation, the asterisk for persons, Lehrkraft, Einheit, Kosten, Klassenlisten, and einloggen for
   signing in.
 
+## Sharpened by the project days' wishes (2026-11-04)
+
+The school's wishlist for its project days, with the outcomes of the meetings of 2026-11-03 and 2026-11-04, settled points 1, 2, 3, 5, 6 and 11 (the rest stay wishes). Decided with the owner on 2026-11-04, built in this order:
+
+- **An attendance frame per project day** (`campaign_day`): the periods of the grid everyone is at school in, or none (the default for a new day). With a frame the demand counts the day per period: an activity counts in every period a session of it touches, a part of one included, and a class activity takes its classes out of the periods it touches only. Without a frame the day is one cell, as before. Stored as period numbers, as the school says it ("2.–6. EH"); a later change of the grid moves the frame's times, as it moves nothing else. Set until the window opens.
+
 ## Still open
 
 Nothing from the decision list of 2026-10-27 is open any more. Open from the school's concept

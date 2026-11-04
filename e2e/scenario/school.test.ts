@@ -125,7 +125,8 @@ test('no two activities in one room at once, but the meeting point at the main e
 test('every grade-day is offered its target by the demand arithmetic, but grade 11 on Wednesday: short of the target, not of places', () => {
   const short: string[] = []
   for (const day of scenarioDemand(s.classes, s.items)) {
-    for (const g of day.grades) {
+    for (const grade of day.grades) {
+      const g = { grade: grade.grade, ...(grade.cells[0] as { needing: number, offered: number }) }
       assert.ok(g.offered >= targetOf(g.grade, day.date, g.needing), `grade ${g.grade} on ${day.date}: ${g.offered} of ${targetOf(g.grade, day.date, g.needing)}`)
       if (g.offered < placeTarget(g.needing, s.campaign.placeHeadroomPercent)) short.push(`${g.grade}@${day.date}`)
       assert.ok(g.offered >= g.needing)

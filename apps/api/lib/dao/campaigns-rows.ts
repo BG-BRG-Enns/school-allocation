@@ -1,4 +1,4 @@
-import type { CampaignRule, CampaignState } from '@school-allocation/school-core'
+import type { CampaignRule, CampaignState, Frame } from '@school-allocation/school-core'
 import type { CampaignKind } from '../models/campaigns.ts'
 
 export interface CampaignRow {
@@ -8,6 +8,8 @@ export interface CampaignRow {
   school_year: string
   state: CampaignState
   project_days: string[]
+  /** The frames by day, the days without one left out. */
+  frames: Record<string, Frame>
   opens_at: Date | null
   closes_at: Date | null
   late_until: Date | null

@@ -120,15 +120,23 @@ test('die Administration findet eine Entra-Gruppe über die Suche bei Microsoft'
   await signOut(page)
 })
 
-test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag und Schulstufe', async ({ page }) => {
+test('die Organisation legt den Anmeldezeitraum und den Anwesenheitsrahmen fest und sieht den Bedarf je Tag, Einheit und Schulstufe', async ({ page }) => {
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
   await expect(page.getByRole('heading', { name: t.campaign.demand.heading })).toBeVisible()
-  await expect(page.getByRole('row', { name: new RegExp(literally(day(MONDAY))) })).toContainText(t.campaign.demand.cell(...demandOf(MONDAY, 9)))
-  await picture(page, 'bedarf', section(page, t.campaign.demand.heading))
+  // Without a frame a day is one column: the 9th grade's Monday, counted whole.
+  const monday = page.getByRole('table', { name: t.campaign.demand.table(day(MONDAY)) })
+  await expect(monday.getByRole('columnheader', { name: t.campaign.demand.day })).toBeVisible()
+  await expect(monday.getByRole('row', { name: new RegExp(`^${literally(t.common.gradeOrdinal(9))}`) })).toContainText(t.campaign.demand.cell(...demandOf(MONDAY, 9)))
   await page.getByRole('button', { name: t.campaign.organization.editSettings }).click()
   const form = page.getByRole('form', { name: t.campaign.settings.label })
   await expect(form.getByLabel(t.campaign.settings.name, { exact: true })).toBeDisabled()
+  // Monday is the sports day: everyone is at school from the 2nd to the 6th period, so the demand counts it period by period.
+  const frame = SCHOOL.campaign.frames[MONDAY]
+  if (!frame) throw new Error('the scenario frames Monday')
+  await form.getByLabel(t.campaign.settings.frameFrom(1)).selectOption(String(frame.from))
+  await form.getByLabel(t.campaign.settings.frameTo(1)).selectOption(String(frame.to))
+  await expect(form.getByLabel(t.campaign.settings.frameFrom(2))).toHaveValue('0')
   await form.getByLabel(t.campaign.settings.opens, { exact: true }).fill('2034-03-06T08:00')
   await form.getByLabel(t.campaign.settings.closes, { exact: true }).fill('2034-03-12T20:00')
   await form.getByLabel(t.campaign.settings.lateUntil).fill('2034-03-19T20:00')
@@ -158,6 +166,13 @@ test('die Organisation legt den Anmeldezeitraum fest und sieht den Bedarf je Tag
   await form.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.common.saved)
   await expect(page.getByText(`${t.campaign.window.opens(dayTime('2034-03-06T08:00'), dayTime('2034-03-12T20:00'))}, ${t.campaign.window.late(dayTime('2034-03-19T20:00'))} · ${t.campaign.window.wishes(3)}`)).toBeVisible()
+  // Monday now has a column per period of its frame; an activity counts in every period it touches.
+  await expect(page.getByText(t.campaign.demand.framed(t.format.periods(frame.from, frame.to)))).toBeVisible()
+  await expect(monday.getByRole('columnheader', { name: t.format.period(frame.from) })).toBeVisible()
+  await expect(monday.getByRole('columnheader')).toHaveCount(frame.to - frame.from + 2)
+  await expect(monday.getByRole('row', { name: new RegExp(`^${literally(t.common.gradeOrdinal(9))}`) })).toContainText(t.campaign.demand.cell(...demandOf(MONDAY, 9, frame.from)))
+  await expect(monday.getByRole('row', { name: new RegExp(`^${literally(t.common.gradeOrdinal(5))}`) })).toContainText(t.campaign.demand.cell(...demandOf(MONDAY, 5, frame.to)))
+  await picture(page, 'bedarf', section(page, t.campaign.demand.heading))
   const asks = t.rules.asks(sample.sport, 1, 'items')
   const asksCareers = t.rules.asks(careers.category, careers.minimum, careers.unit)
   await expect(section(page, t.campaign.organization.heading)).toContainText(`${asks} · ${t.rules.scope(sport.grades, [])}`)

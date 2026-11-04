@@ -4,13 +4,15 @@
 // organizers review, move the campaign on, set its rules and export the
 // catalogue.
 
-import { ITEM_STATES, MAX_RULES, placeTarget, RULE_LIMITS, RULE_UNITS } from '@school-allocation/school-core'
+import { ITEM_STATES, MAX_RULES, RULE_LIMITS, RULE_UNITS, type Frame, type Period } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import ClassPicker from '../components/ClassPicker.vue'
 import Collapsible from '../components/Collapsible.vue'
+import DemandTable from '../components/DemandTable.vue'
+import FrameSelect from '../components/FrameSelect.vue'
 import ListFilter from '../components/ListFilter.vue'
-import { loadClasses as loadRosterClasses, loadMailQueue, loadMailStatus } from '../lib/admin-api.ts'
+import { loadClasses as loadRosterClasses, loadMailQueue, loadMailStatus, loadPeriods } from '../lib/admin-api.ts'
 import { approveItem, catalogueExportPath, deleteCampaign, deleteItem, loadCampaign, loadCategories, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignRule, type CampaignView, type Category, type DayDemand, type Item, type MissingStudent, type RuleDemand, type RuleUnit } from '../lib/campaigns-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
@@ -34,6 +36,8 @@ const grades = computed(() => [...new Set(memberClasses.value.map((cl) => cl.gra
 const rosterClasses = ref<{ className: string, grade: number }[]>([])
 /** The school's categories, to name the rules by. */
 const categories = ref<Category[]>([])
+/** The school's period grid, for the attendance frames of the project days. */
+const grid = ref<Period[]>([])
 const loading = useFeedback()
 const action = useFeedback()
 usePageTitle(() => view.value?.campaign.name ?? t.campaign.title)
@@ -49,7 +53,11 @@ async function load(): Promise<void> {
       ruleDemand.value = d.rules
       memberClasses.value = c.classes
     }
-    if (v.may.organize) rosterClasses.value = (await loadRosterClasses()).classes.map((c) => ({ className: c.className, grade: c.grade }))
+    if (v.may.organize) {
+      const [roster, periods] = await Promise.all([loadRosterClasses(), loadPeriods()])
+      rosterClasses.value = roster.classes.map((c) => ({ className: c.className, grade: c.grade }))
+      grid.value = periods.periods
+    }
     if (v.may.organize || v.campaign.rules.length > 0) categories.value = (await loadCategories()).categories
   })
 }
@@ -140,27 +148,6 @@ const windowSummary = computed(() => {
   return `${parts.join(', ')} · ${t.campaign.window.wishes(c.wishesPerGroup)}`
 })
 
-function demandOf(day: DayDemand, grade: number): DayDemand['grades'][number] | undefined {
-  return day.grades.find((g) => g.grade === grade)
-}
-
-/** The places a grade should be offered on a day: what it needs and the registration's headroom on top. */
-function targetOf(day: DayDemand, grade: number): number {
-  return placeTarget(demandOf(day, grade)?.needing ?? 0, campaign.value?.placeHeadroomPercent ?? 0)
-}
-
-/** A cell of the demand table: who needs a place, the target and what is offered; empty when the day has no entry for the grade. */
-function demandText(day: DayDemand, grade: number): string {
-  const d = demandOf(day, grade)
-  return d ? t.campaign.demand.cell(d.needing, targetOf(day, grade), d.offered) : ''
-}
-
-/** How many places a grade lacks on a day to reach the target; 0 when it is reached. */
-function shortOf(day: DayDemand, grade: number): number {
-  const d = demandOf(day, grade)
-  return d ? Math.max(0, targetOf(day, grade) - d.offered) : 0
-}
-
 /** What a rule asks of whom, in a line: "Sport: mindestens 1 Aktivität · 9. Schulstufe". */
 function ruleText(rule: Pick<CampaignRule, 'categoryId' | 'minimum' | 'unit' | 'grades' | 'classes'>): string {
   const category = categories.value.find((c) => c.id === rule.categoryId)?.name ?? '–'
@@ -200,6 +187,8 @@ const editing = ref(false)
 const name = ref('')
 const schoolYear = ref('')
 const days = ref<string[]>([])
+/** The attendance frame per project day, beside `days` by index; null for none. */
+const frames = ref<(Frame | null)[]>([])
 const classesDraft = ref<string[]>([])
 /** Why the classes were refused: an activity or a rule still names the ones taken out. */
 const classProblem = ref('')
@@ -229,6 +218,7 @@ function startEditing(): void {
   name.value = c.name
   schoolYear.value = c.schoolYear
   days.value = [...c.projectDays]
+  frames.value = c.days.map((day) => day.frame)
   classesDraft.value = [...c.classes]
   classProblem.value = ''
   opensAt.value = localInput(c.opensAt)
@@ -259,6 +249,7 @@ async function onSaveSettings(): Promise<void> {
       changes.wishesPerGroup = Number(wishesPerGroup.value)
       changes.showTeachers = showTeachers.value
       changes.placeHeadroomPercent = Number(placeHeadroomPercent.value)
+      changes.frames = Object.fromEntries(days.value.flatMap((day, index) => (day && frames.value[index] ? [[day, frames.value[index]]] : [])))
       changes.rules = rules.value.map((rule) => ({
         categoryId: rule.categoryId,
         grades: [...rule.grades].sort((a, b) => a - b),
@@ -658,11 +649,11 @@ function onSubmitPending(): void {
             :disabled="!setUpEditable"
           >
         </p>
-        <fieldset
-          class="field"
-          :disabled="!setUpEditable"
-        >
+        <fieldset class="field">
           <legend>{{ t.campaign.projectDays }}</legend>
+          <p class="muted">
+            {{ t.campaign.settings.frameHint }}
+          </p>
           <p
             v-for="(_, index) in days"
             :key="index"
@@ -673,26 +664,34 @@ function onSubmitPending(): void {
               :aria-label="t.campaign.settings.projectDay(index + 1)"
               type="date"
               required
+              :disabled="!setUpEditable"
             >
             <span
               v-if="days[index]"
               class="muted"
             >{{ formatDay(days[index]) }}</span>
+            <FrameSelect
+              :model-value="frames[index] ?? null"
+              :grid="grid"
+              :day="index + 1"
+              :disabled="!windowEditable"
+              @update:model-value="frames[index] = $event"
+            />
             <button
-              v-if="days.length > 1"
+              v-if="days.length > 1 && setUpEditable"
               type="button"
               class="ghost"
-              @click="days.splice(index, 1)"
+              @click="days.splice(index, 1); frames.splice(index, 1)"
             >
               {{ t.common.remove }}
             </button>
           </p>
-          <p>
+          <p v-if="setUpEditable">
             <button
               type="button"
               class="ghost"
               :disabled="days.length >= 10"
-              @click="days.push(nextDay(days.at(-1) ?? ''))"
+              @click="days.push(nextDay(days.at(-1) ?? '')); frames.push(null)"
             >
               {{ t.common.addDay }}
             </button>
@@ -1088,44 +1087,10 @@ function onSubmitPending(): void {
         <p class="muted">
           {{ t.campaign.demand.intro(campaign.placeHeadroomPercent) }}
         </p>
-        <table class="table">
-          <thead>
-            <tr>
-              <th scope="col">
-                {{ t.common.field.day }}
-              </th>
-              <th
-                v-for="grade in demandGrades"
-                :key="grade"
-                scope="col"
-              >
-                {{ t.common.gradeOrdinal(grade) }}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="day in demand"
-              :key="day.date"
-            >
-              <th scope="row">
-                {{ formatDay(day.date) }}
-              </th>
-              <td
-                v-for="grade in demandGrades"
-                :key="grade"
-                :class="{ short: shortOf(day, grade) > 0 }"
-              >
-                <template v-if="demandOf(day, grade)">
-                  {{ demandText(day, grade) }}
-                  <template v-if="shortOf(day, grade) > 0">
-                    <br>{{ t.campaign.demand.short(shortOf(day, grade)) }}
-                  </template>
-                </template>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <DemandTable
+          :demand="demand"
+          :percent="campaign.placeHeadroomPercent"
+        />
         <template v-if="ruleDemand.length > 0">
           <p class="muted">
             {{ t.campaign.demand.rulesIntro }}

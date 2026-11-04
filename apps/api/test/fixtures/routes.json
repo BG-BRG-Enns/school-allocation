@@ -1107,6 +1107,33 @@
           },
           "maxItems": 100
         },
+        "frames": {
+          "type": "object",
+          "patternProperties": {
+            "^[0-9]{4}-[0-9]{2}-[0-9]{2}$": {
+              "type": "object",
+              "required": [
+                "from",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20
+                },
+                "to": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "maxProperties": 10,
+          "additionalProperties": false
+        },
         "opensAt": {
           "anyOf": [
             {
@@ -1540,6 +1567,33 @@
             "maxLength": 16
           },
           "maxItems": 100
+        },
+        "frames": {
+          "type": "object",
+          "patternProperties": {
+            "^[0-9]{4}-[0-9]{2}-[0-9]{2}$": {
+              "type": "object",
+              "required": [
+                "from",
+                "to"
+              ],
+              "properties": {
+                "from": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20
+                },
+                "to": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "maxProperties": 10,
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

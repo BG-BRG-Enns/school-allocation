@@ -4,7 +4,7 @@ import type * as Core from '@school-allocation/school-core'
 import type { Static } from 'typebox'
 import type { GrantBody } from './administration.ts'
 import type { AllocationInputProblemSchema, AllocationProblemSchema, AllocationSummarySchema, AllocationWarningSchema, ExplainedDaySchema, ExplainedItemSchema, LevelValueSchema, RuleStandingSchema, SolveRequestSchema, SolveResponseSchema, SolveStatusSchema, StudentExplanationSchema } from './allocation.ts'
-import type { CatalogueProblemCodeSchema, CatalogueProblemSchema, CreditSchema, DayDemandSchema, ItemStateSchema, RuleDemandSchema, RuleSchema } from './campaigns.ts'
+import type { CatalogueProblemCodeSchema, CatalogueProblemSchema, CreditSchema, DayDemandSchema, FrameSchema, ItemStateSchema, RuleDemandSchema, RuleSchema } from './campaigns.ts'
 import type { CreditBody, PeriodBody, RuleBody, RuleProblemSchema } from './catalogue.ts'
 import type { RankingProblemCodeSchema, RankingProblemSchema, RuleReachSchema } from './choices.ts'
 import type { PersonKindSchema, Role } from './common.ts'
@@ -23,6 +23,7 @@ export type DomainSchemaChecks = [
   Assert<Equal<Static<typeof CatalogueProblemCodeSchema>, Core.CatalogueProblemCode>>,
   Assert<Equal<Static<typeof CatalogueProblemSchema>, Core.CatalogueProblem>>,
   Assert<Equal<Static<typeof DayDemandSchema>, Core.DayDemand>>,
+  Assert<Equal<Static<typeof FrameSchema>, Core.Frame>>,
   Assert<Equal<Static<typeof RankingProblemCodeSchema>, Core.RankingProblemCode>>,
   Assert<Equal<Static<typeof RankingProblemSchema>, Core.RankingProblem>>,
   Assert<Equal<Static<typeof PersonKindSchema>, Core.PersonKind>>,

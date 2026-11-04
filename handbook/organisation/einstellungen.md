@@ -2,7 +2,11 @@
 
 **Einstellungen ändern** auf der Seite der Anmeldung öffnet das Formular. Was sich ändern lässt, hängt vom Stand ab; der Knopf heißt später **Mindestminuten und Tauschzeit ändern** und zuletzt **Tauschzeit ändern**.
 
-![Das Formular Einstellungen der Anmeldung: Bezeichnung, Schuljahr, Projekttage, Anmeldezeitraum mit Beginn, Ende und Nachfrist, Tauschzeit, Wünsche je Zeitblock und Plätze über dem Bedarf](/bilder/de/einstellungen.png)
+![Das Formular Einstellungen der Anmeldung: Bezeichnung, Schuljahr, Projekttage mit ihrem Anwesenheitsrahmen, Anmeldezeitraum mit Beginn, Ende und Nachfrist, Tauschzeit, Wünsche je Zeitblock und Plätze über dem Bedarf](/bilder/de/einstellungen.png)
+
+## Anwesenheitsrahmen je Projekttag
+
+Neben jedem Projekttag steht sein **Anwesenheitsrahmen**: die Einheiten des [Stundenrasters](/verwaltung/stundenraster), in denen an diesem Tag alle in der Schule sind, etwa **2. bis 6. Einheit** an einem Sporttag mit kurzen Kursen. Mit Rahmen zählt [Plätze und Bedarf](./anlegen#plätze-und-bedarf) den Tag Einheit für Einheit; ohne Rahmen (**kein Rahmen**, die Voreinstellung) zählt der ganze Tag, was zu Tagen mit ganztägigen Aktivitäten passt. Der Rahmen lässt sich ändern, bis die Anmeldung öffnet.
 
 ## Anmeldezeitraum und Nachfrist
 
@@ -41,6 +45,6 @@ Eine Regel verlangt von den Schüler\*innen einer Schulstufe (oder nur einiger i
 | Einstellung | Änderbar, bis |
 | ----------- | ------------- |
 | Bezeichnung, Schuljahr, Projekttage | der Katalog veröffentlicht ist |
-| Anmeldezeitraum, Nachfrist, Wünsche je Zeitblock, Plätze über dem Bedarf, Regeln, Lehrkräfte im Katalog | die Anmeldung öffnet |
+| Anwesenheitsrahmen, Anmeldezeitraum, Nachfrist, Wünsche je Zeitblock, Plätze über dem Bedarf, Regeln, Lehrkräfte im Katalog | die Anmeldung öffnet |
 | Mindestminuten je Tag | die Einteilung veröffentlicht ist |
 | Tauschzeit | die Tauschzeit beginnt |
