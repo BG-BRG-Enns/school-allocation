@@ -47,18 +47,22 @@ async function load(): Promise<void> {
     const [v, list] = await Promise.all([loadCampaign(props.id), loadItems(props.id)])
     view.value = v
     items.value = list.items
-    if (v.may.seeDemand) {
-      const [d, c] = await Promise.all([loadDemand(props.id), loadClasses(props.id)])
+    // The rest at once: a request still on its way when the person signs out is answered 401.
+    const [d, c, roster, periods, school] = await Promise.all([
+      v.may.seeDemand ? loadDemand(props.id) : null,
+      v.may.seeDemand ? loadClasses(props.id) : null,
+      v.may.organize ? loadRosterClasses() : null,
+      v.may.organize ? loadPeriods() : null,
+      v.may.organize || v.campaign.rules.length > 0 ? loadCategories() : null,
+    ])
+    if (d) {
       demand.value = d.demand
       ruleDemand.value = d.rules
-      memberClasses.value = c.classes
     }
-    if (v.may.organize) {
-      const [roster, periods] = await Promise.all([loadRosterClasses(), loadPeriods()])
-      rosterClasses.value = roster.classes.map((c) => ({ className: c.className, grade: c.grade }))
-      grid.value = periods.periods
-    }
-    if (v.may.organize || v.campaign.rules.length > 0) categories.value = (await loadCategories()).categories
+    if (c) memberClasses.value = c.classes
+    if (roster) rosterClasses.value = roster.classes.map((cl) => ({ className: cl.className, grade: cl.grade }))
+    if (periods) grid.value = periods.periods
+    if (school) categories.value = school.categories
   })
 }
 onMounted(load)
