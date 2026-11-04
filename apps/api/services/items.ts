@@ -130,7 +130,8 @@ export async function updateItem(db: Database, id: string, sent: ItemInput, call
     await validate(client, current.campaignId, input)
     // A class is in one class activity at a time: an organizer's change of classes or times to an activity already
     // submitted or approved must not make two (a teacher's draft is checked when it is submitted).
-    const classesOrTimesChanged = [...current.fixedClasses].sort().join() !== [...input.fixedClasses].sort().join() || timesKey(current.sessions) !== timesKey(input.sessions)
+    const byName = (a: string, b: string) => a.localeCompare(b, 'de')
+    const classesOrTimesChanged = [...current.fixedClasses].sort(byName).join() !== [...input.fixedClasses].sort(byName).join() || timesKey(current.sessions) !== timesKey(input.sessions)
     if ((current.state === 'proposed' || current.state === 'approved') && classesOrTimesChanged) await refuseClassConflicts(client, current.campaignId, { id, ...shapeOf(input) })
     await store.updateContent(client, id, input)
     await store.deleteTeachers(client, id)
