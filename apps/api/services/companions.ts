@@ -186,7 +186,8 @@ export async function setCompanions(db: Database, id: string, body: CompanionsBo
   await db.tx(async (client) => {
     const { current, campaign } = await locked(client, id)
     const lead = current.teachers.find((teacher) => teacher.lead) ?? null
-    const asLead = caller.person !== null && lead !== null && lead.personId === caller.person.id
+    // The lead as the roster in force knows them: someone who left the roster keeps their person but not their say.
+    const asLead = isTeacher(caller) && caller.person !== null && lead !== null && lead.personId === caller.person.id
     if (!asLead && !isOrganizer(caller)) throw new ApplicationError('forbidden')
     if (current.state === 'withdrawn') throw new ApplicationError('item_state')
     if (campaign.state === 'archived') throw new ApplicationError('campaign_state')

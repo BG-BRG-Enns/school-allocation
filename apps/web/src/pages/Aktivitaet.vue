@@ -318,12 +318,14 @@ const companionsOnly = computed(() => {
   const me = session.value?.person?.id
   return organizes.value || (me !== undefined && item.teachers.some((teacher) => teacher.lead && teacher.personId === me))
 })
+/** The lead as saved: in the companions-only mode the lead stays, whatever the chips say, and everyone else sent is a companion. */
+const savedLeadId = computed(() => existing.value?.teachers.find((teacher) => teacher.lead)?.personId ?? null)
 const companionsSaving = useFeedback()
 async function saveCompanions(): Promise<void> {
   const item = existing.value
   if (!item) return
   await companionsSaving.run(async () => {
-    const saved = await setCompanions(item.id, { companions: companions.value.map((teacher) => teacher.personId), wanted: Number(companionsWanted.value) })
+    const saved = await setCompanions(item.id, { companions: teachers.value.filter((teacher) => teacher.personId !== savedLeadId.value).map((teacher) => teacher.personId), wanted: Number(companionsWanted.value) })
     existing.value = saved
     teachers.value = [...saved.teachers]
     companionsWanted.value = saved.companionsWanted
@@ -478,16 +480,24 @@ async function save(propose: boolean): Promise<void> {
 
     <h2>{{ t.common.field.teachers }}</h2>
     <div class="chips">
-      <button
+      <template
         v-for="teacher in teachers"
         :key="teacher.personId"
-        type="button"
-        class="ghost"
-        :aria-label="t.item.teachers.remove(teacher.displayName)"
-        @click="removeTeacher(teacher.personId)"
       >
-        {{ teacher.displayName }} ✕
-      </button>
+        <span
+          v-if="companionsOnly && teacher.personId === savedLeadId"
+          class="chip"
+        >{{ teacher.displayName }}</span>
+        <button
+          v-else
+          type="button"
+          class="ghost"
+          :aria-label="t.item.teachers.remove(teacher.displayName)"
+          @click="removeTeacher(teacher.personId)"
+        >
+          {{ teacher.displayName }} ✕
+        </button>
+      </template>
     </div>
     <p
       v-if="lead"

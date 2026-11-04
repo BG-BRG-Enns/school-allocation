@@ -432,6 +432,12 @@ button.small {
   padding: 2px 8px;
 }
 
+/* A teacher the form does not let go: the saved lead while only the companions are edited. */
+.chips .chip {
+  padding: 2px 8px;
+  border: 1px solid transparent;
+}
+
 .session {
   padding: 12px;
   margin: 8px 0;

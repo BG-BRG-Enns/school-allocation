@@ -119,7 +119,8 @@ const itemFilter = useListFilter('wahl:items', { state: '', category: '', compan
 const itemFields = computed<FilterField[]>(() => [
   { key: 'state', kind: 'select', label: t.filters.state, options: ITEM_STATES.map((state) => ({ value: state, label: ITEM_STATE_LABELS[state] ?? state })) },
   ...(categories.value.length > 0 ? [{ key: 'category', kind: 'select' as const, label: t.filters.category, options: categories.value.map((c) => ({ value: c.id, label: c.name })) }] : []),
-  { key: 'companionsMissing', kind: 'check', label: t.filters.onlyCompanionsMissing },
+  // The companions are counted from the teachers, which students may not see: staff alone filter by them.
+  ...(teaches.value || organizes.value ? [{ key: 'companionsMissing', kind: 'check' as const, label: t.filters.onlyCompanionsMissing }] : []),
   { key: 'text', kind: 'text', label: t.filters.text },
 ])
 /** How many companions an activity still seeks: the number its lead wants less the teachers beside the lead. */
@@ -149,7 +150,7 @@ function teachersText(item: Item): string {
   return [
     ...(lead ? [t.item.participants.lead(lead.displayName)] : []),
     ...(companions.length > 0 ? [t.item.participants.companions(companions.join(', '))] : []),
-    ...(item.companionsWanted > 0 ? [t.campaign.items.companionsOf(companions.length, item.companionsWanted)] : []),
+    ...(item.companionsWanted > 0 && (teaches.value || organizes.value) ? [t.campaign.items.companionsOf(companions.length, item.companionsWanted)] : []),
   ].join(' · ')
 }
 
@@ -249,6 +250,11 @@ function instantOrNull(value: string): string | null {
 function own(item: Item): boolean {
   const me = session.value
   return me !== null && me !== undefined && (item.proposedBy.id === me.id || item.teachers.some((t) => t.personId === me.person?.id))
+}
+/** Whether the caller leads the activity: the form lets them change its companions once it is submitted or approved. */
+function leads(item: Item): boolean {
+  const me = session.value?.person?.id
+  return me !== undefined && item.teachers.some((t) => t.lead && t.personId === me)
 }
 
 // Organizer's settings.
@@ -1403,7 +1409,7 @@ function onSubmitPending(): void {
               <td><span :class="['badge', `badge-${item.state}`]">{{ ITEM_STATE_LABELS[item.state] ?? item.state }}</span></td>
               <td class="row-actions">
                 <RouterLink
-                  v-if="(own(item) && item.state === 'draft' && campaign.state === 'catalogue') || (organizes && item.state !== 'withdrawn')"
+                  v-if="(own(item) && item.state === 'draft' && campaign.state === 'catalogue') || (organizes && item.state !== 'withdrawn') || (leads(item) && (item.state === 'proposed' || item.state === 'approved') && campaign.state !== 'archived')"
                   class="button ghost-link small"
                   :to="`/wahlen/${campaign.id}/aktivitaet/${item.id}`"
                 >
