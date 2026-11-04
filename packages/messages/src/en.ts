@@ -781,6 +781,20 @@ export const en: Messages = {
   },
 
   /** Katalog.vue: the catalogue as students read it and the school prints it. */
+  review: {
+    heading: 'Review submissions',
+    link: 'Review submissions',
+    back: 'Back to the overview',
+    position: (n: number, total: number) => `${n} of ${total}`,
+    none: 'No submitted activity is waiting.',
+    skip: 'Skip',
+    before: 'Places and demand without this activity',
+    after: 'Places and demand with this activity',
+    checking: 'Places and demand are loading.',
+    returned: 'Returned.',
+    withdrawn: 'Withdrawn.',
+  },
+
   catalogue: {
     title: 'Catalogue',
     titleOf: (campaign: string) => `Catalogue ${campaign}`,

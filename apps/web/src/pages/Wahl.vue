@@ -1258,6 +1258,13 @@ function onSubmitPending(): void {
             {{ t.availability.link }}
           </RouterLink>
           <RouterLink
+            v-if="organizes && (view.counts?.proposed ?? 0) > 0"
+            class="button"
+            :to="`/wahlen/${campaign.id}/eingereichte`"
+          >
+            {{ t.review.link }}
+          </RouterLink>
+          <RouterLink
             v-if="published || organizes"
             class="button ghost-link"
             :to="`/wahlen/${campaign.id}/katalog`"

@@ -24,6 +24,12 @@ Die Tabelle zeigt jede Aktivität mit Schulstufen, Lehrkräften (Leitung und Beg
 
 Ist es das einzige Angebot ihrer Leitung in dieser Anmeldung, steht beim Bestätigen nur ein Hinweis: „StC leitet dann in dieser Anmeldung nichts.“ Keine Sperre, keine weitere Folge; du entscheidest frei. Für eine Lehrkraft ohne Leitungspflicht ([Lehrkräfte je Tag](#lehrkräfte-je-tag)) entfällt der Hinweis.
 
+### Eingereichte durchgehen
+
+![Eingereichte durchgehen: die erste von zwölf Aktivitäten mit allen Angaben, wohin ihre Plätze gehen, die Knöpfe Genehmigen, Zurückgeben, Zurückziehen und Überspringen, darunter Plätze und Bedarf ohne und mit der Aktivität](/bilder/de/eingereichte-durchgehen.png)
+
+Gibt es eingereichte Aktivitäten, führt **Eingereichte durchgehen** über der Tabelle zu einer Seite, die sie eine nach der anderen zeigt, nach dem Datum der Einreichung, die früheste zuerst; oben steht, wo du bist („3 von 12“). Je Aktivität stehen alle Angaben, wohin ihre Plätze gehen, ihre Konflikte und die Verfügbarkeit der Leitung, darunter **Plätze und Bedarf** ohne und mit dieser Aktivität, ihre Felder markiert. **Genehmigen**, **Zurückgeben** (mit Rückmeldung) und **Zurückziehen** (mit Begründung) wirken wie in der Tabelle; danach kommt die nächste Aktivität, und die Tabelle zählt die eben genehmigte schon mit. **Überspringen** stellt eine ans Ende; **Zurück zum Überblick** führt jederzeit zur Anmeldung.
+
 **Bearbeiten** öffnet jede Aktivität. Was du an der Aktivität einer Lehrkraft änderst, wird protokolliert.
 
 **Eine Klasse ist zur selben Zeit nur in einer Klassenaktivität.** Eine Klassenaktivität, deren Klasse zu einer sich überschneidenden Zeit schon in einer eingereichten oder genehmigten Klassenaktivität ist, wird beim Einreichen abgelehnt, nicht nur gewarnt: Mit einer doppelt eingetragenen Klasse lässt sich die Zuteilung nicht berechnen. Wer zuerst einreicht, hat die Klasse; zwei Klassenaktivitäten am selben Tag ohne Überschneidung sind erlaubt, ein mehrtägiger Ausflug überschneidet sich an jedem seiner Tage. Dasselbe gilt, wenn du bei einer eingereichten oder genehmigten Klassenaktivität die Klassen oder die Zeiten änderst. Einen Konflikt löst du: Trag die Klasse aus der einen Aktivität aus, dann reicht die Lehrkraft die andere ein. Vor **Katalog veröffentlichen** warnt der Schritt vor Konflikten zwischen genehmigten Klassenaktivitäten, die schon vor dieser Regel bestanden.

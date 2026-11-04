@@ -24,6 +24,12 @@ The table shows each activity with its years, teachers (lead and companions), se
 
 If it is its lead's only offer in this registration, confirming shows a note only: "StC would then lead nothing in this registration." No bar, no further consequence; you decide freely. For a teacher without a duty to lead ([Teachers by day](#teachers-by-day)) the note is left out.
 
+### Review submissions
+
+![Review submissions: the first of twelve activities with all its details, where its places go, the buttons Approve, Return, Withdraw and Skip, below it Places and demand without and with the activity](/bilder/en/eingereichte-durchgehen.png)
+
+If there are submitted activities, **Review submissions** above the table leads to a page that shows them one after the other, by the date of submission, the earliest first; at the top it says where you are ("3 of 12"). For each activity there are all its details, where its places go, its conflicts and the lead's availability, below it **Places and demand** without and with this activity, its cells marked. **Approve**, **Return** (with feedback) and **Withdraw** (with a reason) work as in the table; then comes the next activity, and the table already counts the one just approved. **Skip** puts one at the end; **Back to the overview** leads to the registration at any time.
+
 **Edit** opens any activity. Changes you make to a teacher's activity are recorded.
 
 **A class is in one class activity at a time.** A class activity whose class is already in a submitted or approved class activity at an overlapping time is refused at submission, not merely warned about: with a class entered twice, the allocation cannot be calculated. Whoever submits first has the class; two class activities on the same day without overlap are allowed, a trip over several days overlaps on each of them. The same applies when you change the classes or the times of a submitted or approved class activity. You resolve a conflict: take the class out of one activity, then the teacher submits the other. Before **Publish catalogue**, the step warns of conflicts among approved class activities that existed before this rule.

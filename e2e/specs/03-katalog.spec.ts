@@ -202,7 +202,17 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   const returning = page.getByRole('form', { name: t.campaign.pending.returnTitle(sample.climbing) })
   await expect(returning.getByText(t.campaign.pending.leadsNothing(BERND.name))).toBeVisible()
   await returning.getByRole('button', { name: t.common.cancel }).click()
-  await page.getByRole('row', { name: climbing }).getByRole('button', { name: t.campaign.items.approve }).click()
+  // The submitted activities one after the other: the climbing is the only one waiting; it says where its places go, and is approved here.
+  await page.getByRole('link', { name: t.review.link }).click()
+  await expect(page.getByRole('heading', { name: t.review.heading })).toBeVisible()
+  await expect(page.getByText(t.review.position(1, 1))).toBeVisible()
+  await expect(page.getByRole('heading', { name: sample.climbing })).toBeVisible()
+  await expect(page.getByText(t.campaign.items.bringsNothing)).toBeVisible()
+  await expect(page.getByRole('heading', { name: t.review.after })).toBeVisible()
+  await picture(page, 'eingereichte-durchgehen', page.locator('main'))
+  await page.getByRole('button', { name: t.campaign.items.approve }).click()
+  await expect(page.getByText(t.review.none)).toBeVisible()
+  await page.getByRole('link', { name: `← ${t.review.back}` }).click()
   await expect(page.getByRole('row', { name: climbing })).toContainText(t.labels.itemState.approved)
 
   // Teachers by day: Bernd leads climbing on Monday and is not there on Tuesday; the organization changes that.
