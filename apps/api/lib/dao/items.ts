@@ -58,7 +58,7 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
             i.cancellable_below_min, i.fixed_classes, i.eligible_grades, i.eligible_classes, i.state, i.review_note, i.proposed_by,
             u.display_name as proposer_name,
             (select b.person_id from identity_binding b where b.tid = u.tid and b.oid = u.oid and b.unbound_at is null) as proposer_person,
-            i.created_at, i.updated_at, i.approved_at, i.first_proposed_at, i.withdrawn_at, i.withdraw_reason,
+            i.created_at, i.updated_at, i.approved_at, i.first_proposed_at, i.withdrawn_at, i.withdraw_reason, i.companions_wanted,
             coalesce((select json_agg(json_build_object('personId', t.person_id, 'displayName', coalesce(e.display_name, '?')) order by t.position)
                         from item_teacher t
                         left join roster_entry e on e.person_id = t.person_id
@@ -93,6 +93,7 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
     reviewNote: row.review_note,
     proposedBy: { id: row.proposed_by, displayName: row.proposer_name, personId: row.proposer_person },
     teachers: withLead(row.teachers, row.proposer_person),
+    companionsWanted: row.companions_wanted,
     sessions: row.sessions,
     categoryIds: row.category_ids,
     createdAt: row.created_at.toISOString(),
@@ -125,7 +126,7 @@ export async function listRosterClasses(db: Queryable) {
   return rows.map((row) => ({ className: row.class_name }))
 }
 
-export async function findItemTeachers(db: Queryable, input: ItemInput) {
+export async function findItemTeachers(db: Queryable, input: Pick<ItemInput, 'teachers'>) {
   const { rows } = await db.query<{ person_id: string }>(
     `select e.person_id from roster_entry e
        join ${CURRENT_BATCH_ID} c on c.id = e.batch_id
@@ -143,10 +144,10 @@ export async function lockCampaignForCreate(db: Queryable, campaignId: string) {
 export async function insertItem(db: Queryable, campaignId: string, input: ItemInput, caller: Caller) {
   const { rows: [row] } = await db.query<{ id: string }>(
     `insert into catalog_item (campaign_id, title, description, location, fee_cents, fee_note, places, min_participants, cancellable_below_min,
-                                 fixed_classes, eligible_grades, eligible_classes, proposed_by)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id`,
+                                 fixed_classes, eligible_grades, eligible_classes, proposed_by, companions_wanted)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) returning id`,
     [campaignId, input.title, input.description, input.location, input.feeCents, input.feeNote, input.places, input.minParticipants, input.cancellableBelowMin,
-      input.fixedClasses, input.eligibleGrades, input.eligibleClasses, caller.id],
+      input.fixedClasses, input.eligibleGrades, input.eligibleClasses, caller.id, input.companionsWanted],
   )
   return row === undefined ? undefined : ({ id: row.id })
 }
@@ -159,10 +160,28 @@ export async function lockCampaignForUpdate(db: Queryable, current: Item) {
 export async function updateContent(db: Queryable, id: string, input: ItemInput) {
   await db.query(
     `update catalog_item set title = $2, description = $3, location = $4, fee_cents = $5, fee_note = $6, places = $7, min_participants = $8,
-              cancellable_below_min = $9, fixed_classes = $10, eligible_grades = $11, eligible_classes = $12, updated_at = app_now() where id = $1`,
+              cancellable_below_min = $9, fixed_classes = $10, eligible_grades = $11, eligible_classes = $12, companions_wanted = $13, updated_at = app_now() where id = $1`,
     [id, input.title, input.description, input.location, input.feeCents, input.feeNote, input.places, input.minParticipants, input.cancellableBelowMin,
-      input.fixedClasses, input.eligibleGrades, input.eligibleClasses],
+      input.fixedClasses, input.eligibleGrades, input.eligibleClasses, input.companionsWanted],
   )
+}
+
+/** A teacher joins an activity as a companion: appended after the teachers it has, so the lead stays who it is. */
+export async function addTeacher(db: Queryable, id: string, personId: string, position: number) {
+  await db.query('insert into item_teacher (item_id, person_id, position) values ($1, $2, $3)', [id, personId, position])
+}
+
+export async function removeTeacher(db: Queryable, id: string, personId: string) {
+  await db.query('delete from item_teacher where item_id = $1 and person_id = $2', [id, personId])
+}
+
+/** The teachers replaced as a whole (the lead first) and the number of companions wanted written. */
+export async function replaceTeachers(db: Queryable, id: string, teachers: readonly string[], companionsWanted: number) {
+  await db.query('delete from item_teacher where item_id = $1', [id])
+  for (const [position, personId] of teachers.entries()) {
+    await db.query('insert into item_teacher (item_id, person_id, position) values ($1, $2, $3)', [id, personId, position])
+  }
+  await db.query('update catalog_item set companions_wanted = $2, updated_at = app_now() where id = $1', [id, companionsWanted])
 }
 
 /** Replaces an item's categories with `categoryIds`. */

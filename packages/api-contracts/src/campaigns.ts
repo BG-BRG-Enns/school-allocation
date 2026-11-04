@@ -140,6 +140,8 @@ export const ItemSchema = StrictObject({
     /** Whether they lead the activity (school-core leadOf); the others accompany. */
     lead: Type.Boolean(),
   })),
+  /** How many companions the lead wants beside them; what is still sought is this less the teachers that do not lead. */
+  companionsWanted: Type.Number(),
   sessions: Type.Array(StrictObject({
     id: Type.String(),
     startsAt: Type.String(),

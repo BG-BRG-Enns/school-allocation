@@ -105,6 +105,8 @@ export interface ScenarioItem {
   eligibleClasses: string[]
   /** Oids, the lead first: whoever proposes it. */
   teachers: string[]
+  /** How many companions the lead wants beside them; the ones not named are sought on the list. */
+  companionsWanted: number
   sessions: ScenarioSession[]
   categories: string[]
   proposedAt: string
@@ -216,6 +218,7 @@ interface ItemSpec {
   feeNote?: string
   categories: string[]
   popularity?: number
+  /** The companions the lead wants: for a class activity drawn from the pool and named, for the rest sought on the list (the school's wish 6). */
   companions?: number
 }
 
@@ -466,7 +469,7 @@ function itemsOf(classes: readonly ScenarioClass[], teachers: readonly ScenarioT
     const dates = datesOf(spec)
     const teachersOf = leadsOf(spec)
     if (teachersOf.length === 0) teachersOf.push(drawTeacher(dates))
-    for (let i = 0; i < (spec.companions ?? 0); i++) teachersOf.push(drawTeacher(dates))
+    if (spec.fixed) for (let i = 0; i < (spec.companions ?? 0); i++) teachersOf.push(drawTeacher(dates))
     const proposedAt = spec.fixed
       ? momentBetween(rng, '2033-11-07', '2033-11-11', 9, 18)
       : momentBetween(rng, '2033-11-14', '2033-12-15', 9, 18)
@@ -484,6 +487,7 @@ function itemsOf(classes: readonly ScenarioClass[], teachers: readonly ScenarioT
       eligibleGrades: spec.grades ?? [],
       eligibleClasses: spec.classes ?? [],
       teachers: teachersOf,
+      companionsWanted: spec.companions ?? 0,
       sessions: spec.sessions,
       categories: spec.categories,
       proposedAt,

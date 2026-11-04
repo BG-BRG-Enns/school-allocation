@@ -5,10 +5,10 @@ import { endpointPath } from '@school-allocation/api-contracts/client-endpoint'
 import * as endpoints from '@school-allocation/api-contracts/endpoint-metadata'
 export type { CampaignRule, DayDemand, RuleDemand, RuleUnit } from '@school-allocation/school-core'
 
-import type { AvailabilityStatus, CampaignChanges, ItemCheckBody, ItemInput } from '@school-allocation/api-contracts'
+import type { AvailabilityStatus, CampaignChanges, CompanionsBody, ItemCheckBody, ItemInput } from '@school-allocation/api-contracts'
 import { apiRequest } from './api.ts'
 
-export type { Campaign, CampaignChanges, Category, CampaignCounts, CampaignView, CampaignWindow, ChoiceState, ChoiceView, ClassConflictView, ClassStatus, GateCellView, GroupView, Item, ItemCheckResponse, ItemInput, ItemInvalidBody, ItemShare, MissingStudent, RankingInvalidBody, SessionInput } from '@school-allocation/api-contracts'
+export type { Campaign, CampaignChanges, Category, CampaignCounts, CampaignView, CampaignWindow, ChoiceState, ChoiceView, ClassConflictView, ClassStatus, CompanionsItemView, CompanionsResponse, GateCellView, GroupView, Item, ItemCheckResponse, ItemInput, ItemInvalidBody, ItemShare, MissingStudent, RankingInvalidBody, SessionInput } from '@school-allocation/api-contracts'
 /** The school's categories, for the activity form, the catalogue, the choice page and the rules. */
 export const loadCategories = () => apiRequest(endpoints.getCategories, { })
 export const loadCampaigns = () => apiRequest(endpoints.getCampaigns, { })
@@ -24,6 +24,11 @@ export const proposeItem = (id: string) => apiRequest(endpoints.postItemsByIdPro
 export const unproposeItem = (id: string) => apiRequest(endpoints.postItemsByIdUnpropose, { params: { id: id } })
 /** What a submission would meet: the gate's cells and verdict, the class conflicts, the demand without and with the activity; writes nothing. */
 export const checkItem = (campaignId: string, body: ItemCheckBody) => apiRequest(endpoints.postCampaignsByIdItemsCheck, { params: { id: campaignId }, body })
+/** The companions sought (the school's wish 6): the list per project day, joining and leaving as a teacher, the companions set by the lead or an organizer. */
+export const loadCompanions = (campaignId: string) => apiRequest(endpoints.getCampaignsByIdCompanions, { params: { id: campaignId } })
+export const joinItem = (id: string) => apiRequest(endpoints.postItemsByIdCompanionsMe, { params: { id } })
+export const leaveItem = (id: string) => apiRequest(endpoints.deleteItemsByIdCompanionsMe, { params: { id } })
+export const setCompanions = (id: string, body: CompanionsBody) => apiRequest(endpoints.putItemsByIdCompanions, { params: { id }, body })
 
 export const createCampaign = (input: { kind: 'project_week', name: string, schoolYear: string, projectDays: string[], classes?: string[], frames?: Record<string, { from: number, to: number }> }) => apiRequest(endpoints.postAdminCampaigns, { body: input })
 

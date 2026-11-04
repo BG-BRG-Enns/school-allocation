@@ -54,6 +54,10 @@ export const AUDIT_ACTIONS = [
   'item.returned',
   'item.withdrawn',
   'item.changed',
+  // Its companions (campaign scope): a teacher joins or leaves by the list; the lead or an organizer sets the list and the number wanted.
+  'item.companion-joined',
+  'item.companion-left',
+  'item.companions-changed',
   // The school's settings (school scope): the period grid replaced, the
   // language changed; the class teachers of a class set; the categories.
   'settings.periods-changed',

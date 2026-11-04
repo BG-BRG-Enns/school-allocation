@@ -16,8 +16,10 @@ export interface ItemInput extends ItemRules {
   location: string
   feeCents: number
   feeNote: string
-  /** Person ids of roster teachers. */
+  /** Person ids of roster teachers: the lead and the companions. */
   teachers: string[]
+  /** How many companions the lead wants beside them, 0–8. */
+  companionsWanted: number
   sessions: SessionInput[]
   /** Ids of the school's categories; undefined keeps the ones an item has. */
   categories?: string[]

@@ -73,6 +73,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | place headroom (`placeHeadroomPercent`) | Ziel; "Plätze über dem Bedarf, in Prozent"; "unter dem Ziel" | target; "places above the need, in percent"; "short of the target" | the need and 20 % on top by default |
 | availability | Verfügbarkeit; verfügbar · nicht verfügbar · nur wenn nötig | availability; available · unavailable · if needed | no reason is ever asked |
 | lead, companions | Leitung, leitet; Begleitung, begleitet | lead, leads; companions, accompanies | the one who created the activity, else the first named |
+| companions sought (`catalog_item.companions_wanted`) | Begleitungen (0 bis 8); "noch 1 gesucht"; "Begleitung vollständig"; "Begleitung 1 von 2"; Begleitung gesucht; Ich begleite; Austragen | Companions (0 to 8); "1 still sought"; "Companions complete"; "Companions 1 of 2"; Companions sought; I accompany; Take me off | how many the lead wants beside them; sought = wanted − companions named; the list per project day a teacher joins from |
 | planning overview | Lehrkräfte je Tag; "leitet an keinem Tag etwas" | teachers by day; "leads nothing on any day" | |
 | duty to lead (`teacher_detail.lead_duty`) | Leitungspflicht; "keine Leitungspflicht"; "Ohne Leitungspflicht: …" | duty to lead; "no duty to lead" | a mark for the overview alone; from the availability sheet's Leitung column (N: none) or set beside the Kürzel |
 | progress during the window | Stand der Anmeldung; "wer sich schon angemeldet hat" | registration status | |

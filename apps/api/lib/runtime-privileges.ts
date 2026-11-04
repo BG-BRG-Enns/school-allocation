@@ -62,7 +62,7 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
     updateColumns: [
       'number', 'title', 'description', 'location', 'fee_cents', 'fee_note', 'places', 'min_participants', 'cancellable_below_min',
       'fixed_classes', 'eligible_grades', 'eligible_classes', 'state', 'updated_at', 'review_note', 'approved_at', 'approved_by',
-      'withdrawn_at', 'withdrawn_by', 'withdraw_reason', 'first_proposed_at', 'proposed_shape',
+      'withdrawn_at', 'withdrawn_by', 'withdraw_reason', 'first_proposed_at', 'proposed_shape', 'companions_wanted',
     ],
   },
   // Teachers of an item are replaced as a whole when it is edited; sessions too when their times change, else a

@@ -33,6 +33,7 @@ export function itemInput(body: Static<typeof ItemBody>, caller: Caller, creatin
     eligibleGrades: [...new Set(body.eligibleGrades ?? [])].sort((a, b) => a - b),
     eligibleClasses: uniqueSorted(body.eligibleClasses ?? []),
     teachers,
+    companionsWanted: body.companionsWanted ?? 0,
     sessions: body.sessions.map((session) => ({ startsAt: session.startsAt, endsAt: session.endsAt, location: session.location ?? '', credits: session.credits })),
     ...(body.categories === undefined ? {} : { categories: uniqueSorted(body.categories.map((id) => id.toLowerCase())) }),
   }

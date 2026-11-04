@@ -59,6 +59,7 @@ export const en: Messages = {
       newItem: 'New activity',
       availability: 'My availability',
       planning: 'Teachers by day',
+      companions: 'Companions sought',
       categories: 'Categories',
     },
     backToCampaign: 'Back to registration',
@@ -491,6 +492,9 @@ export const en: Messages = {
     frame_invalid: 'An attendance frame does not fit: it ends before it starts, names a period the timetable does not have, or a day that is no project day.',
     class_conflict: 'A class is already in another class activity at the same time. Please look at the note.',
     target_reached: 'Every cell this activity would bring places to has reached its target already. Please look at the note.',
+    companions_full: 'The companions have been found meanwhile.',
+    teacher_overlap: 'This teacher is already with another activity at the same time.',
+    teacher_unavailable: 'This teacher is entered as unavailable on a day of this activity.',
     sessions_outside_days: 'There are already sessions on the removed days. Please change the affected activities first.',
     item_invalid: 'The activity is not ready yet. Please check the notes.',
     window_order: 'Registration must end after it starts.',
@@ -584,6 +588,7 @@ export const en: Messages = {
     kind: 'Kind',
     onlyIncomplete: 'Only without complete choices',
     onlyRestricted: 'Only with limited availability',
+    onlyCompanionsMissing: 'Only with companions sought',
     reset: 'Clear filter',
     onlyCancelled: 'Only cancelled',
     classOrName: 'Class or name',
@@ -758,6 +763,8 @@ export const en: Messages = {
       brings: (cells: string) => `brings places to: ${cells}`,
       bringsNothing: 'only where the target is reached',
       leadLimited: (days: string) => `Lead not available, or only if needed, on ${days}`,
+      /** The companions named against the number the lead wants: "Companions 1 of 2". */
+      companionsOf: (named: number, wanted: number) => `Companions ${named} of ${wanted}`,
       fixedFor: (classes: string) => wholeClasses(classes),
       reviewNote: (note: string) => `Feedback: ${note}`,
       participants: 'Participants',
@@ -836,6 +843,12 @@ export const en: Messages = {
       /** A teacher not plainly available on some of the activity's days, the days as format.ts formatDay writes them. */
       unavailableOn: (name: string, days: string) => `${name} is unavailable on ${days}.`,
       ifNeededOn: (name: string, days: string) => `${name} is available on ${days} only if needed.`,
+      /** How many companions the lead wants beside them (the school's wish 6). */
+      wanted: 'Companions (0 to 8)',
+      wantedHint: 'How many teachers should come along beside the lead. What is still missing is listed under "Companions sought", where teachers sign up themselves.',
+      /** "1 still sought" */
+      sought: (count: number) => `${count} still sought`,
+      complete: 'Companions complete',
     },
     sessions: {
       intro: 'A session is given in school periods or, for a trip for example, by clock time. The minutes you enter for each project day are credited; travel and breaks do not count.',
@@ -891,6 +904,13 @@ export const en: Messages = {
       lead: (name: string) => `Lead: ${name}`,
       companions: (names: string) => `Companions: ${names}`,
     },
+    /** The companions alone, for the lead of a submitted or approved activity and for the organizer: the rest of the form is not changed there. */
+    companions: {
+      heading: 'Companions',
+      intro: 'Here you change only the companions and how many are sought; everything else stays as the activity was submitted.',
+      save: 'Save companions',
+      saved: 'Companions saved.',
+    },
   },
 
   /** Verfuegbarkeit.vue: a teacher's own availability on the project days of the registrations collecting activities. */
@@ -902,6 +922,33 @@ export const en: Messages = {
     statusOn: (day: string) => `Availability on ${day}`,
     saved: 'Saved.',
     link: 'Enter my availability',
+  },
+
+  /** Begleitung.vue: the list a teacher joins an activity from (the school's wish 6). */
+  companions: {
+    heading: 'Companions sought',
+    link: 'Companions sought',
+    intro: 'Per project day, the activities that still seek a companion and the ones you accompany. Sign up where you come along; until registration opens you also take yourself off here, after that tell the lead or the organisation.',
+    teachersOnly: 'The list is for teachers.',
+    none: 'No activity seeks a companion at the moment.',
+    noneOnDay: 'No activity seeks a companion on this day.',
+    /** The caller's own availability on the day, the status as labels.availability writes it. */
+    myStatus: (status: string) => `Your availability: ${status}`,
+    notApproved: 'not approved yet',
+    leading: 'You lead this activity.',
+    accompanying: 'You accompany this activity.',
+    join: 'I accompany',
+    leave: 'Take me off',
+    joined: 'Signed up.',
+    left: 'Taken off.',
+    /** Why joining is not possible (api-contracts COMPANION_PROBLEM_CODES). */
+    problem: {
+      none_sought: 'The companions have been found.',
+      overlap: 'You already lead or accompany another activity at the same time.',
+      unavailable: 'You are entered as unavailable on this day.',
+      campaign_state: 'The registration is closed.',
+      item_state: 'This activity no longer takes place.',
+    },
   },
 
   /** Lehrkraefte.vue: the organizer's overview of the teachers per project day. */

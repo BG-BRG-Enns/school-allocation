@@ -68,6 +68,9 @@ export const deFormal = {
       advice: 'Wählen Sie eine Zeit, in der noch Plätze fehlen, oder nehmen Sie eine Schulstufe dazu, der noch Plätze fehlen.',
       organizerAnyway: 'Als Organisation können Sie sie trotzdem einreichen und genehmigen.',
     },
+    companions: {
+      intro: 'Hier ändern Sie nur die Begleitung und wie viele gesucht werden; alles andere bleibt, wie die Aktivität eingereicht ist.',
+    },
   },
   wishes: {
     onBehalf: (name: string, className: string) => `Für ${name} (${className}). Was Sie eintragen, wird mit Begründung protokolliert.`,
@@ -120,6 +123,16 @@ export const deFormal = {
   availability: {
     intro: 'Tragen Sie ein, an welchen Projekttagen Sie für eine Aktivität da sind. Ohne Eintrag gelten Sie als verfügbar. Einen Grund geben Sie nicht an.',
     none: 'Zurzeit sammelt keine Anmeldung Angebote. Solange eine sammelt, tragen Sie hier ein, an welchen ihrer Projekttage Sie da sind; danach ändert das die Organisation.',
+  },
+  companions: {
+    intro: 'Je Projekttag die Aktivitäten, die noch eine Begleitung suchen, und die, die Sie begleiten. Tragen Sie sich ein, wo Sie mitkommen; bis die Anmeldung öffnet, tragen Sie sich hier auch wieder aus, danach sagen Sie es der Leitung oder der Organisation.',
+    myStatus: (status: string) => `Ihre Verfügbarkeit: ${status}`,
+    leading: 'Sie leiten diese Aktivität.',
+    accompanying: 'Sie begleiten diese Aktivität.',
+    problem: {
+      overlap: 'Zur selben Zeit leiten oder begleiten Sie schon eine andere Aktivität.',
+      unavailable: 'Sie sind an diesem Tag als nicht verfügbar eingetragen.',
+    },
   },
   planning: {
     intro: 'Je Lehrkraft und Projekttag: ob sie verfügbar ist, was sie leitet und was sie begleitet. Die Lehrkräfte tragen ihre Verfügbarkeit ein, solange Angebote gesammelt werden; hier ändern Sie sie für alle, bis die Anmeldung abgeschlossen ist.',
