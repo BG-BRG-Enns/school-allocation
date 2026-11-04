@@ -52,8 +52,10 @@ test('an availability list is previewed as what it changes, applied with the not
   const preview = await send<AvailabilityImportPreview>(s, s.anna, 'POST', `${url}/preview`, { csv: list })
   assert.equal(preview.status, 200, JSON.stringify(preview.body))
   assert.deepEqual(preview.body.problems, [])
-  assert.deepEqual(preview.body.ignoredColumns, ['Leitung'])
+  assert.deepEqual(preview.body.ignoredColumns, [], 'the Leitung column is read: N says who has no duty to lead')
   assert.deepEqual(preview.body.days, DAYS)
+  assert.equal(preview.body.changedLeadDuty, 1)
+  assert.deepEqual(preview.body.teachers.map((x) => x.leadDuty), [null, { before: true, after: false }, null])
   assert.deepEqual(preview.body.teachers.map((x) => [x.displayName, x.shortName, x.days.map((d) => `${d.before}>${d.after}`), x.note]), [
     [ANNA.name, null, ['available>unavailable', 'available>available'], null],
     [BERND.name, 'PfB', ['available>if_needed', 'available>if_needed'], { before: null, after: 'NUR RESERVE' }],
@@ -67,8 +69,10 @@ test('an availability list is previewed as what it changes, applied with the not
   assert.equal(applied.status, 200, JSON.stringify(applied.body))
   assert.equal(applied.body.changedDays, 3)
   assert.equal(applied.body.changedNotes, 1)
+  assert.equal(applied.body.changedLeadDuty, 1)
   const bernd = applied.body.planning.teachers.find((x) => x.displayName === BERND.name)
-  assert.deepEqual([bernd?.shortName, bernd?.note, bernd?.days.map((d) => d.status)], ['PfB', 'NUR RESERVE', ['if_needed', 'if_needed']])
+  assert.deepEqual([bernd?.shortName, bernd?.note, bernd?.leadDuty, bernd?.days.map((d) => d.status)], ['PfB', 'NUR RESERVE', false, ['if_needed', 'if_needed']])
+  assert.equal(applied.body.planning.teachers.find((x) => x.displayName === CARLA.name)?.leadDuty, true, 'an empty Leitung cell: the duty')
   assert.deepEqual(applied.body.planning.teachers.find((x) => x.displayName === ANNA.name)?.days.map((d) => d.status), ['unavailable', 'available'])
   const actions = (await readAudit(s.db, s.campaign)).filter((e) => e.action.startsWith('availability.')).map((e) => [e.action, e.metadata.changedDays])
   assert.deepEqual(actions, [['availability.imported', 3]])
@@ -77,12 +81,18 @@ test('an availability list is previewed as what it changes, applied with the not
   const again = await send<AvailabilityImportPreview>(s, s.anna, 'POST', `${url}/preview`, { csv: list })
   assert.equal(again.body.changedDays, 0)
   assert.equal(again.body.changedNotes, 0)
+  assert.equal(again.body.changedLeadDuty, 0)
+  // A Leitung cell that says something else is the row's problem; a file without the column leaves the duty as it is.
+  const odd = await send<AvailabilityImportPreview>(s, s.anna, 'POST', `${url}/preview`, { csv: 'Name;MO;Leitung\nPfB;;vielleicht\n' })
+  assert.deepEqual(odd.body.problems, [{ code: 'lead_duty_invalid', line: 2, key: 'vielleicht' }])
+  const without = await send<AvailabilityImportPreview>(s, s.anna, 'POST', `${url}/preview`, { csv: 'Name;MO\nPfB;N\n' })
+  assert.deepEqual([without.body.changedLeadDuty, without.body.teachers[0]?.leadDuty], [0, null])
 
   // The template carries the state: every teacher of the planning, by name, with address, abbreviation, days and note.
   const template = await s.app.inject({ method: 'GET', url: `${url}/template`, headers: { cookie: s.anna.header() } })
   assert.equal(template.statusCode, 200)
   assert.match(String(template.headers['content-type']), /^text\/csv/)
-  assert.equal(template.body, [`email;short_name;${DAYS.join(';')};note`, `${ANNA.email};;N;;`, `${BERND.email};PfB;F;F;NUR RESERVE`, `${CARLA.email};KnC;;;`, ''].join('\r\n'))
+  assert.equal(template.body, [`email;short_name;${DAYS.join(';')};lead_duty;note`, `${ANNA.email};;N;;;`, `${BERND.email};PfB;F;F;N;NUR RESERVE`, `${CARLA.email};KnC;;;;`, ''].join('\r\n'), 'the duty to lead as the sheet says it: empty, or N for none')
 
   // A file with only the Monday column and an empty note clears Bernd's note and makes him available on Monday; Tuesday stays.
   const partial = await send<AvailabilityImportApplied>(s, s.anna, 'POST', url, { csv: 'short_name;2027-06-21;note\nPfB;;\n' })
@@ -156,6 +166,18 @@ test('an organizer sets one teacher\'s abbreviation beside the name; one another
   assert.deepEqual(events[0]?.metadata, { personId: anna.personId, before: null, after: 'ZwA' })
   const after = await get<PlanningResponse>(s, s.anna, `/api/admin/campaigns/${s.campaign}/planning`)
   assert.equal(after.body.teachers.find((x) => x.displayName === ANNA.name)?.shortName, 'ZwA')
+  // The duty to lead, beside it: set by an organizer, audited once per change, kept by the abbreviation's change, a teacher may not.
+  assert.equal(after.body.teachers.find((x) => x.displayName === ANNA.name)?.leadDuty, true)
+  const duty = await send<{ personId: string, leadDuty: boolean }>(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId.toUpperCase()}/lead-duty`, { leadDuty: false })
+  assert.deepEqual([duty.status, duty.body], [200, { personId: anna.personId, leadDuty: false }])
+  assert.equal((await send(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId}/lead-duty`, { leadDuty: false })).status, 200)
+  assert.equal((await send(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId}/short-name`, { shortName: 'ZwE' })).status, 200)
+  assert.equal((await send(s, s.bernd, 'PUT', `/api/admin/teachers/${anna.personId}/lead-duty`, { leadDuty: true })).status, 403)
+  assert.equal((await send(s, s.anna, 'PUT', `/api/admin/teachers/00000000-0000-4000-8000-000000000000/lead-duty`, { leadDuty: false })).status, 404)
+  const dutyEvents = (await readAudit(s.db, SCHOOL_SCOPE)).filter((e) => e.action === 'teacher.lead-duty-changed')
+  assert.deepEqual(dutyEvents.map((e) => e.metadata), [{ personId: anna.personId, before: true, after: false }])
+  const withDuty = await get<PlanningResponse>(s, s.anna, `/api/admin/campaigns/${s.campaign}/planning`)
+  assert.deepEqual([withDuty.body.teachers.find((x) => x.displayName === ANNA.name)?.leadDuty, withDuty.body.teachers.find((x) => x.displayName === ANNA.name)?.shortName], [false, 'ZwE'])
   assert.equal((await send(s, s.anna, 'PUT', `/api/admin/teachers/${anna.personId}/short-name`, { shortName: null })).status, 200)
 })
 

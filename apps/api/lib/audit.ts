@@ -61,8 +61,9 @@ export const AUDIT_ACTIONS = [
   'class.teachers-changed',
   // A teacher list imported (school scope): abbreviations and class teachers from one file.
   'class.teachers-imported',
-  // A teacher's abbreviation set by an organizer on the planning page (school scope).
+  // A teacher's abbreviation set by an organizer on the planning page (school scope); whether they must lead an activity, likewise.
   'teacher.short-name-changed',
+  'teacher.lead-duty-changed',
   // The school's categories (school scope): added, renamed, removed while nothing named it.
   'category.created',
   'category.changed',

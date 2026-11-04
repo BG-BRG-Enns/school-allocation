@@ -13,7 +13,7 @@ import DemandTable from '../components/DemandTable.vue'
 import FrameSelect from '../components/FrameSelect.vue'
 import ListFilter from '../components/ListFilter.vue'
 import { loadClasses as loadRosterClasses, loadMailQueue, loadMailStatus, loadPeriods } from '../lib/admin-api.ts'
-import { approveItem, catalogueExportPath, deleteCampaign, deleteItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignRule, type CampaignView, type Category, type DayDemand, type Item, type ItemShare, type MissingStudent, type RuleDemand, type RuleUnit } from '../lib/campaigns-api.ts'
+import { approveItem, catalogueExportPath, deleteCampaign, deleteItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, loadMissing as loadMissingList, loadPlanning, missingExportPath, proposeItem, returnItem, transitionCampaign, unproposeItem, updateCampaign, withdrawItem, type CampaignChanges, type CampaignRule, type CampaignView, type Category, type DayDemand, type Item, type ItemShare, type MissingStudent, type PlanningResponse, type RuleDemand, type RuleUnit } from '../lib/campaigns-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
 import { useFeedback } from '../lib/feedback.ts'
@@ -428,10 +428,28 @@ async function confirmStep(): Promise<void> {
 type Pending = { item: Item, kind: 'return' | 'withdraw' } | null
 const pending = ref<Pending>(null)
 const text = ref('')
+/** The planning, loaded once an item is to be returned or withdrawn: whether its lead would then lead nothing in this registration. */
+const planningData = ref<PlanningResponse | null>(null)
 function ask(item: Item, kind: 'return' | 'withdraw'): void {
   pending.value = { item, kind }
   text.value = ''
+  if (planningData.value === null) {
+    void loadPlanning(props.id).then((p) => {
+      planningData.value = p
+    }).catch(() => {
+      planningData.value = null
+    })
+  }
 }
+/** The lead's only activity that may still take place, and a duty to lead: a note on the form, no bar (for a lead without the duty, nothing). */
+const leadsNothingAfter = computed(() => {
+  const p = pending.value
+  const lead = p?.item.teachers.find((teacher) => teacher.lead)
+  const row = lead ? planningData.value?.teachers.find((teacher) => teacher.personId === lead.personId) : undefined
+  if (!p || !lead || !row || !row.leadDuty) return ''
+  const others = row.days.some((day) => day.leads.some((led) => led.id !== p.item.id))
+  return others ? '' : t.campaign.pending.leadsNothing(row.shortName ?? lead.displayName)
+})
 async function act(fn: () => Promise<unknown>, done?: string): Promise<void> {
   const ok = await action.run(async () => {
     await fn()
@@ -1431,6 +1449,12 @@ function onSubmitPending(): void {
         @submit.prevent="onSubmitPending"
       >
         <h3>{{ pending.kind === 'return' ? t.campaign.pending.returnTitle(pending.item.title) : t.campaign.pending.withdrawTitle(pending.item.title) }}</h3>
+        <p
+          v-if="leadsNothingAfter"
+          class="notice"
+        >
+          {{ leadsNothingAfter }}
+        </p>
         <p class="field">
           <label for="pending-text">{{ pending.kind === 'return' ? t.campaign.pending.returnNote : t.common.field.reason }}</label>
           <input

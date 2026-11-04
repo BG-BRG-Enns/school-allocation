@@ -38,6 +38,8 @@ export const previewTeacherList = (csv: string) => apiRequest(endpoints.postAdmi
 export const applyTeacherList = (csv: string) => apiRequest(endpoints.postAdminClassesImport, { body: { csv } })
 export const teacherListTemplatePath = endpointPath(endpoints.getAdminClassesImportTemplate, {})
 export const setTeacherShortName = (personId: string, shortName: string | null) => apiRequest(endpoints.putAdminTeachersByPersonIdShortName, { params: { personId }, body: { shortName } })
+/** Whether a teacher must lead an activity: a mark for the planning overview. */
+export const setTeacherLeadDuty = (personId: string, leadDuty: boolean) => apiRequest(endpoints.putAdminTeachersByPersonIdLeadDuty, { params: { personId }, body: { leadDuty } })
 export const loadMailTemplates = () => apiRequest(endpoints.getAdminMailTemplates, { })
 export const saveMailTemplate = (kind: MailKind, subject: string, body: string) => apiRequest(endpoints.putAdminMailTemplatesByKind, { params: { kind: kind }, body: { subject, body } })
 export const resetMailTemplate = (kind: MailKind) => apiRequest(endpoints.deleteAdminMailTemplatesByKind, { params: { kind: kind } })

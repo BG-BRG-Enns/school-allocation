@@ -73,6 +73,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | availability | Verfügbarkeit; verfügbar · nicht verfügbar · nur wenn nötig | availability; available · unavailable · if needed | no reason is ever asked |
 | lead, companions | Leitung, leitet; Begleitung, begleitet | lead, leads; companions, accompanies | the one who created the activity, else the first named |
 | planning overview | Lehrkräfte je Tag; "leitet an keinem Tag etwas" | teachers by day; "leads nothing on any day" | |
+| duty to lead (`teacher_detail.lead_duty`) | Leitungspflicht; "keine Leitungspflicht"; "Ohne Leitungspflicht: …" | duty to lead; "no duty to lead" | a mark for the overview alone; from the availability sheet's Leitung column (N: none) or set beside the Kürzel |
 | progress during the window | Stand der Anmeldung; "wer sich schon angemeldet hat" | registration status | |
 | on-behalf entry | "Für jemanden eintragen" | "Enter for someone" | |
 | exemption | Befreiung, befreien | exemption, exempt | |

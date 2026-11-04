@@ -3,7 +3,7 @@ import * as metadata from './endpoint-metadata.ts'
 import { ClassParams, ClassTeachersBody, PeriodsBody, PeriodsInvalidResponse, TeachersQuery } from './catalogue.ts'
 import { ErrorResponse } from './common.ts'
 import { defineEndpoint } from './endpoint.ts'
-import { ClassesResponse, LanguageSetting, PeriodsResponse, ShortNameBody, TeacherListApplied, TeacherListBody, TeacherListInvalidResponse, TeacherListPreview, TeacherParams, TeacherShortNameResponse } from './settings.ts'
+import { ClassesResponse, LanguageSetting, LeadDutyBody, PeriodsResponse, ShortNameBody, TeacherLeadDutyResponse, TeacherListApplied, TeacherListBody, TeacherListInvalidResponse, TeacherListPreview, TeacherParams, TeacherShortNameResponse } from './settings.ts'
 import { TeachersResponse } from './campaigns.ts'
 
 export const getSettingsPeriods = defineEndpoint({ ...metadata.getSettingsPeriods, schema: { response: { '200': PeriodsResponse, '4xx': ErrorResponse } } })
@@ -27,3 +27,5 @@ export const postAdminClassesImport = defineEndpoint({ ...metadata.postAdminClas
 export const getAdminClassesImportTemplate = defineEndpoint({ ...metadata.getAdminClassesImportTemplate, schema: { } })
 /** An organizer sets one teacher's abbreviation, as the planning page offers it; refused when another teacher holds it. */
 export const putAdminTeachersByPersonIdShortName = defineEndpoint({ ...metadata.putAdminTeachersByPersonIdShortName, schema: { params: TeacherParams, body: ShortNameBody, response: { '200': TeacherShortNameResponse, '4xx': ErrorResponse } } })
+
+export const putAdminTeachersByPersonIdLeadDuty = defineEndpoint({ ...metadata.putAdminTeachersByPersonIdLeadDuty, schema: { params: TeacherParams, body: LeadDutyBody, response: { '200': TeacherLeadDutyResponse, '4xx': ErrorResponse } } })

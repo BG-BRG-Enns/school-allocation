@@ -171,6 +171,7 @@ export const postAdminClassesImport = { method: 'POST', path: '/api/admin/classe
 
 export const getAdminClassesImportTemplate = { method: 'GET', path: '/api/admin/classes/import/template', transport: 'download' } as const satisfies EndpointMetadata
 export const putAdminTeachersByPersonIdShortName = { method: 'PUT', path: '/api/admin/teachers/:personId/short-name', transport: 'json' } as const satisfies EndpointMetadata
+export const putAdminTeachersByPersonIdLeadDuty = { method: 'PUT', path: '/api/admin/teachers/:personId/lead-duty', transport: 'json' } as const satisfies EndpointMetadata
 
 export const getCampaignsByIdMyChoice = { method: 'GET', path: '/api/campaigns/:id/my-choice', transport: 'json' } as const satisfies EndpointMetadata
 

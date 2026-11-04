@@ -7,6 +7,8 @@ import { CURRENT_BATCH_ID } from './roster-selection.ts'
 export interface TeacherDetail {
   shortName: string | null
   note: string | null
+  /** Whether the teacher must lead an activity; true without a row. */
+  leadDuty: boolean
 }
 
 export interface RosterTeacherByAddress {
@@ -50,10 +52,10 @@ export async function isTeacher(db: Queryable, personId: string): Promise<boolea
 
 /** The details of the persons given, where a row exists. */
 export async function readDetails(db: Queryable, personIds: readonly string[]): Promise<Map<string, TeacherDetail>> {
-  const { rows } = await db.query<{ person_id: string, short_name: string | null, note: string | null }>(
-    'select person_id, short_name, note from teacher_detail where person_id = any($1::uuid[])', [personIds],
+  const { rows } = await db.query<{ person_id: string, short_name: string | null, note: string | null, lead_duty: boolean }>(
+    'select person_id, short_name, note, lead_duty from teacher_detail where person_id = any($1::uuid[])', [personIds],
   )
-  return new Map(rows.map((row) => [row.person_id, { shortName: row.short_name, note: row.note }]))
+  return new Map(rows.map((row) => [row.person_id, { shortName: row.short_name, note: row.note, leadDuty: row.lead_duty }]))
 }
 
 /** Who holds each of the abbreviations given (lower case), among everyone. */
@@ -67,9 +69,9 @@ export async function shortNameOwners(db: Queryable, shortNames: readonly string
 /** Writes a person's details as given, whole. */
 export async function writeDetail(db: Queryable, personId: string, detail: TeacherDetail): Promise<void> {
   await db.query(
-    `insert into teacher_detail (person_id, short_name, note) values ($1, $2, $3)
-       on conflict (person_id) do update set short_name = excluded.short_name, note = excluded.note, updated_at = app_now()`,
-    [personId, detail.shortName, detail.note],
+    `insert into teacher_detail (person_id, short_name, note, lead_duty) values ($1, $2, $3, $4)
+       on conflict (person_id) do update set short_name = excluded.short_name, note = excluded.note, lead_duty = excluded.lead_duty, updated_at = app_now()`,
+    [personId, detail.shortName, detail.note, detail.leadDuty],
   )
 }
 
