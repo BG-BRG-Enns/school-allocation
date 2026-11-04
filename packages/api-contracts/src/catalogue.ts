@@ -145,7 +145,7 @@ export const ClassConflictSchema = StrictObject({
 })
 export type ClassConflictView = Static<typeof ClassConflictSchema>
 
-/** What a submission would meet: the activity as the form holds it, or a stored one by id. */
+/** What a submission would meet: the activity as the form holds it, a stored one by id, or both (the form's shape judged as that stored activity's resubmission). */
 export const ItemCheckBody = StrictObject({ item: Type.Optional(ItemBody), itemId: Type.Optional(Uuid) })
 export type ItemCheckBody = Static<typeof ItemCheckBody>
 

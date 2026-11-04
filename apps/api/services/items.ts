@@ -347,10 +347,12 @@ async function gateFor(client: Queryable, campaign: Campaign, itemId: string | n
  * submission would be refused (the gate counts for a teacher; the page
  * tells an organizer they may go ahead), whether the registration locks
  * new offers, and its class conflicts. The activity as the form holds it,
- * or a stored one by id, the caller's own or an organizer's to see.
+ * a stored one by id (the caller's own or an organizer's to see), or both:
+ * the form's shape, left out of the demand as the stored activity and
+ * judged as its resubmission.
  */
 export async function checkItemOffer(db: Database, campaign: Campaign, body: ItemCheckBody, caller: Caller): Promise<ItemCheckResponse> {
-  let shape: StoredShape
+  let shape: StoredShape | null = null
   let previous: StoredShape | null = null
   let itemId: string | null = null
   if (body.itemId !== undefined) {
@@ -359,11 +361,9 @@ export async function checkItemOffer(db: Database, campaign: Campaign, body: Ite
     shape = shapeOf(item)
     previous = await readProposedShape(db, item.id)
     itemId = item.id
-  } else if (body.item !== undefined) {
-    shape = shapeOf(itemInput(body.item, caller, true))
-  } else {
-    throw new ApplicationError('validation_failed')
   }
+  if (body.item !== undefined) shape = shapeOf(itemInput(body.item, caller, true))
+  if (shape === null) throw new ApplicationError('validation_failed')
   const { before, after, cells, refused } = await gateFor(db, campaign, itemId, shape, previous)
   const classActivity = shape.fixedClasses.length > 0
   return {

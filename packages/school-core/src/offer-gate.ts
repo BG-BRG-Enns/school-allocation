@@ -30,12 +30,10 @@ export interface GateCell extends ServedCell {
 /** The shape of an activity the gate reads: what the demand reads, with its places. */
 export type GateShape = OfferedItem
 
-/** The grades an activity is open to: its eligible grades, else the grades of its eligible classes, else every grade of the classes. */
+/** The grades an activity is open to: those of the classes that pass both its lists (an empty list restricts nothing), as isEligible reads them. */
 export function gradesOpenTo(item: Pick<OfferedItem, 'eligibleGrades' | 'eligibleClasses'>, classes: readonly ClassSize[]): number[] {
-  const all = [...new Set(classes.map((c) => c.grade))].sort((a, b) => a - b)
-  if (item.eligibleGrades.length > 0) return all.filter((grade) => item.eligibleGrades.includes(grade))
-  if (item.eligibleClasses.length > 0) return all.filter((grade) => classes.some((c) => c.grade === grade && item.eligibleClasses.includes(c.className)))
-  return all
+  const open = classes.filter((c) => (item.eligibleGrades.length === 0 || item.eligibleGrades.includes(c.grade)) && (item.eligibleClasses.length === 0 || item.eligibleClasses.includes(c.className)))
+  return [...new Set(open.map((c) => c.grade))].sort((a, b) => a - b)
 }
 
 /** The cells an activity serves: every cell a session of it touches, for every grade it is open to, in the days' order. */

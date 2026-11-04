@@ -6,7 +6,7 @@ import { registerEndpoint } from '../lib/endpoint.ts'
 import type { FastifyInstance } from 'fastify'
 import { callerOf, type Guards } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
-import { isOrganizer, mayPropose } from '../lib/policies.ts'
+import { isOrganizer, mayPropose, maySeeDemand } from '../lib/policies.ts'
 import { itemInput } from '../services/catalogue-input.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
 import { approveItem, checkItemOffer, createItem, deleteDraft, proposeItem, returnItem, unproposeItem, updateItem, withVisibleItem } from '../services/items.ts'
@@ -35,11 +35,12 @@ export async function itemsRoutes(app: FastifyInstance, { db, guards, baseUrl, w
     return reply.code(201).send(await createItem(db, campaign.id, itemInput(request.body, caller, true), caller))
   })
 
-  // What a submission would meet, for the form's hints and the review: nothing is written.
+  // What a submission would meet, for the form's hints and the review: nothing is written. It answers with the demand, so
+  // it is for whoever may see the demand (D-13): organizers, teachers while proposals are taken.
   registerEndpoint(app, endpoints.postCampaignsByIdItemsCheck, { ...signedIn }, async (request, reply) => {
     const campaign = await visibleCampaign(db, callerOf(request), request.params.id)
     const caller = callerOf(request)
-    if (!mayPropose(caller)) return reply.code(403).send({ error: 'forbidden' })
+    if (!mayPropose(caller) || !maySeeDemand(caller, campaign)) return reply.code(403).send({ error: 'forbidden' })
     return checkItemOffer(db, campaign, request.body, caller)
   })
 

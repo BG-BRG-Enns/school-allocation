@@ -113,6 +113,9 @@ test('with the lock on, a teacher\'s submission is refused once every cell it se
   assert.equal((await send(s, s.anna, 'POST', `/api/items/${third.body.id}/propose`)).status, 200)
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${second.body.id}/return`, { note: 'Bitte den Ort angeben.' })).status, 200)
   assert.equal((await send<Check>(s, s.bernd, 'POST', `/api/campaigns/${id}/items/check`, { itemId: second.body.id })).body.cells.length, 0, 'nothing added: no cell to judge')
+  // The form's shape with the stored id: judged as the resubmission it would be (more places: every cell), the stored activity left out of the demand.
+  const grownCheck = await send<Check>(s, s.bernd, 'POST', `/api/campaigns/${id}/items/check`, { itemId: second.body.id, item: { title: 'Yoga', places: 8, teachers: [s.berndPerson], sessions: [session(MONDAY, '08:30', '11:20', 150)] } })
+  assert.deepEqual([grownCheck.body.refused, grownCheck.body.cells.length], [true, 3])
   const again = await send<Item>(s, s.bernd, 'POST', `/api/items/${second.body.id}/propose`)
   assert.equal(again.status, 200, JSON.stringify(again.body))
   assert.equal(again.body.firstProposedAt, firstTime, 'the first submission counts')

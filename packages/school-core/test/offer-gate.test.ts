@@ -24,6 +24,7 @@ test('an activity serves every cell it touches for every grade it is open to; th
   assert.deepEqual(gradesOpenTo(open(10, []), classes), [5, 8, 9])
   assert.deepEqual(gradesOpenTo(open(10, [], { eligibleGrades: [9, 12] }), classes), [9])
   assert.deepEqual(gradesOpenTo(open(10, [], { eligibleClasses: ['1B', '4A'] }), classes), [5, 8])
+  assert.deepEqual(gradesOpenTo(open(10, [], { eligibleGrades: [5, 9], eligibleClasses: ['1A'] }), classes), [5], 'both lists hold: no ninth grader may choose it')
   const served = servedCells(open(10, [session('08:30', '10:15')], { eligibleGrades: [5] }), days, classes)
   assert.deepEqual(served, [{ date: MONDAY, period: 2, grade: 5 }, { date: MONDAY, period: 3, grade: 5 }])
   // Outside the frame: no cell at all.

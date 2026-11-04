@@ -140,17 +140,24 @@ async function load(): Promise<void> {
 onMounted(load)
 watch(() => [props.id, props.itemId], load)
 
-/** The server's check of the form as it stands, a moment after the last change; a form the schema refuses (a date not yet chosen) leaves the last answer. */
+/**
+ * The server's check of the form as it stands, a moment after the last
+ * change: the shape alone counts, so a title not yet typed is sent as a
+ * dash; a stored activity goes with its id, so it is left out of the
+ * demand and a resubmission is judged by what it adds. A form the schema
+ * refuses (a date not yet chosen) leaves the last answer.
+ */
 let checkTimer: ReturnType<typeof setTimeout> | undefined
 async function runCheck(): Promise<void> {
   if (!campaign.value || !(campaign.value.state === 'catalogue' || organizes.value)) return
   try {
-    check.value = await checkItem(props.id, { item: input() })
+    const shape = input()
+    check.value = await checkItem(props.id, { item: { ...shape, title: shape.title || '–' }, ...(existing.value ? { itemId: existing.value.id } : {}) })
   } catch (err) {
     if (!(err instanceof ApiError)) throw err
   }
 }
-watch([places, fixedClasses, eligibleGrades, eligibleClasses, sessions, () => loading.busy.value], () => {
+watch([places, fixedClasses, eligibleGrades, eligibleClasses, sessions, existing, () => loading.busy.value], () => {
   if (loading.busy.value || !campaign.value) return
   clearTimeout(checkTimer)
   checkTimer = setTimeout(() => {
@@ -347,6 +354,8 @@ async function save(propose: boolean): Promise<void> {
   const ok = await saving.run(async () => {
     try {
       const item = existing.value ? await updateItem(existing.value.id, input()) : await createItem(props.id, input())
+      // Saved: a refused submission leaves this draft, and the next save changes it rather than making another.
+      existing.value = item
       if (propose && item.state === 'draft') await proposeItem(item.id)
     } catch (err) {
       // The submission refused by the school's rules: the activity is saved as a draft, the refusal says what to change.
