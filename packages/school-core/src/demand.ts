@@ -9,7 +9,10 @@
 // what they still need in the cell, since the offer is assumed to draw
 // every eligible class alike. Pure arithmetic over the roster's class
 // sizes and the catalogue; instants are epoch milliseconds the caller
-// computed in the school's zone.
+// computed in the school's zone. A class's students never rank an activity
+// that overlaps one of their class activities (choices.ts offeredTo), so
+// such an activity offers that class nothing, in any cell, even where the
+// class is back from its trip.
 
 import { overlaps } from './catalogue.ts'
 import type { Period } from './periods.ts'
@@ -118,8 +121,10 @@ function touches(item: OfferedItem, cell: DemandCell): boolean {
  */
 export function demandByDay(days: readonly DemandDay[], classes: readonly ClassSize[], items: readonly OfferedItem[]): DayDemand[] {
   const grades = [...new Set(classes.map((c) => c.grade))].sort((a, b) => a - b)
+  // The spans each class is fixed into, over every class activity: an item overlapping one of them is not for that class.
+  const fixedSpans = new Map(classes.map((c) => [c.className, items.filter((item) => item.fixedClasses.includes(c.className)).flatMap((item) => item.sessions)]))
   return days.map((day) => {
-    const cells = day.cells.map((cell) => cellDemand(cell, classes, items.filter((item) => touches(item, cell))))
+    const cells = day.cells.map((cell) => cellDemand(cell, classes, items.filter((item) => touches(item, cell)), fixedSpans))
     return {
       date: day.date,
       frame: day.frame,
@@ -141,13 +146,13 @@ export function demandByDay(days: readonly DemandDay[], classes: readonly ClassS
 }
 
 /** Per class of one cell: who still needs a place, and the places offered them, over the items touching the cell. */
-function cellDemand(cell: DemandCell, classes: readonly ClassSize[], inCell: readonly OfferedItem[]): { period: number | null, needing: Map<string, number>, offered: Map<string, number> } {
+function cellDemand(cell: DemandCell, classes: readonly ClassSize[], inCell: readonly OfferedItem[], fixedSpans: ReadonlyMap<string, readonly { startMs: number, endMs: number }[]>): { period: number | null, needing: Map<string, number>, offered: Map<string, number> } {
   const fixedClasses = new Set(inCell.flatMap((item) => item.fixedClasses))
   const needing = new Map(classes.map((c) => [c.className, fixedClasses.has(c.className) ? 0 : c.students]))
   const offered = new Map(classes.map((c) => [c.className, 0]))
   for (const item of inCell) {
     if (item.places <= 0) continue
-    const eligible = classes.filter((c) => mayRank(c, item))
+    const eligible = classes.filter((c) => mayRank(c, item) && !overlapsFixed(item, fixedSpans.get(c.className) ?? []))
     const need = eligible.reduce((sum, c) => sum + (needing.get(c.className) ?? 0), 0)
     // Nobody left to place in any eligible class: the places go nowhere.
     if (need === 0) continue
@@ -172,6 +177,11 @@ function splitWhole(total: number, fractions: readonly [string, number][]): [str
     remainder -= 1
   }
   return floors.map((f) => [f.key, f.share])
+}
+
+/** Whether the item overlaps one of the spans a class is fixed into: its students are never offered it then. */
+function overlapsFixed(item: OfferedItem, fixed: readonly { startMs: number, endMs: number }[]): boolean {
+  return item.sessions.some((s) => fixed.some((f) => overlaps(s, f)))
 }
 
 /** Whether students of the class may rank the item: not fixed into it, and within its grade and class rules. */

@@ -89,12 +89,27 @@ test('a framed day is counted per period: an activity counts in every period it 
   assert.deepEqual(withTrip?.grades[0]?.cells.map((c) => [c.fixed, c.needing]), [[50, 50], [50, 50], [50, 50], [0, 100], [0, 100]])
 })
 
+test('an activity overlapping a class\'s class activity offers that class nothing, in any cell: its students never rank it', () => {
+  // 1A is on a trip in the 2nd period; a course over the 2nd to the 5th period overlaps it, so 1A is never offered it, back from the trip or not.
+  const trip = open(0, [session(MONDAY, '08:30', '09:20')], { fixedClasses: ['1A'] })
+  const course = open(20, [session(MONDAY, '08:30', '12:15')], { eligibleGrades: [5] })
+  const [day] = demandByDay([framed(MONDAY, 2, 5)], classes, [trip, course])
+  assert.deepEqual(day?.grades[0]?.cells.map((c) => [c.fixed, c.needing, c.offered]), [[20, 20, 20], [0, 40, 20], [0, 40, 20], [0, 40, 20]], 'every place goes to 1B, in every period')
+  // A course after the trip is for both classes again.
+  const later = open(20, [session(MONDAY, '10:30', '12:15')], { eligibleGrades: [5] })
+  const [afterwards] = demandByDay([framed(MONDAY, 2, 5)], classes, [trip, later])
+  assert.deepEqual(afterwards?.grades[0]?.cells.map((c) => c.offered), [0, 0, 20, 20])
+})
+
 test('a multi-grade item splits per cell by the need left there; a session over midnight touches both days\' cells', () => {
   const course = open(20, [session(MONDAY, '08:30', '10:15')], { eligibleGrades: [5, 6] })
   const away = open(0, [session(MONDAY, '08:30', '09:20')], { fixedClasses: ['1A', '1B'] })
   const [day] = demandByDay([framed(MONDAY, 2, 3)], classes, [course, away])
-  // 2nd period: the fifth grade is away, the sixth gets every place; 3rd: split per class, 5.7 + 5.7 + 8.6 rounded by the largest remainders to 6 + 6 + 8.
-  assert.deepEqual(day?.grades.map((g) => g.cells.map((c) => c.offered)), [[0, 12], [20, 8]])
+  // The fifth grade is away in the 2nd period and the course overlaps that, so its students never rank it: every place is the sixth grade's, in both periods.
+  assert.deepEqual(day?.grades.map((g) => g.cells.map((c) => c.offered)), [[0, 0], [20, 20]])
+  // A course after the fifth grade is back splits in the 3rd period per class: 5.7 + 5.7 + 8.6, rounded by the largest remainders to 6 + 6 + 8.
+  const [later] = demandByDay([framed(MONDAY, 2, 3)], classes, [open(20, [session(MONDAY, '09:25', '10:15')], { eligibleGrades: [5, 6] }), away])
+  assert.deepEqual(later?.grades.map((g) => g.cells.map((c) => c.offered)), [[0, 12], [0, 8]], 'nothing in the 2nd period, which the course does not touch')
   const overnight = open(10, [{ startMs: at(MONDAY, '20:00'), endMs: at(TUESDAY, '09:00') }])
   const [monday, tuesday] = demandByDay([framed(MONDAY, 2, 6), framed(TUESDAY, 2, 6)], classes, [overnight])
   assert.deepEqual(monday?.grades[0]?.cells.map((c) => c.offered), [0, 0, 0, 0, 0], 'Monday evening is outside the frame')
