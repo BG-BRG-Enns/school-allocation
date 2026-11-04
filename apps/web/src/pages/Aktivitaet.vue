@@ -6,7 +6,7 @@
 // periods") or, for a trip, by the clock. The rules are the server's
 // (school-core); a refusal names them here.
 
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { leadOf, spanOfPeriods, type DayDemand, type Period } from '@school-allocation/school-core'
 import Collapsible from '../components/Collapsible.vue'
@@ -148,8 +148,14 @@ watch(() => [props.id, props.itemId], load)
  * refuses (a date not yet chosen) leaves the last answer.
  */
 let checkTimer: ReturnType<typeof setTimeout> | undefined
+let gone = false
+// A check still pending when the page is left is dropped: the draft it would name may be deleted by then, and the browser logs the 404.
+onBeforeUnmount(() => {
+  gone = true
+  clearTimeout(checkTimer)
+})
 async function runCheck(): Promise<void> {
-  if (!campaign.value || !(campaign.value.state === 'catalogue' || organizes.value)) return
+  if (gone || !campaign.value || !(campaign.value.state === 'catalogue' || organizes.value)) return
   try {
     const shape = input()
     check.value = await checkItem(props.id, { item: { ...shape, title: shape.title || '–' }, ...(existing.value ? { itemId: existing.value.id } : {}) })
