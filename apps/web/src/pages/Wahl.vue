@@ -428,8 +428,11 @@ async function confirmStep(): Promise<void> {
 type Pending = { item: Item, kind: 'return' | 'withdraw' } | null
 const pending = ref<Pending>(null)
 const text = ref('')
-/** The planning, loaded once an item is to be returned or withdrawn: whether its lead would then lead nothing in this registration. */
+/** The planning, loaded once an item is to be returned or withdrawn: whether its lead would then lead nothing in this registration. Read anew after every reload of the page: a transition changes which activities count. */
 const planningData = ref<PlanningResponse | null>(null)
+watch(view, () => {
+  planningData.value = null
+})
 function ask(item: Item, kind: 'return' | 'withdraw'): void {
   pending.value = { item, kind }
   text.value = ''
