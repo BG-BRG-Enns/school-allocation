@@ -5,9 +5,10 @@
 // the roster and writes.
 //
 // The sheet a school keeps says "MO", "DI", "MI" over the days and writes
-// nothing, "N" or "F" into them; a "Leitung" column it may have is ignored
-// and said so, and an "Anmerkung" is the note. Any other column is a
-// problem, not ignored: a mistyped day would otherwise lose a column.
+// nothing, "N" or "F" into them; its "Leitung" column says with "N" who
+// has no duty to lead an activity, and an "Anmerkung" is the note. Any
+// other column is a problem, not ignored: a mistyped day would otherwise
+// lose a column.
 
 import { AVAILABILITY_STATUSES, type AvailabilityStatus } from './planning.ts'
 import { parseCsv, type CsvProblem } from './roster-csv.ts'
@@ -18,7 +19,7 @@ import { checkRows, isBlank, own, readCell, SHORT_NAME_MAX } from './teacher-csv
 export const NOTE_MAX = 200
 
 /** A header's spellings, lower case, for the columns that are not days. */
-const ALIASES: Readonly<Record<string, 'email' | 'short_name' | 'note' | 'ignored'>> = {
+const ALIASES: Readonly<Record<string, 'email' | 'short_name' | 'note' | 'lead_duty' | 'ignored'>> = {
   'email': 'email',
   'e-mail': 'email',
   'mail': 'email',
@@ -30,8 +31,12 @@ const ALIASES: Readonly<Record<string, 'email' | 'short_name' | 'note' | 'ignore
   'note': 'note',
   'anmerkung': 'note',
   'bemerkung': 'note',
-  'leitung': 'ignored',
+  'leitung': 'lead_duty',
+  'lead_duty': 'lead_duty',
 }
+
+/** A "Leitung" cell, lower case and trimmed: empty for the duty to lead, N for none, as the sheet is documented; anything else is the row's problem. */
+const DUTY: Readonly<Record<string, boolean>> = { '': true, 'n': false }
 
 /** A weekday's spellings, lower case, to its ISO number (Monday 1). */
 const WEEKDAYS: Readonly<Record<string, number>> = {
@@ -83,6 +88,8 @@ export const AVAILABILITY_CSV_PROBLEM_CODES = [
   'status_invalid',
   /** A note longer than NOTE_MAX. */
   'note_too_long',
+  /** A "Leitung" cell that is neither empty nor N. */
+  'lead_duty_invalid',
 ] as const
 export type AvailabilityCsvProblemCode = typeof AVAILABILITY_CSV_PROBLEM_CODES[number]
 
@@ -103,6 +110,8 @@ export interface AvailabilityCsvRow {
   days: Record<string, AvailabilityStatus>
   /** The note: a text, or null for an empty cell; absent when the file has no note column. */
   note?: string | null
+  /** Whether the teacher must lead an activity; absent when the file has no "Leitung" column. */
+  leadDuty?: boolean
 }
 
 export interface AvailabilityCsvResult {
@@ -110,12 +119,14 @@ export interface AvailabilityCsvResult {
   /** Problems of the file's shape or header; with any of these, `rows` is empty. */
   fileProblems: CsvProblem[]
   problems: AvailabilityCsvProblem[]
-  /** Header names read as nothing (a "Leitung" column), as written. */
+  /** Header names read as nothing, as written; none the sheet has today. */
   ignoredColumns: string[]
   /** The project days the file has columns for, in the file's order. */
   days: string[]
   /** Whether the file has a note column. */
   hasNote: boolean
+  /** Whether the file has a "Leitung" column. */
+  hasLeadDuty: boolean
 }
 
 /** The ISO weekday (Monday 1) of a local date, by arithmetic alone (Sakamoto); a pure module has no clock. */
@@ -134,12 +145,12 @@ function weekdayOf(date: string): number {
  * date. The row's key is the address or the abbreviation, either.
  */
 export function parseAvailabilityCsv(text: string, projectDays: readonly string[]): AvailabilityCsvResult {
-  const none = (fileProblems: CsvProblem[], ignoredColumns: string[] = []): AvailabilityCsvResult => ({ rows: [], fileProblems, problems: [], ignoredColumns, days: [], hasNote: false })
+  const none = (fileProblems: CsvProblem[], ignoredColumns: string[] = []): AvailabilityCsvResult => ({ rows: [], fileProblems, problems: [], ignoredColumns, days: [], hasNote: false, hasLeadDuty: false })
   const parsed = parseCsv(text)
   if (parsed.problem) return none([parsed.problem])
   const [header, ...records] = parsed.records
   if (header === undefined) return none([{ code: 'no_header' }])
-  const columns = new Map<'email' | 'short_name' | 'note', number>()
+  const columns = new Map<'email' | 'short_name' | 'note' | 'lead_duty', number>()
   const dayColumns = new Map<string, number>()
   const ignored: string[] = []
   const fileProblems: CsvProblem[] = []
@@ -182,7 +193,7 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
   })
   if (columns.size === 0 && dayColumns.size === 0) return none([{ code: 'no_header' }], ignored)
   if (!columns.has('email') && !columns.has('short_name')) fileProblems.push({ code: 'missing_column', column: 'email' })
-  if (dayColumns.size === 0 && !columns.has('note')) fileProblems.push({ code: 'missing_column', column: projectDays[0] ?? 'day' })
+  if (dayColumns.size === 0 && !columns.has('note') && !columns.has('lead_duty')) fileProblems.push({ code: 'missing_column', column: projectDays[0] ?? 'day' })
   if (fileProblems.length > 0) return none(fileProblems, ignored)
   const shapeProblems = checkRows(records, header.length)
   if (shapeProblems.length > 0) return none(shapeProblems, ignored)
@@ -233,10 +244,20 @@ export function parseAvailabilityCsv(text: string, projectDays: readonly string[
       problems.push({ code: 'note_too_long', line })
       sound = false
     }
+    const dutyIndex = columns.get('lead_duty')
+    let leadDuty: boolean | undefined
+    if (dutyIndex !== undefined) {
+      const raw = (fields[dutyIndex] ?? '').trim().replace(/^'/, '')
+      leadDuty = own(DUTY, raw.toLowerCase())
+      if (leadDuty === undefined) {
+        problems.push({ code: 'lead_duty_invalid', line, key: raw })
+        sound = false
+      }
+    }
     if (!sound) return
-    rows.push({ line, ...(email === undefined ? {} : { email }), ...(shortName === undefined ? {} : { shortName }), days, ...(note === undefined ? {} : { note }) })
+    rows.push({ line, ...(email === undefined ? {} : { email }), ...(shortName === undefined ? {} : { shortName }), days, ...(note === undefined ? {} : { note }), ...(leadDuty === undefined ? {} : { leadDuty }) })
   })
-  return { rows, fileProblems: [], problems, ignoredColumns: ignored, days: [...dayColumns.keys()], hasNote: columns.has('note') }
+  return { rows, fileProblems: [], problems, ignoredColumns: ignored, days: [...dayColumns.keys()], hasNote: columns.has('note'), hasLeadDuty: columns.has('lead_duty') }
 }
 
 /** The statuses a cell may say, for a template's legend: the first spelling of each. */

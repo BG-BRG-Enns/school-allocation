@@ -87,7 +87,7 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   teacher_availability: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['status', 'updated_at'] },
   // A teacher's abbreviation and note, written by an import and replaced by the next; nothing removes them but the
   // person's end.
-  teacher_detail: { table: ['SELECT', 'INSERT'], updateColumns: ['short_name', 'note', 'updated_at'] },
+  teacher_detail: { table: ['SELECT', 'INSERT'], updateColumns: ['short_name', 'note', 'lead_duty', 'updated_at'] },
   // The school's one row of settings: its language changed by an administrator, sending paused and resumed by an
   // organizer or administrator, audited; it is never added or removed.
   school_setting: { table: ['SELECT'], updateColumns: ['locale', 'updated_at', 'updated_by', 'mail_paused'] },

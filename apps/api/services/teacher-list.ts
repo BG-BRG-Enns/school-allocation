@@ -5,7 +5,7 @@
 // the school's lock.
 
 import { createHash } from 'node:crypto'
-import type { TeacherListApplied, TeacherListPreview, TeacherShortNameResponse } from '@school-allocation/api-contracts/settings'
+import type { TeacherLeadDutyResponse, TeacherListApplied, TeacherListPreview, TeacherShortNameResponse } from '@school-allocation/api-contracts/settings'
 import { parseTeacherCsv, type TeacherCsvRow } from '@school-allocation/school-core'
 import type { Actor } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
@@ -43,8 +43,8 @@ export async function applyTeacherList(db: Database, csv: string, actor: Actor):
     if (!preview.applicable) throw new TeacherListInvalid(preview.problems)
     const current = await store.readDetails(client, [...details.keys()])
     // Released first, then given: two teachers exchanging their abbreviations would otherwise meet the unique index.
-    for (const [personId] of details) await store.writeDetail(client, personId, { shortName: null, note: current.get(personId)?.note ?? null })
-    for (const [personId, { shortName }] of details) await store.writeDetail(client, personId, { shortName, note: current.get(personId)?.note ?? null })
+    for (const [personId] of details) await store.writeDetail(client, personId, { shortName: null, note: current.get(personId)?.note ?? null, leadDuty: current.get(personId)?.leadDuty ?? true })
+    for (const [personId, { shortName }] of details) await store.writeDetail(client, personId, { shortName, note: current.get(personId)?.note ?? null, leadDuty: current.get(personId)?.leadDuty ?? true })
     let classesChanged = 0
     for (const [className, personIds] of classes) {
       const change = preview.classes.find((c) => c.className === className)
@@ -74,13 +74,13 @@ export async function setShortName(db: Database, rawPersonId: string, shortName:
   return db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
     if (!await store.isTeacher(client, personId)) throw new ApplicationError('not_found')
-    const current = (await store.readDetails(client, [personId])).get(personId) ?? { shortName: null, note: null }
+    const current = (await store.readDetails(client, [personId])).get(personId) ?? { shortName: null, note: null, leadDuty: true }
     if ((current.shortName ?? '') === (shortName ?? '')) return { personId, shortName: current.shortName }
     if (shortName !== null) {
       const owner = (await store.shortNameOwners(client, [shortName.toLowerCase()])).get(shortName.toLowerCase())
       if (owner !== undefined && owner !== personId) throw new ApplicationError('short_name_held')
     }
-    await store.writeDetail(client, personId, { shortName, note: current.note })
+    await store.writeDetail(client, personId, { shortName, note: current.note, leadDuty: current.leadDuty })
     await appendAudit(client, {
       scopeId: SCHOOL_SCOPE,
       actor: { tid: actor.tid, oid: actor.oid, name: actor.name },
@@ -88,6 +88,30 @@ export async function setShortName(db: Database, rawPersonId: string, shortName:
       metadata: { personId, before: current.shortName, after: shortName },
     })
     return { personId, shortName }
+  })
+}
+
+/**
+ * Sets whether a teacher must lead an activity, as the planning page offers
+ * it beside the abbreviation: a mark for the overview of who has done
+ * their part; nothing the teacher may do changes. The same value again
+ * changes nothing and writes nothing.
+ */
+export async function setLeadDuty(db: Database, rawPersonId: string, leadDuty: boolean, actor: Actor): Promise<TeacherLeadDutyResponse> {
+  const personId = canonicalId(rawPersonId)
+  return db.tx(async (client) => {
+    await lockScope(client, SCHOOL_SCOPE)
+    if (!await store.isTeacher(client, personId)) throw new ApplicationError('not_found')
+    const current = (await store.readDetails(client, [personId])).get(personId) ?? { shortName: null, note: null, leadDuty: true }
+    if (current.leadDuty === leadDuty) return { personId, leadDuty }
+    await store.writeDetail(client, personId, { ...current, leadDuty })
+    await appendAudit(client, {
+      scopeId: SCHOOL_SCOPE,
+      actor: { tid: actor.tid, oid: actor.oid, name: actor.name },
+      action: 'teacher.lead-duty-changed',
+      metadata: { personId, before: current.leadDuty, after: leadDuty },
+    })
+    return { personId, leadDuty }
   })
 }
 

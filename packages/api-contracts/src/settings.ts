@@ -106,5 +106,10 @@ export const ShortNameBody = StrictObject({ shortName: Type.Union([Type.String({
 export type ShortNameBody = Static<typeof ShortNameBody>
 export const TeacherShortNameResponse = StrictObject({ personId: Type.String(), shortName: Type.Union([Type.String(), Type.Null()]) })
 export type TeacherShortNameResponse = Static<typeof TeacherShortNameResponse>
+/** Whether a teacher must lead an activity, as an organizer sets it on the planning page. */
+export const LeadDutyBody = StrictObject({ leadDuty: Type.Boolean() })
+export type LeadDutyBody = Static<typeof LeadDutyBody>
+export const TeacherLeadDutyResponse = StrictObject({ personId: Type.String(), leadDuty: Type.Boolean() })
+export type TeacherLeadDutyResponse = Static<typeof TeacherLeadDutyResponse>
 
 export const TeacherListInvalidResponse = StrictObject({ error: Type.Literal('teacher_list_invalid'), problems: Type.Array(TeacherListProblemSchema) })

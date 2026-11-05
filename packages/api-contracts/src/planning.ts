@@ -51,6 +51,8 @@ export const PlanningResponse = StrictObject({
     /** The abbreviation and the note, once imported (teacher_detail). */
     shortName: Type.Union([Type.String(), Type.Null()]),
     note: Type.Union([Type.String(), Type.Null()]),
+    /** Whether the teacher must lead an activity: a mark for the overview, nothing more. */
+    leadDuty: Type.Boolean(),
     days: Type.Array(StrictObject({
       date: Type.String(),
       status: AvailabilityStatusSchema,
@@ -91,10 +93,13 @@ export const AvailabilityImportPreview = StrictObject({
     shortName: Type.Union([Type.String(), Type.Null()]),
     days: Type.Array(StrictObject({ date: Type.String(), before: AvailabilityStatusSchema, after: AvailabilityStatusSchema })),
     note: Type.Union([StrictObject({ before: Type.Union([Type.String(), Type.Null()]), after: Type.Union([Type.String(), Type.Null()]) }), Type.Null()]),
+    /** The duty to lead, where the file's column changes it. */
+    leadDuty: Type.Union([StrictObject({ before: Type.Boolean(), after: Type.Boolean() }), Type.Null()]),
   })),
-  /** Days whose status changes, and notes that change. */
+  /** Days whose status changes, notes that change, duties that change. */
   changedDays: Type.Integer(),
   changedNotes: Type.Integer(),
+  changedLeadDuty: Type.Integer(),
   /** True when apply would take the file: no problem with the file itself, and at least one row without a problem; rows with one are skipped. */
   applicable: Type.Boolean(),
 })
@@ -104,6 +109,7 @@ export const AvailabilityImportApplied = StrictObject({
   planning: PlanningResponse,
   changedDays: Type.Integer(),
   changedNotes: Type.Integer(),
+  changedLeadDuty: Type.Integer(),
   /** The lines with a problem, left out. */
   skipped: Type.Integer(),
 })

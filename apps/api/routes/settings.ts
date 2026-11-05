@@ -21,7 +21,7 @@ import { callerOf } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { replaceClassTeachers } from '../services/class-teachers.ts'
 import { schoolWords } from '../lib/i18n.ts'
-import { applyTeacherList, previewTeacherList, setShortName } from '../services/teacher-list.ts'
+import { applyTeacherList, previewTeacherList, setLeadDuty, setShortName } from '../services/teacher-list.ts'
 import { teacherListTemplate } from '../services/teacher-list-template.ts'
 import { replaceLanguage, replacePeriods } from '../services/settings.ts'
 
@@ -86,6 +86,10 @@ export async function settingsRoutes(app: FastifyInstance, { db, guards }: Setti
   })
 
   // One teacher's abbreviation, as the planning page offers it beside the name.
+  registerEndpoint(app, endpoints.putAdminTeachersByPersonIdLeadDuty, { ...organizer }, async (request) => {
+    return setLeadDuty(db, request.params.personId, request.body.leadDuty, actorOf(callerOf(request)))
+  })
+
   registerEndpoint(app, endpoints.putAdminTeachersByPersonIdShortName, { ...organizer }, async (request) => {
     return setShortName(db, request.params.personId, request.body.shortName, actorOf(callerOf(request)))
   })

@@ -179,6 +179,7 @@ export const en: Messages = {
       short_name_too_long: 'Abbreviation longer than 8 characters',
       status_invalid: 'Neither empty nor N nor F',
       note_too_long: 'Note longer than 200 characters',
+      lead_duty_invalid: 'Lead: neither empty nor N',
       teacher_unknown: 'No teacher of this registration has this address',
       short_name_unknown: 'No abbreviation in the base data; set it beside the name or under class teachers',
       teacher_not_in_registration: 'No teacher of this registration: not in its class lists and on no activity',
@@ -775,6 +776,7 @@ export const en: Messages = {
       returnTitle: (title: string) => `Return ${title}`,
       withdrawTitle: (title: string) => `Withdraw ${title}`,
       returnNote: 'Feedback to the teachers',
+      leadsNothing: (name: string) => `${name} would then lead nothing in this registration.`,
     },
   },
 
@@ -896,14 +898,20 @@ export const en: Messages = {
     accompanies: (items: string) => `accompanies ${items}`,
     free: 'free',
     leadsNothing: (names: string) => `Leads nothing on any day: ${names}.`,
-    everyoneLeads: 'Every teacher leads something on at least one day.',
+    everyoneLeads: 'Every teacher with a duty to lead leads something on at least one day.',
+    withoutDuty: (names: string) => `No duty to lead: ${names}.`,
+    duty: {
+      none: 'no duty to lead',
+      has: 'duty to lead',
+      head: 'Lead',
+    },
     statusOf: (name: string, day: string) => `Availability of ${name} on ${day}`,
     saved: 'Availability saved.',
     export: 'Teachers by day as Excel',
     /** The import of an availability list on the teachers-by-day page. */
     csv: {
       title: 'Availability from a CSV file',
-      intro: 'One row per teacher, named by e-mail address or abbreviation, and one column per project day, headed by the date or the weekday (MO, DI, MI or Mon, Tue, Wed): empty means available, N not available, F only if necessary. The school\'s list with the columns “Name”, “MO”, “DI”, “MI”, “Leitung” and “Anmerkung” is read as the spreadsheet exports it; an empty column at the end does no harm. A column “Anmerkung” or “note” becomes the note, a column “Leitung” is skipped; any other column is an error, so that no day is lost unnoticed. What the file says is applied; rows with a problem are skipped; teachers and days not in it stay as they are.',
+      intro: 'One row per teacher, named by e-mail address or abbreviation, and one column per project day, headed by the date or the weekday (MO, DI, MI or Mon, Tue, Wed): empty means available, N not available, F only if necessary. The school\'s list with the columns “Name”, “MO”, “DI”, “MI”, “Leitung” and “Anmerkung” is read as the spreadsheet exports it; an empty column at the end does no harm. A column “Anmerkung” or “note” becomes the note; a column “Leitung” says with N who has no duty to lead, empty means the duty; any other column is an error, so that no day is lost unnoticed. What the file says is applied; rows with a problem are skipped; teachers and days not in it stay as they are.',
       template: 'Template as of today',
       preview: 'Preview',
       file: 'File',
@@ -919,14 +927,14 @@ export const en: Messages = {
       nothing: 'The file changes nothing.',
       noteHead: 'Note',
       none: '–',
-      applied: (days: number, notes: number, skipped: number) => `Applied: ${days} days changed, ${notes} notes${skipped === 0 ? '' : `; ${skipped} ${byCount(skipped, 'row', 'rows')} skipped`}.`,
+      applied: (days: number, notes: number, skipped: number, duties = 0) => `Applied: ${days} days changed, ${notes} notes${duties === 0 ? '' : `, ${duties} ${byCount(duties, 'duty to lead', 'duties to lead')}`}${skipped === 0 ? '' : `; ${skipped} ${byCount(skipped, 'row', 'rows')} skipped`}.`,
     },
     /** One teacher's abbreviation, set beside the name. */
     shortName: {
       edit: (name: string) => `Change the abbreviation of ${name}`,
       label: (name: string) => `Abbreviation of ${name}`,
       save: 'Save abbreviation',
-      saved: 'Abbreviation saved.',
+      saved: 'Saved.',
     },
   },
 

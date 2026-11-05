@@ -11,7 +11,7 @@ import Collapsible from '../components/Collapsible.vue'
 import ListFilter from '../components/ListFilter.vue'
 import { withBase } from '../lib/base.ts'
 import type { AvailabilityImportPreview } from '@school-allocation/api-contracts'
-import { setTeacherShortName } from '../lib/admin-api.ts'
+import { setTeacherLeadDuty, setTeacherShortName } from '../lib/admin-api.ts'
 import { applyAvailabilityImport, availabilityTemplatePath, loadPlanning, planningExportPath, previewAvailabilityImport, setAvailabilityFor, type AvailabilityStatus, type PlanningResponse } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { filtered, matchesText, useListFilter, type FilterField } from '../lib/list-filter.ts'
@@ -61,8 +61,9 @@ function doing(day: Day): string {
   return parts.length > 0 ? parts.join('; ') : t.planning.free
 }
 
-/** The teachers who lead nothing on any of the days. */
-const leadingNothing = computed(() => (planning.value?.teachers ?? []).filter((teacher) => teacher.days.every((day) => day.leads.length === 0)).map((teacher) => teacher.displayName))
+/** The teachers with a duty to lead who lead nothing on any of the days; the ones without the duty are named apart, so nobody disappears from the overview. */
+const leadingNothing = computed(() => (planning.value?.teachers ?? []).filter((teacher) => teacher.leadDuty && teacher.days.every((day) => day.leads.length === 0)).map((teacher) => teacher.displayName))
+const withoutDuty = computed(() => (planning.value?.teachers ?? []).filter((teacher) => !teacher.leadDuty).map((teacher) => teacher.displayName))
 
 async function onChange(personId: string, date: string, status: AvailabilityStatus): Promise<void> {
   await saving.run(async () => {
@@ -70,10 +71,10 @@ async function onChange(personId: string, date: string, status: AvailabilityStat
   }, t.planning.saved)
 }
 
-// One teacher's abbreviation, set beside the name: the row's edit opens a small form; saving reloads the overview.
-const editingShortName = ref<{ personId: string, value: string } | null>(null)
-function startShortName(teacher: { personId: string, shortName: string | null }): void {
-  editingShortName.value = { personId: teacher.personId, value: teacher.shortName ?? '' }
+// One teacher's abbreviation and duty to lead, set beside the name: the row's edit opens a small form; saving reloads the overview.
+const editingShortName = ref<{ personId: string, value: string, noDuty: boolean } | null>(null)
+function startShortName(teacher: { personId: string, shortName: string | null, leadDuty: boolean }): void {
+  editingShortName.value = { personId: teacher.personId, value: teacher.shortName ?? '', noDuty: !teacher.leadDuty }
 }
 async function onSaveShortName(): Promise<void> {
   const editing = editingShortName.value
@@ -81,6 +82,7 @@ async function onSaveShortName(): Promise<void> {
   const value = editing.value.trim()
   const ok = await saving.run(async () => {
     await setTeacherShortName(editing.personId, value === '' ? null : value)
+    await setTeacherLeadDuty(editing.personId, !editing.noDuty)
     planning.value = await loadPlanning(props.id)
   }, t.planning.shortName.saved)
   if (ok) {
@@ -133,14 +135,14 @@ async function onCheck(): Promise<void> {
 
 async function onApply(): Promise<void> {
   const text = checkedCsv.value
-  let applied = { changedDays: 0, changedNotes: 0, skipped: 0 }
+  let applied = { changedDays: 0, changedNotes: 0, changedLeadDuty: 0, skipped: 0 }
   const ok = await applying.run(async () => {
     const result = await applyAvailabilityImport(props.id, text)
     planning.value = result.planning
-    applied = { changedDays: result.changedDays, changedNotes: result.changedNotes, skipped: result.skipped }
+    applied = { changedDays: result.changedDays, changedNotes: result.changedNotes, changedLeadDuty: result.changedLeadDuty, skipped: result.skipped }
   })
   if (ok) {
-    applying.notice.value = t.planning.csv.applied(applied.changedDays, applied.changedNotes, applied.skipped)
+    applying.notice.value = t.planning.csv.applied(applied.changedDays, applied.changedNotes, applied.skipped, applied.changedLeadDuty)
     preview.value = null
     csvText.value = ''
     checkedCsv.value = ''
@@ -148,7 +150,7 @@ async function onApply(): Promise<void> {
 }
 
 /** Whether the preview would change anything at all. */
-const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (preview.value?.changedNotes ?? 0) > 0)
+const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (preview.value?.changedNotes ?? 0) > 0 || (preview.value?.changedLeadDuty ?? 0) > 0)
 </script>
 
 <template>
@@ -201,6 +203,9 @@ const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (
     </p>
     <template v-else>
       <p>{{ leadingNothing.length > 0 ? t.planning.leadsNothing(leadingNothing.join(', ')) : t.planning.everyoneLeads }}</p>
+      <p v-if="withoutDuty.length > 0">
+        {{ t.planning.withoutDuty(withoutDuty.join(', ')) }}
+      </p>
       <ListFilter
         id="teachers"
         v-model="teacherFilter"
@@ -249,6 +254,14 @@ const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (
                   :aria-label="t.planning.shortName.label(teacher.displayName)"
                   :disabled="saving.busy.value"
                 >
+                <label>
+                  <input
+                    v-model="editingShortName.noDuty"
+                    type="checkbox"
+                    :disabled="saving.busy.value"
+                  >
+                  {{ t.planning.duty.none }}
+                </label>
                 <button
                   type="submit"
                   class="small"
@@ -274,6 +287,10 @@ const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (
               >
                 {{ t.common.edit }}
               </button>
+              <span
+                v-if="!teacher.leadDuty"
+                class="muted"
+              ><br>{{ t.planning.duty.none }}</span>
               <span
                 v-if="teacher.note !== null"
                 class="muted"
@@ -427,6 +444,9 @@ const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (
                   {{ formatDay(date) }}
                 </th>
                 <th scope="col">
+                  {{ t.planning.duty.head }}
+                </th>
+                <th scope="col">
                   {{ t.planning.csv.noteHead }}
                 </th>
               </tr>
@@ -451,6 +471,14 @@ const previewChanges = computed(() => (preview.value?.changedDays ?? 0) > 0 || (
                   </template>
                   <template v-else>
                     {{ AVAILABILITY_LABELS[day.before] }} → {{ AVAILABILITY_LABELS[day.after] }}
+                  </template>
+                </td>
+                <td :class="{ short: teacher.leadDuty !== null }">
+                  <template v-if="teacher.leadDuty === null">
+                    {{ t.planning.csv.none }}
+                  </template>
+                  <template v-else>
+                    {{ teacher.leadDuty.before ? t.planning.duty.has : t.planning.duty.none }} → {{ teacher.leadDuty.after ? t.planning.duty.has : t.planning.duty.none }}
                   </template>
                 </td>
                 <td>

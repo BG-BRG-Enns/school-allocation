@@ -183,6 +183,7 @@ export const de = {
       short_name_too_long: 'Kürzel länger als 8 Zeichen',
       status_invalid: 'Weder leer noch N noch F',
       note_too_long: 'Anmerkung länger als 200 Zeichen',
+      lead_duty_invalid: 'Leitung: weder leer noch N',
       teacher_unknown: 'Keine Lehrkraft dieser Anmeldung mit dieser Adresse',
       short_name_unknown: 'Kein Kürzel in den Stammdaten: neben dem Namen oder bei den Klassenvorständen zu setzen',
       teacher_not_in_registration: 'Keine Lehrkraft dieser Anmeldung: nicht in ihren Klassenlisten und auf keiner Aktivität',
@@ -788,6 +789,8 @@ export const de = {
       returnTitle: (title: string) => `${title} zurückgeben`,
       withdrawTitle: (title: string) => `${title} zurückziehen`,
       returnNote: 'Rückmeldung an die Lehrkräfte',
+      /** The lead's only activity in the registration, with the duty to lead: a note, no bar. */
+      leadsNothing: (name: string) => `${name} leitet dann in dieser Anmeldung nichts.`,
     },
   },
 
@@ -913,14 +916,23 @@ export const de = {
     accompanies: (items: string) => `begleitet ${items}`,
     free: 'frei',
     leadsNothing: (names: string) => `Leitet an keinem Tag etwas: ${names}.`,
-    everyoneLeads: 'Jede Lehrkraft leitet an mindestens einem Tag etwas.',
+    everyoneLeads: 'Jede Lehrkraft mit Leitungspflicht leitet an mindestens einem Tag etwas.',
+    /** The teachers without the duty to lead: named, so nobody disappears from the overview. */
+    withoutDuty: (names: string) => `Ohne Leitungspflicht: ${names}.`,
+    duty: {
+      /** The checkbox beside the abbreviation. */
+      none: 'keine Leitungspflicht',
+      has: 'Leitungspflicht',
+      /** The preview's column. */
+      head: 'Leitung',
+    },
     statusOf: (name: string, day: string) => `Verfügbarkeit von ${name} am ${day}`,
     saved: 'Verfügbarkeit gespeichert.',
     export: 'Lehrkräfte je Tag als Excel',
     /** The import of an availability list on the teachers-by-day page. */
     csv: {
       title: 'Verfügbarkeit aus einer CSV-Datei',
-      intro: 'Eine Zeile je Lehrkraft, benannt mit der E-Mail-Adresse oder dem Kürzel, und eine Spalte je Projekttag, mit dem Datum oder dem Wochentag als Namen (MO, DI, MI): leer heißt verfügbar, N nicht verfügbar, F nur wenn nötig. Die Liste der Schule mit den Spalten „Name“, „MO“, „DI“, „MI“, „Leitung“ und „Anmerkung“ wird so gelesen, wie die Tabelle sie exportiert; eine leere Spalte am Ende stört nicht. Eine Spalte „Anmerkung“ wird zur Notiz, eine Spalte „Leitung“ übergangen; jede andere Spalte ist ein Fehler, damit kein Tag unbemerkt verloren geht. Übernommen wird, was in der Datei steht; Zeilen mit einem Problem werden übersprungen; Lehrkräfte und Tage, die nicht darin stehen, bleiben.',
+      intro: 'Eine Zeile je Lehrkraft, benannt mit der E-Mail-Adresse oder dem Kürzel, und eine Spalte je Projekttag, mit dem Datum oder dem Wochentag als Namen (MO, DI, MI): leer heißt verfügbar, N nicht verfügbar, F nur wenn nötig. Die Liste der Schule mit den Spalten „Name“, „MO“, „DI“, „MI“, „Leitung“ und „Anmerkung“ wird so gelesen, wie die Tabelle sie exportiert; eine leere Spalte am Ende stört nicht. Eine Spalte „Anmerkung“ wird zur Notiz; eine Spalte „Leitung“ sagt mit N, wer keine Leitungspflicht hat, leer heißt Leitungspflicht; jede andere Spalte ist ein Fehler, damit kein Tag unbemerkt verloren geht. Übernommen wird, was in der Datei steht; Zeilen mit einem Problem werden übersprungen; Lehrkräfte und Tage, die nicht darin stehen, bleiben.',
       template: 'Vorlage mit dem Stand von heute',
       preview: 'Vorschau',
       file: 'Datei',
@@ -936,14 +948,14 @@ export const de = {
       nothing: 'Die Datei ändert nichts.',
       noteHead: 'Notiz',
       none: '–',
-      applied: (days: number, notes: number, skipped: number) => `Übernommen: ${days} Tage geändert, ${notes} Notizen${skipped === 0 ? '' : `; ${skipped} ${byCount(skipped, 'Zeile', 'Zeilen')} übersprungen`}.`,
+      applied: (days: number, notes: number, skipped: number, duties = 0) => `Übernommen: ${days} Tage geändert, ${notes} Notizen${duties === 0 ? '' : `, ${duties} ${byCount(duties, 'Leitungspflicht', 'Leitungspflichten')}`}${skipped === 0 ? '' : `; ${skipped} ${byCount(skipped, 'Zeile', 'Zeilen')} übersprungen`}.`,
     },
     /** One teacher's abbreviation, set beside the name. */
     shortName: {
       edit: (name: string) => `Kürzel von ${name} ändern`,
       label: (name: string) => `Kürzel von ${name}`,
       save: 'Kürzel speichern',
-      saved: 'Kürzel gespeichert.',
+      saved: 'Gespeichert.',
     },
   },
 

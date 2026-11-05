@@ -3218,6 +3218,37 @@
   },
   {
     "method": "PUT",
+    "url": "/api/admin/teachers/:personId/lead-duty",
+    "body": {
+      "type": "object",
+      "required": [
+        "leadDuty"
+      ],
+      "properties": {
+        "leadDuty": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "required": [
+        "personId"
+      ],
+      "properties": {
+        "personId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "PUT",
     "url": "/api/admin/teachers/:personId/short-name",
     "body": {
       "type": "object",

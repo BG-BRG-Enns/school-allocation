@@ -23,8 +23,8 @@ import { planning, plannedItems } from './planning.ts'
 
 interface Resolved {
   preview: AvailabilityImportPreview
-  /** Per person: the days to write and, where the file has the column, the note. */
-  writes: Map<string, { days: Map<string, AvailabilityStatus>, note?: string | null, currentShortName: string | null }>
+  /** Per person: the days to write and, where the file has the columns, the note and the duty to lead; the detail as it stands, for what the file does not say. */
+  writes: Map<string, { days: Map<string, AvailabilityStatus>, note?: string | null, leadDuty?: boolean, current: { shortName: string | null, note: string | null, leadDuty: boolean } }>
   /** The lines with a problem: listed, and left out of the rest. */
   skipped: number
 }
@@ -51,18 +51,19 @@ export async function applyAvailabilityImport(db: Database, rawId: string, csv: 
     if (!preview.applicable) throw new AvailabilityImportInvalid(preview.problems)
     for (const [personId, write] of writes) {
       for (const [date, status] of write.days) await planningStore.writeAvailability(client, personId, date, status)
-      if (write.note !== undefined) await detailStore.writeDetail(client, personId, { shortName: write.currentShortName, note: write.note })
+      // An empty note cell clears the note (null is a value here); a column the file lacks leaves what the detail has.
+      if (write.note !== undefined || write.leadDuty !== undefined) await detailStore.writeDetail(client, personId, { shortName: write.current.shortName, note: write.note === undefined ? write.current.note : write.note, leadDuty: write.leadDuty === undefined ? write.current.leadDuty : write.leadDuty })
     }
     await appendAudit(client, {
       scopeId: id, actor: { tid: actor.tid, oid: actor.oid, name: actor.name }, action: 'availability.imported',
-      metadata: { sha256: createHash('sha256').update(csv).digest('hex'), teachers: preview.teachers.length, days: preview.days.length, changedDays: preview.changedDays, changedNotes: preview.changedNotes, skipped },
+      metadata: { sha256: createHash('sha256').update(csv).digest('hex'), teachers: preview.teachers.length, days: preview.days.length, changedDays: preview.changedDays, changedNotes: preview.changedNotes, changedLeadDuty: preview.changedLeadDuty, skipped },
     })
-    return { changedDays: preview.changedDays, changedNotes: preview.changedNotes, skipped }
+    return { changedDays: preview.changedDays, changedNotes: preview.changedNotes, changedLeadDuty: preview.changedLeadDuty, skipped }
   })
   return { planning: (await planning(db, id)).planning, ...counts }
 }
 
-/** The list as it stands: every teacher of the planning, their abbreviation, each project day's status, the note. */
+/** The list as it stands: every teacher of the planning, their abbreviation, each project day's status, the duty to lead (empty, or N for none), the note. */
 export async function availabilityTemplate(db: Database, rawId: string): Promise<string> {
   const campaign = await requireCampaign(db, canonicalId(rawId))
   const items = await plannedItems(db, campaign)
@@ -76,9 +77,9 @@ export async function availabilityTemplate(db: Database, rawId: string): Promise
     const text = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
     return /[";\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
   }
-  const lines = [['email', 'short_name', ...campaign.projectDays, 'note'].join(';')]
+  const lines = [['email', 'short_name', ...campaign.projectDays, 'lead_duty', 'note'].join(';')]
   for (const teacher of teachers) {
-    const cells = [addressOf.get(teacher.personId) ?? '', teacher.shortName ?? '', ...campaign.projectDays.map((date) => AVAILABILITY_CSV_VALUES[limited.get(`${teacher.personId}|${date}`) ?? 'available']), teacher.note ?? '']
+    const cells = [addressOf.get(teacher.personId) ?? '', teacher.shortName ?? '', ...campaign.projectDays.map((date) => AVAILABILITY_CSV_VALUES[limited.get(`${teacher.personId}|${date}`) ?? 'available']), teacher.leadDuty ? '' : 'N', teacher.note ?? '']
     lines.push(cells.map(field).join(';'))
   }
   return `${lines.join('\r\n')}\r\n`
@@ -86,7 +87,7 @@ export async function availabilityTemplate(db: Database, rawId: string): Promise
 
 async function resolve(db: Queryable, campaign: Campaign, csv: string): Promise<Resolved> {
   const parsed = parseAvailabilityCsv(csv, campaign.projectDays)
-  const preview: AvailabilityImportPreview = { fileProblems: parsed.fileProblems, problems: [...parsed.problems], ignoredColumns: parsed.ignoredColumns, days: parsed.days, teachers: [], changedDays: 0, changedNotes: 0, applicable: false }
+  const preview: AvailabilityImportPreview = { fileProblems: parsed.fileProblems, problems: [...parsed.problems], ignoredColumns: parsed.ignoredColumns, days: parsed.days, teachers: [], changedDays: 0, changedNotes: 0, changedLeadDuty: 0, applicable: false }
   const writes: Resolved['writes'] = new Map()
   if (parsed.fileProblems.length > 0) return { preview, writes, skipped: 0 }
   const items = await plannedItems(db, campaign)
@@ -120,9 +121,10 @@ async function resolve(db: Queryable, campaign: Campaign, csv: string): Promise<
     const teacher = byId.get(row.personId)
     if (teacher === undefined) continue
     // A teacher twice in the file: the later row's cells win, as in a sheet edited top to bottom.
-    const write = writes.get(row.personId) ?? { days: new Map<string, AvailabilityStatus>(), currentShortName: teacher.shortName }
+    const write = writes.get(row.personId) ?? { days: new Map<string, AvailabilityStatus>(), current: { shortName: teacher.shortName, note: teacher.note, leadDuty: teacher.leadDuty } }
     for (const [date, status] of Object.entries(row.days)) write.days.set(date, status)
     if (row.note !== undefined) write.note = row.note
+    if (row.leadDuty !== undefined) write.leadDuty = row.leadDuty
     writes.set(row.personId, write)
   }
   for (const [personId, write] of writes) {
@@ -132,7 +134,9 @@ async function resolve(db: Queryable, campaign: Campaign, csv: string): Promise<
     preview.changedDays += days.filter((d) => d.before !== d.after).length
     const note = write.note === undefined || write.note === teacher.note ? null : { before: teacher.note, after: write.note }
     if (note !== null) preview.changedNotes++
-    preview.teachers.push({ personId, displayName: teacher.displayName, shortName: teacher.shortName, days, note })
+    const leadDuty = write.leadDuty === undefined || write.leadDuty === teacher.leadDuty ? null : { before: teacher.leadDuty, after: write.leadDuty }
+    if (leadDuty !== null) preview.changedLeadDuty++
+    preview.teachers.push({ personId, displayName: teacher.displayName, shortName: teacher.shortName, days, note, leadDuty })
   }
   // A row with a problem is listed and left out whole, the parser's rows included; what the other rows say is applied.
   preview.applicable = writes.size > 0

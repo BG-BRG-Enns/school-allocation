@@ -5,7 +5,7 @@ import { parseAvailabilityCsv } from '../src/availability-csv.ts'
 // Mon 3, Tue 4, Wed 5 July 2034.
 const DAYS = ['2034-07-03', '2034-07-04', '2034-07-05']
 
-test('the school\'s sheet is read as exported: the abbreviation, MO/DI/MI, Leitung ignored and named, the remark as the note', () => {
+test('the school\'s sheet is read as exported: the abbreviation, MO/DI/MI, Leitung as the duty to lead (N: none), the remark as the note', () => {
   const text = 'Name;MO;DI;MI;Leitung;Anmerkung\r\n'
     + 'ZwA;;N;;;\r\n'
     + 'PfB;F;;F;N;NUR RESERVE\r\n'
@@ -13,14 +13,22 @@ test('the school\'s sheet is read as exported: the abbreviation, MO/DI/MI, Leitu
   const result = parseAvailabilityCsv(text, DAYS)
   assert.deepEqual(result.fileProblems, [])
   assert.deepEqual(result.problems, [])
-  assert.deepEqual(result.ignoredColumns, ['Leitung'])
+  assert.deepEqual(result.ignoredColumns, [])
   assert.deepEqual(result.days, DAYS)
   assert.equal(result.hasNote, true)
+  assert.equal(result.hasLeadDuty, true)
   assert.deepEqual(result.rows, [
-    { line: 2, shortName: 'ZwA', days: { '2034-07-03': 'available', '2034-07-04': 'unavailable', '2034-07-05': 'available' }, note: null },
-    { line: 3, shortName: 'PfB', days: { '2034-07-03': 'if_needed', '2034-07-04': 'available', '2034-07-05': 'if_needed' }, note: 'NUR RESERVE' },
-    { line: 4, shortName: 'KnC', days: { '2034-07-03': 'available', '2034-07-04': 'available', '2034-07-05': 'available' }, note: null },
+    { line: 2, shortName: 'ZwA', days: { '2034-07-03': 'available', '2034-07-04': 'unavailable', '2034-07-05': 'available' }, note: null, leadDuty: true },
+    { line: 3, shortName: 'PfB', days: { '2034-07-03': 'if_needed', '2034-07-04': 'available', '2034-07-05': 'if_needed' }, note: 'NUR RESERVE', leadDuty: false },
+    { line: 4, shortName: 'KnC', days: { '2034-07-03': 'available', '2034-07-04': 'available', '2034-07-05': 'available' }, note: null, leadDuty: true },
   ])
+  // A "Leitung" cell that says something else is the row's problem; a file without the column says nothing about the duty.
+  const odd = parseAvailabilityCsv('Name;MO;Leitung\r\nZwA;;vielleicht\r\nPfB;;\r\n', DAYS)
+  assert.deepEqual(odd.problems, [{ code: 'lead_duty_invalid', line: 2, key: 'vielleicht' }])
+  assert.deepEqual(odd.rows.map((r) => [r.shortName, r.leadDuty]), [['PfB', true]])
+  const without = parseAvailabilityCsv('Name;MO\r\nZwA;N\r\n', DAYS)
+  assert.equal(without.hasLeadDuty, false)
+  assert.equal('leadDuty' in (without.rows[0] ?? {}), false)
 })
 
 test('the sheet as a spreadsheet exports it after a column was removed: a separator at the end of the header and of every row, read as if it were not there', () => {
@@ -56,7 +64,9 @@ test('an unknown column, a weekday the registration has twice or not at all, no 
   assert.deepEqual(parseAvailabilityCsv('Name;FR\nZwA;\n', DAYS).fileProblems, [{ code: 'unknown_column', column: 'FR', days: DAYS }, { code: 'missing_column', column: '2034-07-03' }])
   assert.deepEqual(parseAvailabilityCsv('Name;MO\nZwA;\n', ['2034-07-03', '2034-07-10']).fileProblems, [{ code: 'day_ambiguous', column: 'MO' }, { code: 'missing_column', column: '2034-07-03' }])
   assert.deepEqual(parseAvailabilityCsv('MO;DI\n;\n', DAYS).fileProblems, [{ code: 'missing_column', column: 'email' }])
-  assert.deepEqual(parseAvailabilityCsv('Name;Leitung\nZwA;N\n', DAYS).fileProblems, [{ code: 'missing_column', column: '2034-07-03' }])
+  // A sheet with the Leitung column alone says who has no duty to lead, and nothing about the days.
+  assert.deepEqual(parseAvailabilityCsv('Name;Leitung\nZwA;N\n', DAYS).rows, [{ line: 2, shortName: 'ZwA', days: {}, leadDuty: false }])
+  assert.deepEqual(parseAvailabilityCsv('Name\nZwA\n', DAYS).fileProblems, [{ code: 'missing_column', column: '2034-07-03' }])
   assert.deepEqual(parseAvailabilityCsv('Longname;Forename\nZwexmhofer;Anna\n', DAYS).fileProblems, [{ code: 'no_header' }])
   assert.deepEqual(parseAvailabilityCsv('Name;MO\n', DAYS).fileProblems, [{ code: 'empty' }])
   assert.deepEqual(parseAvailabilityCsv('Name;MO\n;\n\n', DAYS).fileProblems, [{ code: 'empty' }])
