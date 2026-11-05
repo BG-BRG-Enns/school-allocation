@@ -109,7 +109,10 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.item.fee.amount).fill(sample.climbingFee)
   await page.getByLabel(t.item.fee.note).fill(sample.climbingFeeNote)
   await page.getByRole('group', { name: t.item.categories.intro }).getByLabel(sample.sport).check()
+  // One companion wanted beside the lead: sought, until someone signs up on the list.
+  await page.getByLabel(t.item.teachers.wanted).fill('1')
   await expect(page.getByText(t.item.participants.lead(BERND.name))).toBeVisible()
+  await expect(page.getByText(t.item.teachers.sought(1))).toBeVisible()
   await shot(page, '15-neue-aktivitaet')
   await picture(page, 'aktivitaet-beschreibung', [page.getByRole('heading', { name: t.common.page.newItem }), page.getByLabel(t.item.teachers.search)])
   await picture(page, 'aktivitaet-termine', [page.getByRole('heading', { name: t.common.field.sessions, exact: true }), page.getByRole('button', { name: t.item.sessions.add })])
@@ -260,6 +263,28 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(page.getByRole('row', { name: climbing }).getByRole('cell').first()).toHaveText(String(climbingNumber(sample.climbing)))
   await expect(page.getByRole('link', { name: t.campaign.organization.catalogueExport })).toBeVisible()
   await shot(page, '17-katalog-veroeffentlicht')
+  await signOut(page)
+})
+
+test('eine Lehrkraft trägt sich auf der Liste als Begleitung ein; die Tabelle zählt sie', async ({ page }) => {
+  // Carla, available on Monday only if needed, which passes: the climbing seeks one companion, and she is it.
+  await openAs(page, CARLA, '/wahlen')
+  await page.getByRole('link', { name: sample.projectWeek }).click()
+  await page.getByRole('link', { name: t.companions.link }).click()
+  await expect(page.getByRole('heading', { name: t.companions.heading })).toBeVisible()
+  const monday = page.getByRole('region', { name: day('2034-07-03') })
+  await expect(monday.getByText(t.companions.myStatus(t.labels.availability.if_needed))).toBeVisible()
+  const row = monday.getByRole('row', { name: climbing })
+  await expect(row).toContainText(t.item.teachers.sought(1))
+  await picture(page, 'begleitung-gesucht', [page.getByRole('heading', { name: t.companions.heading }), row])
+  await row.getByRole('button', { name: `${t.companions.join}: ${sample.climbing}` }).click()
+  await expect(page.getByRole('status')).toHaveText(t.companions.joined)
+  await expect(row).toContainText(t.companions.accompanying)
+  await expect(row).toContainText(t.item.teachers.complete)
+  // Published, the registration not yet open: she could still take herself off; she stays. The table counts her.
+  await expect(row.getByRole('button', { name: `${t.companions.leave}: ${sample.climbing}` })).toBeVisible()
+  await page.getByRole('link', { name: `← ${t.common.backToCampaign}` }).click()
+  await expect(page.getByRole('row', { name: climbing })).toContainText(t.campaign.items.companionsOf(1, 1))
   await signOut(page)
 })
 

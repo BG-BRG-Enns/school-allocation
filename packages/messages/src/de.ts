@@ -57,6 +57,7 @@ export const de = {
       newItem: 'Neue Aktivität',
       availability: 'Meine Verfügbarkeit',
       planning: 'Lehrkräfte je Tag',
+      companions: 'Begleitung gesucht',
       categories: 'Kategorien',
     },
     backToCampaign: 'Zur Anmeldung',
@@ -495,6 +496,9 @@ export const de = {
     frame_invalid: 'Ein Anwesenheitsrahmen passt nicht: Er endet vor seinem Beginn, nennt eine Einheit, die das Stundenraster nicht hat, oder einen Tag, der kein Projekttag ist.',
     class_conflict: 'Eine Klasse ist zur selben Zeit schon in einer anderen Klassenaktivität. Sieh dir bitte den Hinweis an.',
     target_reached: 'In jedem Feld, in das diese Aktivität Plätze brächte, ist das Ziel schon erreicht. Sieh dir bitte den Hinweis an.',
+    companions_full: 'Inzwischen ist die Begleitung vergeben.',
+    teacher_overlap: 'Zur selben Zeit ist diese Lehrkraft schon bei einer anderen Aktivität.',
+    teacher_unavailable: 'An einem Tag dieser Aktivität ist diese Lehrkraft als nicht verfügbar eingetragen.',
     sessions_outside_days: 'An den gestrichenen Tagen gibt es schon Termine. Ändere bitte zuerst die betroffenen Aktivitäten.',
     item_invalid: 'Die Aktivität passt noch nicht. Sieh dir bitte die Hinweise an.',
     window_order: 'Die Anmeldung muss enden, nachdem sie begonnen hat.',
@@ -588,6 +592,7 @@ export const de = {
     kind: 'Art',
     onlyIncomplete: 'Nur ohne vollständige Wünsche',
     onlyRestricted: 'Nur eingeschränkt verfügbare',
+    onlyCompanionsMissing: 'Nur mit gesuchter Begleitung',
     reset: 'Filter zurücksetzen',
     onlyCancelled: 'Nur abgesagte',
     classOrName: 'Klasse oder Name',
@@ -771,6 +776,8 @@ export const de = {
       bringsNothing: 'nur, wo das Ziel erreicht ist',
       /** The lead is not plainly available on a day of the activity; the days as format.ts formatDay writes them. */
       leadLimited: (days: string) => `Leitung am ${days} nicht oder nur wenn nötig verfügbar`,
+      /** The companions named against the number the lead wants: "Begleitung 1 von 2". */
+      companionsOf: (named: number, wanted: number) => `Begleitung ${named} von ${wanted}`,
       fixedFor: (classes: string) => wholeClasses(classes),
       reviewNote: (note: string) => `Rückmeldung: ${note}`,
       participants: 'Teilnehmer*innen',
@@ -852,6 +859,12 @@ export const de = {
       /** A teacher not plainly available on some of the activity's days, the days as format.ts formatDay writes them. */
       unavailableOn: (name: string, days: string) => `${name} ist am ${days} nicht verfügbar.`,
       ifNeededOn: (name: string, days: string) => `${name} ist am ${days} nur verfügbar, wenn es nötig ist.`,
+      /** How many companions the lead wants beside them (the school's wish 6). */
+      wanted: 'Begleitungen (0 bis 8)',
+      wantedHint: 'Wie viele Lehrkräfte neben der Leitung mitkommen sollen. Was noch fehlt, steht unter „Begleitung gesucht“, und Lehrkräfte tragen sich dort selbst ein.',
+      /** "noch 1 gesucht" */
+      sought: (count: number) => `noch ${count} gesucht`,
+      complete: 'Begleitung vollständig',
     },
     sessions: {
       intro: 'Ein Termin liegt in den Einheiten der Schule oder, etwa bei einem Ausflug, nach der Uhrzeit. Angerechnet werden die Minuten, die du je Projekttag angibst; Anreise und Pausen zählen nicht.',
@@ -910,6 +923,13 @@ export const de = {
       lead: (name: string) => `Leitung: ${name}`,
       companions: (names: string) => `Begleitung: ${names}`,
     },
+    /** The companions alone, for the lead of a submitted or approved activity and for the organizer: the rest of the form is not changed there. */
+    companions: {
+      heading: 'Begleitung',
+      intro: 'Hier änderst du nur die Begleitung und wie viele gesucht werden; alles andere bleibt, wie die Aktivität eingereicht ist.',
+      save: 'Begleitung speichern',
+      saved: 'Begleitung gespeichert.',
+    },
   },
 
   /** Verfuegbarkeit.vue: a teacher's own availability on the project days of the registrations collecting activities. */
@@ -921,6 +941,33 @@ export const de = {
     statusOn: (day: string) => `Verfügbarkeit am ${day}`,
     saved: 'Gespeichert.',
     link: 'Meine Verfügbarkeit eintragen',
+  },
+
+  /** Begleitung.vue: the list a teacher joins an activity from (the school's wish 6). */
+  companions: {
+    heading: 'Begleitung gesucht',
+    link: 'Begleitung gesucht',
+    intro: 'Je Projekttag die Aktivitäten, die noch eine Begleitung suchen, und die, die du begleitest. Trag dich ein, wo du mitkommst; bis die Anmeldung öffnet, trägst du dich hier auch wieder aus, danach sag es der Leitung oder der Organisation.',
+    teachersOnly: 'Die Liste ist für Lehrkräfte.',
+    none: 'Zurzeit sucht keine Aktivität eine Begleitung.',
+    noneOnDay: 'An diesem Tag sucht keine Aktivität eine Begleitung.',
+    /** The caller's own availability on the day, the status as labels.availability writes it. */
+    myStatus: (status: string) => `Deine Verfügbarkeit: ${status}`,
+    notApproved: 'noch nicht genehmigt',
+    leading: 'Du leitest diese Aktivität.',
+    accompanying: 'Du begleitest diese Aktivität.',
+    join: 'Ich begleite',
+    leave: 'Austragen',
+    joined: 'Eingetragen.',
+    left: 'Ausgetragen.',
+    /** Why joining is not possible (api-contracts COMPANION_PROBLEM_CODES). */
+    problem: {
+      none_sought: 'Die Begleitung ist vergeben.',
+      overlap: 'Zur selben Zeit leitest oder begleitest du schon eine andere Aktivität.',
+      unavailable: 'Du bist an diesem Tag als nicht verfügbar eingetragen.',
+      campaign_state: 'Die Anmeldung ist abgeschlossen.',
+      item_state: 'Diese Aktivität findet nicht mehr statt.',
+    },
   },
 
   /** Lehrkraefte.vue: the organizer's overview of the teachers per project day. */

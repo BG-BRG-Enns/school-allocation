@@ -14,7 +14,7 @@ import DemandTable from '../components/DemandTable.vue'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { loadParticipants, type ParticipantsResponse } from '../lib/allocation-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
-import { checkItem, createItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Category, type ClassConflictView, type GateCellView, type Item, type ItemCheckResponse, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
+import { checkItem, createItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, setCompanions, updateItem, type Campaign, type Category, type ClassConflictView, type GateCellView, type Item, type ItemCheckResponse, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodsOnGrid, touchedDates } from '../lib/format.ts'
 import { cellsAddedBy, cellsText, refusalText } from '../lib/offer-cells.ts'
@@ -53,6 +53,8 @@ const eligibleClasses = ref<string[]>([])
 const categories = ref<Category[]>([])
 const categoryIds = ref<string[]>([])
 const teachers = ref<{ personId: string, displayName: string }[]>([])
+/** How many companions the lead wants beside them (the school's wish 6). */
+const companionsWanted = ref(0)
 const teacherQuery = ref('')
 const teacherResults = ref<{ personId: string, displayName: string }[]>([])
 /** The teachers not plainly available on the registration's days, for the warnings beside the chosen ones. */
@@ -118,10 +120,12 @@ async function load(): Promise<void> {
       eligibleClasses.value = [...item.eligibleClasses]
       categoryIds.value = [...item.categoryIds]
       teachers.value = [...item.teachers]
+      companionsWanted.value = item.companionsWanted
       sessions.value = item.sessions.map(fromStored)
     } else {
       existing.value = null
       categoryIds.value = []
+      companionsWanted.value = 0
       const me = session.value
       if (me?.person?.kind === 'teacher') teachers.value = [{ personId: me.person.id, displayName: me.displayName }]
       addSession()
@@ -297,6 +301,36 @@ const lead = computed(() => {
   return teachers.value.find((teacher) => teacher.personId === id) ?? null
 })
 const companions = computed(() => teachers.value.filter((teacher) => teacher.personId !== lead.value?.personId))
+/** What the lead still seeks: the number wanted less the companions named; '' when none is wanted. */
+const soughtText = computed(() => {
+  const wanted = Number(companionsWanted.value)
+  if (!(wanted > 0)) return ''
+  const sought = Math.max(0, wanted - companions.value.length)
+  return sought > 0 ? t.item.teachers.sought(sought) : t.item.teachers.complete
+})
+/**
+ * The companions alone (the owner's decision of 2026-11-04): the lead of a submitted or approved activity, or an organizer,
+ * changes the list and the number wanted without the rest of the form, which stays as the activity was submitted.
+ */
+const companionsOnly = computed(() => {
+  const item = existing.value
+  if (!item || item.state === 'draft' || item.state === 'withdrawn') return false
+  const me = session.value?.person?.id
+  return organizes.value || (me !== undefined && item.teachers.some((teacher) => teacher.lead && teacher.personId === me))
+})
+/** The lead as saved: in the companions-only mode the lead stays, whatever the chips say, and everyone else sent is a companion. An organizer keeps the full edit beside it, the lead's chip included. */
+const savedLeadId = computed(() => existing.value?.teachers.find((teacher) => teacher.lead)?.personId ?? null)
+const companionsSaving = useFeedback()
+async function saveCompanions(): Promise<void> {
+  const item = existing.value
+  if (!item) return
+  await companionsSaving.run(async () => {
+    const saved = await setCompanions(item.id, { companions: teachers.value.filter((teacher) => teacher.personId !== savedLeadId.value).map((teacher) => teacher.personId), wanted: Number(companionsWanted.value) })
+    existing.value = saved
+    teachers.value = [...saved.teachers]
+    companionsWanted.value = saved.companionsWanted
+  }, t.item.companions.saved)
+}
 
 /** A warning per chosen teacher and status for the days the sessions touch that the teacher is not plainly available on. */
 const availabilityWarnings = computed(() => {
@@ -346,6 +380,7 @@ function input(): ItemInput {
     eligibleClasses: eligibleClasses.value,
     categories: categoryIds.value,
     teachers: teachers.value.map((t) => t.personId),
+    companionsWanted: Number(companionsWanted.value),
     sessions: sessions.value.map((s) => {
       syncPeriods(s)
       return {
@@ -408,7 +443,7 @@ async function save(propose: boolean): Promise<void> {
   </p>
   <form
     v-if="campaign"
-    @submit.prevent="save(false)"
+    @submit.prevent="companionsOnly && !organizes ? saveCompanions() : save(false)"
   >
     <p
       v-if="existing?.reviewNote"
@@ -445,16 +480,24 @@ async function save(propose: boolean): Promise<void> {
 
     <h2>{{ t.common.field.teachers }}</h2>
     <div class="chips">
-      <button
+      <template
         v-for="teacher in teachers"
         :key="teacher.personId"
-        type="button"
-        class="ghost"
-        :aria-label="t.item.teachers.remove(teacher.displayName)"
-        @click="removeTeacher(teacher.personId)"
       >
-        {{ teacher.displayName }} ✕
-      </button>
+        <span
+          v-if="companionsOnly && !organizes && teacher.personId === savedLeadId"
+          class="chip"
+        >{{ teacher.displayName }}</span>
+        <button
+          v-else
+          type="button"
+          class="ghost"
+          :aria-label="t.item.teachers.remove(teacher.displayName)"
+          @click="removeTeacher(teacher.personId)"
+        >
+          {{ teacher.displayName }} ✕
+        </button>
+      </template>
     </div>
     <p
       v-if="lead"
@@ -462,6 +505,8 @@ async function save(propose: boolean): Promise<void> {
     >
       {{ t.item.participants.lead(lead.displayName) }}<template v-if="companions.length > 0">
         · {{ t.item.participants.companions(companions.map((teacher) => teacher.displayName).join(', ')) }}
+      </template><template v-if="soughtText">
+        · {{ soughtText }}
       </template>
       <br>{{ t.item.teachers.leadRule }}
     </p>
@@ -499,6 +544,46 @@ async function save(propose: boolean): Promise<void> {
         </button>
       </li>
     </ul>
+    <p class="field">
+      <label for="companions-wanted">{{ t.item.teachers.wanted }}</label>
+      <input
+        id="companions-wanted"
+        v-model="companionsWanted"
+        type="number"
+        min="0"
+        max="8"
+        step="1"
+      >
+      <span class="muted">{{ t.item.teachers.wantedHint }}</span>
+    </p>
+    <template v-if="companionsOnly">
+      <p class="muted">
+        {{ t.item.companions.intro }}
+      </p>
+      <p
+        v-if="companionsSaving.error.value"
+        role="alert"
+        class="alert"
+      >
+        {{ companionsSaving.error.value }}
+      </p>
+      <p
+        v-if="companionsSaving.notice.value"
+        role="status"
+        class="notice"
+      >
+        {{ companionsSaving.notice.value }}
+      </p>
+      <p class="actions">
+        <button
+          type="button"
+          :disabled="companionsSaving.busy.value"
+          @click="saveCompanions"
+        >
+          {{ t.item.companions.save }}
+        </button>
+      </p>
+    </template>
 
     <h2>{{ t.common.field.sessions }}</h2>
     <p class="muted">
@@ -857,7 +942,10 @@ async function save(propose: boolean): Promise<void> {
     >
       {{ saving.error.value }}
     </p>
-    <p class="actions">
+    <p
+      v-if="!(companionsOnly && !organizes)"
+      class="actions"
+    >
       <button
         type="submit"
         :disabled="saving.busy.value"

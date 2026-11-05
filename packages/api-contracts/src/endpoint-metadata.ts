@@ -115,6 +115,14 @@ export const postCampaignsByIdItemsCheck = { method: 'POST', path: '/api/campaig
 
 export const postItemsByIdPropose = { method: 'POST', path: '/api/items/:id/propose', transport: 'json' } as const satisfies EndpointMetadata
 
+export const getCampaignsByIdCompanions = { method: 'GET', path: '/api/campaigns/:id/companions', transport: 'json' } as const satisfies EndpointMetadata
+
+export const postItemsByIdCompanionsMe = { method: 'POST', path: '/api/items/:id/companions/me', transport: 'json' } as const satisfies EndpointMetadata
+
+export const deleteItemsByIdCompanionsMe = { method: 'DELETE', path: '/api/items/:id/companions/me', transport: 'json' } as const satisfies EndpointMetadata
+
+export const putItemsByIdCompanions = { method: 'PUT', path: '/api/items/:id/companions', transport: 'json' } as const satisfies EndpointMetadata
+
 export const postItemsByIdUnpropose = { method: 'POST', path: '/api/items/:id/unpropose', transport: 'json' } as const satisfies EndpointMetadata
 
 export const postAdminItemsByIdApprove = { method: 'POST', path: '/api/admin/items/:id/approve', transport: 'json' } as const satisfies EndpointMetadata

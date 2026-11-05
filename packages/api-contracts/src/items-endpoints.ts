@@ -2,6 +2,7 @@ import { Type } from 'typebox'
 import * as metadata from './endpoint-metadata.ts'
 import { ClassConflictResponse, ItemBody, ItemCheckBody, ItemCheckResponse, ItemInvalidResponse, NoteBody, ReasonBody, TargetReachedResponse } from './catalogue.ts'
 import { ErrorResponse, IdParams } from './common.ts'
+import { CompanionsBody, CompanionsResponse } from './companions.ts'
 import { defineEndpoint } from './endpoint.ts'
 import { ItemSchema } from './campaigns.ts'
 
@@ -20,6 +21,15 @@ const ProposalRefused = Type.Union([ClassConflictResponse, TargetReachedResponse
 export const postCampaignsByIdItemsCheck = defineEndpoint({ ...metadata.postCampaignsByIdItemsCheck, schema: { params: IdParams, body: ItemCheckBody, response: { '422': ItemRefused, '4xx': ErrorResponse, '200': ItemCheckResponse } } })
 
 export const postItemsByIdPropose = defineEndpoint({ ...metadata.postItemsByIdPropose, schema: { params: IdParams, response: { '200': ItemSchema, '409': ProposalRefused, '4xx': ErrorResponse } } })
+
+/** The companions (the school's wish 6): the list a teacher joins from, joining and leaving, and the lead's or an organizer's edit of the companions alone. */
+export const getCampaignsByIdCompanions = defineEndpoint({ ...metadata.getCampaignsByIdCompanions, schema: { params: IdParams, response: { '200': CompanionsResponse, '4xx': ErrorResponse } } })
+
+export const postItemsByIdCompanionsMe = defineEndpoint({ ...metadata.postItemsByIdCompanionsMe, schema: { params: IdParams, response: { '200': ItemSchema, '4xx': ErrorResponse } } })
+
+export const deleteItemsByIdCompanionsMe = defineEndpoint({ ...metadata.deleteItemsByIdCompanionsMe, schema: { params: IdParams, response: { '200': ItemSchema, '4xx': ErrorResponse } } })
+
+export const putItemsByIdCompanions = defineEndpoint({ ...metadata.putItemsByIdCompanions, schema: { params: IdParams, body: CompanionsBody, response: { '422': ItemRefused, '200': ItemSchema, '4xx': ErrorResponse } } })
 
 export const postItemsByIdUnpropose = defineEndpoint({ ...metadata.postItemsByIdUnpropose, schema: { params: IdParams, response: { '200': ItemSchema, '4xx': ErrorResponse } } })
 

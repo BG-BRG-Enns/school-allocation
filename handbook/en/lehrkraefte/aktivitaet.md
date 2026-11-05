@@ -12,6 +12,14 @@ Whoever created the activity is its **lead** as long as they are among its teach
 
 If one of the teachers is unavailable on a day of the sessions, or available only if needed ([Availability](./verfuegbarkeit)), it says so there too. You can still save and submit; the organisation decides.
 
+Under **Companions (0 to 8)** you say how many teachers should come along beside the lead. Add the ones you already know through the search; what is still missing then stands below the lead ("1 still sought") and on the list **Companions sought**, where teachers sign up themselves. For a submitted or approved activity you, as its lead, change only the companions and this number, with **Save companions**; everything else stays as the activity was submitted, and it stays approved.
+
+### Companions sought
+
+![Companions sought: per project day the activities that still seek a companion, with time, lead and the button I accompany](/bilder/en/begleitung-gesucht.png)
+
+On the registration's page, **Companions sought** leads to a list per project day: the activities that still seek a companion and the ones you accompany, with time, lead, "Companions 1 of 2" and your availability on the day. A submitted activity is on it before its approval, marked "not approved yet". **I accompany** signs you up; from then on you are a teacher of the activity like a named one and later see its participants. It is not possible when you already lead or accompany something at the same time or are entered as unavailable on the day ("only if needed" is enough); the list tells you. If the companions have been found meanwhile, signing up tells you. Until registration opens you take yourself off with **Take me off**; after that tell the lead or the organisation, who take you out.
+
 ## Sessions
 
 ![The sessions: one session in periods, from period 2, lasting 4 periods, with clock times and credited minutes on the project day](/bilder/en/aktivitaet-termine.png)

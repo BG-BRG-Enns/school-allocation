@@ -84,6 +84,9 @@ export const MOVE_PROBLEM_LABELS: Readonly<Record<string, string>> = t.labels.mo
 /** What was recorded for a student in a session (packages/api-contracts/src/attendance.ts ATTENDANCE_STATUSES). */
 export const ATTENDANCE_STATUS_LABELS: Readonly<Record<string, string>> = t.labels.attendanceStatus
 
+/** Why a teacher may not join an activity as a companion (api-contracts COMPANION_PROBLEM_CODES). */
+export const COMPANION_PROBLEM_LABELS: Readonly<Record<string, string>> = t.companions.problem
+
 /** A teacher on a project day (school-core AVAILABILITY_STATUSES). */
 export const AVAILABILITY_LABELS: Readonly<Record<string, string>> = t.labels.availability
 

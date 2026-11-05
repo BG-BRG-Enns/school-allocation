@@ -12,6 +12,14 @@ Wer die Aktivität angelegt hat, hat die **Leitung**, solange sie oder er unter 
 
 Ist eine der Lehrkräfte an einem Tag der Termine nicht verfügbar oder nur, wenn es nötig ist ([Verfügbarkeit](./verfuegbarkeit)), steht das dort ebenfalls. Speichern und einreichen kannst du trotzdem; die Organisation entscheidet.
 
+Unter **Begleitungen (0 bis 8)** sagst du, wie viele Lehrkräfte neben der Leitung mitkommen sollen. Wen du schon kennst, fügst du über die Suche hinzu; was dann noch fehlt, steht unter der Leitung („noch 1 gesucht“) und auf der Liste **Begleitung gesucht**, wo sich Lehrkräfte selbst eintragen. Bei einer eingereichten oder genehmigten Aktivität änderst du als Leitung nur noch die Begleitung und diese Zahl, mit **Begleitung speichern**; alles andere bleibt, wie die Aktivität eingereicht ist, und sie bleibt genehmigt.
+
+### Begleitung gesucht
+
+![Begleitung gesucht: je Projekttag die Aktivitäten, die noch eine Begleitung suchen, mit Zeit, Leitung und dem Knopf Ich begleite](/bilder/de/begleitung-gesucht.png)
+
+Auf der Seite der Anmeldung führt **Begleitung gesucht** zu einer Liste je Projekttag: die Aktivitäten, die noch eine Begleitung suchen, und die, die du begleitest, mit Zeit, Leitung, „Begleitung 1 von 2“ und deiner Verfügbarkeit an dem Tag. Eine eingereichte Aktivität steht schon vor ihrer Genehmigung darauf, mit dem Vermerk „noch nicht genehmigt“. **Ich begleite** trägt dich ein; danach bist du eine Lehrkraft der Aktivität wie eine genannte und siehst später ihre Teilnehmer\*innen. Nicht möglich ist das, wenn du zur selben Zeit schon etwas leitest oder begleitest oder an dem Tag als nicht verfügbar eingetragen bist („nur wenn nötig“ reicht); die Liste sagt es dir. Ist die Begleitung inzwischen vergeben, sagt es dir das Eintragen. Bis die Anmeldung öffnet, trägst du dich mit **Austragen** wieder aus; danach sag es der Leitung oder der Organisation, die dich herausnehmen.
+
 ## Termine
 
 ![Die Termine: ein Termin in Einheiten, ab der 2. Einheit, 4 Einheiten lang, mit der Uhrzeit und den angerechneten Minuten am Projekttag](/bilder/de/aktivitaet-termine.png)

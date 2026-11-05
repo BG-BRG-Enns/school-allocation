@@ -10,6 +10,7 @@ import { isOrganizer, mayPropose, maySeeDemand } from '../lib/policies.ts'
 import { itemInput } from '../services/catalogue-input.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
 import { approveItem, checkItemOffer, createItem, deleteDraft, proposeItem, returnItem, unproposeItem, updateItem, withVisibleItem } from '../services/items.ts'
+import { companionsList, joinItem, leaveItem, setCompanions } from '../services/companions.ts'
 import { withdrawItem } from '../services/withdrawal.ts'
 
 export interface ItemsRoutesOptions {
@@ -63,6 +64,28 @@ export async function itemsRoutes(app: FastifyInstance, { db, guards, baseUrl, w
   registerEndpoint(app, endpoints.postItemsByIdUnpropose, { ...signedIn }, async (request) => {
     const caller = callerOf(request)
     return withVisibleItem(db, request.params.id, caller, () => unproposeItem(db, request.params.id, caller))
+  })
+
+  // The companions (the school's wish 6): the list a teacher joins from, for teachers and organizers; joining and leaving, a
+  // teacher's own; the companions set as a whole by the lead or an organizer (the service tells them apart).
+  registerEndpoint(app, endpoints.getCampaignsByIdCompanions, { ...signedIn }, async (request) => {
+    const caller = callerOf(request)
+    return companionsList(db, await visibleCampaign(db, caller, request.params.id), caller)
+  })
+
+  registerEndpoint(app, endpoints.postItemsByIdCompanionsMe, { ...signedIn }, async (request) => {
+    const caller = callerOf(request)
+    return withVisibleItem(db, request.params.id, caller, () => joinItem(db, request.params.id, caller))
+  })
+
+  registerEndpoint(app, endpoints.deleteItemsByIdCompanionsMe, { ...signedIn }, async (request) => {
+    const caller = callerOf(request)
+    return withVisibleItem(db, request.params.id, caller, () => leaveItem(db, request.params.id, caller))
+  })
+
+  registerEndpoint(app, endpoints.putItemsByIdCompanions, { ...signedIn }, async (request) => {
+    const caller = callerOf(request)
+    return withVisibleItem(db, request.params.id, caller, () => setCompanions(db, request.params.id, request.body, caller))
   })
 
   registerEndpoint(app, endpoints.postAdminItemsByIdApprove, { ...organizer }, async (request) => {

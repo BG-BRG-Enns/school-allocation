@@ -91,6 +91,26 @@
     "bodyLimit": null
   },
   {
+    "method": "DELETE",
+    "url": "/api/items/:id/companions/me",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
     "method": "GET",
     "url": "/api/admin/audit",
     "body": null,
@@ -896,6 +916,26 @@
   },
   {
     "method": "GET",
+    "url": "/api/campaigns/:id/companions",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/campaigns/:id/demand",
     "body": null,
     "params": {
@@ -1413,7 +1453,12 @@
             "type": "string",
             "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
           },
-          "maxItems": 8
+          "maxItems": 9
+        },
+        "companionsWanted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
         },
         "sessions": {
           "type": "array",
@@ -2545,7 +2590,12 @@
             "type": "string",
             "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
           },
-          "maxItems": 8
+          "maxItems": 9
+        },
+        "companionsWanted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
         },
         "sessions": {
           "type": "array",
@@ -2717,7 +2767,12 @@
                 "type": "string",
                 "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
               },
-              "maxItems": 8
+              "maxItems": 9
+            },
+            "companionsWanted": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 8
             },
             "sessions": {
               "type": "array",
@@ -2822,6 +2877,26 @@
       },
       "additionalProperties": false
     },
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "POST",
+    "url": "/api/items/:id/companions/me",
+    "body": null,
     "params": {
       "type": "object",
       "required": [
@@ -3310,6 +3385,48 @@
           },
           "maxProperties": 60,
           "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "PUT",
+    "url": "/api/items/:id/companions",
+    "body": {
+      "type": "object",
+      "required": [
+        "companions",
+        "wanted"
+      ],
+      "properties": {
+        "companions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "maxItems": 8
+        },
+        "wanted": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
         }
       },
       "additionalProperties": false

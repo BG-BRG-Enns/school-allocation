@@ -249,6 +249,7 @@ export function scenarioLoader(world: ScenarioWorld, s: Scenario, log: (message:
           eligibleGrades: item.eligibleGrades,
           eligibleClasses: item.eligibleClasses,
           teachers: item.teachers.map((oid) => must(ids, oid)),
+          companionsWanted: item.companionsWanted,
           // The project days are in July: Vienna's summer time.
           sessions: item.sessions.map((x) => ({ startsAt: `${x.date}T${x.from}:00+02:00`, endsAt: `${x.date}T${x.to}:00+02:00`, credits: [{ date: x.date, minutes: x.minutes }] })),
           categories: item.categories.map((name) => must(categoryIds, name)),

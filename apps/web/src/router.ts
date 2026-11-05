@@ -20,6 +20,7 @@ import Lehrkraefte from './pages/Lehrkraefte.vue'
 import Mails from './pages/Mails.vue'
 import Mailvorlagen from './pages/Mailvorlagen.vue'
 import Aufbewahrung from './pages/Aufbewahrung.vue'
+import Begleitung from './pages/Begleitung.vue'
 import Personen from './pages/Personen.vue'
 import SignIn from './pages/SignIn.vue'
 import Stammdaten from './pages/Stammdaten.vue'
@@ -42,6 +43,7 @@ export const router = createRouter({
     { path: '/wahlen/:id', component: Wahl, props: true },
     { path: '/wahlen/:id/katalog', component: Katalog, props: true },
     { path: '/wahlen/:id/eingereichte', component: Eingereichte, props: true },
+    { path: '/wahlen/:id/begleitung', component: Begleitung, props: true },
     { path: '/wahlen/:id/aktivitaet/neu', component: Aktivitaet, props: true },
     { path: '/wahlen/:id/aktivitaet/:itemId', component: Aktivitaet, props: true },
     { path: '/wahlen/:id/klasse/:className', component: Klasse, props: true },

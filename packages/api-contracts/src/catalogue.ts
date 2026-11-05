@@ -124,7 +124,10 @@ export const ItemBody = StrictObject({
   fixedClasses: Type.Optional(Type.Array(ClassName, { maxItems: 40 })),
   eligibleGrades: Type.Optional(Type.Array(Grade, { maxItems: 13 })),
   eligibleClasses: Type.Optional(Type.Array(ClassName, { maxItems: 40 })),
-  teachers: Type.Array(Uuid, { maxItems: 8 }),
+  /** The lead and up to eight companions. */
+  teachers: Type.Array(Uuid, { maxItems: 9 }),
+  /** How many companions the lead wants beside them (0–8); left out, none. */
+  companionsWanted: Type.Optional(Type.Integer({ minimum: 0, maximum: 8 })),
   sessions: Type.Array(SessionBody, { maxItems: 10 }),
   /** The school's categories it belongs to; left out, it keeps the ones it has. */
   categories: Type.Optional(Type.Array(Uuid, { maxItems: 10 })),
