@@ -318,7 +318,7 @@ const companionsOnly = computed(() => {
   const me = session.value?.person?.id
   return organizes.value || (me !== undefined && item.teachers.some((teacher) => teacher.lead && teacher.personId === me))
 })
-/** The lead as saved: in the companions-only mode the lead stays, whatever the chips say, and everyone else sent is a companion. */
+/** The lead as saved: in the companions-only mode the lead stays, whatever the chips say, and everyone else sent is a companion. An organizer keeps the full edit beside it, the lead's chip included. */
 const savedLeadId = computed(() => existing.value?.teachers.find((teacher) => teacher.lead)?.personId ?? null)
 const companionsSaving = useFeedback()
 async function saveCompanions(): Promise<void> {
@@ -485,7 +485,7 @@ async function save(propose: boolean): Promise<void> {
         :key="teacher.personId"
       >
         <span
-          v-if="companionsOnly && teacher.personId === savedLeadId"
+          v-if="companionsOnly && !organizes && teacher.personId === savedLeadId"
           class="chip"
         >{{ teacher.displayName }}</span>
         <button
