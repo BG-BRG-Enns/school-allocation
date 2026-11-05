@@ -68,6 +68,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | demand cell | Feld (einer Einheit oder eines Tags, je Schulstufe) | cell | a period of the frame, or the whole day, for one grade |
 | offer gate (`lock_new_offers`) | Sperre; "Neue Angebote sperren, sobald das Ziel erreicht ist"; "bringt Plätze in"; "nur, wo das Ziel erreicht ist" | lock new offers; "brings places to"; "only where the target is reached" | a teacher's submission is refused when every cell it serves has reached the target; never an organizer's, never a class activity |
 | first submission | Eingereicht am | Submitted on | the first time an activity was submitted; a return and a resubmission keep it |
+| review page | Eingereichte durchgehen; "3 von 12"; Überspringen | Review submissions; "3 of 12"; Skip | the submitted activities one after the other, by the first submission |
 | class conflict | "Eine Klasse kann zur selben Zeit nur in einer Klassenaktivität sein." | "A class can be in one class activity at a time." | two class activities naming one class with overlapping sessions |
 | place headroom (`placeHeadroomPercent`) | Ziel; "Plätze über dem Bedarf, in Prozent"; "unter dem Ziel" | target; "places above the need, in percent"; "short of the target" | the need and 20 % on top by default |
 | availability | Verfügbarkeit; verfügbar · nicht verfügbar · nur wenn nötig | availability; available · unavailable · if needed | no reason is ever asked |

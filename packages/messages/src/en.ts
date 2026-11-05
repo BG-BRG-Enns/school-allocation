@@ -780,6 +780,22 @@ export const en: Messages = {
     },
   },
 
+  /** Eingereichte.vue: the organizer goes through the submitted activities one after the other. */
+  review: {
+    heading: 'Review submissions',
+    organizersOnly: 'This page is the organisation\'s.',
+    link: 'Review submissions',
+    back: 'Back to the overview',
+    position: (n: number, total: number) => `${n} of ${total}`,
+    none: 'No submitted activity is waiting.',
+    skip: 'Skip',
+    before: 'Places and demand without this activity',
+    after: 'Places and demand with this activity',
+    checking: 'Places and demand are loading.',
+    returned: 'Returned.',
+    withdrawn: 'Withdrawn.',
+  },
+
   /** Katalog.vue: the catalogue as students read it and the school prints it. */
   catalogue: {
     title: 'Catalogue',

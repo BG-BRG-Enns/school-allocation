@@ -434,6 +434,7 @@ it deliberately with `npm run contracts:update:routes` and review the diff.
 | `GET /api/campaigns/:id/classes/:class/attendance` · `GET …/attendance.xlsx` | class teacher (own class in the campaign's school year), organizer, auditor | The class's attendance per project day and session, with what was recorded, and whether the caller may record now; the same as a workbook |
 | `PUT /api/sessions/:id/attendance` | class teacher (own class's students, in the campaign's school year), organizer; admin for WPF | Record or correct the session's attendance for the students named (`{ entries: [{ personId, status, note? }] }`); 422 `not_assigned` for a student the session's item does not have, 409 `campaign_state` outside `results` |
 | `GET /api/admin/campaigns/:id/export/{choices,assignments,participants,missing,attendance}.xlsx` | organizer, auditor | Exports |
+| `/wahlen/:id/eingereichte` (page) | organizer | The submitted activities one after the other, by the first submission: every detail, what the activity brings, its conflicts, the lead's availability, the demand without and with it (the check endpoint); approve, return, withdraw, skip |
 | `/wahlen/:id/katalog` (page) | any | Printable catalogue: the web app's page with print styles → PDF via the browser; filterable by project day; names the teachers only when the campaign says so (D-13) |
 | `GET /api/admin/audit` | admin, auditor | The school scope's audit log (campaign scopes and export later) |
 | `GET /api/health` | — | Includes `busy` for the update gate |

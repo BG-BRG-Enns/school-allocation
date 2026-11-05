@@ -794,6 +794,23 @@ export const de = {
     },
   },
 
+  /** Eingereichte.vue: the organizer goes through the submitted activities one after the other. */
+  review: {
+    heading: 'Eingereichte durchgehen',
+    organizersOnly: 'Diese Seite ist für die Organisation.',
+    link: 'Eingereichte durchgehen',
+    back: 'Zurück zum Überblick',
+    /** "3 von 12" */
+    position: (n: number, total: number) => `${n} von ${total}`,
+    none: 'Keine eingereichte Aktivität wartet.',
+    skip: 'Überspringen',
+    before: 'Plätze und Bedarf ohne diese Aktivität',
+    after: 'Plätze und Bedarf mit dieser Aktivität',
+    checking: 'Plätze und Bedarf werden geladen.',
+    returned: 'Zurückgegeben.',
+    withdrawn: 'Zurückgezogen.',
+  },
+
   /** Katalog.vue: the catalogue as students read it and the school prints it. */
   catalogue: {
     title: 'Katalog',
