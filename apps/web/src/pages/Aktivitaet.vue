@@ -17,7 +17,7 @@ import { ApiError } from '../lib/api-rules.ts'
 import { checkItem, createItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, updateItem, type Campaign, type Category, type ClassConflictView, type GateCellView, type Item, type ItemCheckResponse, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodsOnGrid, touchedDates } from '../lib/format.ts'
-import { cellsText, refusalText } from '../lib/offer-cells.ts'
+import { cellsAddedBy, cellsText, refusalText } from '../lib/offer-cells.ts'
 import { describeCells } from '@school-allocation/school-core'
 import { t } from '../lib/i18n.ts'
 import { ASSIGNMENT_SOURCE_LABELS, CATALOGUE_PROBLEM_LABELS } from '../lib/labels.ts'
@@ -182,7 +182,7 @@ const gateHints = computed<{ text: string, alert: boolean }[]>(() => {
   const lines: { text: string, alert: boolean }[] = []
   if (c.served.length === 0 && sessions.value.length > 0) lines.push({ text: t.item.gate.servesNothing, alert: false })
   else {
-    const under = c.served.filter((cell) => !cell.reached)
+    const under = cellsAddedBy(c.served, c.before, c.after).filter((cell) => !cell.reached)
     lines.push(under.length > 0 ? { text: t.item.gate.brings(cellsText(describeCells(under, c.before))), alert: false } : { text: t.item.gate.bringsNothing, alert: c.locked })
   }
   if (c.locked && c.refused) {

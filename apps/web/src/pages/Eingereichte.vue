@@ -17,7 +17,7 @@ import { approveItem, checkItem, loadCampaign, loadCampaignAvailability, loadCat
 import { useFeedback } from '../lib/feedback.ts'
 import { datesBetween, formatDay, formatFee, formatSpanOnGrid, formatWhenShort, localDateOf, localTimeOf } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
-import { cellsText } from '../lib/offer-cells.ts'
+import { cellsAddedBy, cellsText } from '../lib/offer-cells.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string }>()
@@ -119,14 +119,14 @@ const leadLimited = computed(() => {
   return days.length === 0 ? '' : t.campaign.items.leadLimited(days.map(formatDay).join(', '))
 })
 
-/** What the activity brings: the served cells still short of the target, or the word that there are none; the gate's hint for the organizer when the registration locks offers. */
+/** What the activity brings: the served cells it adds places to that are still short of the target, or the word that there are none. */
 const brings = computed(() => {
   const c = check.value
   const item = current.value
   if (!c || !item) return ''
   if (item.fixedClasses.length > 0 && item.places === 0) return ''
   if (c.served.length === 0) return t.item.gate.servesNothing
-  const under = c.served.filter((cell) => !cell.reached)
+  const under = cellsAddedBy(c.served, c.before, c.after).filter((cell) => !cell.reached)
   return under.length > 0 ? t.campaign.items.brings(cellsText(describeCells(under, c.before))) : t.campaign.items.bringsNothing
 })
 const conflicts = computed(() => (check.value?.conflicts ?? []).map((c: ClassConflictView) => t.item.conflict(c.className, formatDay(localDateOf(c.startsAt)), localTimeOf(c.startsAt), localTimeOf(c.endsAt), c.title, c.lead.shortName ?? c.lead.displayName)))

@@ -61,6 +61,17 @@ export function bringsText(item: OfferedItem & { id: string }, demand: readonly 
   return under.length === 0 ? t.campaign.items.bringsNothing : t.campaign.items.brings(cellsText(describeCells(under, demand)))
 }
 
+/**
+ * The served cells an activity brings places to: those where the demand
+ * with it offers more than the demand without it. A cell a session touches
+ * but whose grade cannot rank the activity (its class is in a class
+ * activity overlapping it) is served by the gate's count and gets nothing.
+ */
+export function cellsAddedBy(served: readonly GateCell[], before: readonly DayDemand[], after: readonly DayDemand[]): GateCell[] {
+  const offeredIn = (demand: readonly DayDemand[], cell: GateCell) => demand.find((d) => d.date === cell.date)?.grades.find((g) => g.grade === cell.grade)?.cells.find((c) => c.period === cell.period)?.offered ?? 0
+  return served.filter((cell) => offeredIn(after, cell) > offeredIn(before, cell))
+}
+
 /** The refusal's sentences, one per day, from the cells the gate judged: the document's "Am Mo., 21.06. hat jede Schulstufe … in der 2. und 3. EH ihr Ziel erreicht." */
 export function refusalText(cells: readonly GateCell[], demand: readonly Pick<DayDemand, 'date' | 'periods'>[]): string[] {
   const dates = [...new Set(cells.map((c) => c.date))]
