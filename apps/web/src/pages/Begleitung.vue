@@ -7,7 +7,7 @@
 // what it answered. Organizers see the list too; only a teacher of the
 // roster joins.
 
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { joinItem, leaveItem, loadCampaign, loadCompanions, type CampaignView, type CompanionsItemView, type CompanionsResponse } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, formatSpan } from '../lib/format.ts'
@@ -31,6 +31,7 @@ async function load(): Promise<void> {
   })
 }
 onMounted(load)
+watch(() => props.id, load)
 
 const campaign = computed(() => view.value?.campaign)
 const empty = computed(() => (list.value?.days ?? []).every((day) => day.items.length === 0))
@@ -45,18 +46,19 @@ function soughtText(item: CompanionsItemView): string {
   return `${t.campaign.items.companionsOf(item.named, item.wanted)} · ${item.sought > 0 ? t.item.teachers.sought(item.sought) : t.item.teachers.complete}`
 }
 
+// The list anew within the action, so a reload that fails is the action's error and not an error nobody shows.
 async function join(item: CompanionsItemView): Promise<void> {
-  const ok = await action.run(async () => {
+  await action.run(async () => {
     await joinItem(item.id)
+    list.value = await loadCompanions(props.id)
   }, t.companions.joined)
-  if (ok) list.value = await loadCompanions(props.id)
 }
 
 async function leave(item: CompanionsItemView): Promise<void> {
-  const ok = await action.run(async () => {
+  await action.run(async () => {
     await leaveItem(item.id)
+    list.value = await loadCompanions(props.id)
   }, t.companions.left)
-  if (ok) list.value = await loadCompanions(props.id)
 }
 </script>
 

@@ -104,7 +104,8 @@ export async function companionsList(db: Database, campaign: Campaign, caller: C
             number: item.number,
             title: item.title,
             state: item.state,
-            sessions: item.sessions.map((s) => ({ startsAt: s.startsAt, endsAt: s.endsAt })),
+            // The sessions of this day alone: a trip over two days stands under each with its own.
+            sessions: item.sessions.filter((s) => datesOf({ sessions: [s] }).includes(date)).map((s) => ({ startsAt: s.startsAt, endsAt: s.endsAt })),
             lead: { displayName: lead?.displayName ?? '', shortName: lead === null ? null : (details.get(lead.personId)?.shortName ?? null) },
             wanted: item.companionsWanted,
             named: item.teachers.filter((teacher) => !teacher.lead).length,

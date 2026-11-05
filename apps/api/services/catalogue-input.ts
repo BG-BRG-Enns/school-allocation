@@ -20,6 +20,8 @@ export function itemInput(body: Static<typeof ItemBody>, caller: Caller, creatin
   // Ids as PostgreSQL returns them, so a spelling in upper case is the same teacher.
   const teachers = body.teachers.map((id) => id.toLowerCase())
   if (creating && isTeacher(caller) && caller.person && !teachers.includes(caller.person.id)) teachers.unshift(caller.person.id)
+  // The lead and up to eight companions, the proposer put in front counted: the schema's bound is on the list as sent.
+  if (teachers.length > 9) throw new ApplicationError('validation_failed')
   return {
     title: body.title,
     description: body.description ?? '',
