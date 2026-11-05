@@ -780,9 +780,10 @@ export const en: Messages = {
     },
   },
 
-  /** Katalog.vue: the catalogue as students read it and the school prints it. */
+  /** Eingereichte.vue: the organizer goes through the submitted activities one after the other. */
   review: {
     heading: 'Review submissions',
+    organizersOnly: 'This page is the organisation\'s.',
     link: 'Review submissions',
     back: 'Back to the overview',
     position: (n: number, total: number) => `${n} of ${total}`,
@@ -795,6 +796,7 @@ export const en: Messages = {
     withdrawn: 'Withdrawn.',
   },
 
+  /** Katalog.vue: the catalogue as students read it and the school prints it. */
   catalogue: {
     title: 'Catalogue',
     titleOf: (campaign: string) => `Catalogue ${campaign}`,

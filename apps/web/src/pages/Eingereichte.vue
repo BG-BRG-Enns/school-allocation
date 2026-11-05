@@ -58,7 +58,14 @@ async function load(): Promise<void> {
   }
 }
 onMounted(load)
-watch(() => props.id, load)
+// Another registration in the same page: its own queue from the start, nothing of the last one's.
+watch(() => props.id, () => {
+  cursor.value = 0
+  done.value = 0
+  asking.value = null
+  check.value = null
+  void load()
+})
 
 const campaign = computed(() => view.value?.campaign)
 /** The submitted activities by their first submission, the earliest first, never submitted last. */
@@ -201,7 +208,13 @@ function onSubmitAsking(): void {
   >
     {{ action.notice.value }}
   </p>
-  <template v-if="campaign">
+  <p
+    v-if="view && !view.may.organize"
+    role="alert"
+  >
+    {{ t.review.organizersOnly }}
+  </p>
+  <template v-else-if="campaign">
     <p class="muted">
       {{ campaign.name }}
     </p>

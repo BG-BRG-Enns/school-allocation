@@ -797,6 +797,7 @@ export const de = {
   /** Eingereichte.vue: the organizer goes through the submitted activities one after the other. */
   review: {
     heading: 'Eingereichte durchgehen',
+    organizersOnly: 'Diese Seite ist für die Organisation.',
     link: 'Eingereichte durchgehen',
     back: 'Zurück zum Überblick',
     /** "3 von 12" */
