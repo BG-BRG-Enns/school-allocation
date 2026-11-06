@@ -387,7 +387,8 @@ function input(): ItemInput {
     feeNote: feeNote.value.trim(),
     places: Number(places.value),
     minParticipants: isFixed.value || staffOnly.value ? 0 : Number(minParticipants.value),
-    cancellableBelowMin: isFixed.value || staffOnly.value ? false : cancellableBelowMin.value,
+    // Hidden without places, and sent as it stands: a stored activity keeps its flag, so an edit of its words changes nothing the allocation computed with.
+    cancellableBelowMin: isFixed.value ? false : cancellableBelowMin.value,
     fixedClasses: fixedClasses.value,
     eligibleGrades: eligibleGrades.value,
     eligibleClasses: eligibleClasses.value,

@@ -72,9 +72,10 @@ watch(() => props.id, () => {
 const campaign = computed(() => view.value?.campaign)
 /** The order of the queue: by the first submission (the default), or by the day and start of the activities; the browser remembers it. */
 const order = useUiState<string>('eingereichte:order', 'proposed')
-// Another order is another queue: from its start.
+// Another order is another queue: from its start, and without a return or withdrawal begun for the activity that was shown.
 watch(order, () => {
   cursor.value = 0
+  asking.value = null
 })
 /** The submitted activities by their first submission, the earliest first, never submitted last; or by when they take place. */
 const queue = computed(() => {
