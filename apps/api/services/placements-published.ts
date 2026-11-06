@@ -70,6 +70,11 @@ function classActivitiesBeside(state: Published, student: CampaignStudent, item:
   return [...state.items.values()].filter((other) => other.id !== item.id && other.fixedClasses.includes(student.className) && itemsOverlap(other, item))
 }
 
+/** Whether the row is a direct placement into the item: fixed, of a student whose class the item is not. */
+function isDirect(state: Published, item: Item, row: Assignment): boolean {
+  return row.itemId === item.id && row.source === 'fixed' && state.students.has(row.personId) && !item.fixedClasses.includes((state.students.get(row.personId) as CampaignStudent).className)
+}
+
 /** The student's rows that overlap an activity, other than the one in it. */
 function rowsOverlapping(state: Published, personId: string, item: Item): Assignment[] {
   return state.rows.filter((row) => row.personId === personId && row.itemId !== item.id && state.items.has(row.itemId) && itemsOverlap(state.items.get(row.itemId) as Item, item))
@@ -81,9 +86,10 @@ async function viewOf(client: Queryable, campaign: Campaign, item: Item, caller:
   if (!mayPlaceInto(caller, item) && takeOut.length === 0 && !caller.roles.includes('read_only_auditor')) throw new ApplicationError('forbidden')
   const state = await readPublished(client, campaign)
   const inIt = (personId: string, itemId: string) => state.rows.some((row) => row.personId === personId && row.itemId === itemId)
-  // Placed directly: in it by a teacher's hand, before publication (a fixed row of someone whose class it is not) or after.
+  // Placed directly: a fixed row of someone whose class the activity is not, by a teacher's hand before publication or after. Not the
+  // organizer's or a class teacher's placement by hand (`manual`): that fills a gap, with a reason, and the student may swap out of it.
   const placed = state.rows
-    .filter((row) => row.itemId === item.id && (row.source === 'fixed' || row.source === 'manual') && state.students.has(row.personId) && !item.fixedClasses.includes((state.students.get(row.personId) as CampaignStudent).className))
+    .filter((row) => isDirect(state, item, row))
     .map((row) => {
       const student = state.students.get(row.personId) as CampaignStudent
       const left = classActivitiesBeside(state, student, item).filter((other) => !inIt(student.personId, other.id))
@@ -159,12 +165,12 @@ async function placePublished(db: Database, context: WindowContext, id: string, 
   })
 }
 
-/** Takes a student off the activity they were placed into; its own teachers and organizers. */
+/** Takes a student off the activity they were placed into directly; its own teachers and organizers. A row in it otherwise (a wish, a class placement, the organizer's hand) is not theirs to remove here. */
 async function removePublished(db: Database, context: WindowContext, id: string, personId: string, caller: Caller): Promise<PlacementsResponse> {
   return change(db, context, id, caller, async (client, item, campaign, state) => {
     if (!mayPlaceInto(caller, item)) throw new ApplicationError('forbidden')
     const student = await studentOf(client, campaign, personId)
-    if (!state.rows.some((row) => row.personId === student.personId && row.itemId === item.id)) throw new ApplicationError('not_found')
+    if (!state.rows.some((row) => row.personId === student.personId && isDirect(state, item, row))) throw new ApplicationError('not_found')
     return [{ move: { personId: student.personId, toItemId: null, leaves: [item.id] }, act: 'removed', besideClass: false }]
   })
 }

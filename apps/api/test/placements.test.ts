@@ -329,9 +329,11 @@ test('a class activity\'s teachers keep its list of who does not take part, with
   assert.deepEqual((await owner.query<{ kind: string, reason: string | null }>('select c.kind, c.reason from assignment_change c join allocation_run r on r.id = c.run_id where r.campaign_id = $1 order by c.seq offset 5', [id])).rows.map((c) => [c.kind, c.reason]), [
     ['place', 'Von einer Lehrkraft der Aktivität direkt eingeteilt'], ['move', 'Zurück in der Klassenaktivität'],
   ])
-  // A student the run gave the lab (Tim, by a fallback, who saved no list): placed by its teacher, the row is the teacher's, fixed, under "Direkt eingeteilt"; a placement, not a move.
+  // A student the run gave the lab (Tim, by a fallback, who saved no list): not placed directly, so not the teacher's to take off here; placed by its teacher, the row is the teacher's, fixed, under "Direkt eingeteilt"; a placement, not a move.
   const given = (await owner.query<{ person_id: string, source: string }>('select a.person_id, a.source from assignment a join allocation_run r on r.id = a.run_id where r.campaign_id = $1 and a.item_id = $2 and a.superseded_by is null and a.source <> \'fixed\'', [id, s.items.labor])).rows
   assert.deepEqual(given.map((row) => [row.person_id, row.source]), [[s.timPerson, 'fallback']])
+  assert.equal((await send(s, s.anna, 'DELETE', `/api/items/${s.items.labor}/placements/${s.timPerson}`)).status, 404, 'in it by the run, not by a placement')
+  assert.equal((await send(s, s.bernd, 'DELETE', `/api/items/${s.items.wien}/placements/${s.saraPerson}`)).status, 404, 'a class placement is left by the list, not here')
   const converted = await send<PlacementsResponse>(s, s.anna, 'PUT', `/api/items/${s.items.labor}/placements/${s.timPerson}`, {})
   assert.equal(converted.status, 200, JSON.stringify(converted.body))
   assert.deepEqual(converted.body.placed.map((p) => [p.displayName, p.leavesClass]), [[TIM.name, true]])
