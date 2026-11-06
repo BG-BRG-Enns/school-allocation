@@ -77,6 +77,10 @@ export const AUDIT_ACTIONS = [
   // class activity, or enters a ranking on a student's behalf. A
   // student's own saving is not privileged and keeps its revisions instead.
   'preassignment.exempted',
+  'preassignment.exemption-lifted',
+  'preassignment.placed',
+  'preassignment.removed',
+  'preassignment.reclaimed',
   'choice.entered-on-behalf',
   // Mail (school scope): a template changed, reset to the default, a test mail sent; sending paused and resumed.
   'mail.template-changed',

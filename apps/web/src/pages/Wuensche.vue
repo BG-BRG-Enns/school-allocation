@@ -50,6 +50,8 @@ watch(() => [props.id, props.personId], load)
 const campaign = computed(() => view.value?.campaign)
 const editable = computed(() => view.value?.acceptsChoices ?? false)
 
+/** The class activities the student is in: what an exemption is from. A direct placement is taken back on its activity's page. */
+const classPlacements = computed(() => (view.value?.fixed ?? []).filter((item) => !(view.value?.directItemIds ?? []).includes(item.id)))
 /** The days, in order: those with groups offered and those taken by fixed items, which show as well. */
 const days = computed(() => {
   const byDay = new Map<string, GroupView[]>()
@@ -225,7 +227,7 @@ async function exempt(): Promise<void> {
             v-for="item in d.fixed"
             :key="item.id"
           >
-            <strong>{{ item.title }}</strong> · {{ t.wishes.fixedForYourClass }}
+            <strong>{{ item.title }}</strong> · {{ view?.directItemIds.includes(item.id) ? t.wishes.fixedDirectly : t.wishes.fixedForYourClass }}
             <span
               v-if="item.feeCents > 0"
               class="muted"
@@ -351,11 +353,11 @@ async function exempt(): Promise<void> {
       </p>
     </form>
 
-    <section v-if="onBehalf && editable && view.fixed.length > 0">
+    <section v-if="onBehalf && editable && classPlacements.length > 0">
       <h2>{{ t.wishes.exemptions.title }}</h2>
       <ul class="plain">
         <li
-          v-for="item in view.fixed"
+          v-for="item in classPlacements"
           :key="item.id"
         >
           {{ item.title }}

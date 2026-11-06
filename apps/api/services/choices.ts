@@ -7,11 +7,13 @@
 
 import { requireCampaign } from './campaigns.ts'
 
-import { acceptsChoices, checkRanking, isComplete, offeredTo, ruleReaches, timeGroupsOf, wishesRequired, type Ranking } from '@school-allocation/school-core'
+import { acceptsChoices, checkRanking, effectivePlacements, isComplete, offeredTo, rankablePlaces, ruleReaches, timeGroupsOf, wishesRequired, type Ranking } from '@school-allocation/school-core'
 import { type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
 import * as store from '../lib/dao/choices.ts'
-import { campaignStudent, campaignStudents, fixedItemIds } from '../lib/dao/choices.ts'
+import { campaignStudent, campaignStudents } from '../lib/dao/choices.ts'
+import { directCounts, listPlacements } from '../lib/dao/pre-assignments.ts'
+import { asPlacementRows } from '../lib/placements.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError, ChoiceInvalid } from '../lib/errors.ts'
 import { mailStatesByPerson } from '../lib/mail/outbox.ts'
@@ -35,10 +37,16 @@ function spansOf(item: Item): { startMs: number, endMs: number }[] {
 /** What a student sees and may rank, with what they have ranked. */
 export async function choiceView(db: Queryable, campaign: Campaign, student: CampaignStudent): Promise<ChoiceView> {
   const items = await catalogueItems(db, campaign.id)
-  const fixedIds = await fixedItemIds(db, campaign.id, student.personId)
+  // What holds of the student's placements among the approved activities: by class, unless taken out of it by hand or by a
+  // direct placement that overlaps it; and the direct ones (school-core placements.ts).
+  const rows = asPlacementRows(await listPlacements(db, campaign.id, student.personId), student.className, new Map(items.map((item) => [item.id, item.fixedClasses])))
+  const held = effectivePlacements(rows, new Map(items.map((item) => [item.id, { id: item.id, sessions: spansOf(item) }])))
+  const fixedIds = new Set(held.itemIds)
   const fixed = items.filter((item) => fixedIds.has(item.id))
   const fixedSpans = fixed.flatMap(spansOf)
-  const offerable = items.filter((item) => !fixedIds.has(item.id)).map((item) => ({ id: item.id, sessions: spansOf(item), rules: item }))
+  // A direct placement takes one of an activity's places: what is left is what others may rank.
+  const placed = await directCounts(db, campaign)
+  const offerable = items.filter((item) => !fixedIds.has(item.id)).map((item) => ({ id: item.id, sessions: spansOf(item), rules: { ...item, places: rankablePlaces(item.places, placed.get(item.id) ?? 0) } }))
   const offered = offeredTo({ className: student.className, grade: student.grade }, offerable, fixedSpans)
   const byId = new Map(items.map((item) => [item.id, item]))
   const groups = timeGroupsOf(offered).map((group) => ({
@@ -64,6 +72,7 @@ export async function choiceView(db: Queryable, campaign: Campaign, student: Cam
   const rules = ruleReaches(campaign.rules, student, fixed, ranking, groups, byId, campaign.projectDays, campaign.wishesPerGroup)
   return {
     fixed,
+    directItemIds: rows.filter((row) => row.source === 'direct' && fixedIds.has(row.itemId)).map((row) => row.itemId),
     groups,
     ranking,
     window: saved?.savedIn ?? null,

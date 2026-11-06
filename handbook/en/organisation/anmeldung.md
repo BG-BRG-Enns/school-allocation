@@ -24,7 +24,9 @@ From opening, the registration page shows everyone's progress with their choices
 
 ## Exemptions
 
-If a class activity takes a whole class, you can exempt someone in that class from it: their page lists every class activity under **Exemptions**, with the **Exempt** button. Once exempted with a reason, the person makes their own choices for that time. You can grant exemptions while registration is open.
+If a class activity takes a whole class, you can exempt someone in that class from it: their page lists every class activity under **Exemptions**, with the **Exempt** button. Once exempted with a reason, the person makes their own choices for that time. You can grant exemptions here while registration is open.
+
+The same can be done on the class activity's page under **Not taking part**, before registration opens, without a reason, and undone again; there the activity's teachers and the class teacher enter it too ([Teachers](/en/lehrkraefte/aktivitaet#not-taking-part)). Teachers also place single students directly into their activity; a direct placement comes before the class activity. You can do both for any activity, also once registration has closed, until you calculate the allocation.
 
 ## Late registration
 

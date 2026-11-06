@@ -61,6 +61,16 @@ export function transition(from: CampaignState, to: CampaignState): TransitionRe
     : { ok: false, code: 'invalid_transition', from, to }
 }
 
+/**
+ * Whether students are placed into activities and taken out of class
+ * activities by hand: from the collecting of activities until the window
+ * closes; an organizer still while it is closed, until a run is computed.
+ * After that the published result is changed, not the placements.
+ */
+export function acceptsPlacements(state: CampaignState, organizer: boolean): boolean {
+  return state === 'catalogue' || state === 'published' || state === 'open' || state === 'grace' || (organizer && state === 'closed')
+}
+
 /** Whether a student may submit or change a ranked list: while the window is open, and in the grace week after it (a list saved then is late). */
 export function acceptsChoices(state: CampaignState): boolean {
   return state === 'open' || state === 'grace'

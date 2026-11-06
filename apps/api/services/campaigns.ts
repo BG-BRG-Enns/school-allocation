@@ -8,6 +8,9 @@ import { checkFrame, checkRules, demandByDay, demandCells, itemShares, ruleDeman
 import type { ItemShare } from '@school-allocation/api-contracts/campaigns'
 import { type Actor, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
+import { campaignStudents } from '../lib/dao/choices.ts'
+import { listPlacements } from '../lib/dao/pre-assignments.ts'
+import { withPlacements } from '../lib/placements.ts'
 import * as store from '../lib/dao/campaigns.ts'
 import { lockedCampaign, readCampaign, rosterClassSizes } from '../lib/dao/campaigns.ts'
 import { knownCategories } from '../lib/dao/categories.ts'
@@ -318,7 +321,10 @@ export async function listCampaigns(db: Queryable, caller: Pick<Caller, 'roles' 
 export interface DemandInputs {
   classes: ClassSize[]
   days: DemandDay[]
+  /** The submitted and approved activities as they are stored, by id. */
   items: Map<string, OfferedItem>
+  /** A catalogue with what the placements change in it (lib/placements.ts): asked for each catalogue the demand is computed over, so one without an activity counts nobody as placed into it. */
+  placed: (items: ReadonlyMap<string, OfferedItem>) => OfferedItem[]
 }
 
 /** The demand's inputs as the campaign stands (docs/domain-and-api.md §8): the offer gate and the check read them too, leaving one activity out. */
@@ -333,7 +339,10 @@ export async function demandInputs(db: Queryable, campaign: Campaign): Promise<D
     items.set(row.id, { ...item, sessions: [...item.sessions, { startMs: row.startsAt.getTime(), endMs: row.endsAt.getTime() }] })
   }
   const days = campaign.days.map((day) => ({ date: day.date, frame: day.frame, cells: demandCells(day.frame, grid, (time) => instantInSchoolZone(day.date, time), dayBounds(day.date)) }))
-  return { classes, days, items }
+  // Whoever is placed directly takes a place and needs none; whoever is out of a class activity needs places like the rest.
+  const classOf = new Map((await campaignStudents(db, campaign)).map((student) => [student.personId, student.className]))
+  const placements = await listPlacements(db, campaign.id)
+  return { classes, days, items, placed: (catalogue) => [...withPlacements(catalogue, placements, classOf).values()] }
 }
 
 /**
@@ -345,10 +354,12 @@ export async function demandInputs(db: Queryable, campaign: Campaign): Promise<D
  * (the organizer's table says what an activity brings).
  */
 export async function campaignDemand(db: Queryable, campaign: Campaign, withShares = false): Promise<{ demand: DayDemand[], rules: RuleDemand[], shares: ItemShare[] }> {
-  const { classes, days, items } = await demandInputs(db, campaign)
-  const demand = demandByDay(days, classes, [...items.values()])
-  const idOf = new Map([...items].map(([id, item]) => [item, id]))
-  const shares = withShares ? itemShares(days, classes, [...items.values()]).map((s) => ({ itemId: idOf.get(s.item) as string, date: s.date, period: s.period, grade: s.grade, places: s.places })) : []
+  const { classes, days, items, placed } = await demandInputs(db, campaign)
+  // In the catalogue's order, so an activity as the demand takes it is the one with the same place among the stored ones.
+  const offer = placed(items)
+  const demand = demandByDay(days, classes, offer)
+  const idOf = new Map([...items.keys()].map((id, index) => [offer[index] as OfferedItem, id]))
+  const shares = withShares ? itemShares(days, classes, offer).map((s) => ({ itemId: idOf.get(s.item) as string, date: s.date, period: s.period, grade: s.grade, places: s.places })) : []
   if (campaign.rules.length === 0) return { demand, rules: [], shares }
   const offered = (await listCampaignItems(db, campaign.id)).filter((item) => item.state === 'proposed' || item.state === 'approved')
   return { demand, rules: ruleDemand(campaign.rules, classes, offered, campaign.projectDays), shares }

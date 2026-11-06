@@ -57,6 +57,26 @@ If you select one or more classes under **Whole classes taking part (they make n
 
 With **0 places** and without whole classes the activity is for its teachers only, a supervision for example: students do not see it in the catalogue, and nobody can choose it. The form says so below the places, the minimum is gone, and the table marks it "teachers only". Lead, companions and **Companions sought** work as for any activity, and the lock on new offers does not apply to it, since it offers no places.
 
+## Placing students directly
+
+![Placed directly: Sara Pfnäxthuber of 5A with the box ticked that she takes part in no class activity during this time, below it the search for students](/bilder/en/direkt-eingeteilt.png)
+
+Under **Placed directly** you enter students who come into the activity without choosing it: search by name or class and click **Place**. Every teacher of the activity can do this, from its first save and also once it is submitted or approved; for a new activity the list is entered when you save. Whoever is placed directly takes a place of the activity; an activity with 0 places can thus consist of placed students alone. An activity someone is placed into directly takes place: its minimum and **Cancelled if too few** no longer apply to it. In the activities table the places say how many are placed directly.
+
+A direct placement comes before a class activity. With the box **takes part in no class activity during this time**, which is ticked, the student takes part in no class activity of their class that overlaps your activity, and in none of it: whoever does not go on the class trip is free for all its days and can choose or be placed into further activities. Beside the student it says which class activity that concerns and who leads it. Without the tick the student stays in their class activity and is only away during yours, for a rehearsal for example. SchulWahl asks nothing and notifies nobody: talk to the lead of the class activity.
+
+If the student is already placed directly into another activity during this time, the later placement stands: they come to you, and the page tells you whom to tell. **Remove** takes a placement back.
+
+### Not taking part
+
+![Not taking part: for a class activity the students of its classes who are not in it, here Tim Gnöxwieser, entered, with the button takes part after all](/bilder/en/nimmt-nicht-teil.png)
+
+For a class activity, **Not taking part** lists who of its classes is not in it. You enter someone through the search (**does not take part**) and take them off again with **takes part after all**; nobody gives a reason. You can do this as soon as the activity is saved and until registration closes; the class teacher and the organisation can too. Whoever is entered chooses for that time themselves or is placed directly, and Places and demand counts them as someone who needs a place.
+
+If someone is listed there as **placed directly in** another activity, a teacher has taken them for that time. **Reclaim** takes that placement back, and the student is with you again; the page tells you whom to tell. The form of a new class activity already shows who of its classes is placed directly during that time.
+
+If a class activity includes a night, the lists mark it "with an overnight stay", and the form reminds you to enter here who does not come along. The allocation never gives an activity with an overnight stay as a fallback.
+
 ## Cost
 
 **Cost in euros (blank: none)** and **What for** appear in the catalogue. Anyone placed pays, so for a class activity its whole classes do. Otherwise the calculation places students in an activity with a cost only if they chose it, and never on a remaining place. After publication, a swap, the class teacher or the organisation can also bring someone into an activity with a cost.

@@ -123,6 +123,20 @@ export const deleteItemsByIdCompanionsMe = { method: 'DELETE', path: '/api/items
 
 export const putItemsByIdCompanions = { method: 'PUT', path: '/api/items/:id/companions', transport: 'json' } as const satisfies EndpointMetadata
 
+export const getCampaignsByIdStudents = { method: 'GET', path: '/api/campaigns/:id/students', transport: 'json' } as const satisfies EndpointMetadata
+
+export const getItemsByIdPlacements = { method: 'GET', path: '/api/items/:id/placements', transport: 'json' } as const satisfies EndpointMetadata
+
+export const putItemsByIdPlacementsByPersonId = { method: 'PUT', path: '/api/items/:id/placements/:personId', transport: 'json' } as const satisfies EndpointMetadata
+
+export const deleteItemsByIdPlacementsByPersonId = { method: 'DELETE', path: '/api/items/:id/placements/:personId', transport: 'json' } as const satisfies EndpointMetadata
+
+export const postItemsByIdReclaimsByPersonId = { method: 'POST', path: '/api/items/:id/reclaims/:personId', transport: 'json' } as const satisfies EndpointMetadata
+
+export const putItemsByIdAbsencesByPersonId = { method: 'PUT', path: '/api/items/:id/absences/:personId', transport: 'json' } as const satisfies EndpointMetadata
+
+export const deleteItemsByIdAbsencesByPersonId = { method: 'DELETE', path: '/api/items/:id/absences/:personId', transport: 'json' } as const satisfies EndpointMetadata
+
 export const postItemsByIdUnpropose = { method: 'POST', path: '/api/items/:id/unpropose', transport: 'json' } as const satisfies EndpointMetadata
 
 export const postAdminItemsByIdApprove = { method: 'POST', path: '/api/admin/items/:id/approve', transport: 'json' } as const satisfies EndpointMetadata

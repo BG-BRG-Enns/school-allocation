@@ -10,7 +10,7 @@ import type { Period } from '@school-allocation/school-core'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { loadCatalogue, loadCategories, type Campaign, type Category, type Item } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { formatDay, formatFee, formatSpanOnGrid } from '../lib/format.ts'
+import { formatDay, formatFee, formatSpanOnGrid, includesNight } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
@@ -122,6 +122,12 @@ function who(item: Item): string {
       class="catalogue-item"
     >
       <h2>{{ item.number === null ? item.title : `${item.number} · ${item.title}` }}</h2>
+      <p
+        v-if="includesNight(item.sessions)"
+        class="muted"
+      >
+        {{ t.campaign.items.overnight }}
+      </p>
       <p v-if="item.categoryIds.length > 0">
         <span
           v-for="name in categoryNames(item)"

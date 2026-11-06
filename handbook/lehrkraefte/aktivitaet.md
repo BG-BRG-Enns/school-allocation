@@ -57,6 +57,26 @@ Wählst du unter **Ganze Klassen, die teilnehmen** eine oder mehrere Klassen, is
 
 Mit **0 Plätzen** und ohne ganze Klassen ist die Aktivität nur für ihre Lehrkräfte, etwa eine Aufsicht: Schüler\*innen sehen sie nicht im Katalog, und niemand kann sie wählen. Das Formular sagt es unter den Plätzen, die Mindestzahl fällt weg, und in der Tabelle steht bei ihr „nur Lehrkräfte“. Leitung, Begleitung und **Begleitung gesucht** gelten wie bei jeder Aktivität, und die Sperre für neue Angebote betrifft sie nicht, weil sie keine Plätze anbietet.
 
+## Schüler\*innen direkt einteilen
+
+![Direkt eingeteilt: Sara Pfnäxthuber aus der 5A mit dem Häkchen, dass sie in dieser Zeit an keiner Klassenaktivität teilnimmt, darunter die Suche nach Schüler\*innen](/bilder/de/direkt-eingeteilt.png)
+
+Unter **Direkt eingeteilt** trägst du Schüler\*innen ein, die ohne Wahl in die Aktivität kommen: Suche nach dem Namen oder der Klasse und klicke **einteilen**. Das können alle Lehrkräfte der Aktivität, vom ersten Speichern an und auch, wenn sie eingereicht oder genehmigt ist; bei einer neuen Aktivität wird die Liste mit dem Speichern eingetragen. Wer direkt eingeteilt ist, belegt einen Platz der Aktivität; eine Aktivität mit 0 Plätzen kann so nur aus eingeteilten Schüler\*innen bestehen. Eine Aktivität, in die jemand direkt eingeteilt ist, findet statt: Mindestzahl und **Fällt aus, wenn zu wenige kommen** gelten für sie nicht mehr. In der Tabelle der Aktivitäten steht bei den Plätzen, wie viele direkt eingeteilt sind.
+
+Eine direkte Einteilung geht einer Klassenaktivität vor. Mit dem Häkchen **nimmt in dieser Zeit an keiner Klassenaktivität teil**, das gesetzt ist, nimmt die Person an keiner Klassenaktivität ihrer Klasse teil, die sich mit deiner Aktivität überschneidet, und zwar an der ganzen nicht: Wer nicht mit auf die Klassenfahrt fährt, ist für alle ihre Tage frei und kann weitere Aktivitäten wählen oder eingeteilt werden. Neben der Person steht, welche Klassenaktivität das betrifft und wer sie leitet. Ohne das Häkchen bleibt die Person in ihrer Klassenaktivität und fehlt dort nur während deiner, etwa für eine Probe. SchulWahl fragt nicht nach und benachrichtigt niemanden: Sprich mit der Leitung der Klassenaktivität.
+
+Ist die Person in dieser Zeit schon in eine andere Aktivität direkt eingeteilt, gilt die spätere Einteilung: Sie kommt zu dir, und die Seite sagt dir, wem du Bescheid sagen sollst. **austragen** nimmt eine Einteilung zurück.
+
+### Nimmt nicht teil
+
+![Nimmt nicht teil: bei einer Klassenaktivität die Schüler\*innen ihrer Klassen, die nicht dabei sind, hier Tim Gnöxwieser, eingetragen, mit dem Knopf nimmt doch teil](/bilder/de/nimmt-nicht-teil.png)
+
+Bei einer Klassenaktivität steht unter **Nimmt nicht teil**, wer aus ihren Klassen nicht dabei ist. Du trägst jemanden über die Suche ein (**nimmt nicht teil**) und nimmst sie oder ihn mit **nimmt doch teil** wieder heraus; einen Grund nennt niemand. Das geht, sobald die Aktivität gespeichert ist, und bis die Anmeldung endet; auch der Klassenvorstand und die Organisation können es. Wer eingetragen ist, wählt für diese Zeit selbst oder wird direkt eingeteilt, und Plätze und Bedarf zählen die Person als eine, die einen Platz sucht.
+
+Steht dort jemand als **direkt eingeteilt in** eine andere Aktivität, hat eine Lehrkraft die Person in dieser Zeit zu sich geholt. Mit **zurückholen** nimmst du die Einteilung dort zurück, und die Person ist wieder bei euch; die Seite sagt dir, wem du Bescheid sagen sollst. Schon das Formular einer neuen Klassenaktivität zeigt, wer aus ihren Klassen in dieser Zeit direkt eingeteilt ist.
+
+Geht eine Klassenaktivität über Nacht, steht sie mit „mit Übernachtung“ in den Listen, und das Formular erinnert dich daran, hier einzutragen, wer nicht mitfährt. Als Restplatz teilt die Zuteilung eine Aktivität mit Übernachtung nie zu.
+
 ## Kosten
 
 **Kosten in Euro** (leer: keine) und **Wofür** stehen im Katalog. Wer eingeteilt ist, zahlt, bei einer Klassenaktivität also die ganzen Klassen. Sonst teilt die Berechnung in eine Aktivität mit Kosten nur ein, wer sie sich gewünscht hat, und nie als Restplatz. Nach der Veröffentlichung kann ein Tausch, der Klassenvorstand oder die Organisation jemanden auch in eine Aktivität mit Kosten bringen.

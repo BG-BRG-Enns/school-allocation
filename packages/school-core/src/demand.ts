@@ -31,6 +31,28 @@ export interface OfferedItem {
   places: number
   /** Its sessions' spans. */
   sessions: readonly { startMs: number, endMs: number }[]
+  /**
+   * The students placed into it directly (placements.ts), each once: they
+   * hold a place of their own and need none in the cells it touches.
+   * `beside` marks a placement beside a class activity the student stays
+   * in: counted with their class there. Left out: nobody.
+   */
+  placed?: readonly PlacedOf[]
+  /** For a class activity, the students of its classes who are not in it: taken out by hand, or by a direct placement elsewhere. They need places like a class without it. Left out: nobody. */
+  away?: readonly AwayOf[]
+}
+
+/** A student placed directly into an activity; the id tells one student from another, nothing more. */
+export interface PlacedOf {
+  className: string
+  personId: string
+  beside: boolean
+}
+
+/** A student of a class activity's class who is not in it. */
+export interface AwayOf {
+  className: string
+  personId: string
 }
 
 /** The attendance frame of a project day: everyone is at school from period `from` to period `to` of the grid. */
@@ -121,9 +143,9 @@ function touches(item: OfferedItem, cell: DemandCell): boolean {
  */
 export function demandByDay(days: readonly DemandDay[], classes: readonly ClassSize[], items: readonly OfferedItem[]): DayDemand[] {
   const grades = [...new Set(classes.map((c) => c.grade))].sort((a, b) => a - b)
-  const fixedSpans = fixedSpansOf(classes, items)
+  const classActivities = classActivitiesOf(classes, items)
   return days.map((day) => {
-    const cells = day.cells.map((cell) => cellDemand(cell, classes, items.filter((item) => touches(item, cell)), fixedSpans))
+    const cells = day.cells.map((cell) => cellDemand(cell, classes, items.filter((item) => touches(item, cell)), classActivities, items))
     return {
       date: day.date,
       frame: day.frame,
@@ -159,11 +181,11 @@ export interface ItemShare {
  * offers without it. Items without places offer nothing.
  */
 export function itemShares(days: readonly DemandDay[], classes: readonly ClassSize[], items: readonly OfferedItem[]): ItemShare[] {
-  const fixedSpans = fixedSpansOf(classes, items)
+  const classActivities = classActivitiesOf(classes, items)
   const shares: ItemShare[] = []
   for (const day of days) {
     for (const cell of day.cells) {
-      const { byItem } = cellDemand(cell, classes, items.filter((item) => touches(item, cell)), fixedSpans)
+      const { byItem } = cellDemand(cell, classes, items.filter((item) => touches(item, cell)), classActivities, items)
       for (const [item, perClass] of byItem) {
         for (const grade of [...new Set(classes.map((c) => c.grade))].sort((a, b) => a - b)) {
           const places = classes.filter((c) => c.grade === grade).reduce((sum, c) => sum + (perClass.get(c.className) ?? 0), 0)
@@ -175,25 +197,59 @@ export function itemShares(days: readonly DemandDay[], classes: readonly ClassSi
   return shares
 }
 
-/** The spans each class is fixed into, over every class activity: an item overlapping one of them is not for that class. */
-function fixedSpansOf(classes: readonly ClassSize[], items: readonly OfferedItem[]): Map<string, { startMs: number, endMs: number }[]> {
-  return new Map(classes.map((c) => [c.className, items.filter((item) => item.fixedClasses.includes(c.className)).flatMap((item) => item.sessions)]))
+/** The class activities of each class: an item overlapping one of them is not for that class, only for those of it who are out of the class activity. */
+function classActivitiesOf(classes: readonly ClassSize[], items: readonly OfferedItem[]): Map<string, OfferedItem[]> {
+  return new Map(classes.map((c) => [c.className, items.filter((item) => item.fixedClasses.includes(c.className))]))
 }
 
 /** Per class of one cell: who still needs a place, and the places offered them, over the items touching the cell; and per item its share per class. */
-function cellDemand(cell: DemandCell, classes: readonly ClassSize[], inCell: readonly OfferedItem[], fixedSpans: ReadonlyMap<string, readonly { startMs: number, endMs: number }[]>): { period: number | null, needing: Map<string, number>, offered: Map<string, number>, byItem: Map<OfferedItem, Map<string, number>> } {
+function cellDemand(cell: DemandCell, classes: readonly ClassSize[], inCell: readonly OfferedItem[], classActivities: ReadonlyMap<string, readonly OfferedItem[]>, catalogue: readonly OfferedItem[]): { period: number | null, needing: Map<string, number>, offered: Map<string, number>, byItem: Map<OfferedItem, Map<string, number>> } {
   const fixedClasses = new Set(inCell.flatMap((item) => item.fixedClasses))
-  const needing = new Map(classes.map((c) => [c.className, fixedClasses.has(c.className) ? 0 : c.students]))
+  // Of a class in a class activity here, only those not in it need a place; of any class, whoever is placed directly
+  // into an activity here needs none (beside a class activity they are counted with their class already).
+  // Each student once, however many activities of the cell name them: a day counted whole has a morning and an afternoon.
+  const awayOf = (className: string) => new Set(inCell.filter((item) => item.fixedClasses.includes(className)).flatMap((item) => (item.away ?? []).filter((a) => a.className === className).map((a) => a.personId)))
+  const placedOf = (className: string, fixed: boolean) => new Set(inCell.flatMap((item) => (item.placed ?? []).filter((p) => p.className === className && !(fixed && p.beside)).map((p) => p.personId)))
+  const needing = new Map(classes.map((c) => {
+    const fixed = fixedClasses.has(c.className)
+    const placed = placedOf(c.className, fixed)
+    if (!fixed) return [c.className, Math.max(0, c.students - placed.size)]
+    // Of a class in a class activity here, only those out of it can need a place, and of them those not placed.
+    const away = awayOf(c.className)
+    return [c.className, Math.min(c.students, [...away].filter((personId) => !placed.has(personId)).length)]
+  }))
   const offered = new Map(classes.map((c) => [c.className, 0]))
   const byItem = new Map<OfferedItem, Map<string, number>>()
+  /**
+   * How many of a class an item is for in this cell: all of it who need a
+   * place; but of a class with a class activity the item overlaps, anywhere
+   * on its sessions, only those who are out of every such activity (they
+   * may rank it, the rest of the class never does), and are not placed
+   * here. So a class back from a trip at eleven is offered nothing by an
+   * item that started during the trip, except those who did not go.
+   */
+  const needOf = (c: ClassSize, item: OfferedItem): number => {
+    const needs = needing.get(c.className) ?? 0
+    const placed = placedOf(c.className, fixedClasses.has(c.className))
+    // Whoever is placed into another activity that overlaps the item, in whatever period, never ranks the item: of those
+    // who need a place here, they are not whom it is for.
+    const taken = new Set(catalogue.filter((other) => other !== item && overlapsFixed(item, other.sessions)).flatMap((other) => (other.placed ?? []).filter((p) => p.className === c.className).map((p) => p.personId)))
+    const blocking = (classActivities.get(c.className) ?? []).filter((activity) => activity !== item && overlapsFixed(item, activity.sessions))
+    if (blocking.length === 0) return Math.max(0, needs - [...taken].filter((personId) => !placed.has(personId)).length)
+    const out = blocking.map((activity) => new Set((activity.away ?? []).filter((a) => a.className === c.className).map((a) => a.personId)))
+    const free = [...(out[0] ?? [])].filter((personId) => out.every((set) => set.has(personId)) && !placed.has(personId) && !taken.has(personId))
+    return Math.min(needs, free.length)
+  }
   for (const item of inCell) {
     if (item.places <= 0) continue
-    const eligible = classes.filter((c) => mayRank(c, item) && !overlapsFixed(item, fixedSpans.get(c.className) ?? []))
-    const need = eligible.reduce((sum, c) => sum + (needing.get(c.className) ?? 0), 0)
+    const needs = new Map(classes.filter((c) => mayRank(c, item)).map((c) => [c.className, needOf(c, item)]))
+    // A class the item is not for (its class activity overlaps it, and nobody of it is out) is not among those it splits over.
+    const eligible = classes.filter((c) => needs.has(c.className) && ((needs.get(c.className) ?? 0) > 0 || !(classActivities.get(c.className) ?? []).some((activity) => activity !== item && overlapsFixed(item, activity.sessions))))
+    const need = eligible.reduce((sum, c) => sum + (needs.get(c.className) ?? 0), 0)
     // Nobody left to place in any eligible class: the places go nowhere.
     if (need === 0) continue
     const mine = new Map<string, number>()
-    for (const [className, share] of splitWhole(item.places, eligible.map((c) => [c.className, (needing.get(c.className) ?? 0) / need]))) {
+    for (const [className, share] of splitWhole(item.places, eligible.map((c) => [c.className, (needs.get(c.className) ?? 0) / need]))) {
       offered.set(className, (offered.get(className) ?? 0) + share)
       mine.set(className, share)
     }

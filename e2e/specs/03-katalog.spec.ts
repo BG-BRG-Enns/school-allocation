@@ -11,7 +11,7 @@
 // genehmigt sie.
 
 import { expect, test } from '../support/test.ts'
-import { ANNA, BERND, CARLA, SARA } from '../support/personas.ts'
+import { ANNA, BERND, CARLA, SARA, TIM } from '../support/personas.ts'
 import { picture, section, shot } from '../support/screenshot.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
 import { refused } from '../support/console.ts'
@@ -202,6 +202,16 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(page.getByRole('heading', { name: sample.projectWeek })).toBeVisible()
   await expect(supervision).toContainText(t.item.participants.lead(BERND.name))
   await expect(supervision).toContainText(t.item.participants.companions(CARLA.name))
+  // Every teacher of an activity places students into it directly: Carla, who accompanies it now, enters Sara. Nothing is asked;
+  // the box says what it means for Sara's class activities of that time, and she takes a place of the activity.
+  await supervision.getByRole('link', { name: t.common.edit }).click()
+  await expect(page.getByText(t.placements.readOnly)).toBeVisible()
+  await page.getByLabel(t.placements.search).fill('Pfnäxthuber')
+  await page.getByRole('button', { name: t.placements.place(SARA.name, '5A') }).click()
+  await expect(page.getByLabel(t.placements.leavesClassOf(SARA.name))).toBeChecked()
+  await picture(page, 'direkt-eingeteilt', [page.getByRole('heading', { name: t.placements.heading }), page.getByLabel(t.placements.search)])
+  await page.getByRole('link', { name: `← ${t.common.backToCampaign}` }).click()
+  await expect(supervision).toContainText(t.campaign.items.directlyPlaced(1))
   // Taken back and deleted, so the journeys after this one go by a catalogue without it.
   await supervision.getByRole('button', { name: t.campaign.items.unpropose }).click()
   await supervision.getByRole('button', { name: t.campaign.items.delete }).click()
@@ -220,6 +230,16 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-04')
   await expect(page.getByText(t.item.teachers.unavailableOn(BERND.name, day('2034-07-04')))).toBeVisible()
   await picture(page, 'klassenaktivitaet', [page.getByRole('heading', { name: t.item.participation.heading }), page.getByRole('group', { name: t.item.participation.eligibleClasses })])
+  // Saved as a draft, the class activity has its list of who does not take part: Tim stays at home, no reason asked, and comes along after all.
+  await page.getByRole('button', { name: t.common.save, exact: true }).click()
+  await expect(page.getByRole('heading', { name: sample.projectWeek })).toBeVisible()
+  await page.getByRole('row', { name: new RegExp(literally(sample.vienna)) }).getByRole('link', { name: t.common.edit }).click()
+  await page.getByLabel(t.placements.search).fill('Gnöxwieser')
+  await page.getByRole('button', { name: t.placements.takeOut(TIM.name, '5A') }).click()
+  await expect(page.getByRole('button', { name: t.placements.bringBack(TIM.name) })).toBeVisible()
+  await picture(page, 'nimmt-nicht-teil', [page.getByRole('heading', { name: t.placements.absentHeading }), page.getByRole('button', { name: t.placements.bringBack(TIM.name) })])
+  await page.getByRole('button', { name: t.placements.bringBack(TIM.name) }).click()
+  await expect(page.getByText(t.placements.absentNone)).toBeVisible()
   // With 1A instead, on Tuesday morning: 1A is at the zoo then (the school's trip), so the form says so, and the submission is refused with it.
   const zoo = SCHOOL.items.find((item) => item.key === 'tue-1a-zoo')
   const zooLead = SCHOOL.teachers.find((teacher) => teacher.oid === zoo?.teachers[0])

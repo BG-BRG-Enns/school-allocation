@@ -6,6 +6,7 @@ import { CLASS_NAME, GRADES, MAX_RULES, RULE_LIMITS, RULE_PROBLEM_CODES, RULE_UN
 import { Type, type Static } from 'typebox'
 import { CatalogueProblemSchema, DayDemandSchema } from './campaigns.ts'
 import { Literals, MultiLineText, SingleLineText, StrictObject, Uuid } from './common.ts'
+import { AbsentStudentSchema } from './placements.ts'
 
 export const LocalDate = Type.String({ pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' })
 const ClassName = Type.String({ pattern: CLASS_NAME.source, maxLength: 16 })
@@ -158,6 +159,8 @@ export const ItemCheckResponse = StrictObject({
   refused: Type.Boolean(),
   locked: Type.Boolean(),
   conflicts: Type.Array(ClassConflictSchema),
+  /** For a class activity as it stands in the form: the students of its classes a direct placement elsewhere takes out of it. */
+  taken: Type.Array(AbsentStudentSchema),
 })
 export type ItemCheckResponse = Static<typeof ItemCheckResponse>
 
