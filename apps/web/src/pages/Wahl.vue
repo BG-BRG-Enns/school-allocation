@@ -164,8 +164,10 @@ watch([savedItemId, itemsShown], async ([id]) => {
   row.scrollIntoView({ block: 'center' })
 }, { flush: 'post' })
 
-/** The grades an activity is offered to, as the table says them: its grades, else the grades of its classes (the class names where the page does not know them), else "alle". */
+/** The grades an activity is offered to, as the table says them: its grades, else the grades of its classes (the class names where the page does not know them), else "alle"; a dash for one of its teachers alone. */
 function gradesText(item: Item): string {
+  // An activity of its teachers alone is offered to nobody.
+  if (isStaffOnly(item)) return '–'
   if (item.eligibleGrades.length > 0) return item.eligibleGrades.map((grade) => `${grade}.`).join(', ')
   if (item.eligibleClasses.length > 0) {
     const grades = [...new Set(item.eligibleClasses.map((name) => memberClasses.value.find((c) => c.className === name)?.grade).filter((grade): grade is number => grade !== undefined))].sort((a, b) => a - b)
