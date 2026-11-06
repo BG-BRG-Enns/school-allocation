@@ -286,8 +286,9 @@ async function findTeachers(): Promise<void> {
 
 function addTeacher(teacher: { personId: string, displayName: string }): void {
   teachers.value.push(teacher)
-  // Added by hand, a teacher accompanies; only an activity nobody leads yet takes them as its lead.
-  if (leadId.value === '') leadId.value = teacher.personId
+  // Added by hand, a teacher accompanies; only the first teacher of an activity without any leads it. Among several
+  // whose lead was taken off, nobody leads until one is named.
+  if (teachers.value.length === 1) leadId.value = teacher.personId
   teacherQuery.value = ''
   teacherResults.value = []
 }
