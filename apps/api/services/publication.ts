@@ -56,7 +56,7 @@ export function programmeWriter({ t, intl }: Words) {
   const amount = new Intl.NumberFormat(intl, { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })
 
   /** The item as a line of a student's programme: its number and title, the day and the clock span of each session. */
-  function line(item: Item, source: Assignment['source']): string {
+  function line(item: Item, source: Assignment['source'], direct: boolean): string {
     const when = item.sessions.map((s) => {
       const start = new Date(s.startsAt)
       const end = new Date(s.endsAt)
@@ -65,7 +65,8 @@ export function programmeWriter({ t, intl }: Words) {
         ? `${dayShort.format(start)} ${clock.format(start)} – ${clock.format(end)}`
         : `${dayShort.format(start)} ${clock.format(start)} – ${dayShort.format(end)} ${clock.format(end)}`
     }).join(', ')
-    return `${when}: ${itemLabel(item)}${source === 'fixed' ? ` (${t.notices.programme.fixed})` : ''}${item.feeCents > 0 ? ` – ${t.notices.programme.fee(amount.format(item.feeCents / 100))}` : ''}`
+    // "(Klasse)" after a class activity; a direct placement is fixed too but not the class's.
+    return `${when}: ${itemLabel(item)}${source === 'fixed' && !direct ? ` (${t.notices.programme.fixed})` : ''}${item.feeCents > 0 ? ` – ${t.notices.programme.fee(amount.format(item.feeCents / 100))}` : ''}`
   }
 
   /** The minutes a student still misses, per day, as the notices say it; empty when none. */
@@ -75,9 +76,9 @@ export function programmeWriter({ t, intl }: Words) {
 
   /** A student's programme as the notices list it: the items in the order of their first session, then what is still missing. */
   function lines(explanation: StudentExplanation, items: Map<string, Item>): string[] {
-    const result = explanation.items.map((e) => ({ item: items.get(e.itemId), source: e.source })).filter((e): e is { item: Item, source: Assignment['source'] } => e.item !== undefined)
+    const result = explanation.items.map((e) => ({ item: items.get(e.itemId), source: e.source, direct: e.direct })).filter((e): e is { item: Item, source: Assignment['source'], direct: boolean } => e.item !== undefined)
       .sort((a, b) => (a.item.sessions[0]?.startsAt ?? '').localeCompare(b.item.sessions[0]?.startsAt ?? ''))
-      .map((e) => line(e.item, e.source))
+      .map((e) => line(e.item, e.source, e.direct))
     const short = missing(explanation)
     if (short.length > 0) result.push(t.notices.programme.missing(short.join(', ')))
     return result

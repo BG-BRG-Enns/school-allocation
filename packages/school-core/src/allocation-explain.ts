@@ -13,6 +13,8 @@ import { ruleStandings, type RuleStanding } from './rules.ts'
 export interface ExplainedItem {
   itemId: string
   source: AssignmentSource
+  /** A fixed row of an item the student's class is not in as a whole: a teacher placed them, by the roster as the run froze it. */
+  direct: boolean
   rank: number | null
   /** Date → the minutes the item credits that day. */
   minutesByDate: Record<string, number>
@@ -56,7 +58,13 @@ export function explainStudent(input: AllocationInput, assignments: readonly Ass
   if (!student) return undefined
   const items = new Map(input.items.map((item) => [item.id, item]))
   const mine = assignments.filter((a) => a.personId === personId).sort((a, b) => byText(a.itemId, b.itemId))
-  const explained: ExplainedItem[] = mine.map((a) => ({ itemId: a.itemId, source: a.source, rank: a.rank, minutesByDate: creditOf(items.get(a.itemId), input.projectDays) }))
+  const explained: ExplainedItem[] = mine.map((a) => ({
+    itemId: a.itemId,
+    source: a.source,
+    direct: a.source === 'fixed' && !(items.get(a.itemId)?.rules.fixedClasses.includes(student.className) ?? false),
+    rank: a.rank,
+    minutesByDate: creditOf(items.get(a.itemId), input.projectDays),
+  }))
   const minimum = input.dailyMinimum[String(student.grade)] ?? 0
   const days: ExplainedDay[] = input.projectDays.map((date) => {
     const covered = explained.reduce((sum, e) => sum + (e.minutesByDate[date] ?? 0), 0)

@@ -279,6 +279,76 @@ test('a class activity\'s teachers keep its list of who does not take part, with
   const timResult = await get<MyResultResponse>(s, s.tim, `/api/campaigns/${id}/my-result`)
   assert.equal(titles(timResult.body.items).includes('Wien'), false)
 
+  // Published, the same acts change the result. The trip's teacher brings Sara back: she leaves the workshop, which overlaps, and the answer says whom to tell.
+  const placements = (jar: CookieJar, item: string) => get<PlacementsResponse>(s, jar, `/api/items/${item}/placements`)
+  const workshop = await placements(s.carla, s.items.werkstatt)
+  assert.deepEqual([workshop.body.mayPlace, workshop.body.placed.map((p) => [p.displayName, p.leavesClass, p.leaves.map((o) => o.title)])], [true, [[SARA.name, true, ['Wien']]]])
+  const returned = await send<PlacementsResponse>(s, s.bernd, 'POST', `/api/items/${s.items.wien}/reclaims/${s.saraPerson}`)
+  assert.equal(returned.status, 200, JSON.stringify(returned.body))
+  assert.deepEqual([returned.body.absent.map((a) => [a.displayName, a.by]), returned.body.tell.map((o) => o.title).sort((a, b) => a.localeCompare(b, 'de'))], [[[TIM.name, 'list']], ['Mittwochskurs', 'Werkstatt']], 'the trip takes both days: the Wednesday course she was given goes too')
+  assert.equal(titles((await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)).body.items).includes('Wien'), true)
+  assert.equal((await send(s, s.bernd, 'POST', `/api/items/${s.items.wien}/reclaims/${s.saraPerson}`)).status, 404, 'in it already')
+  // And out again, without a reason; Tim, out already, stays out.
+  assert.deepEqual((await send<PlacementsResponse>(s, s.carla, 'PUT', `/api/items/${s.items.wien}/absences/${s.saraPerson}`)).body.absent.map((a) => [a.displayName, a.by]), [[SARA.name, 'list'], [TIM.name, 'list']])
+  assert.equal((await send(s, s.bernd, 'PUT', `/api/items/${s.items.wien}/absences/${s.timPerson}`)).status, 200)
+  // A teacher places a student into their activity: Mia, on the Wednesday course with her class, into the lab on Tuesday, leaving what the run gave her there; a second time with the box changes nothing; taken off it again, once.
+  const mia = await send<PlacementsResponse>(s, s.anna, 'PUT', `/api/items/${s.items.labor}/placements/${s.miaPerson}`, {})
+  assert.equal(mia.status, 200, JSON.stringify(mia.body))
+  assert.deepEqual(mia.body.placed.map((p) => [p.displayName, p.leavesClass]), [['Mia Unbekannt', true]])
+  assert.deepEqual((await send<PlacementsResponse>(s, s.anna, 'PUT', `/api/items/${s.items.labor}/placements/${s.miaPerson}`, { leavesClass: false })).body.placed.length, 1)
+  assert.equal((await send(s, s.bernd, 'DELETE', `/api/items/${s.items.labor}/placements/${s.miaPerson}`)).status, 403, 'not a teacher of the lab')
+  assert.deepEqual((await send<PlacementsResponse>(s, s.anna, 'DELETE', `/api/items/${s.items.labor}/placements/${s.miaPerson}`)).body.placed, [])
+  assert.equal((await send(s, s.anna, 'DELETE', `/api/items/${s.items.labor}/placements/${s.miaPerson}`)).status, 404)
+  // Sara, out of the trip, into the workshop again by its teacher: whatever of hers the workshop overlaps is left and named.
+  const again = await send<PlacementsResponse>(s, s.carla, 'PUT', `/api/items/${s.items.werkstatt}/placements/${s.saraPerson}`, {})
+  assert.equal(again.status, 200, JSON.stringify(again.body))
+  assert.deepEqual(again.body.placed.map((p) => p.displayName), [SARA.name])
+  // The changes say what they were, in place of a reason; the student is told by whom.
+  const changes = (await owner.query<{ kind: string, reason: string | null }>('select c.kind, c.reason from assignment_change c join allocation_run r on r.id = c.run_id where r.campaign_id = $1 order by c.seq', [id])).rows
+  assert.deepEqual(changes.map((c) => [c.kind, c.reason]), [
+    ['move', 'Zurück in der Klassenaktivität'], ['remove', 'Nimmt an der Klassenaktivität nicht teil'], ['move', 'Von einer Lehrkraft der Aktivität direkt eingeteilt'],
+    ['remove', 'Von einer Lehrkraft der Aktivität ausgetragen'], ['place', 'Von einer Lehrkraft der Aktivität direkt eingeteilt'],
+  ])
+  const told = (await owner.query<{ body: string }>('select body from outbox_mail where campaign_id = $1 and kind = \'assignment_changed\' and person_id = $2 order by created_at', [id, s.saraPerson])).rows
+  assert.equal(told.length, 3)
+  assert.match(told[0]?.body ?? '', /einer Lehrkraft der Aktivität/)
+  // The rows a teacher adds are fixed, as before the run: the trip is Sara's class's again in the first mail, the workshop a direct placement in the last and on her page.
+  const added = (await owner.query<{ source: string }>('select distinct a.source from assignment a join allocation_run r on r.id = a.run_id where r.campaign_id = $1 and a.change_id is not null', [id])).rows
+  assert.deepEqual(added.map((r) => r.source), ['fixed'])
+  assert.match(told[0]?.body ?? '', /Wien \(Klasse\)/)
+  assert.doesNotMatch(told[2]?.body ?? '', /Werkstatt \(Klasse\)/)
+  const saraNow = await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)
+  assert.deepEqual(saraNow.body.explanation.items.filter((e) => e.itemId === s.items.werkstatt).map((e) => [e.source, e.direct]), [['fixed', true]])
+  // Beside the trip after all: Sara, placed into the Wednesday course meanwhile, is back on the trip for both days, which the course overlaps; it is left and named, the workshop stays beside.
+  assert.equal((await send(s, s.anna, 'PUT', `/api/items/${s.items.mittwoch}/placements/${s.saraPerson}`, {})).status, 200)
+  const beside = await send<PlacementsResponse>(s, s.carla, 'PUT', `/api/items/${s.items.werkstatt}/placements/${s.saraPerson}`, { leavesClass: false })
+  assert.equal(beside.status, 200, JSON.stringify(beside.body))
+  assert.deepEqual([beside.body.placed.map((p) => [p.displayName, p.leavesClass]), beside.body.tell.map((o) => o.title)], [[[SARA.name, false]], ['Mittwochskurs']])
+  const saraBeside = (await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)).body.explanation.items.map((e) => e.itemId)
+  assert.deepEqual([s.items.wien, s.items.werkstatt, s.items.mittwoch].map((itemId) => saraBeside.includes(itemId)), [true, true, false])
+  assert.deepEqual((await owner.query<{ kind: string, reason: string | null }>('select c.kind, c.reason from assignment_change c join allocation_run r on r.id = c.run_id where r.campaign_id = $1 order by c.seq offset 5', [id])).rows.map((c) => [c.kind, c.reason]), [
+    ['place', 'Von einer Lehrkraft der Aktivität direkt eingeteilt'], ['move', 'Zurück in der Klassenaktivität'],
+  ])
+  // A student the run gave the lab (Tim, by a fallback, who saved no list): not placed directly, so not the teacher's to take off here; placed by its teacher, the row is the teacher's, fixed, under "Direkt eingeteilt"; a placement, not a move.
+  const given = (await owner.query<{ person_id: string, source: string }>('select a.person_id, a.source from assignment a join allocation_run r on r.id = a.run_id where r.campaign_id = $1 and a.item_id = $2 and a.superseded_by is null and a.source <> \'fixed\'', [id, s.items.labor])).rows
+  assert.deepEqual(given.map((row) => [row.person_id, row.source]), [[s.timPerson, 'fallback']])
+  assert.equal((await send(s, s.anna, 'DELETE', `/api/items/${s.items.labor}/placements/${s.timPerson}`)).status, 404, 'in it by the run, not by a placement')
+  assert.equal((await send(s, s.bernd, 'DELETE', `/api/items/${s.items.wien}/placements/${s.saraPerson}`)).status, 404, 'a class placement is left by the list, not here')
+  const converted = await send<PlacementsResponse>(s, s.anna, 'PUT', `/api/items/${s.items.labor}/placements/${s.timPerson}`, {})
+  assert.equal(converted.status, 200, JSON.stringify(converted.body))
+  assert.deepEqual(converted.body.placed.map((p) => [p.displayName, p.leavesClass]), [[TIM.name, true]])
+  const timRows = (await owner.query<{ source: string, superseded: boolean }>('select a.source, a.superseded_by is not null as superseded from assignment a join allocation_run r on r.id = a.run_id where r.campaign_id = $1 and a.item_id = $2 and a.person_id = $3 order by a.superseded_by is null', [id, s.items.labor, s.timPerson])).rows
+  assert.deepEqual(timRows, [{ source: 'fallback', superseded: true }, { source: 'fixed', superseded: false }])
+  assert.deepEqual((await owner.query<{ kind: string, from_item_id: string | null }>('select c.kind, c.from_item_id from assignment_change c join allocation_run r on r.id = c.run_id where r.campaign_id = $1 and c.person_id = $2 order by c.seq desc limit 1', [id, s.timPerson])).rows, [{ kind: 'place', from_item_id: null }])
+  assert.equal((await send(s, s.anna, 'PUT', `/api/items/${s.items.labor}/placements/${s.timPerson}`, {})).status, 200, 'placed already: the box alone, nothing to change')
+  // Sara, out of the trip for the workshop again, placed into the lab beside her class activities: the workshop left, and back on the trip in the same go.
+  assert.deepEqual((await send<PlacementsResponse>(s, s.carla, 'PUT', `/api/items/${s.items.werkstatt}/placements/${s.saraPerson}`, { leavesClass: true })).body.placed.map((p) => p.leavesClass), [true])
+  const besideNew = await send<PlacementsResponse>(s, s.anna, 'PUT', `/api/items/${s.items.labor}/placements/${s.saraPerson}`, { leavesClass: false })
+  assert.equal(besideNew.status, 200, JSON.stringify(besideNew.body))
+  assert.deepEqual([besideNew.body.placed.map((p) => [p.displayName, p.leavesClass]).filter(([name]) => name === SARA.name), besideNew.body.tell.map((o) => o.title)], [[[SARA.name, false]], ['Werkstatt']])
+  const saraLab = (await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)).body.explanation.items.map((e) => e.itemId)
+  assert.deepEqual([s.items.wien, s.items.labor, s.items.werkstatt].map((itemId) => saraLab.includes(itemId)), [true, true, false])
+
   const acts = (await readAudit(owner, id)).filter((e) => e.action === 'preassignment.exempted' || e.action === 'preassignment.exemption-lifted').map((e) => [e.action, e.metadata.personId, e.metadata.reason ?? null])
   assert.deepEqual(acts, [
     ['preassignment.exempted', s.timPerson, null], ['preassignment.exemption-lifted', s.timPerson, null], ['preassignment.exempted', s.timPerson, null],

@@ -11,7 +11,8 @@ import { itemInput } from '../services/catalogue-input.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
 import { approveItem, checkItemOffer, createItem, deleteDraft, proposeItem, returnItem, unproposeItem, updateItem, withVisibleItem } from '../services/items.ts'
 import { companionsList, joinItem, leaveItem, setCompanions } from '../services/companions.ts'
-import { bringBack, findStudents, placementsOf, placeStudent, reclaimStudent, removePlacement, takeOut } from '../services/placements.ts'
+import { findStudents } from '../services/placements.ts'
+import { bringBack, placementsOf, placeStudent, reclaimStudent, removePlacement, takeOut } from '../services/placements-published.ts'
 import { withdrawItem } from '../services/withdrawal.ts'
 
 export interface ItemsRoutesOptions {
@@ -89,6 +90,13 @@ export async function itemsRoutes(app: FastifyInstance, { db, guards, baseUrl, w
     return withVisibleItem(db, request.params.id, caller, () => setCompanions(db, request.params.id, request.body, caller))
   })
 
+  /** After a placement act: once the result is published it is a change the student is told of, and the sender need not wait for its next poll. */
+  const told = async <T>(act: Promise<T>): Promise<T> => {
+    const answer = await act
+    wakeSender?.()
+    return answer
+  }
+
   // Direct placement and leaving a class activity: the students a teacher finds; an activity's placements; placing, removing and
   // reclaiming a student; its teachers' list of who does not take part. The service says who may do which.
   registerEndpoint(app, endpoints.getCampaignsByIdStudents, { ...signedIn }, async (request) => {
@@ -103,27 +111,27 @@ export async function itemsRoutes(app: FastifyInstance, { db, guards, baseUrl, w
 
   registerEndpoint(app, endpoints.putItemsByIdPlacementsByPersonId, { ...signedIn }, async (request) => {
     const caller = callerOf(request)
-    return withVisibleItem(db, request.params.id, caller, () => placeStudent(db, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), request.body.leavesClass ?? true, caller))
+    return withVisibleItem(db, request.params.id, caller, () => told(placeStudent(db, { baseUrl }, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), request.body.leavesClass ?? true, caller)))
   })
 
   registerEndpoint(app, endpoints.deleteItemsByIdPlacementsByPersonId, { ...signedIn }, async (request) => {
     const caller = callerOf(request)
-    return withVisibleItem(db, request.params.id, caller, () => removePlacement(db, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller))
+    return withVisibleItem(db, request.params.id, caller, () => told(removePlacement(db, { baseUrl }, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller)))
   })
 
   registerEndpoint(app, endpoints.postItemsByIdReclaimsByPersonId, { ...signedIn }, async (request) => {
     const caller = callerOf(request)
-    return withVisibleItem(db, request.params.id, caller, () => reclaimStudent(db, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller))
+    return withVisibleItem(db, request.params.id, caller, () => told(reclaimStudent(db, { baseUrl }, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller)))
   })
 
   registerEndpoint(app, endpoints.putItemsByIdAbsencesByPersonId, { ...signedIn }, async (request) => {
     const caller = callerOf(request)
-    return withVisibleItem(db, request.params.id, caller, () => takeOut(db, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller))
+    return withVisibleItem(db, request.params.id, caller, () => told(takeOut(db, { baseUrl }, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller)))
   })
 
   registerEndpoint(app, endpoints.deleteItemsByIdAbsencesByPersonId, { ...signedIn }, async (request) => {
     const caller = callerOf(request)
-    return withVisibleItem(db, request.params.id, caller, () => bringBack(db, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller))
+    return withVisibleItem(db, request.params.id, caller, () => told(bringBack(db, { baseUrl }, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller)))
   })
 
   registerEndpoint(app, endpoints.postAdminItemsByIdApprove, { ...organizer }, async (request) => {

@@ -72,8 +72,9 @@ const byDay = computed(() => {
   })
 })
 
-function sourceText(source: string, rank: number | null): string {
-  if (source === 'fixed') return t.result.source.fixed
+function sourceText(source: string, rank: number | null, direct: boolean): string {
+  // Fixed into an activity the student's class is not in as a whole: a teacher placed them (said by the run's frozen roster, not today's).
+  if (source === 'fixed') return direct ? t.result.source.direct : t.result.source.fixed
   if (source === 'wish') return t.result.source.wish(rank)
   if (source === 'fallback') return t.result.source.fallback
   if (source === 'swap') return t.result.source.swap
@@ -172,7 +173,7 @@ async function onSwap(o: MoveOffer): Promise<void> {
           :key="e.itemId"
         >
           <strong>{{ e.item?.number !== null && e.item?.number !== undefined ? `${e.item.number}. ` : '' }}{{ e.item?.title ?? '?' }}</strong>
-          <span class="badge">{{ sourceText(e.source, e.rank) }}</span>
+          <span class="badge">{{ sourceText(e.source, e.rank, e.direct) }}</span>
           <ul class="plain">
             <li
               v-for="s in e.sessions"

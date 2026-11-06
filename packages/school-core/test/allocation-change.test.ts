@@ -43,6 +43,16 @@ test('free places count the students in an item other than by class; a swap leav
   assert.equal(freePlaces(INPUT, ROWS, 'climbing'), 0)
   assert.equal(freePlaces(INPUT, [...ROWS, row('tim', 'climbing', 'manual')], 'climbing'), 0, 'a forced second student is no negative place')
   assert.equal(freePlaces(INPUT, ROWS, 'vienna'), 1, 'the spare seat on the bus; the class does not count against it')
+  // Lena was placed into climbing directly before the run: its one place is hers (the frozen places are 0), and the row says so whatever its source.
+  const reserved: AllocationInput = { ...INPUT, students: INPUT.students.map((s) => (s.personId === 'lena' ? { ...s, fixedItemIds: ['climbing'] } : s)), items: ITEMS.map((i) => (i.id === 'climbing' ? { ...i, rules: { ...i.rules, places: 0 } } : i)) }
+  const placed = ROWS.map((r) => (r.personId === 'lena' && r.itemId === 'climbing' ? row('lena', 'climbing', 'fixed') : r))
+  assert.equal(freePlaces(reserved, placed, 'climbing'), 0)
+  const freed = placed.filter((r) => !(r.personId === 'lena' && r.itemId === 'climbing'))
+  assert.equal(freePlaces(reserved, freed, 'climbing'), 1, 'taken out again, the seat is free')
+  assert.deepEqual(moveOffers(reserved, freed, 'tim', 'swap').filter((o) => o.itemId === 'climbing').map((o) => [o.free, codes(o.problems)]), [[1, []]], 'and someone may enter it, the frozen places of zero notwithstanding')
+  assert.deepEqual(moveOffers(reserved, placed, 'tim', 'swap').filter((o) => o.itemId === 'climbing').map((o) => codes(o.problems)), [['item_full']])
+  assert.equal(freePlaces(reserved, [...placed, row('tim', 'climbing', 'fixed')], 'climbing'), 0, 'a teacher\'s placement after publication takes a seat like one before the run')
+  assert.equal(freePlaces(INPUT, [...ROWS.filter((r) => !(r.personId === 'sara' && r.itemId === 'vienna')), row('sara', 'vienna', 'fixed')], 'vienna'), 1, 'a class member brought back is in it by class, not on the spare seat')
   assert.deepEqual(leavesForSwap(INPUT, ROWS, 'sara', 'reading'), ['dance'])
   assert.deepEqual(leavesForSwap(INPUT, ROWS, 'sara', 'pottery'), ['chess'])
   assert.deepEqual(leavesForSwap(INPUT, ROWS, 'tim', 'chess'), [], 'a gap is filled without leaving anything')
@@ -63,7 +73,10 @@ test('a move is refused for what the rules say, each by its code', () => {
   const withoutTrip = ROWS.filter((r) => !(r.personId === 'tim' && r.itemId === 'vienna'))
   assert.deepEqual(codes(checkMove(INPUT, withoutTrip, { personId: 'tim', toItemId: 'darts', leaves: [] }, { unavailable: new Set(['vienna']) })), [], 'the withdrawn class activity holds no time')
   assert.ok(moveOffers(INPUT, withoutTrip, 'tim', 'place', new Set(['vienna'])).some((o) => o.itemId === 'darts' && o.problems.length === 0), 'and is offered as a placement')
-  assert.deepEqual(codes(checkMove(INPUT, withoutTrip, { personId: 'tim', toItemId: 'darts', leaves: [] })), ['not_offered'], 'while it takes place, it bars its time')
+  // Taken out of the trip since publication, with the trip taking place: it holds no time of his either, and darts is his to enter.
+  assert.deepEqual(codes(checkMove(INPUT, withoutTrip, { personId: 'tim', toItemId: 'darts', leaves: [] })), [], 'a class activity he has no row in bars nothing')
+  assert.ok(moveOffers(INPUT, withoutTrip, 'tim', 'swap').some((o) => o.itemId === 'darts' && o.problems.length === 0))
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'darts', leaves: [] })), ['not_offered'], 'while he is in it, it bars its time')
   assert.deepEqual(swap('sara', 'reading'), ['coverage_lost'], 'reading credits 120 where dance credited 180: Monday would miss 60 minutes')
   assert.deepEqual(swap('tim', 'reading'), ['coverage_lost'], 'already short, and shorter after')
   assert.deepEqual(swap('lena', 'pottery'), [], 'Lena fills her afternoon')
@@ -96,4 +109,40 @@ test('applying a move drops the left rows and adds the target with its source; t
   ], 'in id order; pottery is not his grade\'s, darts overlaps Vienna, dance is where he is')
   assert.deepEqual(moveOffers(INPUT, ROWS, 'lena', 'place').map((o) => [o.itemId, codes(o.problems)]), [['chess', ['item_full']], ['crafts', []], ['dance', ['overlap']], ['pottery', []], ['reading', ['overlap']], ['vienna', ['overlap']]], 'the trip\'s spare seat is on offer to the 10th grade too, but Lena has darts then')
   assert.deepEqual(moveOffers(INPUT, ROWS, 'nobody', 'swap'), [])
+})
+
+test('a teacher\'s change after publication: out of a class activity, into their own activity whatever the lists and the places say, and back; never two things at once', () => {
+  const byTeacher = { byTeacher: true }
+  // The trip's teacher takes Sara out of it: a class placement, which nobody else leaves.
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'sara', toItemId: null, leaves: ['vienna'] }, byTeacher)), [])
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'sara', toItemId: null, leaves: ['vienna'] }, { force: true })), ['leaves_fixed'], 'not the organizer\'s change by hand either')
+  // Darts' teacher takes Tim for Tuesday morning, instead of the trip: one change, the trip left and darts entered.
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'darts', leaves: ['vienna'] }, byTeacher)), [])
+  // Without leaving the trip it is an overlap; beside it, it is not: he is away from his class for that time.
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'darts', leaves: [] }, byTeacher)), ['overlap'])
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'darts', leaves: [] }, { byTeacher: true, besideClass: true })), [])
+  // Beside a class activity means beside his own class's: with dance he keeps, reading still overlaps.
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'reading', leaves: [] }, { byTeacher: true, besideClass: true })), ['overlap'])
+  // The lists and the places do not bind a teacher's placement: pottery is the 10th grade's, climbing is full, and a second Monday morning fills nothing.
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'pottery', leaves: [] }, byTeacher)), [])
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'climbing', leaves: ['dance'] }, byTeacher)), [], 'dance falls under its minimum of two with it: the teacher\'s to answer for')
+  // What stays: the activity takes place, the student is not in it already, and is in the run.
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'reading', leaves: ['dance'] }, { byTeacher: true, unavailable: new Set(['reading']) })), ['not_offered'])
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'dance', leaves: [] }, byTeacher)), ['already_placed'])
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'dance', leaves: ['dance'] }, byTeacher)), [], 'in it by a wish: the teacher\'s placement supersedes that row with its own')
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'nobody', toItemId: 'darts', leaves: [] }, byTeacher)), ['not_offered'])
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: null, leaves: ['darts'] }, byTeacher)), ['not_placed'])
+  // Back on the trip: the class's own activity, which he could never rank, entered by its teacher, leaving what he was given instead.
+  const away = applyMove(ROWS, { personId: 'tim', toItemId: 'darts', leaves: ['vienna'] }, 'fixed')
+  assert.deepEqual(codes(checkMove(INPUT, away, { personId: 'tim', toItemId: 'vienna', leaves: ['darts'] }, byTeacher)), [])
+  assert.deepEqual(codes(checkMove(INPUT, away, { personId: 'tim', toItemId: 'vienna', leaves: [] }, byTeacher)), ['overlap'])
+  // Or back on it beside what he was given: on the trip again, away for the darts.
+  assert.deepEqual(codes(checkMove(INPUT, away, { personId: 'tim', toItemId: 'vienna', leaves: [] }, { byTeacher: true, besideClass: true })), [])
+  // The rows a teacher adds are fixed: Tim cannot swap out of the darts, nor out of the trip once brought back on it beside them.
+  assert.deepEqual(codes(checkMove(INPUT, away, { personId: 'tim', toItemId: null, leaves: ['darts'] }, { force: true })), ['leaves_fixed'])
+  const back = applyMove(away, { personId: 'tim', toItemId: 'vienna', leaves: [] }, 'fixed')
+  assert.deepEqual(leavesForSwap(INPUT, back, 'tim', 'darts'), [], 'the trip is his class\'s again, not something a swap leaves')
+  assert.deepEqual(codes(checkMove(INPUT, back, { personId: 'tim', toItemId: null, leaves: ['vienna'] }, { force: true })), ['leaves_fixed'])
+  // And a later placement beside the class activity he is back in reads it as his class's.
+  assert.deepEqual(codes(checkMove(INPUT, back.filter((r) => !(r.personId === 'tim' && r.itemId === 'darts')), { personId: 'tim', toItemId: 'darts', leaves: [] }, { byTeacher: true, besideClass: true })), [])
 })

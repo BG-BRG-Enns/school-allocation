@@ -158,7 +158,12 @@ async function load(): Promise<void> {
       addSession()
     }
   })
-  // From publication on, the people in it: the organizer's and the auditor's always, a teacher's for their own item.
+  await loadParticipantsView()
+}
+onMounted(load)
+
+/** From publication on, the people in it: the organizer's and the auditor's always, a teacher's for their own item. Again after a placement changed them. */
+async function loadParticipantsView(): Promise<void> {
   participantsView.value = null
   if (props.itemId && campaign.value && (campaign.value.state === 'results' || campaign.value.state === 'archived')) {
     try {
@@ -168,7 +173,6 @@ async function load(): Promise<void> {
     }
   }
 }
-onMounted(load)
 watch(() => [props.id, props.itemId], load)
 
 /**
@@ -1044,6 +1048,7 @@ async function save(propose: boolean): Promise<void> {
       :overnight="overnight"
       :taken="check?.taken ?? []"
       :told="placementTells"
+      @changed="loadParticipantsView"
     />
 
     <ul
@@ -1104,7 +1109,7 @@ async function save(propose: boolean): Promise<void> {
         v-for="p in participantsView.participants"
         :key="p.personId"
       >
-        {{ p.displayName }} ({{ p.className }}) <span class="muted">{{ ASSIGNMENT_SOURCE_LABELS[p.source] ?? p.source }}</span>
+        {{ p.displayName }} ({{ p.className }}) <span class="muted">{{ p.source === 'fixed' && !fixedClasses.includes(p.className) ? t.labels.placedDirectly : ASSIGNMENT_SOURCE_LABELS[p.source] ?? p.source }}</span>
       </li>
     </ul>
     <p

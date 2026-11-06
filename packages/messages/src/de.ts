@@ -369,6 +369,8 @@ export const de = {
       swap: 'Tausch',
       manual: 'von Hand',
     },
+    /** A fixed place of a student whose class the activity does not take as a whole: a teacher placed them (beside assignmentSource, which names the run's sources alone). */
+    placedDirectly: 'direkt eingeteilt',
     /** A change of the published run (packages/api-contracts/src/publication.ts CHANGE_KINDS). */
     changeKind: {
       swap: 'Tausch',
@@ -980,14 +982,14 @@ export const de = {
   /** Placements.vue: the students a teacher placed into an activity, and a class activity's list of who does not take part. */
   placements: {
     heading: 'Direkt eingeteilt',
-    intro: 'Schüler*innen, die ohne Wahl in diese Aktivität kommen. Jede direkt eingeteilte Person belegt einen Platz der Aktivität. Mit dem Häkchen nimmt sie in dieser Zeit an keiner Klassenaktivität teil; die Lehrkräfte der Klassenaktivität sehen das und können sie zurückholen.',
+    intro: 'Schüler*innen, die ohne Wahl in diese Aktivität kommen. Jede direkt eingeteilte Person belegt einen Platz der Aktivität. Mit dem Häkchen nimmt sie an keiner Klassenaktivität ihrer Klasse teil, die sich mit dieser Aktivität überschneidet, und zwar an der ganzen nicht, auch nicht an deren anderen Tagen; die Lehrkräfte der Klassenaktivität sehen das und können sie zurückholen. Ohne das Häkchen bleibt sie in der Klassenaktivität und fehlt dort nur während dieser Aktivität.',
     search: 'Schüler*in suchen (Name oder Klasse)',
     place: (name: string, className: string) => `${name} (${className}) einteilen`,
     none: 'Niemand ist direkt eingeteilt.',
     pending: 'Wird mit dem Speichern der Aktivität eingetragen.',
-    leavesClass: 'nimmt in dieser Zeit an keiner Klassenaktivität teil',
+    leavesClass: 'nimmt an Klassenaktivitäten, die sich damit überschneiden, gar nicht teil',
     /** The box's name for one student. */
-    leavesClassOf: (name: string) => `${name} nimmt in dieser Zeit an keiner Klassenaktivität teil`,
+    leavesClassOf: (name: string) => `${name} nimmt an Klassenaktivitäten, die sich damit überschneiden, gar nicht teil`,
     /** The class activities a placement takes the student out of. */
     leaves: (activities: string) => `nicht bei ${activities}`,
     other: (title: string, lead: string | null) => lead === null ? `„${title}“` : `„${title}“ (Leitung: ${lead})`,
@@ -1377,6 +1379,8 @@ export const de = {
     /** How a student came to an item. */
     source: {
       fixed: 'mit deiner Klasse',
+      /** A fixed row of an activity the student's class is not in as a whole: a teacher placed them. */
+      direct: 'von einer Lehrkraft eingeteilt',
       wish: (rank: number | null) => `dein ${rank}. Wunsch`,
       fallback: 'Restplatz, weil deine Wünsche hier nicht reichten',
       swap: 'dein Tausch',
@@ -1830,6 +1834,7 @@ export const de = {
     /** The source of a participant's place (school-core ASSIGNMENT_SOURCES), as the participants' sheet names it. */
     source: {
       fixed: 'Klassenaktivität',
+      direct: 'Direkt eingeteilt',
       wish: 'Wunsch',
       fallback: 'Restplatz',
       swap: 'Tausch',
@@ -1872,6 +1877,14 @@ export const de = {
     changedBy: {
       classTeacher: 'deinem Klassenvorstand',
       organizer: 'der Organisation',
+      teacher: 'einer Lehrkraft der Aktivität',
+    },
+    /** What a teacher's change after publication was, kept with the change where a change by hand has its reason: nobody gives one for these. */
+    teacherChange: {
+      placed: 'Von einer Lehrkraft der Aktivität direkt eingeteilt',
+      removed: 'Von einer Lehrkraft der Aktivität ausgetragen',
+      takenOut: 'Nimmt an der Klassenaktivität nicht teil',
+      returned: 'Zurück in der Klassenaktivität',
     },
     /** What a change by hand did. */
     change: {

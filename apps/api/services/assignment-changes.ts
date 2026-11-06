@@ -7,7 +7,7 @@
 // rows; a change supersedes rows and adds a row, tells the student, and is
 // audited. Nothing here changes a run, a row or a change once written.
 
-import { applyMove, checkMove, explainStudent, leavesForSwap, type Assignment, type Move, type MoveProblem } from '@school-allocation/school-core'
+import { applyMove, checkMove, explainStudent, leavesForSwap, type Assignment, type ChangedSource, type Move, type MoveProblem } from '@school-allocation/school-core'
 import type { AssignmentChange, ChangeKind } from '@school-allocation/api-contracts/publication'
 import type { Messages } from '@school-allocation/messages'
 import { actorOf, type Actor, type Caller } from '../lib/actor.ts'
@@ -62,15 +62,15 @@ function refuse(problems: MoveProblem[]): void {
   if (first) throw new ApplicationError(first.code, first.itemId)
 }
 
-/** Writes the change and what it does to the rows; the caller checked the move under the lock. */
-async function write(client: Queryable, locked: Locked, move: Move, kind: ChangeKind, reason: string | null, forced: boolean, actor: Actor): Promise<{ id: string, seq: number }> {
+/** Writes the change and what it does to the rows, the row it adds with `source`; the caller checked the move under the lock. */
+async function write(client: Queryable, locked: Locked, move: Move, kind: ChangeKind, source: ChangedSource, reason: string | null, forced: boolean, actor: Actor): Promise<{ id: string, seq: number }> {
   const change = await store.insertChange(client, {
     runId: locked.run.id, kind, personId: move.personId, fromItemId: kind === 'move' || kind === 'remove' ? move.leaves[0] ?? null : null, toItemId: move.toItemId, reason, forced, changedBy: actor.id,
   })
   const superseded = await store.supersedeAssignments(client, locked.run.id, move.personId, move.leaves, change.id)
   // Under the campaign's lock the rows checked are the rows found; anything else is a defect, not a refusal.
   if (superseded !== move.leaves.length) throw new Error(`a change superseded ${superseded} rows where ${move.leaves.length} were checked`)
-  if (move.toItemId !== null) await store.insertChangedAssignment(client, locked.run.id, move.personId, move.toItemId, kind === 'swap' ? 'swap' : 'manual', change.id)
+  if (move.toItemId !== null) await store.insertChangedAssignment(client, locked.run.id, move.personId, move.toItemId, source, change.id)
   return change
 }
 
@@ -80,11 +80,11 @@ async function write(client: Queryable, locked: Locked, move: Move, kind: Change
  * change by hand who changed it (the class teacher or the organization) and
  * what changed.
  */
-async function notify(client: Queryable, context: WindowContext, locked: Locked, student: CampaignStudent, move: Move, changeId: string, by: 'classTeacher' | 'organizer' | null): Promise<void> {
+async function notify(client: Queryable, context: WindowContext, locked: Locked, student: CampaignStudent, move: Move, source: ChangedSource, changeId: string, by: 'classTeacher' | 'organizer' | 'teacher' | null): Promise<void> {
   if (student.address === null) return
   const words = await schoolWords(client)
   const kind = by === null ? 'swap_confirmed' : 'assignment_changed'
-  const after = applyMove(locked.rows, move, by === null ? 'swap' : 'manual')
+  const after = applyMove(locked.rows, move, source)
   const explanation = explainStudent(locked.run.snapshot, after, student.personId)
   const template = await readTemplate(client, kind, words.locale)
   const { subject, body } = renderTemplate(template, {
@@ -126,8 +126,8 @@ export async function swap(db: Database, context: WindowContext, campaign: Campa
     const move: Move = { personId, toItemId, leaves: leavesForSwap(locked.run.snapshot, locked.rows, personId, toItemId) }
     refuse(checkMove(locked.run.snapshot, locked.rows, move, { unavailable: locked.unavailable }))
     const actor = actorOf(caller)
-    const change = await write(client, locked, move, 'swap', null, false, actor)
-    await notify(client, context, locked, student, move, change.id, null)
+    const change = await write(client, locked, move, 'swap', 'swap', null, false, actor)
+    await notify(client, context, locked, student, move, 'swap', change.id, null)
     await appendAudit(client, { scopeId: campaign.id, actor: auditActor(actor), action: 'assignment.swapped', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId, toItemId, left: [...move.leaves] } })
   })
 }
@@ -151,8 +151,8 @@ export async function placeStudent(db: Database, context: WindowContext, campaig
     const move: Move = { personId: student.personId, toItemId: itemId.toLowerCase(), leaves: [] }
     refuse(checkMove(locked.run.snapshot, locked.rows, move, { unavailable: locked.unavailable }))
     const actor = actorOf(caller)
-    const change = await write(client, locked, move, 'place', reason, false, actor)
-    await notify(client, context, locked, student, move, change.id, asClassTeacher ? 'classTeacher' : 'organizer')
+    const change = await write(client, locked, move, 'place', 'manual', reason, false, actor)
+    await notify(client, context, locked, student, move, 'manual', change.id, asClassTeacher ? 'classTeacher' : 'organizer')
     await appendAudit(client, { scopeId: campaign.id, actor: auditActor(actor), action: 'assignment.placed', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId: student.personId, toItemId: move.toItemId, className } })
   })
 }
@@ -173,12 +173,51 @@ export async function removeFromWithdrawn(client: Queryable, context: WindowCont
   const students = new Map((await campaignStudents(client, locked.campaign)).map((s) => [s.personId, s]))
   for (const row of rows) {
     const move: Move = { personId: row.personId, toItemId: null, leaves: [itemId] }
-    const change = await write(client, locked, move, 'remove', reason, false, actor)
+    const change = await write(client, locked, move, 'remove', 'manual', reason, false, actor)
     const student = students.get(row.personId)
-    if (student) await notify(client, context, locked, student, move, change.id, 'organizer')
+    if (student) await notify(client, context, locked, student, move, 'manual', change.id, 'organizer')
     await appendAudit(client, { scopeId: campaignId, actor: auditActor(actor), action: 'assignment.changed', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId: row.personId, kind: 'remove', toItemId: null, fromItemId: itemId, forced: false, withdrawn: true } })
   }
   return rows.length
+}
+
+/** What a teacher's change to the published result is: the word kept with it in place of a reason. */
+export type TeacherAct = 'placed' | 'removed' | 'takenOut' | 'returned'
+
+/**
+ * A teacher's change to the published result (services/placements.ts, the
+ * decisions of 2026-11-06): a student placed directly into the teacher's
+ * activity or taken off it again, taken out of a class activity or brought
+ * back into it. Inside the caller's transaction, which decided who may.
+ * The rules are a teacher's (school-core checkMove `byTeacher`): a class
+ * placement may be left, the lists and the places do not bind, nothing the
+ * student keeps may overlap, save a class activity of their own class when
+ * they are placed beside it. No reason is asked; the change says what it
+ * was. The student is told as after any change by hand, and it is audited.
+ * Returns the items the student left, for the page that says whom to tell.
+ */
+export async function teacherChange(client: Queryable, context: WindowContext, campaignId: string, caller: Caller, move: Move, act: TeacherAct, besideClass: boolean): Promise<Item[]> {
+  const locked = await lock(client, campaignId)
+  const student = await campaignStudent(client, locked.campaign, move.personId)
+  if (!student) throw new ApplicationError('not_found')
+  refuse(checkMove(locked.run.snapshot, locked.rows, move, { unavailable: locked.unavailable, byTeacher: true, besideClass }))
+  // A placement that supersedes the student's own row in the item (there by a wish, a fallback or a swap) is a placement, not a move.
+  const kind: ChangeKind = move.toItemId === null ? 'remove' : move.leaves.some((itemId) => itemId !== move.toItemId) ? 'move' : 'place'
+  const actor = actorOf(caller)
+  const words = await schoolWords(client)
+  // The row is what the run would have had from a placement before it: a fixed one, which the student cannot swap out of, a class's
+  // placement when they are brought back into their class activity, a direct one otherwise (school-core freePlaces tells the two apart).
+  const change = await write(client, locked, move, kind, 'fixed', words.t.notices.teacherChange[act], false, actor)
+  await notify(client, context, locked, student, move, 'fixed', change.id, isOrganizer(caller) ? 'organizer' : 'teacher')
+  await appendAudit(client, { scopeId: campaignId, actor: auditActor(actor), action: 'assignment.changed', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId: student.personId, kind, toItemId: move.toItemId, fromItemId: move.leaves[0] ?? null, left: [...move.leaves], forced: false, act } })
+  return move.leaves.map((itemId) => locked.items.get(itemId)).filter((item): item is Item => item !== undefined)
+}
+
+/** The published result as a teacher's page reads it: the rows as they stand and the items nobody enters, without a lock. */
+export async function publishedRows(db: Queryable, campaignId: string): Promise<{ rows: Assignment[], unavailable: Set<string> } | undefined> {
+  const run = await store.readPublishedRun(db, campaignId)
+  if (!run) return undefined
+  return { rows: await store.listAssignments(db, run.id), unavailable: unavailableItems(run, await listCampaignItems(db, campaignId)) }
 }
 
 export interface ManualChange {
@@ -209,9 +248,9 @@ export async function changeAssignment(db: Database, context: WindowContext, cam
     const move: Move = { personId: student.personId, toItemId, leaves: fromItemId === null ? [] : [fromItemId] }
     refuse(checkMove(locked.run.snapshot, locked.rows, move, { unavailable: locked.unavailable, force }))
     const actor = actorOf(caller)
-    const change = await write(client, locked, move, kind, input.reason, force, actor)
+    const change = await write(client, locked, move, kind, 'manual', input.reason, force, actor)
     changeId = change.id
-    await notify(client, context, locked, student, move, change.id, 'organizer')
+    await notify(client, context, locked, student, move, 'manual', change.id, 'organizer')
     await appendAudit(client, { scopeId: campaign.id, actor: auditActor(actor), action: 'assignment.changed', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId: student.personId, kind, toItemId, fromItemId, forced: force } })
   })
   const change = (await changeLog(db, campaign)).find((c) => c.id === changeId)

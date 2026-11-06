@@ -28,6 +28,8 @@ Below, you can change the allocation yourself: choose the person, the activity t
 
 You can still change an activity's title, description and location. Sessions, places, minimum, cost and who it is offered to stay as they are: they were used to calculate the allocation.
 
+An activity's teachers still place students directly into it and remove them, and a class activity's teachers take out whoever does not come along after all and reclaim whoever is placed elsewhere ([Teachers](/en/lehrkraefte/teilnehmerlisten#placing-after-publication)); you can do this for any activity. Each of these changes appears in the list of changes, with what it was in place of a reason, and the student receives an e-mail.
+
 If you withdraw an activity after publication, it does not take place: everyone allocated to it is removed from it, each as a change by hand with your reason, and receives an email. Their gap shows on the class page and the allocation, where the class teacher or you fill it.
 
 ## Attendance

@@ -28,6 +28,8 @@ Darunter änderst du die Einteilung selbst: Wähle die Person, die Aktivität, v
 
 Titel, Beschreibung und Ort einer Aktivität lassen sich noch ändern. Termine, Plätze, Mindestzahl, Kosten und für wen sie angeboten wird, bleiben, wie sie sind: Mit ihnen wurde die Einteilung berechnet.
 
+Die Lehrkräfte einer Aktivität teilen auch jetzt Schüler\*innen direkt in sie ein und tragen sie aus, und die Lehrkräfte einer Klassenaktivität nehmen heraus, wer doch nicht mitkommt, und holen zurück, wer woanders eingeteilt ist ([Lehrkräfte](/lehrkraefte/teilnehmerlisten#nach-der-veröffentlichung-einteilen)); du kannst das bei jeder Aktivität. Jede dieser Änderungen steht in der Liste der Änderungen, mit dem, was sie war, statt einer Begründung, und die Person bekommt eine E-Mail.
+
 Ziehst du eine Aktivität nach der Veröffentlichung zurück, findet sie nicht statt: Alle Personen, die ihr zugeteilt waren, werden von ihr abgemeldet, jede als Änderung von Hand mit deiner Begründung, und bekommen eine E-Mail. Ihre Lücke zeigen die Klassenseite und die Zuteilung, wo der Klassenvorstand oder du sie füllst.
 
 ## Anwesenheit

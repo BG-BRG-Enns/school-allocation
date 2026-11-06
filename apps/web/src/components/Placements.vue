@@ -37,6 +37,8 @@ const props = defineProps<{
   told: readonly OtherActivity[]
 }>()
 const pending = defineModel<PendingPlacement[]>('pending', { required: true })
+/** After an act on the stored activity changed its placements: the page's other readings of them (the participants) are stale. */
+const emit = defineEmits<{ changed: [] }>()
 
 const view = ref<PlacementsResponse | null>(null)
 const acting = useFeedback()
@@ -92,6 +94,7 @@ async function act(change: (itemId: string) => Promise<PlacementsResponse>): Pro
     view.value = await change(itemId)
     query.value = ''
     results.value = []
+    emit('changed')
   })
 }
 
