@@ -113,6 +113,8 @@ export interface ItemInput {
   rules: ItemRules
   /** Person ids of the teachers. */
   teachers: string[]
+  /** The teacher who leads; the others accompany. Null when none is named; left out where the lead is not what is checked. */
+  lead?: string | null
 }
 
 export interface ItemContext {
@@ -138,6 +140,8 @@ export const CATALOGUE_PROBLEM_CODES = [
   'fixed_class_also_eligible',
   'no_teacher',
   'teacher_twice',
+  'no_lead',
+  'lead_not_teacher',
 ] as const
 export type CatalogueProblemCode = typeof CATALOGUE_PROBLEM_CODES[number]
 
@@ -184,6 +188,11 @@ export function checkItem(item: ItemInput, context: ItemContext): CatalogueProbl
   if (rules.eligibleClasses.some((name) => rules.fixedClasses.includes(name))) problems.push({ code: 'fixed_class_also_eligible' })
   if (item.teachers.length === 0) problems.push({ code: 'no_teacher' })
   if (new Set(item.teachers).size !== item.teachers.length) problems.push({ code: 'teacher_twice' })
+  // One of the teachers leads: an activity with teachers names its lead, and names one of them.
+  if (item.lead !== undefined && item.teachers.length > 0) {
+    if (item.lead === null) problems.push({ code: 'no_lead' })
+    else if (!item.teachers.includes(item.lead)) problems.push({ code: 'lead_not_teacher' })
+  }
   return problems
 }
 

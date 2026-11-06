@@ -263,6 +263,8 @@ export const en: Messages = {
       fixed_class_also_eligible: 'A whole class is taking part and is also listed under “Offered to classes”',
       no_teacher: 'At least one teacher is needed',
       teacher_twice: 'A teacher is entered twice',
+      no_lead: 'One of the teachers must lead',
+      lead_not_teacher: 'The lead must be one of the activity\'s teachers',
     },
     /** Why a ranking was refused (school-core RANKING_PROBLEM_CODES). */
     rankingProblem: {
@@ -849,7 +851,13 @@ export const en: Messages = {
       remove: (name: string) => `Remove ${name}`,
       search: 'Add teacher',
       add: (name: string) => `Add ${name}`,
-      leadRule: 'The person who created the activity leads it when they are among its teachers; otherwise the first teacher named does.',
+      lead: 'Lead',
+      noLead: 'Nobody leads yet: please choose who leads the activity.',
+      leadRule: 'Whoever is added or signs up as a companion accompanies. The lead changes only when the lead hands it over or the organisation names another.',
+      handOver: 'Hand the lead over to',
+      handOverSubmit: 'Hand over the lead',
+      handOverHint: 'The lead goes to a companion; add another teacher as a companion first and save.',
+      handOverConfirm: (name: string) => `Hand the lead over to ${name}? The lead until now stays as a companion and no longer changes the companions.`,
       /** A teacher not plainly available on some of the activity's days, the days as format.ts formatDay writes them. */
       unavailableOn: (name: string, days: string) => `${name} is unavailable on ${days}.`,
       ifNeededOn: (name: string, days: string) => `${name} is available on ${days} only if needed.`,

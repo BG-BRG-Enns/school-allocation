@@ -267,6 +267,8 @@ export const de = {
       fixed_class_also_eligible: 'Eine Klasse nimmt ganz teil und steht zugleich unter „Angeboten für Klassen“',
       no_teacher: 'Mindestens eine Lehrkraft ist nötig',
       teacher_twice: 'Eine Lehrkraft ist zweimal eingetragen',
+      no_lead: 'Eine der Lehrkräfte muss die Leitung haben',
+      lead_not_teacher: 'Die Leitung muss eine der Lehrkräfte der Aktivität sein',
     },
     /** Why a ranking was refused (school-core RANKING_PROBLEM_CODES). */
     rankingProblem: {
@@ -870,7 +872,15 @@ export const de = {
       remove: (name: string) => `${name} entfernen`,
       search: 'Lehrkraft hinzufügen',
       add: (name: string) => `${name} hinzufügen`,
-      leadRule: 'Die Leitung hat, wer die Aktivität angelegt hat, wenn diese Person unter den Lehrkräften ist; sonst die zuerst genannte Lehrkraft.',
+      /** The select naming which teacher leads, and the lines around it. */
+      lead: 'Leitung',
+      noLead: 'Noch leitet niemand: Bitte wählen, wer die Aktivität leitet.',
+      leadRule: 'Wer hinzugefügt wird oder sich als Begleitung einträgt, begleitet. Die Leitung wechselt nur, wenn die Leitung sie übergibt oder die Organisation sie neu festlegt.',
+      /** The lead of a submitted or approved activity hands it to one of its companions. */
+      handOver: 'Leitung übergeben an',
+      handOverSubmit: 'Leitung übergeben',
+      handOverHint: 'Übergeben geht an eine Begleitung; eine andere Lehrkraft zuerst als Begleitung hinzufügen und speichern.',
+      handOverConfirm: (name: string) => `Die Leitung an ${name} übergeben? Die bisherige Leitung bleibt als Begleitung eingetragen und ändert die Begleitung dann nicht mehr.`,
       /** A teacher not plainly available on some of the activity's days, the days as format.ts formatDay writes them. */
       unavailableOn: (name: string, days: string) => `${name} ist am ${days} nicht verfügbar.`,
       ifNeededOn: (name: string, days: string) => `${name} ist am ${days} nur verfügbar, wenn es nötig ist.`,

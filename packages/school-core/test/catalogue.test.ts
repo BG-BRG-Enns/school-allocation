@@ -148,3 +148,14 @@ test('what the derivation gives passes the rules of an activity', () => {
   assert.deepEqual(credits, [{ date: '2027-06-21', minutes: 50 }])
   assert.deepEqual(checkItem({ ...item, sessions: [{ ...span, dates: ['2027-06-21'], credits }] }, context), [])
 })
+
+test('one of an activity\'s teachers leads: an activity with teachers names its lead, and names one of them', () => {
+  const codes = (input: ItemInput) => checkItem(input, context).map((p) => p.code)
+  const two: ItemInput = { ...item, teachers: ['t1', 't2'] }
+  assert.deepEqual(codes({ ...two, lead: 't2' }), [])
+  assert.deepEqual(codes({ ...two, lead: null }), ['no_lead'])
+  assert.deepEqual(codes({ ...two, lead: 't3' }), ['lead_not_teacher'])
+  // Without teachers there is one problem, not two; where the lead is not what is checked, it is left out.
+  assert.deepEqual(codes({ ...two, teachers: [], lead: null }), ['no_teacher'])
+  assert.deepEqual(codes(two), [])
+})

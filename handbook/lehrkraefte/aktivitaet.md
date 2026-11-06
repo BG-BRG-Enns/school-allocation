@@ -8,7 +8,13 @@ Solange bei einer Anmeldung **Angebote gesammelt** werden, öffnest du sie unter
 
 Gib **Titel**, **Beschreibung** und **Ort oder Treffpunkt** an. Unter **Lehrkräfte** stehst du schon; weitere Lehrkräfte fügst du über die Suche hinzu. Alle Lehrkräfte einer Aktivität können sie bearbeiten und sehen später ihre Teilnehmer\*innen.
 
-Wer die Aktivität angelegt hat, hat die **Leitung**, solange sie oder er unter ihren Lehrkräften ist; sonst die zuerst genannte Lehrkraft. Die anderen sind **Begleitung**. Unter den Lehrkräften steht, wer leitet und wer begleitet. An den Rechten ändert das nichts.
+Eine der Lehrkräfte hat die **Leitung**, die anderen sind **Begleitung**; unter den Lehrkräften steht, wer leitet und wer begleitet. Legst du eine Aktivität an, leitest du sie. Wer hinzugefügt wird oder sich als Begleitung einträgt, begleitet: Die Leitung wechselt nie von selbst. Hat eine Aktivität mehrere Lehrkräfte, wählst du im Entwurf unter **Leitung**, wer sie leitet.
+
+![Die Lehrkräfte einer Aktivität: Carla Knoxbrunner und Bernd Pfnöxlhofer, darunter Leitung und Begleitung, die Auswahl der Leitung, die Suche und die Zahl der Begleitungen](/bilder/de/leitung.png)
+
+Ist die Aktivität eingereicht oder genehmigt, gibst du die Leitung mit **Leitung übergeben an** an eine ihrer Begleitungen weiter; soll sie an jemand anderen gehen, füge die Lehrkraft zuerst als Begleitung hinzu und speichere. Du bleibst danach als Begleitung eingetragen und kannst dich wie jede Begleitung austragen; die Begleitung ändert dann die neue Leitung. Die Aktivität bleibt, wie sie eingereicht ist.
+
+![Leitung übergeben: die Auswahl der Begleitung, an die die Leitung geht, und der Knopf Leitung übergeben](/bilder/de/leitung-uebergeben.png)
 
 Ist eine der Lehrkräfte an einem Tag der Termine nicht verfügbar oder nur, wenn es nötig ist ([Verfügbarkeit](./verfuegbarkeit)), steht das dort ebenfalls. Speichern und einreichen kannst du trotzdem; die Organisation entscheidet.
 

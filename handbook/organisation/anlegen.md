@@ -10,7 +10,7 @@ Unter **Anmeldungen** trägst du bei **Neue Anmeldung** die **Bezeichnung** (Pro
 
 **Angebote sammeln** öffnet die Anmeldung für die Lehrkräfte: Sie sehen sie und reichen mit **Neue Aktivität** ihre Aktivitäten ein. Wie jeder Schritt wird er noch einmal bestätigt; **Zurück zur Vorbereitung** nimmt ihn zurück, solange der Katalog nicht veröffentlicht ist, die Entwürfe der Lehrkräfte bleiben. Wie das Formular funktioniert, beschreibt das Handbuch [Lehrkräfte](/lehrkraefte/aktivitaet). Du kannst selbst Aktivitäten anlegen, auch für eine Lehrkraft, die du im Formular einträgst.
 
-Die **Leitung** einer Aktivität hat, wer sie angelegt hat, solange sie oder er unter ihren Lehrkräften ist; sonst die zuerst genannte Lehrkraft. Bist du selbst Lehrkraft, stehst du in einer neuen Aktivität schon darin: Legst du sie für jemand anderen an, nimm dich heraus, dann leitet die zuerst genannte Lehrkraft.
+Eine der Lehrkräfte einer Aktivität hat die **Leitung**; wer hinzugefügt wird oder sich als Begleitung einträgt, begleitet, und die Leitung wechselt nie von selbst. Bist du selbst Lehrkraft, stehst du in einer neuen Aktivität schon als Leitung darin: Legst du sie für jemand anderen an, nimm dich heraus und füge die Lehrkraft hinzu, sie leitet dann. Bei mehreren Lehrkräften wählst du unter **Leitung**, wer leitet; das kannst du bei jeder Aktivität, auch einer genehmigten, und nimmst du die Leitung heraus, verlangt das Formular eine andere. Die Leitung selbst gibt sie an eine Begleitung weiter ([Lehrkräfte](/lehrkraefte/aktivitaet)). Trägst du dich bei einer Aktivität, die du für jemanden angelegt hast, später als Begleitung ein, bleibst du Begleitung.
 
 ## Aktivitäten prüfen
 

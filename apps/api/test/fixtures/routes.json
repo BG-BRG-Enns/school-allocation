@@ -1455,6 +1455,10 @@
           },
           "maxItems": 9
         },
+        "lead": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
         "companionsWanted": {
           "type": "integer",
           "minimum": 0,
@@ -2567,6 +2571,10 @@
           },
           "maxItems": 9
         },
+        "lead": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
         "companionsWanted": {
           "type": "integer",
           "minimum": 0,
@@ -2718,6 +2726,10 @@
                 "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
               },
               "maxItems": 9
+            },
+            "lead": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
             },
             "companionsWanted": {
               "type": "integer",
@@ -3352,6 +3364,10 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 8
+        },
+        "lead": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
         }
       },
       "additionalProperties": false

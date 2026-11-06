@@ -6,8 +6,10 @@
 // audit chain.
 
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import { readAudit } from '../lib/audit.ts'
+import { createDatabase } from '../lib/db.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
 import type { Item } from '../lib/models/items.ts'
 import type { BatchDetail } from '../lib/models/roster.ts'
@@ -137,4 +139,63 @@ test('a teacher joins an activity that seeks a companion from the list, not twic
   // The campaign's chain has every step.
   const actions = (await readAudit(s.db, id)).map((event) => event.action).filter((action) => action.startsWith('item.companion'))
   assert.deepEqual(actions, ['item.companion-joined', 'item.companion-joined', 'item.companion-left', 'item.companions-changed', 'item.companions-changed', 'item.companion-joined'])
+})
+
+test('whoever joins or is added accompanies; the lead hands the activity to a companion and stays as one; an organizer names another lead; the migration keeps the lead every activity had', DB, async (t) => {
+  const s = await school(t)
+  const url = `/api/campaigns/${s.campaign.id}/items`
+  const annaPerson = (await get<{ person: { id: string } }>(s, s.anna, '/api/auth/me')).body.person.id
+  const people = (item: Item) => item.teachers.map((teacher) => [teacher.personId, teacher.lead])
+
+  // Anna, an organizer and a teacher, creates the trip for Bernd and names him its lead: she is no teacher of it.
+  const made = await send<Item>(s, s.anna, 'POST', url, { title: 'Wien', places: 8, teachers: [s.berndPerson], lead: s.berndPerson, companionsWanted: 2, sessions: [session(TUESDAY, '08:00', '18:00')] })
+  assert.equal(made.status, 201, JSON.stringify(made.body))
+  assert.deepEqual(people(made.body), [[s.berndPerson, true]])
+  const id = made.body.id
+  assert.equal((await send(s, s.anna, 'POST', `/api/items/${id}/propose`)).status, 200)
+  // A lead that is none of the teachers is refused.
+  const stranger = await send<{ problems: { code: string }[] }>(s, s.anna, 'POST', url, { title: 'Graz', places: 8, teachers: [s.berndPerson], lead: s.carlaPerson, sessions: [session(MONDAY, '08:30', '10:15')] })
+  assert.deepEqual([stranger.status, stranger.body.problems.map((p) => p.code)], [422, ['lead_not_teacher']])
+
+  // She signs up to accompany it: its creator, and still a companion. Added by the organizer, Carla accompanies too.
+  const joined = await send<Item>(s, s.anna, 'POST', `/api/items/${id}/companions/me`)
+  assert.deepEqual(people(joined.body), [[s.berndPerson, true], [annaPerson, false]])
+  const added = await send<Item>(s, s.anna, 'PUT', `/api/items/${id}/companions`, { companions: [annaPerson, s.carlaPerson], wanted: 2 })
+  assert.deepEqual(people(added.body), [[s.berndPerson, true], [annaPerson, false], [s.carlaPerson, false]])
+
+  // The lead is the lead's to hand over: not a companion's. Bernd hands it to Carla and stays as a companion.
+  assert.equal((await send(s, s.carla, 'PUT', `/api/items/${id}/companions`, { companions: [annaPerson, s.carlaPerson], wanted: 2, lead: s.carlaPerson })).status, 403)
+  const handed = await send<Item>(s, s.bernd, 'PUT', `/api/items/${id}/companions`, { companions: [annaPerson, s.carlaPerson], wanted: 2, lead: s.carlaPerson.toUpperCase() })
+  assert.equal(handed.status, 200, JSON.stringify(handed.body))
+  assert.deepEqual(people(handed.body), [[s.carlaPerson, true], [s.berndPerson, false], [annaPerson, false]])
+  assert.equal(handed.body.state, 'proposed', 'no approval is asked again')
+  // With it went his say over the companions; he leaves like any companion. Carla cannot hand it to someone who is none of them.
+  assert.equal((await send(s, s.bernd, 'PUT', `/api/items/${id}/companions`, { companions: [annaPerson], wanted: 2 })).status, 403)
+  assert.deepEqual(people((await send<Item>(s, s.bernd, 'DELETE', `/api/items/${id}/companions/me`)).body), [[s.carlaPerson, true], [annaPerson, false]])
+  const outside = await send<{ error: string, problems: { code: string }[] }>(s, s.carla, 'PUT', `/api/items/${id}/companions`, { companions: [annaPerson], wanted: 2, lead: s.berndPerson })
+  assert.deepEqual([outside.status, outside.body.problems.map((p) => p.code)], [422, ['lead_not_teacher']])
+
+  // An organizer's edit names another lead; an edit that names none keeps the one there is; taking the lead out without naming another is refused.
+  const body = { title: 'Wien', places: 8, companionsWanted: 2, sessions: [session(TUESDAY, '08:00', '18:00')] }
+  assert.deepEqual(people((await send<Item>(s, s.anna, 'PATCH', `/api/items/${id}`, { ...body, teachers: [s.carlaPerson, annaPerson], lead: annaPerson })).body), [[s.carlaPerson, false], [annaPerson, true]])
+  assert.deepEqual(people((await send<Item>(s, s.anna, 'PATCH', `/api/items/${id}`, { ...body, teachers: [annaPerson, s.carlaPerson, s.berndPerson] })).body), [[annaPerson, true], [s.carlaPerson, false], [s.berndPerson, false]])
+  const leaderless = await send<{ problems: { code: string }[] }>(s, s.anna, 'PATCH', `/api/items/${id}`, { ...body, teachers: [s.carlaPerson, s.berndPerson] })
+  assert.deepEqual([leaderless.status, leaderless.body.problems.map((p) => p.code)], [422, ['no_lead']])
+
+  const owner = createDatabase(s.ownerUrl, () => {})
+  t.after(() => owner.close())
+  const changes = (await readAudit(owner, s.campaign.id)).filter((e) => e.action === 'item.lead-changed').map((e) => [e.metadata.from, e.metadata.to])
+  assert.deepEqual(changes, [[s.berndPerson, s.carlaPerson], [s.carlaPerson, annaPerson]])
+
+  // The migration's statement, on teachers without a lead as before it: every activity gets the lead the old rule read,
+  // its creator when among the teachers (Anna, though Carla stands first), else the first named (Bernd's own, created by him).
+  const own = await send<Item>(s, s.bernd, 'POST', url, { title: 'Klettern', places: 12, teachers: [s.carlaPerson, s.berndPerson], sessions: [session(MONDAY, '08:30', '12:15')] })
+  const forCarla = await send<Item>(s, s.anna, 'POST', url, { title: 'Tanz', places: 12, teachers: [s.carlaPerson, s.berndPerson], lead: s.berndPerson, sessions: [session(MONDAY, '08:30', '12:15')] })
+  await owner.query('update item_teacher set lead = false')
+  const sql = await readFile(new URL('../migrations/0010_item_lead.sql', import.meta.url), 'utf8')
+  const backfill = /update item_teacher t[^;]*;/.exec(sql)?.[0] ?? ''
+  assert.notEqual(backfill, '')
+  await owner.query(backfill)
+  const led = new Map((await get<{ items: Item[] }>(s, s.anna, url)).body.items.map((item) => [item.id, item.teachers.filter((teacher) => teacher.lead).map((teacher) => teacher.personId)]))
+  assert.deepEqual([led.get(id), led.get(own.body.id), led.get(forCarla.body.id)], [[annaPerson], [s.berndPerson], [s.carlaPerson]])
 })

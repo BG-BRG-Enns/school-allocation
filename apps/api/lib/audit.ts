@@ -58,6 +58,7 @@ export const AUDIT_ACTIONS = [
   'item.companion-joined',
   'item.companion-left',
   'item.companions-changed',
+  'item.lead-changed',
   // The school's settings (school scope): the period grid replaced, the
   // language changed; the class teachers of a class set; the categories.
   'settings.periods-changed',

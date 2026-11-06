@@ -25,7 +25,7 @@ export interface ItemRow {
   first_proposed_at: Date | null
   withdrawn_at: Date | null
   withdraw_reason: string | null
-  teachers: { personId: string, displayName: string }[]
+  teachers: { personId: string, displayName: string, lead: boolean }[]
   companions_wanted: number
   /** The proposer's person, by their account's binding; null for an account bound to nobody. */
   proposer_person: string | null

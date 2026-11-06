@@ -8,7 +8,7 @@
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { leadOf, spanOfPeriods, type DayDemand, type Period } from '@school-allocation/school-core'
+import { spanOfPeriods, type DayDemand, type Period } from '@school-allocation/school-core'
 import Collapsible from '../components/Collapsible.vue'
 import DemandTable from '../components/DemandTable.vue'
 import { loadPeriods } from '../lib/admin-api.ts'
@@ -57,6 +57,8 @@ const eligibleClasses = ref<string[]>([])
 const categories = ref<Category[]>([])
 const categoryIds = ref<string[]>([])
 const teachers = ref<{ personId: string, displayName: string }[]>([])
+/** Which of the teachers leads; '' while none is named. Stored with the activity: whoever is added accompanies. */
+const leadId = ref('')
 /** How many companions the lead wants beside them (the school's wish 6). */
 const companionsWanted = ref(0)
 const teacherQuery = ref('')
@@ -130,6 +132,7 @@ async function load(): Promise<void> {
       eligibleClasses.value = [...item.eligibleClasses]
       categoryIds.value = [...item.categoryIds]
       teachers.value = [...item.teachers]
+      leadId.value = item.teachers.find((teacher) => teacher.lead)?.personId ?? ''
       companionsWanted.value = item.companionsWanted
       sessions.value = item.sessions.map(fromStored)
     } else {
@@ -139,7 +142,9 @@ async function load(): Promise<void> {
       categoryIds.value = []
       companionsWanted.value = 0
       const me = session.value
-      if (me?.person?.kind === 'teacher') teachers.value = [{ personId: me.person.id, displayName: me.displayName }]
+      // A teacher's new activity is their own to lead; an organizer who is none names the lead by adding the first teacher.
+      teachers.value = me?.person?.kind === 'teacher' ? [{ personId: me.person.id, displayName: me.displayName }] : []
+      leadId.value = teachers.value[0]?.personId ?? ''
       addSession()
     }
   })
@@ -281,20 +286,21 @@ async function findTeachers(): Promise<void> {
 
 function addTeacher(teacher: { personId: string, displayName: string }): void {
   teachers.value.push(teacher)
+  // Added by hand, a teacher accompanies; only the first teacher of an activity without any leads it. Among several
+  // whose lead was taken off, nobody leads until one is named.
+  if (teachers.value.length === 1) leadId.value = teacher.personId
   teacherQuery.value = ''
   teacherResults.value = []
 }
 
 function removeTeacher(personId: string): void {
   teachers.value = teachers.value.filter((t) => t.personId !== personId)
+  // The lead taken out: the only teacher left leads; among several nobody does until one is named, and the server refuses an activity without a lead.
+  if (leadId.value === personId) leadId.value = teachers.value.length === 1 ? (teachers.value[0]?.personId ?? '') : ''
 }
 
-/** Who leads as the form stands: the activity's creator, or the caller for a new one, when among the teachers; else the first named. */
-const lead = computed(() => {
-  const proposer = existing.value ? existing.value.proposedBy.personId : (session.value?.person?.id ?? null)
-  const id = leadOf(teachers.value.map((teacher) => teacher.personId), proposer)
-  return teachers.value.find((teacher) => teacher.personId === id) ?? null
-})
+/** Who leads as the form stands: the teacher named as the lead. */
+const lead = computed(() => teachers.value.find((teacher) => teacher.personId === leadId.value) ?? null)
 const companions = computed(() => teachers.value.filter((teacher) => teacher.personId !== lead.value?.personId))
 /** What the lead still seeks: the number wanted less the companions named; '' when none is wanted. */
 const soughtText = computed(() => {
@@ -323,8 +329,25 @@ async function saveCompanions(): Promise<void> {
     const saved = await setCompanions(item.id, { companions: teachers.value.filter((teacher) => teacher.personId !== savedLeadId.value).map((teacher) => teacher.personId), wanted: Number(companionsWanted.value) })
     existing.value = saved
     teachers.value = [...saved.teachers]
+    leadId.value = saved.teachers.find((teacher) => teacher.lead)?.personId ?? ''
     companionsWanted.value = saved.companionsWanted
   }, t.item.companions.saved)
+}
+
+/** The companion the lead hands the activity to; '' while none is chosen. */
+const handOverTo = ref('')
+/**
+ * The lead hands the activity over to one of its companions and stays as a companion: asked once more, since the
+ * lead's say over the companions goes with it. Back to the list afterwards, where the activity is marked.
+ */
+async function handOver(): Promise<void> {
+  const item = existing.value
+  const next = companions.value.find((teacher) => teacher.personId === handOverTo.value)
+  if (!item || !next || !window.confirm(t.item.teachers.handOverConfirm(next.displayName))) return
+  const ok = await companionsSaving.run(async () => {
+    existing.value = await setCompanions(item.id, { companions: companions.value.map((teacher) => teacher.personId), wanted: Number(companionsWanted.value), lead: next.personId })
+  })
+  if (ok) await router.push({ path: `/wahlen/${props.id}`, query: { item: item.id } })
 }
 
 /** A warning per chosen teacher and status for the days the sessions touch that the teacher is not plainly available on. */
@@ -376,6 +399,8 @@ function input(): ItemInput {
     eligibleClasses: eligibleClasses.value,
     categories: categoryIds.value,
     teachers: teachers.value.map((t) => t.personId),
+    // Left out while none is named: a new activity then gets its creator or the first named, a stored one is refused without a lead.
+    lead: leadId.value || undefined,
     companionsWanted: Number(companionsWanted.value),
     sessions: sessions.value.map((s) => {
       syncPeriods(s)
@@ -507,6 +532,38 @@ async function save(propose: boolean): Promise<void> {
       <br>{{ t.item.teachers.leadRule }}
     </p>
     <p
+      v-else-if="teachers.length > 0"
+      class="alert"
+      role="status"
+    >
+      {{ t.item.teachers.noLead }}
+    </p>
+    <p
+      v-if="!(companionsOnly && !organizes) && teachers.length > 1"
+      class="field"
+    >
+      <label for="lead">{{ t.item.teachers.lead }}</label>
+      <select
+        id="lead"
+        v-model="leadId"
+      >
+        <option
+          v-if="leadId === ''"
+          value=""
+          disabled
+        >
+          –
+        </option>
+        <option
+          v-for="teacher in teachers"
+          :key="teacher.personId"
+          :value="teacher.personId"
+        >
+          {{ teacher.displayName }}
+        </option>
+      </select>
+    </p>
+    <p
       v-for="warning in availabilityWarnings"
       :key="warning"
       class="notice"
@@ -579,6 +636,37 @@ async function save(propose: boolean): Promise<void> {
           {{ t.item.companions.save }}
         </button>
       </p>
+      <template v-if="!organizes">
+        <p class="field">
+          <label for="hand-over">{{ t.item.teachers.handOver }}</label>
+          <select
+            id="hand-over"
+            v-model="handOverTo"
+          >
+            <option value="">
+              –
+            </option>
+            <option
+              v-for="teacher in companions"
+              :key="teacher.personId"
+              :value="teacher.personId"
+            >
+              {{ teacher.displayName }}
+            </option>
+          </select>
+          <span class="muted">{{ t.item.teachers.handOverHint }}</span>
+        </p>
+        <p class="actions">
+          <button
+            type="button"
+            class="ghost"
+            :disabled="companionsSaving.busy.value || handOverTo === ''"
+            @click="handOver"
+          >
+            {{ t.item.teachers.handOverSubmit }}
+          </button>
+        </p>
+      </template>
     </template>
 
     <h2>{{ t.common.field.sessions }}</h2>

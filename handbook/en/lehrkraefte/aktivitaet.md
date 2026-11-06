@@ -8,7 +8,13 @@ While a registration is **Collecting activities**, open it under **Registrations
 
 Enter the **Title**, **Description** and **Location or meeting point**. You are already listed under **Teachers**; add other teachers through the search. All teachers of an activity can edit it and later see its participants.
 
-Whoever created the activity is its **lead** as long as they are among its teachers; otherwise the first teacher named is. The others are **companions**. Below the teachers it says who leads and who accompanies. It changes nobody's rights.
+One of the teachers is the **lead**, the others are **companions**; below the teachers it says who leads and who accompanies. When you create an activity, you lead it. Whoever is added or signs up as a companion accompanies: the lead never changes by itself. If an activity has several teachers, you choose in the draft under **Lead** who leads it.
+
+![The teachers of an activity: Carla Knoxbrunner and Bernd Pfnöxlhofer, below them lead and companions, the choice of the lead, the search and the number of companions](/bilder/en/leitung.png)
+
+Once the activity is submitted or approved, you pass the lead on with **Hand the lead over to**, to one of its companions; if it should go to someone else, add that teacher as a companion first and save. You stay on it as a companion afterwards and can leave like any companion; the new lead then changes the companions. The activity stays as it was submitted.
+
+![Handing over the lead: the choice of the companion the lead goes to, and the button Hand over the lead](/bilder/en/leitung-uebergeben.png)
 
 If one of the teachers is unavailable on a day of the sessions, or available only if needed ([Availability](./verfuegbarkeit)), it says so there too. You can still save and submit; the organisation decides.
 

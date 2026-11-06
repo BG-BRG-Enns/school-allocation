@@ -126,7 +126,7 @@ export { addedCells, demandAround, describeCells, gateCells, gateRefused, grades
 
 export { allClassConflicts, classConflicts, type ClassActivity, type ClassConflict } from './class-conflicts.ts'
 
-export { AVAILABILITY_STATUSES, leadOf, mayTakePlace, type AvailabilityStatus } from './planning.ts'
+export { AVAILABILITY_STATUSES, mayTakePlace, type AvailabilityStatus } from './planning.ts'
 
 export {
   MAX_CATEGORIES,

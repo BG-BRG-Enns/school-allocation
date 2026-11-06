@@ -13,15 +13,24 @@ import { isTeacher } from '../lib/policies.ts'
 /**
  * The body as the library takes it, defaults filled in. On creation the
  * proposing teacher is among the teachers when they are one and left
- * themselves out; an edit keeps the list as sent, so an organizer who is
+ * themselves out, unless the body names another teacher as the lead (an
+ * activity created for a colleague); an edit keeps the list as sent, so an organizer who is
  * also a teacher does not become a teacher of an item they corrected.
+ * The lead is the one the body names; a new activity that names none is
+ * led by its creator when among the teachers, else by the first named; an
+ * edit that names none leaves it to the service, which keeps the lead the
+ * activity has.
  */
 export function itemInput(body: Static<typeof ItemBody>, caller: Caller, creating: boolean): ItemInput {
   // Ids as PostgreSQL returns them, so a spelling in upper case is the same teacher.
   const teachers = body.teachers.map((id) => id.toLowerCase())
-  if (creating && isTeacher(caller) && caller.person && !teachers.includes(caller.person.id)) teachers.unshift(caller.person.id)
+  // Not when the body names another teacher as the lead: whoever creates an activity for a colleague and leaves themselves out stays out.
+  const named = body.lead?.toLowerCase()
+  if (creating && isTeacher(caller) && caller.person && !teachers.includes(caller.person.id) && (named === undefined || named === caller.person.id)) teachers.unshift(caller.person.id)
   // The lead and up to eight companions, the proposer put in front counted: the schema's bound is on the list as sent.
   if (teachers.length > 9) throw new ApplicationError('validation_failed')
+  const own = isTeacher(caller) && caller.person && teachers.includes(caller.person.id) ? caller.person.id : null
+  const lead = named ?? (creating ? (own ?? teachers[0] ?? null) : null)
   return {
     title: body.title,
     description: body.description ?? '',
@@ -35,6 +44,7 @@ export function itemInput(body: Static<typeof ItemBody>, caller: Caller, creatin
     eligibleGrades: [...new Set(body.eligibleGrades ?? [])].sort((a, b) => a - b),
     eligibleClasses: uniqueSorted(body.eligibleClasses ?? []),
     teachers,
+    lead,
     companionsWanted: body.companionsWanted ?? 0,
     // What a session credits is derived when it is written (services/items.ts credited): a client sends none.
     sessions: body.sessions.map((session) => ({ startsAt: session.startsAt, endsAt: session.endsAt, location: session.location ?? '', credits: [] })),

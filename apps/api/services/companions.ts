@@ -7,8 +7,12 @@
 // a day of it ("nur wenn nötig" passes); they leave it again until the
 // registration opens. The lead and an organizer set the companions and the
 // number wanted at any time until the archive, the activity's state
-// untouched. A joined companion is a teacher of the activity like a named
-// one. Every change is in the campaign's audit chain; no mail goes out.
+// untouched, and with them hand the lead to one of the companions: the
+// lead until then stays as a companion. Whoever joins or is added
+// accompanies; the lead changes by that act alone (or by an organizer's
+// edit of the activity). A joined companion is a teacher of the activity
+// like a named one. Every change is in the campaign's audit chain; no mail
+// goes out.
 
 import type { CompanionProblemCode, CompanionsBody, CompanionsResponse } from '@school-allocation/api-contracts/companions'
 import { mayTakePlace, overlaps, type CampaignState } from '@school-allocation/school-core'
@@ -179,9 +183,13 @@ export async function leaveItem(db: Database, id: string, caller: Caller): Promi
 /**
  * The lead or an organizer sets the companions and the number wanted, and
  * nothing else of the activity: in every state but withdrawn, until the
- * archive; the lead stays, a companion must be a teacher of the roster in
- * force (422 `item_invalid` names the others). The activity's state does
- * not change: no approval is asked again for its people.
+ * archive; a companion must be a teacher of the roster in force (422
+ * `item_invalid` names the others). The lead stays unless the body names
+ * another: one of the companions it sends, who then leads, while the lead
+ * until now stays among the teachers as a companion (and leaves like one).
+ * 422 `item_invalid` with `lead_not_teacher` for a lead that is none of
+ * them. The activity's state does not change: no approval is asked again
+ * for its people.
  */
 export async function setCompanions(db: Database, id: string, body: CompanionsBody, caller: Caller): Promise<Item> {
   await db.tx(async (client) => {
@@ -198,8 +206,17 @@ export async function setCompanions(db: Database, id: string, body: CompanionsBo
     const unknown = companions.filter((personId) => !known.has(personId))
     if (unknown.length > 0) throw new ItemInvalid([], unknown)
     const before = current.teachers.filter((teacher) => !teacher.lead).map((teacher) => teacher.personId)
-    await store.replaceTeachers(client, current.id, lead === null ? companions : [lead.personId, ...companions], body.wanted)
-    await appendAudit(client, { scopeId: campaign.id, actor: actorOf(caller), action: 'item.companions-changed', metadata: { itemId: current.id, before, after: companions, wanted: body.wanted } })
+    // A hand-over: the new lead is one of the companions sent; the lead until now takes their place among the companions.
+    const next = body.lead === undefined ? (lead?.personId ?? null) : body.lead.toLowerCase()
+    if (next !== null && next !== lead?.personId && !companions.includes(next)) throw new ItemInvalid([{ code: 'lead_not_teacher' }], [])
+    const handedOver = next !== (lead?.personId ?? null)
+    const teachers = handedOver
+      ? [next as string, ...(lead === null ? [] : [lead.personId]), ...companions.filter((personId) => personId !== next)]
+      : (lead === null ? companions : [lead.personId, ...companions])
+    await store.replaceTeachers(client, current.id, teachers, next, body.wanted)
+    const after = teachers.filter((personId) => personId !== next)
+    await appendAudit(client, { scopeId: campaign.id, actor: actorOf(caller), action: 'item.companions-changed', metadata: { itemId: current.id, before, after, wanted: body.wanted } })
+    if (handedOver) await appendAudit(client, { scopeId: campaign.id, actor: actorOf(caller), action: 'item.lead-changed', metadata: { itemId: current.id, from: lead?.personId ?? null, to: next } })
   })
   return requireFound(await store.readItem(db, id))
 }

@@ -121,6 +121,8 @@ export const ItemBody = StrictObject({
   eligibleClasses: Type.Optional(Type.Array(ClassName, { maxItems: 40 })),
   /** The lead and up to eight companions. */
   teachers: Type.Array(Uuid, { maxItems: 9 }),
+  /** Which of the teachers leads. Left out on a new activity: its creator when among the teachers, else the first named; left out on a change: the lead it has, as long as they stay among the teachers. */
+  lead: Type.Optional(Uuid),
   /** How many companions the lead wants beside them (0–8); left out, none. */
   companionsWanted: Type.Optional(Type.Integer({ minimum: 0, maximum: 8 })),
   sessions: Type.Array(SessionBody, { maxItems: 10 }),
