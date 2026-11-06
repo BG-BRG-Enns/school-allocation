@@ -296,7 +296,7 @@ export async function runReview(db: Queryable, campaign: Campaign, runId: string
     items: snapshot.items.map((i) => {
       const item = byId.get(i.id)
       const counts = summary?.items.find((x) => x.itemId === i.id)
-      return { itemId: i.id, title: item?.title ?? '', number: item?.number ?? null, feeCents: i.feeCents, fixed: counts?.fixed ?? rows.filter((r) => r.itemId === i.id && r.source === 'fixed').length, assigned: counts?.assigned ?? 0, places: i.rules.places, minimum: i.rules.fixedClasses.length > 0 ? 0 : i.rules.minParticipants, cancelled: cancelled.has(i.id) }
+      return { itemId: i.id, title: item?.title ?? '', number: item?.number ?? null, feeCents: i.feeCents, fixedClasses: i.rules.fixedClasses, fixed: counts?.fixed ?? rows.filter((r) => r.itemId === i.id && r.source === 'fixed').length, assigned: counts?.assigned ?? 0, places: i.rules.places, minimum: i.rules.fixedClasses.length > 0 ? 0 : i.rules.minParticipants, cancelled: cancelled.has(i.id) }
     }).sort((a, b) => (a.number ?? Number.MAX_SAFE_INTEGER) - (b.number ?? Number.MAX_SAFE_INTEGER) || a.title.localeCompare(b.title, 'de')),
     projectDays: campaign.projectDays,
     rules: snapshot.rules,

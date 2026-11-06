@@ -80,7 +80,7 @@ async function write(client: Queryable, locked: Locked, move: Move, kind: Change
  * change by hand who changed it (the class teacher or the organization) and
  * what changed.
  */
-async function notify(client: Queryable, context: WindowContext, locked: Locked, student: CampaignStudent, move: Move, changeId: string, by: 'classTeacher' | 'organizer' | null): Promise<void> {
+async function notify(client: Queryable, context: WindowContext, locked: Locked, student: CampaignStudent, move: Move, changeId: string, by: 'classTeacher' | 'organizer' | 'teacher' | null): Promise<void> {
   if (student.address === null) return
   const words = await schoolWords(client)
   const kind = by === null ? 'swap_confirmed' : 'assignment_changed'
@@ -179,6 +179,42 @@ export async function removeFromWithdrawn(client: Queryable, context: WindowCont
     await appendAudit(client, { scopeId: campaignId, actor: auditActor(actor), action: 'assignment.changed', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId: row.personId, kind: 'remove', toItemId: null, fromItemId: itemId, forced: false, withdrawn: true } })
   }
   return rows.length
+}
+
+/** What a teacher's change to the published result is: the word kept with it in place of a reason. */
+export type TeacherAct = 'placed' | 'removed' | 'takenOut' | 'returned'
+
+/**
+ * A teacher's change to the published result (services/placements.ts, the
+ * decisions of 2026-11-06): a student placed directly into the teacher's
+ * activity or taken off it again, taken out of a class activity or brought
+ * back into it. Inside the caller's transaction, which decided who may.
+ * The rules are a teacher's (school-core checkMove `byTeacher`): a class
+ * placement may be left, the lists and the places do not bind, nothing the
+ * student keeps may overlap, save a class activity of their own class when
+ * they are placed beside it. No reason is asked; the change says what it
+ * was. The student is told as after any change by hand, and it is audited.
+ * Returns the items the student left, for the page that says whom to tell.
+ */
+export async function teacherChange(client: Queryable, context: WindowContext, campaignId: string, caller: Caller, move: Move, act: TeacherAct, besideClass: boolean): Promise<Item[]> {
+  const locked = await lock(client, campaignId)
+  const student = await campaignStudent(client, locked.campaign, move.personId)
+  if (!student) throw new ApplicationError('not_found')
+  refuse(checkMove(locked.run.snapshot, locked.rows, move, { unavailable: locked.unavailable, byTeacher: true, besideClass }))
+  const kind: ChangeKind = move.toItemId === null ? 'remove' : move.leaves.length > 0 ? 'move' : 'place'
+  const actor = actorOf(caller)
+  const words = await schoolWords(client)
+  const change = await write(client, locked, move, kind, words.t.notices.teacherChange[act], false, actor)
+  await notify(client, context, locked, student, move, change.id, isOrganizer(caller) ? 'organizer' : 'teacher')
+  await appendAudit(client, { scopeId: campaignId, actor: auditActor(actor), action: 'assignment.changed', metadata: { changeId: change.id, seq: change.seq, runId: locked.run.id, personId: student.personId, kind, toItemId: move.toItemId, fromItemId: move.leaves[0] ?? null, left: [...move.leaves], forced: false, act } })
+  return move.leaves.map((itemId) => locked.items.get(itemId)).filter((item): item is Item => item !== undefined)
+}
+
+/** The published result as a teacher's page reads it: the rows as they stand and the items nobody enters, without a lock. */
+export async function publishedRows(db: Queryable, campaignId: string): Promise<{ rows: Assignment[], unavailable: Set<string> } | undefined> {
+  const run = await store.readPublishedRun(db, campaignId)
+  if (!run) return undefined
+  return { rows: await store.listAssignments(db, run.id), unavailable: unavailableItems(run, await listCampaignItems(db, campaignId)) }
 }
 
 export interface ManualChange {

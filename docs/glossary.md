@@ -81,7 +81,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | progress during the window | Stand der Anmeldung; "wer sich schon angemeldet hat" | registration status | |
 | on-behalf entry | "Für jemanden eintragen" | "Enter for someone" | |
 | exemption | Befreiung, befreien; on the activity's page "Nimmt nicht teil", "nimmt doch teil" | exemption, exempt; "Not taking part", "takes part after all" | no reason asked on the activity's page |
-| direct placement | "direkt eingeteilt", "direkt einteilen"; "nimmt in dieser Zeit an keiner Klassenaktivität teil" | "placed directly", "place"; "takes part in no class activity during this time" | the box of a placement, on by default |
+| direct placement | "direkt eingeteilt", "direkt einteilen"; "nimmt an Klassenaktivitäten, die sich damit überschneiden, gar nicht teil" | "placed directly", "place"; "takes no part in class activities that overlap this one" | the box of a placement, on by default: out of the whole of every overlapping class activity |
 | reclaim | "zurückholen" | "reclaim" | a class activity's teachers, for a student of its classes placed elsewhere |
 | overnight | "mit Übernachtung" | "with an overnight stay" | a session over more than one local date |
 | allocation run | Berechnung; "Zuteilung berechnen"; "Berechnungen"; "Berechnung als Excel" | calculation; "Calculate allocation" | Q2 |

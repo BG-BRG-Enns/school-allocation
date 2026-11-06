@@ -18,6 +18,7 @@ import { datesBetween, formatDay, formatFee, formatSpanOnGrid, formatWhenShort, 
 import { t } from '../lib/i18n.ts'
 import { CHANGE_KIND_LABELS, MOVE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
+import { session } from '../lib/session.ts'
 
 const props = defineProps<{ id: string }>()
 usePageTitle(() => t.common.page.result)
@@ -72,8 +73,9 @@ const byDay = computed(() => {
   })
 })
 
-function sourceText(source: string, rank: number | null): string {
-  if (source === 'fixed') return t.result.source.fixed
+function sourceText(source: string, rank: number | null, itemId: string): string {
+  // Fixed into an activity the student's class is not in as a whole: a teacher placed them.
+  if (source === 'fixed') return itemOf(itemId)?.fixedClasses.includes(session.value?.person?.className ?? '') === false ? t.result.source.direct : t.result.source.fixed
   if (source === 'wish') return t.result.source.wish(rank)
   if (source === 'fallback') return t.result.source.fallback
   if (source === 'swap') return t.result.source.swap
@@ -172,7 +174,7 @@ async function onSwap(o: MoveOffer): Promise<void> {
           :key="e.itemId"
         >
           <strong>{{ e.item?.number !== null && e.item?.number !== undefined ? `${e.item.number}. ` : '' }}{{ e.item?.title ?? '?' }}</strong>
-          <span class="badge">{{ sourceText(e.source, e.rank) }}</span>
+          <span class="badge">{{ sourceText(e.source, e.rank, e.itemId) }}</span>
           <ul class="plain">
             <li
               v-for="s in e.sessions"

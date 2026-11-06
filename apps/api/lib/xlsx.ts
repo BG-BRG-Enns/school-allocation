@@ -206,7 +206,8 @@ export async function runWorkbook({ t, intl }: WorkbookWords, review: RunReviewR
       { type: String, value: item.title },
       { type: String, value: s.className },
       { type: String, value: s.displayName },
-      { type: String, value: sourceLabels[e.source] ?? e.source },
+      // A fixed row of a student whose class the activity does not take: placed directly by a teacher.
+      { type: String, value: e.source === 'fixed' && !item.fixedClasses.includes(s.className) ? sourceLabels.direct : sourceLabels[e.source] ?? e.source },
       { type: Number, value: e.rank ?? undefined },
     ]))),
   ]

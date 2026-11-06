@@ -59,11 +59,11 @@ With **0 places** and without whole classes the activity is for its teachers onl
 
 ## Placing students directly
 
-![Placed directly: Sara Pfnäxthuber of 5A with the box ticked that she takes part in no class activity during this time, below it the search for students](/bilder/en/direkt-eingeteilt.png)
+![Placed directly: Sara Pfnäxthuber of 5A with the box ticked that she takes no part in class activities that overlap this one, below it the search for students](/bilder/en/direkt-eingeteilt.png)
 
 Under **Placed directly** you enter students who come into the activity without choosing it: search by name or class and click **Place**. Every teacher of the activity can do this, from its first save and also once it is submitted or approved; for a new activity the list is entered when you save. Whoever is placed directly takes a place of the activity; an activity with 0 places can thus consist of placed students alone. An activity someone is placed into directly takes place: its minimum and **Cancelled if too few** no longer apply to it. In the activities table the places say how many are placed directly.
 
-A direct placement comes before a class activity. With the box **takes part in no class activity during this time**, which is ticked, the student takes part in no class activity of their class that overlaps your activity, and in none of it: whoever does not go on the class trip is free for all its days and can choose or be placed into further activities. Beside the student it says which class activity that concerns and who leads it. Without the tick the student stays in their class activity and is only away during yours, for a rehearsal for example. SchulWahl asks nothing and notifies nobody: talk to the lead of the class activity.
+A direct placement comes before a class activity. With the box **takes no part in class activities that overlap this one**, which is ticked, the student takes part in no class activity of their class that overlaps your activity, and in none of it, its other days included: whoever does not go on the class trip is free for all its days and can choose or be placed into further activities. Beside the student it says which class activity that concerns and who leads it. Without the tick the student stays in their class activity and is only away during yours, for a rehearsal for example. SchulWahl asks nothing and notifies nobody: talk to the lead of the class activity.
 
 If the student is already placed directly into another activity during this time, the later placement stands: they come to you, and the page tells you whom to tell. **Remove** takes a placement back.
 

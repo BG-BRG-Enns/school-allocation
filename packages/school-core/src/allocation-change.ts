@@ -41,6 +41,18 @@ export interface MoveOptions {
   unavailable?: ReadonlySet<string>
   /** The organizer's override of a full item, an item's minimum and a rule falling short, on their responsibility; never of the other rules. */
   force?: boolean
+  /**
+   * A change by a teacher of the activity it is about, or of the class
+   * activity a student leaves or returns to (the decisions of 2026-11-06:
+   * a direct placement beats a class placement, also after publication;
+   * teachers act responsibly). The rows left may be class placements; the
+   * item entered need not be one the student could rank, may be full, and
+   * need fill no gap nor keep a rule. What stays: it takes place, the
+   * student is not in it already, and it overlaps nothing they keep.
+   */
+  byTeacher?: boolean
+  /** With `byTeacher`: the item entered and a class activity of the student's own class may overlap, whichever of the two is entered (placed beside it, away for that time). */
+  besideClass?: boolean
 }
 
 export interface MoveOffer {
@@ -95,10 +107,20 @@ function standings(input: AllocationInput, student: AllocationStudent, itemIds: 
  * run or withdrawn since (`unavailable`) holds no time of theirs any more:
  * the frozen input still names it, the replacement for its day may overlap it.
  */
-function offered(input: AllocationInput, student: AllocationStudent, item: AllocationItem | undefined, unavailable: ReadonlySet<string>): item is AllocationItem {
+function offered(input: AllocationInput, student: AllocationStudent, item: AllocationItem | undefined, unavailable: ReadonlySet<string>, held: ReadonlySet<string>): item is AllocationItem {
   if (item === undefined || unavailable.has(item.id) || !isEligible(student, item.rules)) return false
   const items = new Map(input.items.map((i) => [i.id, i]))
-  return !student.fixedItemIds.some((id) => !unavailable.has(id) && itemsOverlap(item, items.get(id)))
+  return !student.fixedItemIds.some((id) => held.has(id) && !unavailable.has(id) && itemsOverlap(item, items.get(id)))
+}
+
+/**
+ * The placements of the frozen input the student still has a row in: one
+ * they were taken out of since publication (a class activity they do not
+ * go on after all) holds no time of theirs any more, like one that was
+ * cancelled. `leaving` are the rows a move gives up.
+ */
+function heldFixed(student: AllocationStudent, mine: readonly Assignment[], leaving: readonly string[] = []): Set<string> {
+  return new Set(student.fixedItemIds.filter((id) => !leaving.includes(id) && mine.some((a) => a.itemId === id)))
 }
 
 /** Every problem of a move against the rows as they stand; empty means it may be written. */
@@ -116,13 +138,13 @@ export function checkMove(input: AllocationInput, assignments: readonly Assignme
       problems.push({ code: 'not_placed', itemId })
       continue
     }
-    if (row.source === 'fixed') {
+    if (row.source === 'fixed' && options.byTeacher !== true) {
       problems.push({ code: 'leaves_fixed', itemId })
       continue
     }
     const item = items.get(itemId)
-    // A class activity's minimum is nobody's to protect (its class is in it); the organizer may override the others'.
-    if (!force && item !== undefined && item.rules.fixedClasses.length === 0 && item.rules.minParticipants > 0
+    // A class activity's minimum is nobody's to protect (its class is in it); the organizer may override the others', and so may a teacher acting on their own.
+    if (!force && options.byTeacher !== true && item !== undefined && item.rules.fixedClasses.length === 0 && item.rules.minParticipants > 0
       && assignments.filter((a) => a.itemId === itemId && a.personId !== move.personId).length < item.rules.minParticipants) {
       problems.push({ code: 'below_minimum', itemId })
     }
@@ -130,9 +152,18 @@ export function checkMove(input: AllocationInput, assignments: readonly Assignme
   const kept = mine.filter((a) => !move.leaves.includes(a.itemId))
   // A removal alone (the organizer's, for a student who is ill or leaves) may cost minutes and rules: the student is
   // out of the item either way, and the review and the class page show the gap. A move into an item may not.
-  if (move.toItemId !== null) {
+  if (move.toItemId !== null && options.byTeacher === true) {
     const target = items.get(move.toItemId)
-    if (!offered(input, student, target, unavailable)) {
+    // Beside a class activity of their own class the student is away for that time, whichever of the two is entered; anything
+    // else they keep must not overlap.
+    const ownClass = (item: AllocationItem | undefined) => item?.rules.fixedClasses.includes(student.className) ?? false
+    const beside = (a: Assignment) => options.besideClass === true && (ownClass(target) || (a.source === 'fixed' && ownClass(items.get(a.itemId))))
+    if (target === undefined || unavailable.has(target.id)) problems.push({ code: 'not_offered', itemId: move.toItemId })
+    else if (mine.some((a) => a.itemId === move.toItemId)) problems.push({ code: 'already_placed', itemId: move.toItemId })
+    else if (kept.some((a) => !beside(a) && itemsOverlap(target, items.get(a.itemId)))) problems.push({ code: 'overlap', itemId: move.toItemId })
+  } else if (move.toItemId !== null) {
+    const target = items.get(move.toItemId)
+    if (!offered(input, student, target, unavailable, heldFixed(student, mine, move.leaves))) {
       problems.push({ code: 'not_offered', itemId: move.toItemId })
     } else if (mine.some((a) => a.itemId === move.toItemId)) {
       problems.push({ code: 'already_placed', itemId: move.toItemId })
@@ -174,8 +205,9 @@ export function moveOffers(input: AllocationInput, assignments: readonly Assignm
   const student = input.students.find((s) => s.personId === personId)
   if (!student) return []
   const mine = new Set(assignments.filter((a) => a.personId === personId).map((a) => a.itemId))
+  const held = heldFixed(student, assignments.filter((a) => a.personId === personId))
   return [...input.items].sort((a, b) => byText(a.id, b.id))
-    .filter((item) => !mine.has(item.id) && offered(input, student, item, unavailable))
+    .filter((item) => !mine.has(item.id) && offered(input, student, item, unavailable, held))
     .map((item) => {
       const leaves = mode === 'swap' ? leavesForSwap(input, assignments, personId, item.id) : []
       return { itemId: item.id, free: freePlaces(input, assignments, item.id), leaves, problems: checkMove(input, assignments, { personId, toItemId: item.id, leaves }, { unavailable }) }

@@ -36,24 +36,24 @@ import { instantOf } from '../lib/time.ts'
 import { classTeacherOf } from './class-teachers.ts'
 import { reconcilePreAssignments } from './pre-assignments.ts'
 
-function spansOf(item: Pick<Item, 'sessions'>): { startMs: number, endMs: number }[] {
+export function spansOf(item: Pick<Item, 'sessions'>): { startMs: number, endMs: number }[] {
   return item.sessions.map((s) => ({ startMs: instantOf(s.startsAt) ?? 0, endMs: instantOf(s.endsAt) ?? 0 }))
 }
 
-function itemsOverlap(a: Pick<Item, 'sessions'>, b: Pick<Item, 'sessions'>): boolean {
+export function itemsOverlap(a: Pick<Item, 'sessions'>, b: Pick<Item, 'sessions'>): boolean {
   return spansOf(a).some((x) => spansOf(b).some((y) => overlaps(x, y)))
 }
 
-const otherOf = (item: Item): OtherActivity => ({ itemId: item.id, title: item.title, lead: item.teachers.find((teacher) => teacher.lead)?.displayName ?? null })
-const byClassAndName = (a: { className: string, displayName: string }, b: { className: string, displayName: string }) => a.className.localeCompare(b.className, 'de') || a.displayName.localeCompare(b.displayName, 'de')
+export const otherOf = (item: Item): OtherActivity => ({ itemId: item.id, title: item.title, lead: item.teachers.find((teacher) => teacher.lead)?.displayName ?? null })
+export const byClassAndName = (a: { className: string, displayName: string }, b: { className: string, displayName: string }) => a.className.localeCompare(b.className, 'de') || a.displayName.localeCompare(b.displayName, 'de')
 
 /** Whether the caller places into the activity: one of its teachers in the roster in force, or an organizer. */
-function mayPlaceInto(caller: Caller, item: Pick<Item, 'teachers'>): boolean {
+export function mayPlaceInto(caller: Caller, item: Pick<Item, 'teachers'>): boolean {
   return isOrganizer(caller) || (isTeacher(caller) && caller.person !== null && item.teachers.some((teacher) => teacher.personId === caller.person?.id))
 }
 
 /** The classes of the activity the caller takes students out of: all of them for its teachers and organizers, a class teacher's own otherwise. */
-async function classesToTakeOutOf(client: Queryable, campaign: Campaign, caller: Caller, item: Pick<Item, 'teachers' | 'fixedClasses'>): Promise<string[]> {
+export async function classesToTakeOutOf(client: Queryable, campaign: Campaign, caller: Caller, item: Pick<Item, 'teachers' | 'fixedClasses'>): Promise<string[]> {
   if (mayPlaceInto(caller, item)) return [...item.fixedClasses]
   const own = await classTeacherOf(client, campaign, caller)
   return item.fixedClasses.filter((name) => own.includes(name))
@@ -155,7 +155,7 @@ async function restoreClassPlacements(client: Queryable, campaign: Campaign): Pr
 }
 
 /** The student of the campaign's roster, or `not_found`: a person who is none is nobody to place. */
-async function studentOf(client: Queryable, campaign: Campaign, personId: string): Promise<CampaignStudent> {
+export async function studentOf(client: Queryable, campaign: Campaign, personId: string): Promise<CampaignStudent> {
   const student = await campaignStudent(client, campaign, personId)
   if (!student) throw new ApplicationError('not_found')
   return student
@@ -220,7 +220,7 @@ export async function removePlacement(db: Database, id: string, personId: string
 }
 
 /** The student of one of the class activity's classes whom the caller may take out of it or bring back into it. */
-async function classMember(client: Queryable, campaign: Campaign, item: Item, personId: string, caller: Caller): Promise<CampaignStudent> {
+export async function classMember(client: Queryable, campaign: Campaign, item: Item, personId: string, caller: Caller): Promise<CampaignStudent> {
   const student = await studentOf(client, campaign, personId)
   if (!item.fixedClasses.includes(student.className)) throw new ApplicationError('not_class_member')
   if (!(await classesToTakeOutOf(client, campaign, caller, item)).includes(student.className)) throw new ApplicationError('forbidden')

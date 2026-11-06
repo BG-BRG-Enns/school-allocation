@@ -178,7 +178,7 @@ export const RunReviewResponse = StrictObject({
     className: Type.String(),
     grade: Type.Integer(),
   })),
-  items: Type.Array(StrictObject({ ...ItemSummarySchema.properties, title: Type.String(), number: Type.Union([Type.Integer(), Type.Null()]), feeCents: Type.Integer() })),
+  items: Type.Array(StrictObject({ ...ItemSummarySchema.properties, title: Type.String(), number: Type.Union([Type.Integer(), Type.Null()]), feeCents: Type.Integer(), fixedClasses: Type.Array(Type.String()) })),
   /** The campaign's project days, for the columns. */
   projectDays: Type.Array(Type.String()),
   /** The rules the run computed with, as its snapshot holds them. */

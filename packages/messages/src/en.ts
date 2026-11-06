@@ -365,6 +365,7 @@ export const en: Messages = {
       swap: 'Swap',
       manual: 'by hand',
     },
+    placedDirectly: 'placed directly',
     /** A change of the published run (packages/api-contracts/src/publication.ts CHANGE_KINDS). */
     changeKind: {
       swap: 'Swap',
@@ -949,13 +950,13 @@ export const en: Messages = {
 
   placements: {
     heading: 'Placed directly',
-    intro: 'Students who come into this activity without choosing it. Each one placed directly takes a place of the activity. With the box ticked they take part in no class activity during this time; the teachers of the class activity see that and can reclaim them.',
+    intro: 'Students who come into this activity without choosing it. Each one placed directly takes a place of the activity. With the box ticked they take no part in any class activity of their class that overlaps this activity, none of it, its other days included; the teachers of the class activity see that and can reclaim them. Without the tick they stay in the class activity and are only away during this activity.',
     search: 'Find a student (name or class)',
     place: (name: string, className: string) => `Place ${name} (${className})`,
     none: 'Nobody is placed directly.',
     pending: 'Entered when the activity is saved.',
-    leavesClass: 'takes part in no class activity during this time',
-    leavesClassOf: (name: string) => `${name} takes part in no class activity during this time`,
+    leavesClass: 'takes no part in class activities that overlap this one',
+    leavesClassOf: (name: string) => `${name} takes no part in class activities that overlap this one`,
     leaves: (activities: string) => `not with ${activities}`,
     other: (title: string, lead: string | null) => lead === null ? `"${title}"` : `"${title}" (lead: ${lead})`,
     remove: (name: string) => `Remove ${name}`,
@@ -1329,6 +1330,7 @@ export const en: Messages = {
     /** How a student came to an item. */
     source: {
       fixed: 'with your class',
+      direct: 'placed by a teacher',
       wish: (rank: number | null) => `your choice ${rank}`,
       fallback: 'remaining place, because your choices could not be met here',
       swap: 'your swap',
@@ -1778,6 +1780,7 @@ export const en: Messages = {
     /** The source of a participant's place (school-core ASSIGNMENT_SOURCES), as the participants' sheet names it. */
     source: {
       fixed: 'Class activity',
+      direct: 'Placed directly',
       wish: 'Choice',
       fallback: 'Remaining place',
       swap: 'Swap',
@@ -1820,6 +1823,13 @@ export const en: Messages = {
     changedBy: {
       classTeacher: 'your class teacher',
       organizer: 'the organisation',
+      teacher: 'a teacher of the activity',
+    },
+    teacherChange: {
+      placed: 'Placed directly by a teacher of the activity',
+      removed: 'Removed by a teacher of the activity',
+      takenOut: 'Does not take part in the class activity',
+      returned: 'Back in the class activity',
     },
     /** What a change by hand did. */
     change: {

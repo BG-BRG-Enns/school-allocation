@@ -1104,7 +1104,7 @@ async function save(propose: boolean): Promise<void> {
         v-for="p in participantsView.participants"
         :key="p.personId"
       >
-        {{ p.displayName }} ({{ p.className }}) <span class="muted">{{ ASSIGNMENT_SOURCE_LABELS[p.source] ?? p.source }}</span>
+        {{ p.displayName }} ({{ p.className }}) <span class="muted">{{ p.source === 'fixed' && !fixedClasses.includes(p.className) ? t.labels.placedDirectly : ASSIGNMENT_SOURCE_LABELS[p.source] ?? p.source }}</span>
       </li>
     </ul>
     <p
