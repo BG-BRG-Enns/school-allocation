@@ -41,7 +41,7 @@ test('die Organisation bringt eine zweite Anmeldung über die API bis zur veröf
   // The test's own minute and the run's wait, as 06 does it: the config's 60 s would end the test while the solver still runs.
   test.setTimeout(60_000 + RUN.timeout)
   await setClock(page, '2034-05-22T08:00:00+02:00')
-  // Bernd proposes the four activities of the Monday, every one with a fee so the run places nobody as a fallback: two in the morning (one place; five places), two in the afternoon (one place; ten places).
+  // Bernd proposes the four activities of the Monday, every one with a fee so the run places nobody as a fallback: two in the morning (one place; five places), two in the afternoon (one place; ten places). Each lies on the grid, two periods long, and so credits 100 minutes: the 2nd and 3rd period, the 7th and 8th.
   await openAs(page, ANNA, '/wahlen')
   const campaign = await must(apiPost<{ id: string }>(page, '/api/admin/campaigns', { kind: 'project_week', name: NAME, schoolYear: '2033/34', projectDays: [DAY] }), 'campaign')
   const id = campaign.id
@@ -54,10 +54,10 @@ test('die Organisation bringt eine zweite Anmeldung über die API bis zur veröf
   await openAs(page, BERND, '/wahlen')
   const items: Record<string, string> = {}
   for (const [key, body] of [
-    ['archery', { places: 1, feeCents: 200, sessions: [session('08:30', '10:30')] }],
-    ['woodwork', { places: 5, feeCents: 400, sessions: [session('08:30', '10:30')] }],
-    ['dance', { places: 1, feeCents: 500, sessions: [session('13:30', '15:30')] }],
-    ['chess', { places: 10, feeCents: 300, sessions: [session('13:30', '15:30')] }],
+    ['archery', { places: 1, feeCents: 200, sessions: [session('08:30', '10:15')] }],
+    ['woodwork', { places: 5, feeCents: 400, sessions: [session('08:30', '10:15')] }],
+    ['dance', { places: 1, feeCents: 500, sessions: [session('13:15', '15:00')] }],
+    ['chess', { places: 10, feeCents: 300, sessions: [session('13:15', '15:00')] }],
   ] as const) {
     const title = sample[key]
     const item = await must(apiPost<{ id: string }>(page, `/api/campaigns/${id}/items`, { title, teachers: [bernd], ...body }), title)
@@ -66,7 +66,7 @@ test('die Organisation bringt eine zweite Anmeldung über die API bis zur veröf
   }
   await signOut(page)
 
-  // Anna approves, publishes the catalogue, sets the window with a daily minimum of 240 for every grade of the school and the swap window open since 7:00, opens, enters both lists, closes, runs and publishes.
+  // Anna approves, publishes the catalogue, sets the window with a daily minimum of 200 for every grade (the two activities of a day) of the school and the swap window open since 7:00, opens, enters both lists, closes, runs and publishes.
   await openAs(page, ANNA, '/wahlen')
   for (const itemId of Object.values(items)) await must(apiPost(page, `/api/admin/items/${itemId}/approve`), 'approve')
   /** A PATCH or PUT from within the page, as apiPost does it. */
@@ -78,7 +78,7 @@ test('die Organisation bringt eine zweite Anmeldung über die API bis zur veröf
     const answer = await write('PATCH', `/api/admin/campaigns/${id}`, changes)
     expect(answer.status, JSON.stringify(answer.body)).toBe(200)
   }
-  await patch({ name: NAME, schoolYear: '2033/34', projectDays: [DAY], opensAt: '2034-05-15T08:00:00+02:00', closesAt: '2034-05-23T20:00:00+02:00', lateUntil: '2034-05-24T20:00:00+02:00', swapFrom: '2034-05-22T07:00:00+02:00', swapUntil: '2034-05-23T20:00:00+02:00', wishesPerGroup: 3, dailyMinimum: Object.fromEntries(SCHOOL.classes.map((c) => [c.grade, 240])), showTeachers: true, reminderDays: 1 })
+  await patch({ name: NAME, schoolYear: '2033/34', projectDays: [DAY], opensAt: '2034-05-15T08:00:00+02:00', closesAt: '2034-05-23T20:00:00+02:00', lateUntil: '2034-05-24T20:00:00+02:00', swapFrom: '2034-05-22T07:00:00+02:00', swapUntil: '2034-05-23T20:00:00+02:00', wishesPerGroup: 3, dailyMinimum: Object.fromEntries(SCHOOL.classes.map((c) => [c.grade, 200])), showTeachers: true, reminderDays: 1 })
   await must(apiPost(page, `/api/admin/campaigns/${id}/transition`, { to: 'published' }), 'published')
   await must(apiPost(page, `/api/admin/campaigns/${id}/transition`, { to: 'open' }), 'open')
   const missing = await must(apiGet<{ students: { personId: string, displayName: string }[] }>(page, `/api/admin/campaigns/${id}/missing`), 'students')
