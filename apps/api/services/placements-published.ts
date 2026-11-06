@@ -139,10 +139,15 @@ async function placePublished(db: Database, context: WindowContext, id: string, 
       const leaves = overlapping.filter((row) => leavesClass || !classItems.has(row.itemId)).map((row) => row.itemId)
       return [{ move: { personId: student.personId, toItemId: item.id, leaves }, act: 'placed', besideClass: !leavesClass }]
     }
-    // Placed already: the box alone. Out of the class activities it overlaps, or back into those the student is not in.
+    // Placed already: the box alone. Out of the class activities it overlaps, or back into those the student is not in, which leaves
+    // whatever else of theirs those overlap (what the run gave them for the time they were out), this placement excepted.
     const inClass = overlapping.filter((row) => classItems.has(row.itemId)).map((row) => row.itemId)
     if (leavesClass) return inClass.length === 0 ? [] : [{ move: { personId: student.personId, toItemId: null, leaves: inClass }, act: 'takenOut', besideClass: false }]
-    return [...classItems].filter((itemId) => !inClass.includes(itemId)).map((itemId) => ({ move: { personId: student.personId, toItemId: itemId, leaves: [] }, act: 'returned' as const, besideClass: true }))
+    return [...classItems].filter((itemId) => !inClass.includes(itemId)).map((itemId) => ({
+      move: { personId: student.personId, toItemId: itemId, leaves: rowsOverlapping(state, student.personId, state.items.get(itemId) as Item).filter((row) => row.itemId !== item.id && !classItems.has(row.itemId)).map((row) => row.itemId) },
+      act: 'returned' as const,
+      besideClass: true,
+    }))
   })
 }
 

@@ -82,10 +82,26 @@ function itemsOverlap(a: AllocationItem | undefined, b: AllocationItem | undefin
 export function freePlaces(input: AllocationInput, assignments: readonly Assignment[], itemId: string): number {
   const item = input.items.find((i) => i.id === itemId)
   if (!item) return 0
-  const byClass = new Set(input.students.filter((s) => item.rules.fixedClasses.includes(s.className)).map((s) => s.personId))
-  const reserved = input.students.filter((s) => !byClass.has(s.personId) && s.fixedItemIds.includes(itemId)).length
+  const byClass = membersOf(input, item)
   const taken = assignments.filter((a) => a.itemId === itemId && !byClass.has(a.personId)).length
-  return Math.max(0, item.rules.places + reserved - taken)
+  return Math.max(0, placesOf(input, item) - taken)
+}
+
+/** The students of the item's classes: in it by class, never on its places. */
+function membersOf(input: AllocationInput, item: AllocationItem): Set<string> {
+  return new Set(input.students.filter((s) => item.rules.fixedClasses.includes(s.className)).map((s) => s.personId))
+}
+
+/**
+ * The item's places as the run knows them: the frozen rankable ones plus
+ * the seats the direct placements before the run took (where those
+ * exceeded the places, the seats they took). Not the frozen `places`
+ * alone: with every seat placed directly those are zero, and a seat freed
+ * since publication would be nobody's to enter.
+ */
+function placesOf(input: AllocationInput, item: AllocationItem): number {
+  const byClass = membersOf(input, item)
+  return item.rules.places + input.students.filter((s) => !byClass.has(s.personId) && s.fixedItemIds.includes(item.id)).length
 }
 
 /** The items a move into `toItemId` would have to leave: every item the student is in, other than by class, that overlaps it (rule 7: a move is within the time group). */
@@ -119,7 +135,7 @@ function standings(input: AllocationInput, student: AllocationStudent, itemIds: 
  * the frozen input still names it, the replacement for its day may overlap it.
  */
 function offered(input: AllocationInput, student: AllocationStudent, item: AllocationItem | undefined, unavailable: ReadonlySet<string>, held: ReadonlySet<string>): item is AllocationItem {
-  if (item === undefined || unavailable.has(item.id) || !isEligible(student, item.rules)) return false
+  if (item === undefined || unavailable.has(item.id) || !isEligible(student, { ...item.rules, places: placesOf(input, item) })) return false
   const items = new Map(input.items.map((i) => [i.id, i]))
   return !student.fixedItemIds.some((id) => held.has(id) && !unavailable.has(id) && itemsOverlap(item, items.get(id)))
 }

@@ -319,6 +319,16 @@ test('a class activity\'s teachers keep its list of who does not take part, with
   assert.doesNotMatch(told[2]?.body ?? '', /Werkstatt \(Klasse\)/)
   const saraNow = await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)
   assert.deepEqual(saraNow.body.explanation.items.filter((e) => e.itemId === s.items.werkstatt).map((e) => [e.source, e.direct]), [['fixed', true]])
+  // Beside the trip after all: Sara, placed into the Wednesday course meanwhile, is back on the trip for both days, which the course overlaps; it is left and named, the workshop stays beside.
+  assert.equal((await send(s, s.anna, 'PUT', `/api/items/${s.items.mittwoch}/placements/${s.saraPerson}`, {})).status, 200)
+  const beside = await send<PlacementsResponse>(s, s.carla, 'PUT', `/api/items/${s.items.werkstatt}/placements/${s.saraPerson}`, { leavesClass: false })
+  assert.equal(beside.status, 200, JSON.stringify(beside.body))
+  assert.deepEqual([beside.body.placed.map((p) => [p.displayName, p.leavesClass]), beside.body.tell.map((o) => o.title)], [[[SARA.name, false]], ['Mittwochskurs']])
+  const saraBeside = (await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)).body.explanation.items.map((e) => e.itemId)
+  assert.deepEqual([s.items.wien, s.items.werkstatt, s.items.mittwoch].map((itemId) => saraBeside.includes(itemId)), [true, true, false])
+  assert.deepEqual((await owner.query<{ kind: string, reason: string | null }>('select c.kind, c.reason from assignment_change c join allocation_run r on r.id = c.run_id where r.campaign_id = $1 order by c.seq offset 5', [id])).rows.map((c) => [c.kind, c.reason]), [
+    ['place', 'Von einer Lehrkraft der Aktivität direkt eingeteilt'], ['move', 'Zurück in der Klassenaktivität'],
+  ])
 
   const acts = (await readAudit(owner, id)).filter((e) => e.action === 'preassignment.exempted' || e.action === 'preassignment.exemption-lifted').map((e) => [e.action, e.metadata.personId, e.metadata.reason ?? null])
   assert.deepEqual(acts, [

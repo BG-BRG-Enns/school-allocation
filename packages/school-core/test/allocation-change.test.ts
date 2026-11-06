@@ -47,7 +47,10 @@ test('free places count the students in an item other than by class; a swap leav
   const reserved: AllocationInput = { ...INPUT, students: INPUT.students.map((s) => (s.personId === 'lena' ? { ...s, fixedItemIds: ['climbing'] } : s)), items: ITEMS.map((i) => (i.id === 'climbing' ? { ...i, rules: { ...i.rules, places: 0 } } : i)) }
   const placed = ROWS.map((r) => (r.personId === 'lena' && r.itemId === 'climbing' ? row('lena', 'climbing', 'fixed') : r))
   assert.equal(freePlaces(reserved, placed, 'climbing'), 0)
-  assert.equal(freePlaces(reserved, placed.filter((r) => !(r.personId === 'lena' && r.itemId === 'climbing')), 'climbing'), 1, 'taken out again, the seat is free')
+  const freed = placed.filter((r) => !(r.personId === 'lena' && r.itemId === 'climbing'))
+  assert.equal(freePlaces(reserved, freed, 'climbing'), 1, 'taken out again, the seat is free')
+  assert.deepEqual(moveOffers(reserved, freed, 'tim', 'swap').filter((o) => o.itemId === 'climbing').map((o) => [o.free, codes(o.problems)]), [[1, []]], 'and someone may enter it, the frozen places of zero notwithstanding')
+  assert.deepEqual(moveOffers(reserved, placed, 'tim', 'swap').filter((o) => o.itemId === 'climbing').map((o) => codes(o.problems)), [['item_full']])
   assert.equal(freePlaces(reserved, [...placed, row('tim', 'climbing', 'fixed')], 'climbing'), 0, 'a teacher\'s placement after publication takes a seat like one before the run')
   assert.equal(freePlaces(INPUT, [...ROWS.filter((r) => !(r.personId === 'sara' && r.itemId === 'vienna')), row('sara', 'vienna', 'fixed')], 'vienna'), 1, 'a class member brought back is in it by class, not on the spare seat')
   assert.deepEqual(leavesForSwap(INPUT, ROWS, 'sara', 'reading'), ['dance'])
