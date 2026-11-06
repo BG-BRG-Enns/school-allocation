@@ -201,7 +201,8 @@ export async function teacherChange(client: Queryable, context: WindowContext, c
   const student = await campaignStudent(client, locked.campaign, move.personId)
   if (!student) throw new ApplicationError('not_found')
   refuse(checkMove(locked.run.snapshot, locked.rows, move, { unavailable: locked.unavailable, byTeacher: true, besideClass }))
-  const kind: ChangeKind = move.toItemId === null ? 'remove' : move.leaves.length > 0 ? 'move' : 'place'
+  // A placement that supersedes the student's own row in the item (there by a wish, a fallback or a swap) is a placement, not a move.
+  const kind: ChangeKind = move.toItemId === null ? 'remove' : move.leaves.some((itemId) => itemId !== move.toItemId) ? 'move' : 'place'
   const actor = actorOf(caller)
   const words = await schoolWords(client)
   // The row is what the run would have had from a placement before it: a fixed one, which the student cannot swap out of, a class's

@@ -329,6 +329,16 @@ test('a class activity\'s teachers keep its list of who does not take part, with
   assert.deepEqual((await owner.query<{ kind: string, reason: string | null }>('select c.kind, c.reason from assignment_change c join allocation_run r on r.id = c.run_id where r.campaign_id = $1 order by c.seq offset 5', [id])).rows.map((c) => [c.kind, c.reason]), [
     ['place', 'Von einer Lehrkraft der Aktivität direkt eingeteilt'], ['move', 'Zurück in der Klassenaktivität'],
   ])
+  // A student the run gave the lab (Tim, by a fallback, who saved no list): placed by its teacher, the row is the teacher's, fixed, under "Direkt eingeteilt"; a placement, not a move.
+  const given = (await owner.query<{ person_id: string, source: string }>('select a.person_id, a.source from assignment a join allocation_run r on r.id = a.run_id where r.campaign_id = $1 and a.item_id = $2 and a.superseded_by is null and a.source <> \'fixed\'', [id, s.items.labor])).rows
+  assert.deepEqual(given.map((row) => [row.person_id, row.source]), [[s.timPerson, 'fallback']])
+  const converted = await send<PlacementsResponse>(s, s.anna, 'PUT', `/api/items/${s.items.labor}/placements/${s.timPerson}`, {})
+  assert.equal(converted.status, 200, JSON.stringify(converted.body))
+  assert.deepEqual(converted.body.placed.map((p) => [p.displayName, p.leavesClass]), [[TIM.name, true]])
+  const timRows = (await owner.query<{ source: string, superseded: boolean }>('select a.source, a.superseded_by is not null as superseded from assignment a join allocation_run r on r.id = a.run_id where r.campaign_id = $1 and a.item_id = $2 and a.person_id = $3 order by a.superseded_by is null', [id, s.items.labor, s.timPerson])).rows
+  assert.deepEqual(timRows, [{ source: 'fallback', superseded: true }, { source: 'fixed', superseded: false }])
+  assert.deepEqual((await owner.query<{ kind: string, from_item_id: string | null }>('select c.kind, c.from_item_id from assignment_change c join allocation_run r on r.id = c.run_id where r.campaign_id = $1 and c.person_id = $2 order by c.seq desc limit 1', [id, s.timPerson])).rows, [{ kind: 'place', from_item_id: null }])
+  assert.equal((await send(s, s.anna, 'PUT', `/api/items/${s.items.labor}/placements/${s.timPerson}`, {})).status, 200, 'placed already: the box alone, nothing to change')
 
   const acts = (await readAudit(owner, id)).filter((e) => e.action === 'preassignment.exempted' || e.action === 'preassignment.exemption-lifted').map((e) => [e.action, e.metadata.personId, e.metadata.reason ?? null])
   assert.deepEqual(acts, [

@@ -129,6 +129,7 @@ test('a teacher\'s change after publication: out of a class activity, into their
   // What stays: the activity takes place, the student is not in it already, and is in the run.
   assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'reading', leaves: ['dance'] }, { byTeacher: true, unavailable: new Set(['reading']) })), ['not_offered'])
   assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'dance', leaves: [] }, byTeacher)), ['already_placed'])
+  assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: 'dance', leaves: ['dance'] }, byTeacher)), [], 'in it by a wish: the teacher\'s placement supersedes that row with its own')
   assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'nobody', toItemId: 'darts', leaves: [] }, byTeacher)), ['not_offered'])
   assert.deepEqual(codes(checkMove(INPUT, ROWS, { personId: 'tim', toItemId: null, leaves: ['darts'] }, byTeacher)), ['not_placed'])
   // Back on the trip: the class's own activity, which he could never rank, entered by its teacher, leaving what he was given instead.

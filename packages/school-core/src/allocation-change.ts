@@ -185,8 +185,9 @@ export function checkMove(input: AllocationInput, assignments: readonly Assignme
     // else they keep must not overlap.
     const ownClass = (item: AllocationItem | undefined) => item?.rules.fixedClasses.includes(student.className) ?? false
     const beside = (a: Assignment) => options.besideClass === true && (ownClass(target) || (a.source === 'fixed' && ownClass(items.get(a.itemId))))
+    // In it already by a row the move leaves (a wish, a fallback, a swap) is not in it already: the teacher's placement supersedes that row with its own.
     if (target === undefined || unavailable.has(target.id)) problems.push({ code: 'not_offered', itemId: move.toItemId })
-    else if (mine.some((a) => a.itemId === move.toItemId)) problems.push({ code: 'already_placed', itemId: move.toItemId })
+    else if (kept.some((a) => a.itemId === move.toItemId)) problems.push({ code: 'already_placed', itemId: move.toItemId })
     else if (kept.some((a) => !beside(a) && itemsOverlap(target, items.get(a.itemId)))) problems.push({ code: 'overlap', itemId: move.toItemId })
   } else if (move.toItemId !== null) {
     const target = items.get(move.toItemId)
