@@ -70,11 +70,22 @@ function itemsOverlap(a: AllocationItem | undefined, b: AllocationItem | undefin
   return a !== undefined && b !== undefined && a.sessions.some((s) => b.sessions.some((t) => overlaps(s, t)))
 }
 
-/** The free places of an item: its places less the students in it other than by class (D-24: a class activity's places are its spare seats); never below zero, which an organizer's forced placement could otherwise reach. */
+/**
+ * The free places of an item: its places less the students in it other
+ * than by class (D-24: a class activity's places are its spare seats),
+ * whatever row holds them. The frozen `places` are what was rankable, the
+ * item's places less the students placed into it directly before the run;
+ * those count here like anyone placed since, so one of them taken out
+ * frees the seat. Never below zero, which an organizer's forced placement
+ * could otherwise reach.
+ */
 export function freePlaces(input: AllocationInput, assignments: readonly Assignment[], itemId: string): number {
   const item = input.items.find((i) => i.id === itemId)
   if (!item) return 0
-  return Math.max(0, item.rules.places - assignments.filter((a) => a.itemId === itemId && a.source !== 'fixed').length)
+  const byClass = new Set(input.students.filter((s) => item.rules.fixedClasses.includes(s.className)).map((s) => s.personId))
+  const reserved = input.students.filter((s) => !byClass.has(s.personId) && s.fixedItemIds.includes(itemId)).length
+  const taken = assignments.filter((a) => a.itemId === itemId && !byClass.has(a.personId)).length
+  return Math.max(0, item.rules.places + reserved - taken)
 }
 
 /** The items a move into `toItemId` would have to leave: every item the student is in, other than by class, that overlaps it (rule 7: a move is within the time group). */
@@ -189,8 +200,11 @@ export function checkMove(input: AllocationInput, assignments: readonly Assignme
   return problems
 }
 
+/** The source of a row a change adds: the student's own swap, a hand's placement, or fixed by a teacher of the item as a placement before the run would have been. */
+export type ChangedSource = Extract<AssignmentSource, 'swap' | 'manual' | 'fixed'>
+
 /** The rows after a move checkMove accepted: the left ones gone, the target added with its source. */
-export function applyMove(assignments: readonly Assignment[], move: Move, source: Extract<AssignmentSource, 'swap' | 'manual'>): Assignment[] {
+export function applyMove(assignments: readonly Assignment[], move: Move, source: ChangedSource): Assignment[] {
   const kept = assignments.filter((a) => a.personId !== move.personId || !move.leaves.includes(a.itemId))
   return move.toItemId === null ? kept : [...kept, { personId: move.personId, itemId: move.toItemId, source, pass: null, rank: null }]
 }

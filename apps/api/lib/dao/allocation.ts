@@ -154,8 +154,8 @@ export async function supersedeAssignments(client: Queryable, runId: string, per
   return rowCount ?? 0
 }
 
-/** The row a change adds: the student in the item by their own move or by hand. */
-export async function insertChangedAssignment(client: Queryable, runId: string, personId: string, itemId: string, source: 'swap' | 'manual', changeId: string): Promise<void> {
+/** The row a change adds: the student in the item by their own move, by the organizer's or a class teacher's hand, or fixed by a teacher of the item as before the run. */
+export async function insertChangedAssignment(client: Queryable, runId: string, personId: string, itemId: string, source: 'swap' | 'manual' | 'fixed', changeId: string): Promise<void> {
   await client.query('insert into assignment (run_id, person_id, item_id, source, change_id) values ($1, $2, $3, $4, $5)', [runId, personId, itemId, source, changeId])
 }
 

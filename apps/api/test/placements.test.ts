@@ -312,6 +312,13 @@ test('a class activity\'s teachers keep its list of who does not take part, with
   const told = (await owner.query<{ body: string }>('select body from outbox_mail where campaign_id = $1 and kind = \'assignment_changed\' and person_id = $2 order by created_at', [id, s.saraPerson])).rows
   assert.equal(told.length, 3)
   assert.match(told[0]?.body ?? '', /einer Lehrkraft der Aktivität/)
+  // The rows a teacher adds are fixed, as before the run: the trip is Sara's class's again in the first mail, the workshop a direct placement in the last and on her page.
+  const added = (await owner.query<{ source: string }>('select distinct a.source from assignment a join allocation_run r on r.id = a.run_id where r.campaign_id = $1 and a.change_id is not null', [id])).rows
+  assert.deepEqual(added.map((r) => r.source), ['fixed'])
+  assert.match(told[0]?.body ?? '', /Wien \(Klasse\)/)
+  assert.doesNotMatch(told[2]?.body ?? '', /Werkstatt \(Klasse\)/)
+  const saraNow = await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)
+  assert.deepEqual(saraNow.body.explanation.items.filter((e) => e.itemId === s.items.werkstatt).map((e) => [e.source, e.direct]), [['fixed', true]])
 
   const acts = (await readAudit(owner, id)).filter((e) => e.action === 'preassignment.exempted' || e.action === 'preassignment.exemption-lifted').map((e) => [e.action, e.metadata.personId, e.metadata.reason ?? null])
   assert.deepEqual(acts, [

@@ -140,6 +140,7 @@ export type SolverStatusResponse = Static<typeof SolverStatusResponse>
 export const ExplainedItemSchema = StrictObject({
   itemId: Type.String(),
   source: Literals(ASSIGNMENT_SOURCES),
+  direct: Type.Boolean(),
   rank: Type.Union([Type.Integer(), Type.Null()]),
   minutesByDate: Type.Record(Type.String(), Type.Integer()),
 })

@@ -246,6 +246,7 @@ export {
   freePlaces,
   leavesForSwap,
   moveOffers,
+  type ChangedSource,
   type Move,
   type MoveOffer,
   type MoveOptions,

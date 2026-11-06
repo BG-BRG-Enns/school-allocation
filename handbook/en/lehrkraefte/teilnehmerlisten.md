@@ -8,7 +8,7 @@ Each person's entry shows their class and how they joined the activity: their ch
 
 ## Placing after publication
 
-Now too, under **Placed directly**, you place students into your activity and remove them again, and for a class activity you enter under **Not taking part** who does not come along after all, and reclaim whoever is placed elsewhere ([Submitting an activity](./aktivitaet#placing-students-directly)). Each of these changes the published allocation: the student leaves whatever overlaps the activity, including what the allocation gave them, receives an e-mail with their new programme, and the page tells you whom to tell. Nobody gives a reason; the organisation's list of changes says what it was.
+Now too, under **Placed directly**, you place students into your activity and remove them again, and for a class activity you enter under **Not taking part** who does not come along after all, and reclaim whoever is placed elsewhere ([Submitting an activity](./aktivitaet#placing-students-directly)). Each of these changes the published allocation: the student leaves whatever overlaps the activity, including what the allocation gave them, receives an e-mail with their new programme, and the page tells you whom to tell. Nobody gives a reason; the organisation's list of changes says what it was. What you place this way holds like a placement before the allocation: the student cannot leave it on their own in the swap window, and the participant list below is up to date at once.
 
 ## If an activity is cancelled
 
