@@ -113,6 +113,8 @@ function placesText(item: Item): string {
 
 /** Who may choose it: the grades, the classes, or everyone. */
 function whoText(item: Item): string {
+  // An activity of its teachers alone is offered to nobody.
+  if (isStaffOnly(item)) return '–'
   const parts: string[] = []
   if (item.eligibleGrades.length > 0) parts.push(t.catalogue.grades(item.eligibleGrades))
   if (item.eligibleClasses.length > 0) parts.push(item.eligibleClasses.join(', '))

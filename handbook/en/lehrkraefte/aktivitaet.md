@@ -70,7 +70,7 @@ Below the sessions the form says, as you fill it in, where the activity's places
 
 ![The activities table with the filter Only mine: under the day it starts on, one's own activity, submitted and marked "teachers only"](/bilder/en/aktivitaeten-nach-tag.png)
 
-After saving you are back on the registration's page, and the **Activities** table shows the saved activity marked. The table lists the activities under the day they start on, and there by their start: so you see what a day has already. **Only mine** shows the activities you created or are a teacher of; **Order** sorts by number or by submission instead.
+After saving you are back on the registration's page, and the **Activities** table shows the saved activity marked. The table lists the activities under the day they start on, and there by their start: so you see what is already on offer that day. **Only mine** shows the activities you created or are a teacher of; **Order** sorts by number or by submission instead.
 
 In the **Activities** table, a draft has the **Edit**, **Submit** and **Delete** buttons. You can take a submitted activity **Back to draft** while activities are being collected. If something is wrong, the form says what, such as “A session is outside the project days” or “The minimum is greater than the number of places”.
 
