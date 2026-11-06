@@ -70,8 +70,9 @@ async function viewOf(client: Queryable, campaign: Campaign, item: Item, caller:
   const reads = mayPlaceInto(caller, item) || takeOut.length > 0 || caller.roles.includes('read_only_auditor')
   if (!reads) throw new ApplicationError('forbidden')
   const students = new Map((await campaignStudents(client, campaign)).map((s) => [s.personId, s]))
-  const rows = await store.listPlacements(client, campaign.id)
   const items = new Map((await liveItems(client, campaign.id)).map((i) => [i.id, i]))
+  // A direct row of a student whose class the activity takes as a whole is their class placement, not a direct one.
+  const rows = (await store.listPlacements(client, campaign.id)).filter((row) => !(row.source === 'direct' && items.get(row.itemId)?.fixedClasses.includes(students.get(row.personId)?.className ?? '')))
   const classActivities = [...items.values()].filter((other) => other.fixedClasses.length > 0)
   const placed = rows
     .filter((row) => row.itemId === item.id && row.source === 'direct' && students.has(row.personId))
@@ -112,7 +113,7 @@ export async function takenFrom(db: Queryable, campaign: Campaign, shape: { fixe
   for (const row of await store.listPlacements(db, campaign.id)) {
     const student = students.get(row.personId)
     const other = items.get(row.itemId)
-    if (row.source !== 'direct' || !row.leavesClass || !student || !other || !shape.fixedClasses.includes(student.className)) continue
+    if (row.source !== 'direct' || !row.leavesClass || !student || !other || !shape.fixedClasses.includes(student.className) || other.fixedClasses.includes(student.className)) continue
     if (!spansOf(other).some((x) => shape.sessions.some((y) => overlaps(x, y)))) continue
     taken.set(student.personId, [...(taken.get(student.personId) ?? []), otherOf(other)])
   }

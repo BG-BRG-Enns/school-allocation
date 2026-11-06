@@ -108,9 +108,9 @@ export async function searchCampaignStudents(db: Queryable, campaign: Pick<Campa
        from roster_entry e
        join campaign_class cc on cc.campaign_id = $1 and cc.class_name = e.class_name
       where e.batch_id = ${campaignRosterBatch(campaign)} and e.kind = 'student' and e.person_id is not null and e.grade is not null
-        and (e.display_name ilike $2 or e.class_name ilike $3)
+        and (e.display_name ilike $2 or e.class_name ilike $2)
       order by e.class_name, e.display_name limit 30`,
-    [campaign.id, pattern, q],
+    [campaign.id, pattern],
   )
   return rows.map((row) => ({ personId: row.person_id, displayName: row.display_name, className: row.class_name }))
 }

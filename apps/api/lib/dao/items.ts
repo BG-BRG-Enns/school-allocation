@@ -53,7 +53,11 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
             u.display_name as proposer_name,
             (select b.person_id from identity_binding b where b.tid = u.tid and b.oid = u.oid and b.unbound_at is null) as proposer_person,
             i.created_at, i.updated_at, i.approved_at, i.first_proposed_at, i.withdrawn_at, i.withdraw_reason, i.companions_wanted,
-            (select count(*)::integer from pre_assignment p where p.item_id = i.id and p.source = 'direct') as directly_placed,
+            (select count(*)::integer from pre_assignment p
+               join roster_entry e on e.batch_id = coalesce((select c.roster_batch_id from campaign c where c.id = i.campaign_id), ${CURRENT_BATCH_ID})
+                    and e.kind = 'student' and e.person_id = p.person_id and e.grade is not null
+               join campaign_class cc on cc.campaign_id = i.campaign_id and cc.class_name = e.class_name
+              where p.item_id = i.id and p.source = 'direct' and not (e.class_name = any(i.fixed_classes))) as directly_placed,
             coalesce((select json_agg(json_build_object('personId', t.person_id, 'displayName', coalesce(e.display_name, '?'), 'lead', t.lead) order by t.position)
                         from item_teacher t
                         left join roster_entry e on e.person_id = t.person_id

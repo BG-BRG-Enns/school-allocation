@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { OfferedItem } from '@school-allocation/school-core'
 import type { PlacementRecord } from '../lib/dao/pre-assignments.ts'
-import { directlyPlaced, placementsByPerson, withPlacements } from '../lib/placements.ts'
+import { asPlacementRows, directlyPlaced, placementsByPerson, withPlacements } from '../lib/placements.ts'
 
 const HOUR = 60 * 60 * 1000
 const item = (places: number, from: number, to: number, fixedClasses: string[] = []): OfferedItem => ({ fixedClasses, eligibleGrades: [], eligibleClasses: [], places, sessions: [{ startMs: from * HOUR, endMs: to * HOUR }] })
@@ -54,4 +54,15 @@ test('rows of people who are not the campaign\'s students, and of activities tha
   assert.deepEqual([...directlyPlaced([row('trip', 'sara', 'direct'), row('trip', 'mia', 'direct')], classOf, fixedClassesOf)], [['trip', 1]])
   assert.equal(withPlacements(new Map([['trip', item(5, 8, 18, ['5A'])]]), [row('trip', 'sara', 'direct'), row('trip', 'mia', 'direct')], classOf).get('trip')?.places, 4)
   assert.deepEqual([...placementsByPerson(rows)].map(([personId, own]) => [personId, own.length]), [['gone', 2], ['sara', 1], ['tim', 1]])
+})
+
+test('a direct row of a student whose class the activity takes as a whole is their class placement, for every reader', () => {
+  const fixedClassesOf = new Map([...items].map(([id, item]) => [id, item.fixedClasses]))
+  // Sara, of 5A, was placed into the trip before it became 5A's: in it with her class; the row leaves nothing and is beside nothing.
+  assert.deepEqual(asPlacementRows([row('trip', 'sara', 'direct', { leavesClass: false }), row('workshop', 'sara', 'direct')], '5A', fixedClassesOf), [
+    { itemId: 'trip', source: 'class', exempted: false, leavesClass: true },
+    { itemId: 'workshop', source: 'direct', exempted: false, leavesClass: true },
+  ])
+  // Mia, of 6A, placed into the trip directly: a direct placement like any other.
+  assert.deepEqual(asPlacementRows([row('trip', 'mia', 'direct')], '6A', fixedClassesOf), [{ itemId: 'trip', source: 'direct', exempted: false, leavesClass: true }])
 })

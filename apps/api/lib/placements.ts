@@ -8,6 +8,20 @@
 import { effectivePlacements, rankablePlaces, type AwayOf, type OfferedItem, type PlacedOf, type PlacementRow } from '@school-allocation/school-core'
 import type { PlacementRecord } from './dao/pre-assignments.ts'
 
+/**
+ * A student's rows as every reader takes them: a direct row of an activity
+ * that takes the student's class as a whole is a class placement (the row
+ * stayed when the class was added, in the class placement's place), and
+ * takes no place, leaves nothing and is beside nothing. The one projection
+ * the choice, the run, the demand and the pages read.
+ */
+export function asPlacementRows(rows: readonly PlacementRecord[], className: string, fixedClassesOf: ReadonlyMap<string, readonly string[]>): PlacementRow[] {
+  return rows.map((row) => {
+    const byClass = row.source === 'class' || (fixedClassesOf.get(row.itemId) ?? []).includes(className)
+    return { itemId: row.itemId, source: byClass ? 'class' : 'direct', exempted: byClass && row.exempted, leavesClass: byClass ? true : row.leavesClass }
+  })
+}
+
 /** The rows of each student, by person id. */
 export function placementsByPerson(rows: readonly PlacementRecord[]): Map<string, PlacementRecord[]> {
   const byPerson = new Map<string, PlacementRecord[]>()
@@ -48,15 +62,17 @@ export function directlyPlaced(rows: readonly PlacementRecord[], classOf: Readon
  */
 export function withPlacements(items: ReadonlyMap<string, OfferedItem>, rows: readonly PlacementRecord[], classOf: ReadonlyMap<string, string>): Map<string, OfferedItem> {
   const spans = new Map([...items].map(([id, item]) => [id, { id, sessions: item.sessions }]))
+  const fixedClassesOf = new Map([...items].map(([id, item]) => [id, item.fixedClasses]))
   const byPerson = placementsByPerson(rows.filter((row) => items.has(row.itemId) && classOf.has(row.personId)))
   const placed = new Map<string, PlacedOf[]>()
   const away = new Map<string, AwayOf[]>()
   // Every student with a row, in a stable order: the others are in their class activities and nowhere else.
   for (const [personId, own] of [...byPerson].sort(([a], [b]) => a.localeCompare(b, 'en'))) {
     const className = classOf.get(personId) as string
-    const exempted = new Set(own.filter((row) => row.source === 'class' && row.exempted).map((row) => row.itemId))
+    const normalized = asPlacementRows(own, className, fixedClassesOf)
+    const exempted = new Set(normalized.filter((row) => row.source === 'class' && row.exempted).map((row) => row.itemId))
     const byClass: PlacementRow[] = [...items].filter(([, item]) => item.fixedClasses.includes(className)).map(([itemId]) => ({ itemId, source: 'class', exempted: exempted.has(itemId), leavesClass: true }))
-    const direct: PlacementRow[] = own.filter((row) => row.source === 'direct' && !items.get(row.itemId)?.fixedClasses.includes(className)).map((row) => ({ itemId: row.itemId, source: 'direct', exempted: false, leavesClass: row.leavesClass }))
+    const direct: PlacementRow[] = normalized.filter((row) => row.source === 'direct')
     const held = effectivePlacements([...byClass, ...direct], spans)
     for (const row of direct) placed.set(row.itemId, [...(placed.get(row.itemId) ?? []), { className, personId, beside: held.besideClassItemIds.includes(row.itemId) }])
     for (const left of held.left) away.set(left.itemId, [...(away.get(left.itemId) ?? []), { className, personId }])

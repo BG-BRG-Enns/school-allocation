@@ -18,7 +18,7 @@ import { lockedCampaign, readCampaign, updateState } from '../lib/dao/campaigns.
 import { listCategories } from '../lib/dao/categories.ts'
 import { campaignStudents, listChoices } from '../lib/dao/choices.ts'
 import { listPlacements } from '../lib/dao/pre-assignments.ts'
-import { directlyPlaced, placementsByPerson } from '../lib/placements.ts'
+import { asPlacementRows, directlyPlaced, placementsByPerson } from '../lib/placements.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import { runJob } from '../lib/jobs.ts'
@@ -53,7 +53,8 @@ export async function snapshotOf(client: Queryable, campaign: Campaign, seed: nu
   const spans = new Map(items.map((item) => [item.id, { id: item.id, sessions: item.sessions.map((s) => ({ startMs: instantOf(s.startsAt) ?? 0, endMs: instantOf(s.endsAt) ?? 0 })) }]))
   const rows = await listPlacements(client, campaign.id)
   const byPerson = placementsByPerson(rows)
-  const placed = directlyPlaced(rows, new Map(students.map((s) => [s.personId, s.className])), new Map(items.map((item) => [item.id, item.fixedClasses])))
+  const fixedClassesOf = new Map(items.map((item) => [item.id, item.fixedClasses]))
+  const placed = directlyPlaced(rows, new Map(students.map((s) => [s.personId, s.className])), fixedClassesOf)
   return {
     projectDays: campaign.projectDays,
     dailyMinimum: campaign.dailyMinimum,
@@ -62,7 +63,7 @@ export async function snapshotOf(client: Queryable, campaign: Campaign, seed: nu
     limits: { deterministicTimePerLevel },
     students: students.map((s) => {
       const choice = saved.get(s.personId)
-      const held = effectivePlacements(byPerson.get(s.personId) ?? [], spans)
+      const held = effectivePlacements(asPlacementRows(byPerson.get(s.personId) ?? [], s.className, fixedClassesOf), spans)
       // Left out when there is none, so the input of a registration without such placements reads as it always did.
       const beside = held.besideClassItemIds.length > 0 ? { besideClassItemIds: held.besideClassItemIds } : {}
       return { personId: s.personId, className: s.className, grade: s.grade, fixedItemIds: held.itemIds, ...beside, ranking: choice?.ranking ?? null, savedIn: choice?.savedIn ?? null }

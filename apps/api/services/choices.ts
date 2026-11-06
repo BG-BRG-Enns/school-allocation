@@ -13,6 +13,7 @@ import { appendAudit, lockScope } from '../lib/audit.ts'
 import * as store from '../lib/dao/choices.ts'
 import { campaignStudent, campaignStudents } from '../lib/dao/choices.ts'
 import { directCounts, listPlacements } from '../lib/dao/pre-assignments.ts'
+import { asPlacementRows } from '../lib/placements.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError, ChoiceInvalid } from '../lib/errors.ts'
 import { mailStatesByPerson } from '../lib/mail/outbox.ts'
@@ -38,7 +39,7 @@ export async function choiceView(db: Queryable, campaign: Campaign, student: Cam
   const items = await catalogueItems(db, campaign.id)
   // What holds of the student's placements among the approved activities: by class, unless taken out of it by hand or by a
   // direct placement that overlaps it; and the direct ones (school-core placements.ts).
-  const rows = await listPlacements(db, campaign.id, student.personId)
+  const rows = asPlacementRows(await listPlacements(db, campaign.id, student.personId), student.className, new Map(items.map((item) => [item.id, item.fixedClasses])))
   const held = effectivePlacements(rows, new Map(items.map((item) => [item.id, { id: item.id, sessions: spansOf(item) }])))
   const fixedIds = new Set(held.itemIds)
   const fixed = items.filter((item) => fixedIds.has(item.id))
