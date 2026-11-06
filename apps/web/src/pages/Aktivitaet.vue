@@ -43,7 +43,11 @@ const description = ref('')
 const location = ref('')
 const feeEuro = ref('')
 const feeNote = ref('')
-const places = ref(20)
+/** The places a new activity starts with, and the extra places a class activity starts with. */
+const DEFAULT_PLACES = 20
+const places = ref(DEFAULT_PLACES)
+/** Whether the places are the teacher's own number: typed, or stored with the activity. Until then they follow the kind of activity. */
+const placesTouched = ref(false)
 const minParticipants = ref(0)
 const cancellableBelowMin = ref(true)
 const fixedClasses = ref<string[]>([])
@@ -87,6 +91,12 @@ const sessions = ref<SessionForm[]>([])
 
 const grades = computed(() => [...new Set(classes.value.map((c) => c.grade))].sort((a, b) => a - b))
 const isFixed = computed(() => fixedClasses.value.length > 0)
+/** No places and no classes: an activity of its teachers alone, which nobody ranks and the offer gate does not judge. */
+const staffOnly = computed(() => !isFixed.value && Number(places.value) === 0)
+// A class activity starts without extra places, an activity to choose with the default, until the teacher types a number.
+watch(isFixed, (fixed) => {
+  if (!placesTouched.value) places.value = fixed ? 0 : DEFAULT_PLACES
+})
 const lastPeriod = computed(() => grid.value.at(-1)?.period ?? 0)
 
 /** The campaign, the roster's classes, the grid and, when editing, the item; again when the route names another. */
@@ -113,6 +123,7 @@ async function load(): Promise<void> {
       feeEuro.value = item.feeCents === 0 ? '' : (item.feeCents / 100).toFixed(2).replace('.', ',')
       feeNote.value = item.feeNote
       places.value = item.places
+      placesTouched.value = true
       minParticipants.value = item.minParticipants
       cancellableBelowMin.value = item.cancellableBelowMin
       fixedClasses.value = [...item.fixedClasses]
@@ -124,6 +135,8 @@ async function load(): Promise<void> {
       sessions.value = item.sessions.map(fromStored)
     } else {
       existing.value = null
+      places.value = DEFAULT_PLACES
+      placesTouched.value = false
       categoryIds.value = []
       companionsWanted.value = 0
       const me = session.value
@@ -182,7 +195,7 @@ watch([places, fixedClasses, eligibleGrades, eligibleClasses, sessions, existing
 /** The hints from the check: what the activity brings, whether the gate would refuse a teacher's submission, the conflicts. */
 const gateHints = computed<{ text: string, alert: boolean }[]>(() => {
   const c = check.value
-  if (!c || isFixed.value) return []
+  if (!c || isFixed.value || staffOnly.value) return []
   const lines: { text: string, alert: boolean }[] = []
   if (c.served.length === 0 && sessions.value.length > 0) lines.push({ text: t.item.gate.servesNothing, alert: false })
   else {
@@ -373,8 +386,8 @@ function input(): ItemInput {
     feeCents: euro === '' ? 0 : Math.round(Number(euro) * 100),
     feeNote: feeNote.value.trim(),
     places: Number(places.value),
-    minParticipants: isFixed.value ? 0 : Number(minParticipants.value),
-    cancellableBelowMin: isFixed.value ? false : cancellableBelowMin.value,
+    minParticipants: isFixed.value || staffOnly.value ? 0 : Number(minParticipants.value),
+    cancellableBelowMin: isFixed.value || staffOnly.value ? false : cancellableBelowMin.value,
     fixedClasses: fixedClasses.value,
     eligibleGrades: eligibleGrades.value,
     eligibleClasses: eligibleClasses.value,
@@ -423,7 +436,8 @@ async function save(propose: boolean): Promise<void> {
       throw err
     }
   })
-  if (ok) await router.push(`/wahlen/${props.id}`)
+  // Back to the list, which marks the row and scrolls to it.
+  if (ok) await router.push({ path: `/wahlen/${props.id}`, query: existing.value ? { item: existing.value.id } : {} })
 }
 </script>
 
@@ -594,7 +608,7 @@ async function save(propose: boolean): Promise<void> {
       :key="index"
       class="session"
     >
-      <h3>{{ t.item.sessions.session(index + 1) }}</h3>
+      <h3>{{ sessions.length === 1 ? t.item.sessions.single : t.item.sessions.session(index + 1) }}</h3>
       <p class="field">
         <label :for="`s-${index}-mode`">{{ t.item.sessions.mode }}</label>
         <select
@@ -819,9 +833,16 @@ async function save(propose: boolean): Promise<void> {
         min="0"
         max="1000"
         required
+        @input="placesTouched = true"
       >
     </p>
-    <template v-if="!isFixed">
+    <p
+      v-if="staffOnly"
+      class="notice"
+    >
+      {{ t.item.participation.staffOnly }}
+    </p>
+    <template v-if="!isFixed && !staffOnly">
       <p class="field">
         <label for="min">{{ t.item.participation.minParticipants }}</label>
         <input

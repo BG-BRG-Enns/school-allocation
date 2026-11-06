@@ -13,6 +13,7 @@ const de = {
   climbing: 'Klettern',
   /** The activity the lock refuses: Monday morning for the upper school, whose target is reached. */
   yoga: 'Yoga für die Oberstufe',
+  supervision: 'Aufsicht Bibliothek',
   climbingDescription: 'Kletterhalle, Ausrüstung wird gestellt.',
   /** The fee as a person types it, with the language's decimal mark. */
   climbingFee: '15,00',
@@ -43,6 +44,7 @@ const en: typeof de = {
   sportsWeek: 'Sports Week 2034',
   climbing: 'Climbing',
   yoga: 'Yoga for the upper school',
+  supervision: 'Library supervision',
   climbingDescription: 'Climbing centre, equipment provided.',
   climbingFee: '15.00',
   climbingFeeNote: 'Entry and hire shoes',

@@ -593,6 +593,7 @@ export const de = {
     onlyIncomplete: 'Nur ohne vollständige Wünsche',
     onlyRestricted: 'Nur eingeschränkt verfügbare',
     onlyCompanionsMissing: 'Nur mit gesuchter Begleitung',
+    onlyMine: 'Nur meine',
     reset: 'Filter zurücksetzen',
     onlyCancelled: 'Nur abgesagte',
     classOrName: 'Klasse oder Name',
@@ -765,10 +766,18 @@ export const de = {
       viewCatalogue: 'Katalog ansehen',
       none: 'Noch keine Aktivitäten.',
       firstProposedAt: 'Eingereicht am',
-      /** The order of the table: as the catalogue numbers them, or by the first submission. */
+      /** The order of the table: under the day an activity starts on, as the catalogue numbers them, or by the first submission. */
       order: 'Reihenfolge',
+      orderDay: 'Tag und Beginn',
       orderNumber: 'Nummer und Anlage',
       orderProposed: 'Eingereicht am',
+      /** The header of a day's activities: "Mo., 21.06.2027 · 12 Aktivitäten". */
+      dayGroup: (day: string, count: number) => `${day} · ${count} ${byCount(count, 'Aktivität', 'Aktivitäten')}`,
+      dayNone: (count: number) => `Ohne Termin · ${count} ${byCount(count, 'Aktivität', 'Aktivitäten')}`,
+      /** The activity just saved does not pass the filter. */
+      savedHidden: 'Die gespeicherte Aktivität ist durch den Filter ausgeblendet.',
+      /** An activity without places and without classes: its teachers alone. */
+      staffOnly: 'nur Lehrkräfte',
       grades: 'Schulstufen',
       allGrades: 'alle',
       /** Where a submitted activity's places go, the cells still short of the target: "5. Schulstufe, 4.–5. EH". */
@@ -807,6 +816,10 @@ export const de = {
     organizersOnly: 'Diese Seite ist für die Organisation.',
     link: 'Eingereichte durchgehen',
     back: 'Zurück zum Überblick',
+    /** The order of the queue: by the first submission, or under the day an activity starts on. */
+    order: 'Reihenfolge',
+    orderProposed: 'Eingereicht am',
+    orderDay: 'Tag und Beginn',
     /** "3 von 12" */
     position: (n: number, total: number) => `${n} von ${total}`,
     none: 'Keine eingereichte Aktivität wartet.',
@@ -867,7 +880,9 @@ export const de = {
       complete: 'Begleitung vollständig',
     },
     sessions: {
-      intro: 'Ein Termin liegt in den Einheiten der Schule oder, etwa bei einem Ausflug, nach der Uhrzeit. Angerechnet werden die Minuten, die du je Projekttag angibst; Anreise und Pausen zählen nicht.',
+      intro: 'Eine Aktivität hat meist einen Termin: einen zusammenhängenden Zeitraum, auch über mehrere Tage, etwa ein Ausflug von Dienstag 8:00 bis Mittwoch 13:00. Er liegt in den Einheiten der Schule oder nach der Uhrzeit. Einen weiteren Termin gibt es nur, wenn die Aktivität unterbrochen ist, etwa je zwei Einheiten am Montag und am Mittwoch: Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler*innen statt, ist das eine eigene Aktivität. Angerechnet werden die Minuten, die du je Projekttag angibst; Anreise und Pausen zählen nicht.',
+      /** The heading of the only session. */
+      single: 'Termin',
       session: (number: number) => `Termin ${number}`,
       /** Whether the session is placed in the period grid or by the clock. */
       mode: 'Angabe in',
@@ -882,7 +897,7 @@ export const de = {
       endsOn: 'Ende am',
       minutesOn: (day: string) => `Minuten am ${day}`,
       remove: 'Termin entfernen',
-      add: 'Termin hinzufügen',
+      add: 'Weiterer Termin (nur bei Unterbrechung)',
     },
     participation: {
       heading: 'Teilnahme',
@@ -891,6 +906,8 @@ export const de = {
       extraPlaces: 'Zusätzliche Plätze für andere Schüler*innen',
       minParticipants: 'Mindestzahl',
       cancellable: 'Fällt aus, wenn zu wenige kommen',
+      /** No places and no classes: nobody ranks it and nobody is placed into it. */
+      staffOnly: 'Ohne Plätze und ohne ganze Klassen ist die Aktivität nur für Lehrkräfte: Schüler*innen sehen sie nicht im Katalog, und niemand kann sie wählen.',
       eligibleGrades: 'Angeboten für Schulstufen (keine Auswahl: alle)',
       eligibleClasses: 'Angeboten für Klassen (keine Auswahl: alle)',
     },

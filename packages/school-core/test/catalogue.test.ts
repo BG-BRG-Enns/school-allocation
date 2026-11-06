@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { acceptsProposals, checkItem, creditedMinutesByDate, isEligible, isPreAssigned, ITEM_STATES, itemTransition, overlaps, type ItemInput, type ItemRules, type SessionInput } from '../src/catalogue.ts'
+import { acceptsProposals, checkItem, creditedMinutesByDate, isEligible, isPreAssigned, isStaffOnly, ITEM_STATES, itemTransition, overlaps, type ItemInput, type ItemRules, type SessionInput } from '../src/catalogue.ts'
 
 const DAY = 24 * 60 * 60 * 1000
 // Monday 2027-06-21 08:00 Europe/Vienna = 06:00Z; the dates are what the API computes for the span.
@@ -20,6 +20,18 @@ test('an activity with a session on a project day, credit on it, places and a te
   assert.deepEqual(checkItem(item, context), [])
   const trip: ItemInput = { sessions: [vienna], rules: { ...choosable, fixedClasses: ['5A', '5B'], places: 8, minParticipants: 0, cancellableBelowMin: false }, teachers: ['t1', 't2'] }
   assert.deepEqual(checkItem(trip, context), [])
+})
+
+test('an activity without places and without classes is its teachers\' alone: it passes the rules, and nobody may rank it', () => {
+  const duty: ItemRules = { ...choosable, places: 0, minParticipants: 0, cancellableBelowMin: false }
+  assert.deepEqual(checkItem({ ...item, rules: duty }, context), [])
+  assert.equal(isStaffOnly(duty), true)
+  assert.equal(isEligible({ className: '6A', grade: 10 }, duty), false)
+  // Places, or a class placed into it, make it an activity for students.
+  assert.equal(isStaffOnly(choosable), false)
+  assert.equal(isStaffOnly({ ...duty, fixedClasses: ['5A'] }), false)
+  // A minimum above no places is refused like any minimum above the places.
+  assert.deepEqual(checkItem({ ...item, rules: { ...duty, minParticipants: 3 } }, context).map((p) => p.code), ['min_above_places'])
 })
 
 test('sessions must lie on project days, not overlap each other, and credit only the dates they touch', () => {

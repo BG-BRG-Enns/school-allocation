@@ -1,3 +1,4 @@
+import { isStaffOnly } from '@school-allocation/school-core'
 import type { Caller } from '../lib/actor.ts'
 import { campaignCounts, readCampaign, rosterClasses, rosterTeachers } from '../lib/dao/campaigns.ts'
 import { listCategories } from '../lib/dao/categories.ts'
@@ -81,7 +82,8 @@ export async function catalogueView(db: Database, campaign: Campaign, caller: Ca
   if (campaign.state === 'draft' || campaign.state === 'catalogue') {
     if (!isOrganizer(caller) && !isTeacher(caller)) throw new ApplicationError('not_found')
   }
-  const items = await catalogueItems(db, campaign.id)
+  // What students choose from and the school prints: an activity of its teachers alone (no places, no class) is not in it.
+  const items = (await catalogueItems(db, campaign.id)).filter((item) => !isStaffOnly(item))
   return { campaign, items: campaign.showTeachers || mayPropose(caller) ? items : items.map(withoutTeachers) }
 }
 

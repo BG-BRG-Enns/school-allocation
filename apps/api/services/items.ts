@@ -8,7 +8,7 @@
 import { requireFound } from '../lib/errors.ts'
 
 import type { ItemCheckBody, ItemCheckResponse, ClassConflictView } from '@school-allocation/api-contracts/catalogue'
-import { acceptsProposals, addedCells, checkItem, classConflicts, demandByDay, gateCells, gateRefused, itemTransition, servedCells, type CampaignState, type ClassActivity, type GateCell, type ItemState, type OfferedItem } from '@school-allocation/school-core'
+import { acceptsProposals, addedCells, checkItem, classConflicts, demandByDay, gateCells, gateRefused, isStaffOnly, itemTransition, servedCells, type CampaignState, type ClassActivity, type GateCell, type ItemState, type OfferedItem } from '@school-allocation/school-core'
 import { actorOf, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { lockedCampaign, readCampaign } from '../lib/dao/campaigns.ts'
@@ -198,7 +198,8 @@ export async function proposeItem(db: Database, id: string, caller: Caller): Pro
     if (!acceptsProposals(campaign.state)) throw new ApplicationError('campaign_state')
     const shape = shapeOf(current)
     if (current.fixedClasses.length > 0) await refuseClassConflicts(client, campaign.id, { id, ...shape })
-    else if (campaign.lockNewOffers && !isOrganizer(caller)) {
+    // The gate judges what an activity offers: one of its teachers alone (no places) offers nothing and is never refused.
+    else if (campaign.lockNewOffers && !isOrganizer(caller) && !isStaffOnly(shape)) {
       const { cells, refused } = await gateFor(client, campaign, id, shape, await readProposedShape(client, id))
       if (refused) throw new TargetReached(cells)
     }
@@ -390,12 +391,17 @@ export async function checkItemOffer(db: Database, campaign: Campaign, body: Ite
   }
 }
 
-/** The items of a campaign the caller may see: organizers all of them; teachers their own and the approved ones; everyone else the approved ones once the catalogue is published. */
+/**
+ * The items of a campaign the caller may see: organizers all of them; teachers their own and the approved ones;
+ * everyone else the approved ones once the catalogue is published, without the activities of their teachers alone
+ * (no places, no class), which are nothing a student chooses from.
+ */
 export async function listItems(db: Queryable, campaign: { id: string, state: CampaignState }, caller: Caller, organizer: boolean): Promise<Item[]> {
   const items = await store.listCampaignItems(db, campaign.id)
   if (organizer) return items
   const published = campaign.state !== 'draft' && campaign.state !== 'catalogue'
-  return items.filter((item) => isOwn(caller, item) || (item.state === 'approved' && (published || caller.person?.kind === 'teacher')))
+  const teacher = caller.person?.kind === 'teacher'
+  return items.filter((item) => isOwn(caller, item) || (item.state === 'approved' && (teacher || (published && !isStaffOnly(item)))))
 }
 
 /** The published catalogue: the approved items, numbered, in print order. */

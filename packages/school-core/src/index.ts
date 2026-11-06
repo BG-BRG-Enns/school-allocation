@@ -87,6 +87,7 @@ export {
   acceptsProposals,
   checkItem,
   creditedMinutesByDate,
+  isStaffOnly,
   isEligible,
   isItemState,
   isPreAssigned,

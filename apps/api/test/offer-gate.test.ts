@@ -178,3 +178,44 @@ test('a class is in one class activity at a time: refused at the submission with
   const morning = await send<Item>(s, s.bernd, 'POST', url, { title: 'Morgenwanderung', places: 0, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [s.berndPerson], sessions: [session(TUESDAY, '09:00', '12:00', 150)] })
   assert.equal((await send(s, s.bernd, 'POST', `/api/items/${morning.body.id}/propose`)).status, 200, 'a withdrawn activity holds no class')
 })
+
+test('an activity of its teachers alone (no places, no class) is never gated and serves no cell; it takes companions, counts for its lead, and is nothing a student sees', DB, async (t) => {
+  const s = await school(t)
+  const id = s.campaign.id
+  const url = `/api/campaigns/${id}/items`
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp(s.campaign), lockNewOffers: true })).status, 200)
+  // Bernd's climbing fills the 3rd to the 6th period for grade 9; a further course there is refused to Carla.
+  const climbing = await send<Item>(s, s.bernd, 'POST', url, { title: 'Klettern', places: 12, teachers: [s.berndPerson], sessions: [session(MONDAY, '09:25', '13:10', 210)] })
+  assert.equal((await send(s, s.bernd, 'POST', `/api/items/${climbing.body.id}/propose`)).status, 200)
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${climbing.body.id}/approve`)).status, 200)
+  const yoga = await send<Item>(s, s.carla, 'POST', url, { title: 'Yoga', places: 5, teachers: [s.carlaPerson], sessions: [session(MONDAY, '09:25', '11:20', 100)] })
+  assert.equal((await send<{ error: string }>(s, s.carla, 'POST', `/api/items/${yoga.body.id}/propose`)).body.error, 'target_reached')
+
+  // Her supervision in the same periods has no places: it serves no cell, the check refuses nothing, and the submission goes through.
+  const duty = await send<Item>(s, s.carla, 'POST', url, { title: 'Aufsicht Bibliothek', places: 0, teachers: [s.carlaPerson], companionsWanted: 1, sessions: [session(MONDAY, '09:25', '11:20', 100)] })
+  assert.equal(duty.status, 201, JSON.stringify(duty.body))
+  const check = await send<Check>(s, s.carla, 'POST', `/api/campaigns/${id}/items/check`, { itemId: duty.body.id })
+  assert.deepEqual([check.body.locked, check.body.refused, check.body.served, check.body.cells], [true, false, [], []])
+  const proposed = await send<Item>(s, s.carla, 'POST', `/api/items/${duty.body.id}/propose`)
+  assert.equal(proposed.status, 200, JSON.stringify(proposed.body))
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${duty.body.id}/approve`)).status, 200)
+  // A minimum makes no sense without places.
+  assert.equal((await send(s, s.carla, 'POST', url, { title: 'Aufsicht Hof', places: 0, minParticipants: 2, teachers: [s.carlaPerson], sessions: [session(TUESDAY, '09:25', '11:20', 100)] })).status, 422)
+
+  // It seeks a companion like any activity, and Anna joins; the planning counts Carla as leading it on Monday, beside her draft.
+  const joined = await send<Item>(s, s.anna, 'POST', `/api/items/${duty.body.id}/companions/me`)
+  assert.equal(joined.status, 200, JSON.stringify(joined.body))
+  assert.deepEqual(joined.body.teachers.map((teacher) => teacher.lead), [true, false])
+  const planning = await get<{ teachers: { personId: string, days: { date: string, leads: { title: string }[] }[] }[] }>(s, s.anna, `/api/admin/campaigns/${id}/planning`)
+  assert.deepEqual(planning.body.teachers.find((teacher) => teacher.personId === s.carlaPerson)?.days.find((d) => d.date === MONDAY)?.leads.map((i) => i.title).sort((x, y) => x.localeCompare(y, 'de')), ['Aufsicht Bibliothek', 'Yoga'])
+
+  // Published: teachers and organizers see it in the list, a student neither there nor in the catalogue, which is what students choose from.
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'published' })).status, 200)
+  const titles = async (jar: CookieJar, path: string) => (await get<{ items: Item[] }>(s, jar, path)).body.items.map((i) => i.title).sort((a, b) => a.localeCompare(b, 'de'))
+  const sara = await signIn(s, SARA)
+  assert.deepEqual(await titles(s.bernd, url), ['Aufsicht Bibliothek', 'Klettern'])
+  assert.deepEqual(await titles(s.anna, url), ['Aufsicht Bibliothek', 'Klettern', 'Yoga'])
+  assert.deepEqual(await titles(sara, url), ['Klettern'])
+  assert.deepEqual(await titles(sara, `/api/campaigns/${id}/catalogue`), ['Klettern'])
+  assert.deepEqual(await titles(s.anna, `/api/campaigns/${id}/catalogue`), ['Klettern'])
+})

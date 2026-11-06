@@ -5,12 +5,14 @@
 // for one grade (demand.ts). An activity serves every cell a session of it
 // touches, for every grade it is open to, on every day it touches; it is
 // allowed as soon as one of them is short of the target, refused only when
-// every one has reached it, and not judged at all when it serves none.
+// every one has reached it, and not judged at all when it serves none: one
+// outside every frame, or one of its teachers alone (no places, no class),
+// which offers nothing to refuse.
 // Class activities are never gated: their extra places are a gift, not an
 // offer (the service leaves them out). Pure.
 
 import { demandByDay, placeTarget, type ClassSize, type DayDemand, type DemandDay, type OfferedItem } from './demand.ts'
-import { overlaps } from './catalogue.ts'
+import { isStaffOnly, overlaps } from './catalogue.ts'
 
 /** One cell an activity serves: a period of a day (null for a day counted whole), for one grade. */
 export interface ServedCell {
@@ -36,8 +38,9 @@ export function gradesOpenTo(item: Pick<OfferedItem, 'eligibleGrades' | 'eligibl
   return [...new Set(open.map((c) => c.grade))].sort((a, b) => a - b)
 }
 
-/** The cells an activity serves: every cell a session of it touches, for every grade it is open to, in the days' order. */
+/** The cells an activity serves: every cell a session of it touches, for every grade it is open to, in the days' order; none for an activity of its teachers alone. */
 export function servedCells(item: GateShape, days: readonly DemandDay[], classes: readonly ClassSize[]): ServedCell[] {
+  if (isStaffOnly(item)) return []
   const grades = gradesOpenTo(item, classes)
   return days.flatMap((day) => day.cells.filter((cell) => item.sessions.some((s) => overlaps(s, cell))).flatMap((cell) => grades.map((grade) => ({ date: day.date, period: cell.period, grade }))))
 }

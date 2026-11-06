@@ -122,6 +122,9 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByRole('button', { name: t.item.saveAndPropose }).click()
   await expect(page.getByRole('heading', { name: sample.projectWeek })).toBeVisible()
   const row = page.getByRole('row', { name: climbing })
+  // Back on the list the saved activity is marked, under the day it starts on.
+  await expect(row).toHaveAttribute('aria-current', 'true')
+  await expect(page.getByRole('rowheader', { name: new RegExp(`^${literally(day('2034-07-03'))} · `) })).toBeVisible()
   await expect(row).toContainText(t.labels.itemState.proposed)
   await expect(row).toContainText(t.item.participants.lead(BERND.name))
   await expect(row).toContainText(fee(1500))
@@ -157,6 +160,29 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(yoga).toContainText(t.labels.itemState.draft)
   await yoga.getByRole('button', { name: t.campaign.items.delete }).click()
   await expect(page.getByRole('row', { name: new RegExp(literally(sample.yoga)) })).toHaveCount(0)
+  // An activity of its teachers alone, in the same period: no places and no class. The form says so, the lock does not refuse it, and the list marks it.
+  await page.getByRole('link', { name: t.common.page.newItem }).click()
+  await page.getByLabel(t.item.title).fill(sample.supervision)
+  await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-03')
+  await page.getByLabel(t.item.sessions.count, { exact: true }).fill('1')
+  await page.getByLabel(t.common.field.places, { exact: true }).fill('0')
+  await expect(page.getByText(t.item.participation.staffOnly)).toBeVisible()
+  await expect(page.getByLabel(t.item.participation.minParticipants)).toHaveCount(0)
+  await picture(page, 'nur-lehrkraefte', [page.getByRole('heading', { name: t.item.participation.heading }), page.getByText(t.item.participation.staffOnly)])
+  await page.getByRole('button', { name: t.item.saveAndPropose }).click()
+  await expect(page.getByRole('heading', { name: sample.projectWeek })).toBeVisible()
+  const supervision = page.getByRole('row', { name: new RegExp(literally(sample.supervision)) })
+  await expect(supervision).toContainText(t.labels.itemState.proposed)
+  await expect(supervision).toContainText(t.campaign.items.staffOnly)
+  // Only her own: the filter leaves the supervision, and with it the header of its day.
+  await page.getByLabel(t.filters.onlyMine).check()
+  await expect(page.getByRole('row', { name: climbing })).toHaveCount(0)
+  await picture(page, 'aktivitaeten-nach-tag', [page.getByRole('group', { name: t.filters.label }), supervision])
+  await page.getByLabel(t.filters.onlyMine).uncheck()
+  // Taken back and deleted, so the journeys after this one go by a catalogue without it.
+  await supervision.getByRole('button', { name: t.campaign.items.unpropose }).click()
+  await supervision.getByRole('button', { name: t.campaign.items.delete }).click()
+  await expect(page.getByRole('row', { name: new RegExp(literally(sample.supervision)) })).toHaveCount(0)
   await signOut(page)
 
   // A class activity takes whole classes: its places become the extra ones other students may rank, and it has no minimum, since it always takes place.
