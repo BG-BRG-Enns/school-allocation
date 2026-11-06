@@ -67,17 +67,23 @@ export async function snapshotOf(client: Queryable, campaign: Campaign, seed: nu
       const beside = held.besideClassItemIds.length > 0 ? { besideClassItemIds: held.besideClassItemIds } : {}
       return { personId: s.personId, className: s.className, grade: s.grade, fixedItemIds: held.itemIds, ...beside, ranking: choice?.ranking ?? null, savedIn: choice?.savedIn ?? null }
     }),
-    items: items.map((item) => ({
-      id: item.id,
-      feeCents: item.feeCents,
-      rules: { fixedClasses: item.fixedClasses, eligibleGrades: item.eligibleGrades, eligibleClasses: item.eligibleClasses, places: rankablePlaces(item.places, placed.get(item.id) ?? 0), minParticipants: item.minParticipants, cancellableBelowMin: item.cancellableBelowMin },
-      sessions: item.sessions.map((s) => {
-        const startMs = instantOf(s.startsAt) ?? 0
-        const endMs = instantOf(s.endsAt) ?? 0
-        return { startMs, endMs, dates: datesOfSpan(startMs, endMs), credits: s.credits }
-      }),
-      categoryIds: item.categoryIds,
-    })),
+    items: items.map((item) => {
+      // An activity with students placed into it takes place, as a class activity does: they are in it before anyone is
+      // assigned, so the run neither cancels it nor holds it to a minimum of those who ranked it.
+      const direct = placed.get(item.id) ?? 0
+      const carried = direct > 0
+      return {
+        id: item.id,
+        feeCents: item.feeCents,
+        rules: { fixedClasses: item.fixedClasses, eligibleGrades: item.eligibleGrades, eligibleClasses: item.eligibleClasses, places: rankablePlaces(item.places, direct), minParticipants: carried ? 0 : item.minParticipants, cancellableBelowMin: carried ? false : item.cancellableBelowMin },
+        sessions: item.sessions.map((s) => {
+          const startMs = instantOf(s.startsAt) ?? 0
+          const endMs = instantOf(s.endsAt) ?? 0
+          return { startMs, endMs, dates: datesOfSpan(startMs, endMs), credits: s.credits }
+        }),
+        categoryIds: item.categoryIds,
+      }
+    }),
     rules: campaign.rules,
   }
 }

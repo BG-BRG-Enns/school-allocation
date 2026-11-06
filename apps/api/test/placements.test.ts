@@ -68,7 +68,8 @@ async function school(t: Parameters<typeof harness>[0], env: Record<string, stri
   }
   const items = {
     wien: await propose(bernd, { title: 'Wien', places: 0, fixedClasses: ['5A'], cancellableBelowMin: false, sessions: [session(TUESDAY, '08:00', '13:00', WEDNESDAY)] }),
-    werkstatt: await propose(carla, { title: 'Werkstatt', places: 5, sessions: [session(TUESDAY, '08:30', '12:15')] }),
+    // It wants four and may be cancelled below that: until someone is placed into it.
+    werkstatt: await propose(carla, { title: 'Werkstatt', places: 5, minParticipants: 4, sessions: [session(TUESDAY, '08:30', '12:15')] }),
     labor: await propose(anna, { title: 'Labor', places: 3, sessions: [session(TUESDAY, '08:30', '10:15')] }),
     probe: await propose(bernd, { title: 'Probe', places: 0, sessions: [session(TUESDAY, '10:30', '11:20')] }),
     mittwoch: await propose(anna, { title: 'Mittwochskurs', places: 10, sessions: [session(WEDNESDAY, '08:30', '12:15')] }),
@@ -154,6 +155,15 @@ test('a teacher places a student into their own activity; the placement beats th
   assert.equal((await place(s.bernd, draft.body.id, s.timPerson)).status, 200, 'from the first save, in every state')
   assert.equal((await send(s, s.bernd, 'DELETE', `/api/items/${draft.body.id}`)).status, 204)
 
+  // Taken off the trip by hand, and then the trip is no longer 5A's: the row left behind does not stand in the way of placing Tim into it.
+  assert.equal((await send(s, s.bernd, 'PUT', `/api/items/${s.items.wien}/absences/${s.timPerson}`)).status, 200)
+  const opened = await send<Item>(s, s.anna, 'PATCH', `/api/items/${s.items.wien}`, { title: 'Wien', places: 5, fixedClasses: [], teachers: [s.berndPerson], sessions: [session(TUESDAY, '08:00', '13:00', WEDNESDAY)] })
+  assert.equal(opened.status, 200, JSON.stringify(opened.body))
+  const direct = await place(s.bernd, s.items.wien, s.timPerson)
+  assert.equal(direct.status, 200, JSON.stringify(direct.body))
+  assert.deepEqual([names(direct.body.placed), direct.body.absent, direct.body.classActivity], [[TIM.name], [], false])
+  assert.equal((await get<{ items: Item[] }>(s, s.anna, `/api/campaigns/${id}/items`)).body.items.find((i) => i.id === s.items.wien)?.directlyPlaced, 1)
+
   const owner = createDatabase(s.ownerUrl, () => {})
   t.after(() => owner.close())
   const acts = (await readAudit(owner, id)).filter((e) => e.action.startsWith('preassignment.')).map((e) => [e.action, e.metadata.personId, e.metadata.movedFrom ?? e.metadata.from ?? null])
@@ -164,6 +174,8 @@ test('a teacher places a student into their own activity; the placement beats th
     ['preassignment.placed', s.timPerson, []],
     ['preassignment.placed', s.timPerson, []],
     ['preassignment.removed', s.timPerson, null],
+    ['preassignment.placed', s.timPerson, []],
+    ['preassignment.exempted', s.timPerson, null],
     ['preassignment.placed', s.timPerson, []],
   ])
 })
@@ -211,6 +223,9 @@ test('a class activity\'s teachers keep its list of who does not take part, with
   assert.deepEqual([titles(tim.body.fixed), tim.body.directItemIds], [[], []])
   assert.deepEqual(titles(tim.body.groups.flatMap((g) => g.items)), ['Labor', 'Mittwochskurs', 'Werkstatt'])
 
+  // The organizer's exemption, on a student's page, is from a class activity: a direct placement is none of its business.
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/preassignments/${s.saraPerson}/${s.items.werkstatt}/exempt`, { reason: 'Versuch' })).status, 404)
+
   // While the window is open the list still changes: back on the trip, Tim has nothing to choose for its days; off it again, he has.
   assert.deepEqual((await absence(s.bernd, 'DELETE', s.timPerson)).body.absent.map((a) => a.displayName), [SARA.name], 'Sara is out by her placement')
   const back = await get<ChoiceView>(s, s.tim, `/api/campaigns/${id}/my-choice`)
@@ -232,6 +247,8 @@ test('a class activity\'s teachers keep its list of who does not take part, with
     await new Promise((resolve) => setTimeout(resolve, 25))
   }
   assert.equal(review?.run.status, 'succeeded', JSON.stringify(review?.run))
+  // The workshop wanted four and got only Sara, who was placed into it: an activity with someone placed into it takes place.
+  assert.equal(review?.run.cancelledItemIds.includes(s.items.werkstatt), false)
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/runs/${started.body.run.id}/publish`, { cancelledItemIds: review?.run.cancelledItemIds ?? [] })).status, 200)
   const saraResult = await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)
   assert.equal(saraResult.status, 200, JSON.stringify(saraResult.body))

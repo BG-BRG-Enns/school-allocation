@@ -44,7 +44,7 @@ export async function choiceView(db: Queryable, campaign: Campaign, student: Cam
   const fixed = items.filter((item) => fixedIds.has(item.id))
   const fixedSpans = fixed.flatMap(spansOf)
   // A direct placement takes one of an activity's places: what is left is what others may rank.
-  const placed = await directCounts(db, campaign.id)
+  const placed = await directCounts(db, campaign)
   const offerable = items.filter((item) => !fixedIds.has(item.id)).map((item) => ({ id: item.id, sessions: spansOf(item), rules: { ...item, places: rankablePlaces(item.places, placed.get(item.id) ?? 0) } }))
   const offered = offeredTo({ className: student.className, grade: student.grade }, offerable, fixedSpans)
   const byId = new Map(items.map((item) => [item.id, item]))

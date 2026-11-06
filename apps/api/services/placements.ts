@@ -181,7 +181,13 @@ export async function placeStudent(db: Database, id: string, personId: string, l
       .filter((row) => row.source === 'direct' && row.itemId !== item.id && items.has(row.itemId) && itemsOverlap(items.get(row.itemId) as Item, item))
       .map((row) => row.itemId)
     if (moved.length > 0) await store.deleteDirectPlacements(client, campaign.id, moved, student.personId)
-    await store.upsertDirectPlacement(client, campaign.id, item.id, student.personId, leavesClass)
+    // A class row of this very activity can only be one left behind: the student was taken out of it by hand, and their
+    // class is no longer one of its classes. It goes, so the direct placement takes its key.
+    if ((await store.lockPlacement(client, campaign.id, item.id, student.personId))?.source === 'class') {
+      await store.liftExemption(client, campaign.id, item.id, student.personId)
+      await store.deleteClassPlacement(client, campaign.id, item.id, student.personId)
+    }
+    if (!await store.upsertDirectPlacement(client, campaign.id, item.id, student.personId, leavesClass)) throw new Error('the direct placement was not written')
     await appendAudit(client, { scopeId: campaign.id, actor: actorOf(caller), action: 'preassignment.placed', metadata: { itemId: item.id, personId: student.personId, leavesClass, movedFrom: moved } })
     return viewOf(client, campaign, item, caller, moved.map((itemId) => otherOf(items.get(itemId) as Item)))
   })

@@ -1,5 +1,6 @@
 import type { Queryable } from '../db.ts'
-import { CAMPAIGN_BATCH_ID } from './roster-selection.ts'
+import type { Campaign } from '../models/campaigns.ts'
+import { CAMPAIGN_BATCH_ID, campaignRosterBatch } from './roster-selection.ts'
 
 export async function insertClassPlacements(db: Queryable, campaignId: string, itemId: string | undefined) {
   const { rowCount } = await db.query(
@@ -117,8 +118,22 @@ export async function deleteItemPlacements(db: Queryable, itemId: string) {
   await db.query('delete from pre_assignment where item_id = $1 and source in (\'class\', \'direct\')', [itemId])
 }
 
-/** Per activity of a campaign, how many students are placed into it directly: each takes one of its places. */
-export async function directCounts(db: Queryable, campaignId: string): Promise<Map<string, number>> {
-  const { rows } = await db.query<{ item_id: string, placed: string }>('select item_id, count(*) as placed from pre_assignment where campaign_id = $1 and source = \'direct\' group by item_id', [campaignId])
+/**
+ * Per activity of a campaign, how many of the campaign's students are
+ * placed into it directly: each takes one of its places. Its students as
+ * every reader takes them (dao/choices.ts campaignStudents): of its roster,
+ * in a class taking part. A placement of someone who has left counts for
+ * nothing, here as in the run (lib/placements.ts directlyPlaced).
+ */
+export async function directCounts(db: Queryable, campaign: Pick<Campaign, 'id' | 'rosterBatchId'>): Promise<Map<string, number>> {
+  const { rows } = await db.query<{ item_id: string, placed: string }>(
+    `select p.item_id, count(*) as placed
+       from pre_assignment p
+       join roster_entry e on e.batch_id = ${campaignRosterBatch(campaign)} and e.kind = 'student' and e.person_id = p.person_id and e.grade is not null
+       join campaign_class cc on cc.campaign_id = p.campaign_id and cc.class_name = e.class_name
+      where p.campaign_id = $1 and p.source = 'direct'
+      group by p.item_id`,
+    [campaign.id],
+  )
   return new Map(rows.map((row) => [row.item_id, Number(row.placed)]))
 }

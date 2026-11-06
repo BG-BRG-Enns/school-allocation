@@ -40,12 +40,17 @@ export function directlyPlaced(rows: readonly PlacementRecord[], classOf: Readon
 export function withPlacements(items: ReadonlyMap<string, OfferedItem>, rows: readonly PlacementRecord[], classOf: ReadonlyMap<string, string>): Map<string, OfferedItem> {
   const known = rows.filter((row) => items.has(row.itemId) && classOf.has(row.personId))
   const direct = known.filter((row) => row.source === 'direct')
+  // A placement beside a class activity the student was taken out of by hand is beside nothing: for the demand it is one
+  // instead of it, so the student, counted as out of the class activity, is counted as placed here.
+  const offList = (row: PlacementRecord) => known.some((other) => other.personId === row.personId && other.source === 'class' && other.exempted
+    && itemsOverlap(items.get(other.itemId) as OfferedItem, items.get(row.itemId) as OfferedItem))
+  const leaves = (row: PlacementRecord) => row.leavesClass || offList(row)
   const result = new Map<string, OfferedItem>()
   for (const [id, item] of items) {
     const own = direct.filter((row) => row.itemId === id)
     const placed = [...new Set(own.map((row) => classOf.get(row.personId) as string))].sort((a, b) => a.localeCompare(b, 'de')).map((className) => {
       const ofClass = own.filter((row) => classOf.get(row.personId) === className)
-      return { className, leaving: ofClass.filter((row) => row.leavesClass).length, beside: ofClass.filter((row) => !row.leavesClass).length }
+      return { className, leaving: ofClass.filter(leaves).length, beside: ofClass.filter((row) => !leaves(row)).length }
     })
     const away = item.fixedClasses.map((className) => {
       const out = new Set<string>()

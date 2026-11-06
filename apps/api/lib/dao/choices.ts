@@ -79,8 +79,9 @@ export async function lockExemptionWindow(db: Queryable, campaign: Campaign) {
 }
 
 export async function lockPreAssignment(db: Queryable, campaign: Campaign, personId: string, itemId: string) {
+  // A class placement alone: a direct placement is taken back by its activity's teachers, not exempted from.
   const { rows: [row] } = await db.query<{ exempted_at: Date | null }>(
-    'select exempted_at from pre_assignment where campaign_id = $1 and person_id = $2 and item_id = $3 for update', [campaign.id, personId, itemId],
+    'select exempted_at from pre_assignment where campaign_id = $1 and person_id = $2 and item_id = $3 and source = \'class\' for update', [campaign.id, personId, itemId],
   )
   return row === undefined ? undefined : ({ exemptedAt: row.exempted_at })
 }
