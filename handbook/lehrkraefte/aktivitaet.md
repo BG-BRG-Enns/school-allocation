@@ -24,9 +24,11 @@ Auf der Seite der Anmeldung führt **Begleitung gesucht** zu einer Liste je Proj
 
 ![Die Termine: ein Termin in Einheiten, ab der 2. Einheit, 4 Einheiten lang, mit der Uhrzeit und den angerechneten Minuten am Projekttag](/bilder/de/aktivitaet-termine.png)
 
-Ein Termin liegt in den Einheiten der Schule: Wähle den **Tag**, **ab Einheit** und die **Anzahl Einheiten**; SchulWahl zeigt die Uhrzeit dazu. Für einen Ausflug oder anderes außerhalb des Stundenrasters wählst du bei **Angabe in** die **Uhrzeit** und gibst Beginn und Ende an.
+Eine Aktivität hat meist **einen** Termin: einen zusammenhängenden Zeitraum. Er liegt in den Einheiten der Schule: Wähle den **Tag**, **ab Einheit** und die **Anzahl Einheiten**; SchulWahl zeigt die Uhrzeit dazu. Für einen Ausflug oder anderes außerhalb des Stundenrasters wählst du bei **Angabe in** die **Uhrzeit** und gibst Beginn und Ende an; so ein Termin kann auch über mehrere Tage gehen, etwa von Dienstag 8:00 bis Mittwoch 13:00.
 
-**Minuten am** jedem Projekttag sind die Minuten, die der Termin den Schüler\*innen an diesem Tag anrechnet. Anreise und Pausen zählen nicht. Die angerechneten Minuten füllen die Mindestminuten, die für Schüler\*innen je Tag gelten. Mit **Termin hinzufügen** bekommt eine Aktivität mehrere Termine, etwa an zwei Tagen.
+**Minuten am** jedem Projekttag sind die Minuten, die der Termin den Schüler\*innen an diesem Tag anrechnet. Anreise und Pausen zählen nicht. Die angerechneten Minuten füllen die Mindestminuten, die für Schüler\*innen je Tag gelten.
+
+**Weiterer Termin (nur bei Unterbrechung)** ist für eine Aktivität, die nicht in einem Stück stattfindet, etwa je zwei Einheiten am Montag und am Mittwoch. Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler\*innen statt, lege sie als eigene Aktivität an.
 
 ## Teilnahme
 
@@ -41,7 +43,13 @@ Ein Termin liegt in den Einheiten der Schule: Wähle den **Tag**, **ab Einheit**
 
 ![Eine Klassenaktivität: die ganze 5A nimmt teil, die Plätze heißen jetzt zusätzliche Plätze für andere Schüler\*innen, und die Mindestzahl fällt weg](/bilder/de/klassenaktivitaet.png)
 
-Wählst du unter **Ganze Klassen, die teilnehmen** eine oder mehrere Klassen, ist es eine Klassenaktivität: Die ganzen Klassen nehmen teil und wählen für diese Zeit nichts. Die Plätze heißen dann **Zusätzliche Plätze für andere Schüler\*innen**; diese Plätze können andere passende Schüler\*innen wünschen, und 0 heißt, es gibt keine. Eine Klassenaktivität hat keine Mindestzahl und findet immer statt.
+Wählst du unter **Ganze Klassen, die teilnehmen** eine oder mehrere Klassen, ist es eine Klassenaktivität: Die ganzen Klassen nehmen teil und wählen für diese Zeit nichts. Die Plätze heißen dann **Zusätzliche Plätze für andere Schüler\*innen**; diese Plätze können andere passende Schüler\*innen wünschen, und 0 heißt, es gibt keine. Sie beginnen bei 0, bis du eine Zahl einträgst. Eine Klassenaktivität hat keine Mindestzahl und findet immer statt.
+
+### Eine Aktivität nur für Lehrkräfte
+
+![Eine Aktivität nur für Lehrkräfte: 0 Plätze, keine ganze Klasse, darunter der Hinweis, dass Schüler\*innen sie nicht im Katalog sehen und niemand sie wählen kann](/bilder/de/nur-lehrkraefte.png)
+
+Mit **0 Plätzen** und ohne ganze Klassen ist die Aktivität nur für ihre Lehrkräfte, etwa eine Aufsicht: Schüler\*innen sehen sie nicht im Katalog, und niemand kann sie wählen. Das Formular sagt es unter den Plätzen, die Mindestzahl fällt weg, und in der Tabelle steht bei ihr „nur Lehrkräfte“. Leitung, Begleitung und **Begleitung gesucht** gelten wie bei jeder Aktivität, und die Sperre für neue Angebote betrifft sie nicht, weil sie keine Plätze anbietet.
 
 ## Kosten
 
@@ -59,6 +67,10 @@ Unter **Kategorien** wählst du, wozu die Aktivität gehört, etwa Sport oder Be
 ![Die Sperre im Formular: die Aktivität bringt Plätze nur dorthin, wo das Ziel schon erreicht ist, der Tag, an dem jede Schulstufe ihr Ziel erreicht hat, und der Rat, eine andere Zeit oder eine Schulstufe dazuzunehmen](/bilder/de/sperre.png)
 
 Unter den Terminen sagt das Formular, während du es ausfüllst, wohin die Plätze der Aktivität gehen: in welche Felder von Plätze und Bedarf, in denen noch Plätze fehlen, oder dass sie nur dorthin gehen, wo das Ziel schon erreicht ist. Hat die Organisation **Neue Angebote sperren** eingeschaltet, lehnt das Einreichen eine Aktivität ab, die nur in Felder geht, die das Ziel schon erreicht haben: „Am Mo., 21.06. hat jede Schulstufe dieser Aktivität in der 2. und 3. EH ihr Ziel erreicht.“ Wähle dann eine Zeit, in der noch Plätze fehlen, oder nimm eine Schulstufe dazu, der noch Plätze fehlen; verlängern ist erwünscht, denn die zusätzlichen Plätze in einer vollen Einheit schaden nicht. Klassenaktivitäten sind von der Sperre ausgenommen. Eine Klassenaktivität, deren Klasse zur selben Zeit schon in einer anderen eingereichten oder genehmigten Klassenaktivität ist, wird abgelehnt und nennt sie: „Die 5A ist am Mo., 21.06. von 9:00 bis 11:00 schon in ‚Wanderung‘ (Leitung: ZwA).“ Das Formular zeigt den Konflikt schon beim Entwurf; die Organisation trägt die Klasse aus der einen Aktivität aus, dann reichst du die andere ein. Wird deine Aktivität zurückgegeben und reichst du sie noch einmal ein, zählt weiter die erste Einreichung, und die Sperre prüft nur, was du an Plätzen, Schulstufen, Klassen oder Zeiten dazugibst.
+
+![Die Tabelle der Aktivitäten mit dem Filter Nur meine: unter dem Tag, an dem sie beginnt, die eigene Aktivität, eingereicht und mit „nur Lehrkräfte“ markiert](/bilder/de/aktivitaeten-nach-tag.png)
+
+Nach dem Speichern bist du wieder auf der Seite der Anmeldung, und die Tabelle **Aktivitäten** zeigt die gespeicherte Aktivität markiert. Die Tabelle ordnet die Aktivitäten unter dem Tag, an dem sie beginnen, und dort nach dem Beginn: So siehst du, was es an einem Tag schon gibt. **Nur meine** zeigt die Aktivitäten, die du angelegt hast oder bei denen du Lehrkraft bist; **Reihenfolge** ordnet stattdessen nach der Nummer oder nach der Einreichung.
 
 In der Tabelle **Aktivitäten** hat ein Entwurf die Knöpfe **Bearbeiten**, **Einreichen** und **Löschen**. Eine eingereichte Aktivität holst du mit **Zurück zum Entwurf** zurück, solange Angebote gesammelt werden. Passt etwas nicht, sagt das Formular, was nicht stimmt, etwa „Ein Termin liegt außerhalb der Projekttage“ oder „Die Mindestzahl ist größer als die Zahl der Plätze“.
 

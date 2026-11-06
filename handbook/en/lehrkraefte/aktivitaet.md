@@ -24,9 +24,11 @@ On the registration's page, **Companions sought** leads to a list per project da
 
 ![The sessions: one session in periods, from period 2, lasting 4 periods, with clock times and credited minutes on the project day](/bilder/en/aktivitaet-termine.png)
 
-A session fits into the school's periods: choose the **Day**, **from period** and **Number of periods**; SchulWahl shows the clock times. For a trip or anything else outside the timetable, under **Given in**, choose **Clock time** and enter the start and end.
+An activity usually has **one** session: one continuous span. It fits into the school's periods: choose the **Day**, **from period** and **Number of periods**; SchulWahl shows the clock times. For a trip or anything else outside the timetable, under **Given in**, choose **Clock time** and enter the start and end; such a session can also run over several days, from Tuesday 8:00 to Wednesday 13:00, say.
 
-**Minutes on** each project day are the minutes the session credits to students on that day. Travel and breaks do not count. Credited minutes fill the minimum minutes students need each day. **Add session** gives an activity several sessions, for example on two days.
+**Minutes on** each project day are the minutes the session credits to students on that day. Travel and breaks do not count. Credited minutes fill the minimum minutes students need each day.
+
+**Further session (only for an interruption)** is for an activity that does not take place in one piece, such as two periods each on Monday and on Wednesday. Whoever is assigned attends every session. If the same activity is held again for other students, create it as an activity of its own.
 
 ## Participation
 
@@ -41,7 +43,13 @@ A session fits into the school's periods: choose the **Day**, **from period** an
 
 ![A class activity: the whole of 5A takes part, the places are now called Extra places for other students, and the minimum is gone](/bilder/en/klassenaktivitaet.png)
 
-If you select one or more classes under **Whole classes taking part (they make no choices for this time)**, it is a class activity: the whole classes take part and make no choices for that time. The places are then called **Extra places for other students**; other eligible students can choose these places, and 0 means there are none. A class activity has no minimum and always takes place.
+If you select one or more classes under **Whole classes taking part (they make no choices for this time)**, it is a class activity: the whole classes take part and make no choices for that time. The places are then called **Extra places for other students**; other eligible students can choose these places, and 0 means there are none. They start at 0 until you enter a number. A class activity has no minimum and always takes place.
+
+### An activity for teachers only
+
+![An activity for teachers only: 0 places, no whole class, below it the note that students do not see it in the catalogue and nobody can choose it](/bilder/en/nur-lehrkraefte.png)
+
+With **0 places** and without whole classes the activity is for its teachers only, a supervision for example: students do not see it in the catalogue, and nobody can choose it. The form says so below the places, the minimum is gone, and the table marks it "teachers only". Lead, companions and **Companions sought** work as for any activity, and the lock on new offers does not apply to it, since it offers no places.
 
 ## Cost
 
@@ -59,6 +67,10 @@ Under **Categories** you choose what the activity belongs to, such as sport or c
 ![The lock in the form: the activity brings places only where the target is reached, the day on which every year has reached its target, and the advice to pick another time or add a year](/bilder/en/sperre.png)
 
 Below the sessions the form says, as you fill it in, where the activity's places go: into which cells of Places and demand places are still missing, or that they go only where the target is reached already. If the organisation has turned on **Lock new offers**, the submission refuses an activity that goes only into cells that have reached the target: "On Mon, 21/06 every year of this activity has reached its target in P2 and P3." Then choose a time where places are still missing, or add a year that still lacks places; making it longer is welcome, as the extra places in a full period do no harm. Class activities are exempt from the lock. A class activity whose class is already in another submitted or approved class activity at the same time is refused and names it: "5A is already in 'Hike' (lead: ZwA) on Mon, 21/06 from 09:00 to 11:00." The form shows the conflict on the draft already; the organisation takes the class out of one activity, then you submit the other. If your activity is returned and you submit it again, the first submission still counts, and the lock checks only what you add in places, years, classes or times.
+
+![The activities table with the filter Only mine: under the day it starts on, one's own activity, submitted and marked "teachers only"](/bilder/en/aktivitaeten-nach-tag.png)
+
+After saving you are back on the registration's page, and the **Activities** table shows the saved activity marked. The table lists the activities under the day they start on, and there by their start: so you see what is already on offer that day. **Only mine** shows the activities you created or are a teacher of; **Order** sorts by number or by submission instead.
 
 In the **Activities** table, a draft has the **Edit**, **Submit** and **Delete** buttons. You can take a submitted activity **Back to draft** while activities are being collected. If something is wrong, the form says what, such as “A session is outside the project days” or “The minimum is greater than the number of places”.
 

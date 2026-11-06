@@ -50,6 +50,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | class activity (D-24) | Klassenaktivität; "für die ganze 5A"; "Ganze Klassen, die fix teilnehmen (sie wählen für diese Zeit nichts)" | class activity; "whole class 5A" | |
 | extra places of a class activity | "für die ganze 5A, dazu 6 freie Plätze" | "whole class 5A, plus 6 open places" | |
 | places | Plätze | places | |
+| activity of its teachers alone (no places, no class) | "nur Lehrkräfte"; "nur für Lehrkräfte" | "teachers only"; "for teachers only" | a supervision, a duty; not in the catalogue |
 | minimum | Mindestzahl | minimum | one word for minimum participants everywhere |
 | cancellable below minimum | "Fällt aus, wenn zu wenige kommen" | "Cancelled if too few" | |
 | fee | Kosten | cost | Q6 |

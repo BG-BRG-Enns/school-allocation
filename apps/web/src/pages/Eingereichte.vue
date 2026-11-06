@@ -7,7 +7,7 @@
 // skip to the next. "3 von 12" says where one is; the overview is a link
 // away. Organizers only: every call the page makes is theirs.
 
-import { describeCells, type Period } from '@school-allocation/school-core'
+import { describeCells, isStaffOnly, type Period } from '@school-allocation/school-core'
 import { computed, onMounted, ref, watch } from 'vue'
 import { ApiError } from '../lib/api-rules.ts'
 import { loadPeriods } from '../lib/admin-api.ts'
@@ -17,7 +17,9 @@ import { approveItem, checkItem, loadCampaign, loadCampaignAvailability, loadCat
 import { useFeedback } from '../lib/feedback.ts'
 import { datesBetween, formatDay, formatFee, formatSpanOnGrid, formatWhenShort, localDateOf, localTimeOf } from '../lib/format.ts'
 import { t } from '../lib/i18n.ts'
+import { byStart } from '../lib/item-order.ts'
 import { cellsAddedBy, cellsText } from '../lib/offer-cells.ts'
+import { useUiState } from '../lib/ui-state.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 
 const props = defineProps<{ id: string }>()
@@ -68,9 +70,17 @@ watch(() => props.id, () => {
 })
 
 const campaign = computed(() => view.value?.campaign)
-/** The submitted activities by their first submission, the earliest first, never submitted last. */
+/** The order of the queue: by the first submission (the default), or by the day and start of the activities; the browser remembers it. */
+const order = useUiState<string>('eingereichte:order', 'proposed')
+// Another order is another queue: from its start, and without a return or withdrawal begun for the activity that was shown.
+watch(order, () => {
+  cursor.value = 0
+  asking.value = null
+})
+/** The submitted activities by their first submission, the earliest first, never submitted last; or by when they take place. */
 const queue = computed(() => {
   const proposed = items.value.filter((item) => item.state === 'proposed')
+  if (order.value === 'day') return byStart(proposed)
   return [...proposed].sort((a, b) => (a.firstProposedAt ?? '\uffff').localeCompare(b.firstProposedAt ?? '\uffff', 'en') || a.createdAt.localeCompare(b.createdAt, 'en'))
 })
 const at = computed(() => Math.min(cursor.value, Math.max(0, queue.value.length - 1)))
@@ -103,6 +113,8 @@ function placesText(item: Item): string {
 
 /** Who may choose it: the grades, the classes, or everyone. */
 function whoText(item: Item): string {
+  // An activity of its teachers alone is offered to nobody.
+  if (isStaffOnly(item)) return '–'
   const parts: string[] = []
   if (item.eligibleGrades.length > 0) parts.push(t.catalogue.grades(item.eligibleGrades))
   if (item.eligibleClasses.length > 0) parts.push(item.eligibleClasses.join(', '))
@@ -132,6 +144,7 @@ const brings = computed(() => {
   const item = current.value
   if (!c || !item) return ''
   if (item.fixedClasses.length > 0 && item.places === 0) return ''
+  if (isStaffOnly(item)) return t.item.participation.staffOnly
   if (c.served.length === 0) return t.item.gate.servesNothing
   const under = cellsAddedBy(c.served, c.before, c.after).filter((cell) => !cell.reached)
   return under.length > 0 ? t.campaign.items.brings(cellsText(describeCells(under, c.before))) : t.campaign.items.bringsNothing
@@ -222,6 +235,20 @@ function onSubmitAsking(): void {
       {{ t.review.none }}
     </p>
     <template v-else>
+      <p class="field">
+        <label for="review-order">{{ t.review.order }}</label>
+        <select
+          id="review-order"
+          v-model="order"
+        >
+          <option value="proposed">
+            {{ t.review.orderProposed }}
+          </option>
+          <option value="day">
+            {{ t.review.orderDay }}
+          </option>
+        </select>
+      </p>
       <p>
         <strong>{{ t.review.position(position, total) }}</strong>
       </p>

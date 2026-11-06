@@ -33,6 +33,14 @@ test('an activity serves every cell it touches for every grade it is open to; th
   assert.deepEqual(servedCells(open(10, [session('13:15', '14:05')], { eligibleGrades: [8] }), [whole], classes).map((c) => c.period), [null])
 })
 
+test('an activity of its teachers alone (no places, no class) serves no cell, so the gate never refuses it; a class activity without extra places still names its cells', () => {
+  const days = [framed(2, 6)]
+  const duty = open(0, [session('08:30', '10:15')])
+  assert.deepEqual(servedCells(duty, days, classes), [])
+  assert.equal(gateRefused(gateCells(servedCells(duty, days, classes), demandByDay(days, classes, [open(500, [session('08:30', '10:15')])]), 50)), false)
+  assert.deepEqual(servedCells(open(0, [session('08:30', '09:20')], { fixedClasses: ['5A'], eligibleGrades: [9] }), days, classes), [{ date: MONDAY, period: 2, grade: 9 }])
+})
+
 test('the document\'s examples: refused only when every served cell has reached its target; longer, or another grade, lets it through', () => {
   const days = [framed(2, 6)]
   // The finale for all in the 6th; the lower school's target reached in the 2nd and 3rd period, short in the 4th and 5th; the 8th and 9th short everywhere but the 6th.

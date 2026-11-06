@@ -180,6 +180,16 @@ export function isPreAssigned(student: StudentOf, rules: Pick<ItemRules, 'fixedC
 }
 
 /**
+ * Whether an activity is its teachers' alone: no class is fixed for it and
+ * it has no places, so nobody is placed into it and nobody ranks it (a
+ * supervision, a duty). It counts for its teachers in the planning, offers
+ * nothing, and is not in the catalogue students choose from.
+ */
+export function isStaffOnly(rules: { fixedClasses: readonly string[], places: number }): boolean {
+  return rules.fixedClasses.length === 0 && rules.places <= 0
+}
+
+/**
  * Whether the student may rank the activity: they are not pre-assigned to
  * it, there are places to rank, and their grade and class pass the rules
  * (an empty list restricts nothing).

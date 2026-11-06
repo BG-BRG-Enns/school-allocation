@@ -161,6 +161,17 @@ section + section {
   font-weight: 600;
 }
 
+/* The header of a group of rows (a project day's activities) and the row just saved. */
+.table tr.group th {
+  padding-top: 14px;
+  color: inherit;
+  background: var(--ground);
+}
+
+.table tr.current td {
+  background: #e8f5ec;
+}
+
 .table input,
 .table select {
   width: 100%;

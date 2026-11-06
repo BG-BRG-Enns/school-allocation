@@ -4,9 +4,9 @@
 // organizers review, move the campaign on, set its rules and export the
 // catalogue.
 
-import { classConflicts, ITEM_STATES, MAX_RULES, RULE_LIMITS, RULE_UNITS, type Frame, type Period } from '@school-allocation/school-core'
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { classConflicts, isStaffOnly, ITEM_STATES, MAX_RULES, RULE_LIMITS, RULE_UNITS, type Frame, type Period } from '@school-allocation/school-core'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ClassPicker from '../components/ClassPicker.vue'
 import Collapsible from '../components/Collapsible.vue'
 import DemandTable from '../components/DemandTable.vue'
@@ -18,6 +18,7 @@ import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { datesBetween, formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf, nextDay } from '../lib/format.ts'
+import { groupByStartDay, type DayGroup } from '../lib/item-order.ts'
 import { bringsText, daysOf, offerOf } from '../lib/offer-cells.ts'
 import { useUiState } from '../lib/ui-state.ts'
 import { t } from '../lib/i18n.ts'
@@ -115,25 +116,58 @@ const statusFields = computed<FilterField[]>(() => [
 ])
 const missingShown = filtered(missing, statusFilter, (s, f) => matchesOption(s.className, f.className) && (f.incomplete !== true || s.state !== 'complete') && matchesText([s.displayName], f.text))
 // The activities filtered by state, category and text (title or teacher).
-const itemFilter = useListFilter('wahl:items', { state: '', category: '', companionsMissing: false, text: '' })
+const itemFilter = useListFilter('wahl:items', { state: '', category: '', companionsMissing: false, mine: false, text: '' })
 const itemFields = computed<FilterField[]>(() => [
   { key: 'state', kind: 'select', label: t.filters.state, options: ITEM_STATES.map((state) => ({ value: state, label: ITEM_STATE_LABELS[state] ?? state })) },
   ...(categories.value.length > 0 ? [{ key: 'category', kind: 'select' as const, label: t.filters.category, options: categories.value.map((c) => ({ value: c.id, label: c.name })) }] : []),
   // The companions are counted from the teachers, which students may not see: staff alone filter by them.
   ...(teaches.value || organizes.value ? [{ key: 'companionsMissing', kind: 'check' as const, label: t.filters.onlyCompanionsMissing }] : []),
+  // One's own: proposed by the person or with them among its teachers.
+  ...(teaches.value || organizes.value ? [{ key: 'mine', kind: 'check' as const, label: t.filters.onlyMine }] : []),
   { key: 'text', kind: 'text', label: t.filters.text },
 ])
 /** How many companions an activity still seeks: the number its lead wants less the teachers beside the lead. */
 const soughtOf = (item: Item): number => Math.max(0, item.companionsWanted - item.teachers.filter((teacher) => !teacher.lead).length)
-const itemsShown = filtered(items, itemFilter, (item, f) => matchesOption(item.state, f.state) && matchesOneOf(item.categoryIds, f.category) && (!f.companionsMissing || !(teaches.value || organizes.value) || soughtOf(item) > 0) && matchesText([item.title, ...item.teachers.map((teacher) => teacher.displayName)], f.text))
-// The order: as the catalogue numbers them (the server's), or by the first submission, the earliest first and the never submitted last; the browser remembers it.
-const itemOrder = useUiState<string>('wahl:items:order', 'number')
-const itemsOrdered = computed(() => itemOrder.value === 'proposed'
-  ? [...itemsShown.value].sort((a, b) => (a.firstProposedAt ?? '\uffff').localeCompare(b.firstProposedAt ?? '\uffff', 'en') || a.createdAt.localeCompare(b.createdAt, 'en'))
-  : itemsShown.value)
+const itemsShown = filtered(items, itemFilter, (item, f) => matchesOption(item.state, f.state) && matchesOneOf(item.categoryIds, f.category) && (!f.companionsMissing || !(teaches.value || organizes.value) || soughtOf(item) > 0) && (!f.mine || !(teaches.value || organizes.value) || own(item)) && matchesText([item.title, ...item.teachers.map((teacher) => teacher.displayName)], f.text))
+// The order: under the day an activity starts on (the default: what a day has already, and where a new one went), as
+// the catalogue numbers them (the server's), or by the first submission, the earliest first and the never submitted
+// last; the browser remembers a choice.
+const itemOrder = useUiState<string>('wahl:items:order', 'day')
+/** The rows in the chosen order, in groups: one per day with its header, or a single one without. */
+const itemGroups = computed<DayGroup<Item>[]>(() => {
+  if (itemOrder.value === 'proposed') {
+    return [{ day: null, items: [...itemsShown.value].sort((a, b) => (a.firstProposedAt ?? '\uffff').localeCompare(b.firstProposedAt ?? '\uffff', 'en') || a.createdAt.localeCompare(b.createdAt, 'en')) }]
+  }
+  if (itemOrder.value === 'number') return [{ day: null, items: [...itemsShown.value] }]
+  return groupByStartDay(itemsShown.value)
+})
+/** Whether the rows stand under their days: every order but the two flat ones, so a value the browser kept from elsewhere still shows headers for its groups. */
+const groupedByDay = computed(() => itemOrder.value !== 'number' && itemOrder.value !== 'proposed')
 
-/** The grades an activity is offered to, as the table says them: its grades, else the grades of its classes (the class names where the page does not know them), else "alle". */
+// The activity just saved (the form comes back with `?item=`): its row is marked and scrolled to, its section
+// opened by the scroll target being in it; a filter that hides it is said, not changed.
+const route = useRoute()
+const savedItemId = computed(() => (typeof route.query.item === 'string' ? route.query.item : ''))
+const savedItemHidden = computed(() => savedItemId.value !== '' && items.value.some((item) => item.id === savedItemId.value) && !itemsShown.value.some((item) => item.id === savedItemId.value))
+function resetItemFilter(): void {
+  itemFilter.value = { state: '', category: '', companionsMissing: false, mine: false, text: '' }
+}
+/** The saved activity the page has scrolled to: once per visit, not again with every letter typed into the filter. */
+let scrolledTo = ''
+watch([savedItemId, itemsShown], async ([id]) => {
+  if (id === '' || id === scrolledTo) return
+  await nextTick()
+  const row = document.getElementById(`item-${id}`)
+  if (!row) return
+  scrolledTo = id
+  row.closest('details')?.setAttribute('open', '')
+  row.scrollIntoView({ block: 'center' })
+}, { flush: 'post' })
+
+/** The grades an activity is offered to, as the table says them: its grades, else the grades of its classes (the class names where the page does not know them), else "alle"; a dash for one of its teachers alone. */
 function gradesText(item: Item): string {
+  // An activity of its teachers alone is offered to nobody.
+  if (isStaffOnly(item)) return '–'
   if (item.eligibleGrades.length > 0) return item.eligibleGrades.map((grade) => `${grade}.`).join(', ')
   if (item.eligibleClasses.length > 0) {
     const grades = [...new Set(item.eligibleClasses.map((name) => memberClasses.value.find((c) => c.className === name)?.grade).filter((grade): grade is number => grade !== undefined))].sort((a, b) => a - b)
@@ -1312,6 +1346,9 @@ function onSubmitPending(): void {
             id="items-order"
             v-model="itemOrder"
           >
+            <option value="day">
+              {{ t.campaign.items.orderDay }}
+            </option>
             <option value="number">
               {{ t.campaign.items.orderNumber }}
             </option>
@@ -1319,6 +1356,20 @@ function onSubmitPending(): void {
               {{ t.campaign.items.orderProposed }}
             </option>
           </select>
+        </p>
+        <p
+          v-if="savedItemHidden"
+          class="notice"
+          role="status"
+        >
+          {{ t.campaign.items.savedHidden }}
+          <button
+            type="button"
+            class="ghost small"
+            @click="resetItemFilter"
+          >
+            {{ t.filters.reset }}
+          </button>
         </p>
         <table
           v-if="itemsShown.length > 0"
@@ -1355,10 +1406,27 @@ function onSubmitPending(): void {
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody
+            v-for="group in itemGroups"
+            :key="group.day ?? 'all'"
+          >
             <tr
-              v-for="item in itemsOrdered"
+              v-if="groupedByDay"
+              class="group"
+            >
+              <th
+                colspan="9"
+                scope="rowgroup"
+              >
+                {{ group.day === null ? t.campaign.items.dayNone(group.items.length) : t.campaign.items.dayGroup(formatDay(group.day), group.items.length) }}
+              </th>
+            </tr>
+            <tr
+              v-for="item in group.items"
+              :id="`item-${item.id}`"
               :key="item.id"
+              :class="{ current: item.id === savedItemId }"
+              :aria-current="item.id === savedItemId ? 'true' : undefined"
             >
               <td>{{ item.number ?? '–' }}</td>
               <td>
@@ -1405,7 +1473,15 @@ function onSubmitPending(): void {
                 </ul>
               </td>
               <td>{{ formatWhenShort(item.firstProposedAt) }}</td>
-              <td>{{ item.places }}</td>
+              <td>
+                {{ item.places }}
+                <p
+                  v-if="isStaffOnly(item)"
+                  class="muted short"
+                >
+                  {{ t.campaign.items.staffOnly }}
+                </p>
+              </td>
               <td><span :class="['badge', `badge-${item.state}`]">{{ ITEM_STATE_LABELS[item.state] ?? item.state }}</span></td>
               <td class="row-actions">
                 <RouterLink
