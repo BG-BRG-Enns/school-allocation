@@ -98,7 +98,7 @@ test('a run on a closed campaign: compiled, solved, validated, stored and review
   assert.equal(review.items.find((i) => i.itemId === s.items.wien)?.fixed, 2)
   assert.ok((review.items.find((i) => i.itemId === s.items.tanz)?.assigned ?? 0) >= 1)
   const timItems = tim?.items.map((i) => named(i.itemId)).sort() ?? []
-  assert.ok(['klettern,wien', 'tanz,wien'].includes(timItems.join(',')), `a 210-minute fee-free Monday item and his trip, got ${timItems.join(',')}`)
+  assert.ok(['klettern,wien', 'tanz,wien'].includes(timItems.join(',')), `a four-period fee-free Monday item and his trip, got ${timItems.join(',')}`)
   assert.deepEqual(review.projectDays, s.campaign.projectDays)
   assert.equal((await get<{ campaign: Campaign }>(s, s.anna, `/api/campaigns/${id}`)).body.campaign.state, 'review')
 

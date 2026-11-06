@@ -11,7 +11,7 @@
 // classes away for two days), with generic names and places: nothing in
 // it points at a real school, venue or person.
 
-import { demandByDay, placeTarget, type ClassSize, type DayDemand, type DemandDay, type Frame, type OfferedItem } from '@school-allocation/school-core'
+import { creditsOf, DEFAULT_PERIODS, demandByDay, minutesOf, placeTarget, type ClassSize, type DayDemand, type DemandDay, type Frame, type OfferedItem } from '@school-allocation/school-core'
 import { CLASS_5A_GROUP, TEACHERS_GROUP } from '../../apps/api/test/helpers/fake-graph.ts'
 import { ANNA, BERND, CARLA, SARA, TIM, type Person } from '../../apps/api/test/helpers/personas.ts'
 import { FAMILY_NAMES, STUDENT_FIRST_NAMES, TEACHER_FIRST_NAMES } from './names.ts'
@@ -86,7 +86,7 @@ export interface ScenarioSession {
   /** Local times, HH:MM. */
   from: string
   to: string
-  /** The minutes the session credits on its date. */
+  /** The minutes the session credits on its date: derived from the grid, as the server does (clock). */
   minutes: number
 }
 
@@ -190,9 +190,20 @@ const PERIODS: Record<number, readonly [string, string]> = {
   1: ['07:35', '08:25'], 2: ['08:30', '09:20'], 3: ['09:25', '10:15'], 4: ['10:30', '11:20'], 5: ['11:25', '12:15'], 6: ['12:20', '13:10'],
 }
 
-/** A session over periods `first` to `last` of `date`, crediting 50 minutes a period. */
+/**
+ * A session of `date` by the clock, with what it credits: the minutes it
+ * shares with the periods of the seeded grid, as the server derives them
+ * (school-core creditsOf). The scenario's sessions lie within one day.
+ */
+function clock(date: string, from: string, to: string): ScenarioSession {
+  const ms = (time: string) => minutesOf(time) * 60_000
+  const day = { date, startMs: 0, endMs: 24 * 60 * 60_000, periods: DEFAULT_PERIODS.map((period) => ({ startMs: ms(period.starts), endMs: ms(period.ends) })) }
+  return { date, from, to, minutes: creditsOf({ startMs: ms(from), endMs: ms(to) }, [day])[0]?.minutes ?? 0 }
+}
+
+/** A session over periods `first` to `last` of `date`: 50 minutes a period. */
 function periods(date: string, first: number, last: number): ScenarioSession {
-  return { date, from: PERIODS[first]?.[0] ?? '', to: PERIODS[last]?.[1] ?? '', minutes: (last - first + 1) * 50 }
+  return clock(date, PERIODS[first]?.[0] ?? '', PERIODS[last]?.[1] ?? '')
 }
 
 const LOWER = [5, 6, 7, 8]
@@ -253,21 +264,21 @@ const CATALOGUE: readonly ItemSpec[] = [
   // Monday and Tuesday: the 7th classes away.
   {
     key: 'mon-tue-7th-trip', title: 'Rad- und Wandertage der 7. Klassen', description: 'Zwei Tage mit dem Rad und zu Fuß, mit Übernachtung in einer Jugendherberge.', location: 'Treffpunkt Haupteingang',
-    sessions: [{ date: MONDAY, from: '07:30', to: '18:00', minutes: 360 }, { date: TUESDAY, from: '08:00', to: '16:00', minutes: 300 }],
+    sessions: [clock(MONDAY, '07:30', '18:00'), clock(TUESDAY, '08:00', '16:00')],
     fixed: ['7A', '7B', '7G'], places: 0, feeCents: 8500, feeNote: 'Fahrt, Übernachtung und Verpflegung', categories: [sport, nature], companions: 1,
   },
   // Tuesday: class trips for the 1st classes, full mornings for the 2nd, careers guidance and courses for the 3rd and 4th, courses upstairs.
-  { key: 'tue-1a-zoo', title: 'Ausflug in den Tierpark', description: 'Fütterung, Führung und ein Picknick.', location: 'Treffpunkt Haupteingang', sessions: [{ date: TUESDAY, from: '08:00', to: '13:00', minutes: 250 }], fixed: ['1A'], places: 0, feeCents: 900, feeNote: 'Fahrt und Eintritt', categories: [nature], companions: 1 },
-  { key: 'tue-1b-hike', title: 'Wandertag', description: 'Eine Runde über die Hügel, mit Jause am Aussichtspunkt.', location: 'Treffpunkt Haupteingang', sessions: [{ date: TUESDAY, from: '08:00', to: '12:30', minutes: 250 }], fixed: ['1B'], places: 0, categories: [nature], companions: 1 },
-  { key: 'tue-1c-museum', title: 'Besuch im Freilichtmuseum', description: 'Wie man früher wohnte, kochte und arbeitete.', location: 'Treffpunkt Haupteingang', sessions: [{ date: TUESDAY, from: '07:45', to: '13:00', minutes: 250 }], fixed: ['1C'], places: 0, feeCents: 1100, feeNote: 'Fahrt und Eintritt', categories: [culture], companions: 1 },
-  { key: 'tue-1d-cave', title: 'Höhlenwanderung', description: 'Mit Führung durch eine Tropfsteinhöhle.', location: 'Treffpunkt Haupteingang', sessions: [{ date: TUESDAY, from: '07:30', to: '13:30', minutes: 250 }], fixed: ['1D'], places: 0, feeCents: 1200, feeNote: 'Fahrt und Führung', categories: [nature], companions: 1 },
-  { key: 'tue-1e-farm', title: 'Erlebnistag am Bauernhof', description: 'Tiere versorgen, Brot backen, Traktor fahren.', location: 'Treffpunkt Haupteingang', sessions: [{ date: TUESDAY, from: '08:00', to: '12:30', minutes: 250 }], fixed: ['1E'], places: 0, feeCents: 700, feeNote: 'Fahrt', categories: [nature], companions: 1 },
+  { key: 'tue-1a-zoo', title: 'Ausflug in den Tierpark', description: 'Fütterung, Führung und ein Picknick.', location: 'Treffpunkt Haupteingang', sessions: [clock(TUESDAY, '08:00', '13:00')], fixed: ['1A'], places: 0, feeCents: 900, feeNote: 'Fahrt und Eintritt', categories: [nature], companions: 1 },
+  { key: 'tue-1b-hike', title: 'Wandertag', description: 'Eine Runde über die Hügel, mit Jause am Aussichtspunkt.', location: 'Treffpunkt Haupteingang', sessions: [clock(TUESDAY, '08:00', '12:30')], fixed: ['1B'], places: 0, categories: [nature], companions: 1 },
+  { key: 'tue-1c-museum', title: 'Besuch im Freilichtmuseum', description: 'Wie man früher wohnte, kochte und arbeitete.', location: 'Treffpunkt Haupteingang', sessions: [clock(TUESDAY, '07:45', '13:00')], fixed: ['1C'], places: 0, feeCents: 1100, feeNote: 'Fahrt und Eintritt', categories: [culture], companions: 1 },
+  { key: 'tue-1d-cave', title: 'Höhlenwanderung', description: 'Mit Führung durch eine Tropfsteinhöhle.', location: 'Treffpunkt Haupteingang', sessions: [clock(TUESDAY, '07:30', '13:30')], fixed: ['1D'], places: 0, feeCents: 1200, feeNote: 'Fahrt und Führung', categories: [nature], companions: 1 },
+  { key: 'tue-1e-farm', title: 'Erlebnistag am Bauernhof', description: 'Tiere versorgen, Brot backen, Traktor fahren.', location: 'Treffpunkt Haupteingang', sessions: [clock(TUESDAY, '08:00', '12:30')], fixed: ['1E'], places: 0, feeCents: 700, feeNote: 'Fahrt', categories: [nature], companions: 1 },
   { key: 'tue-cooking', title: 'Kochen und Backen', description: 'Ein Menü aus der Schulküche, vom Einkauf bis zum Abwasch.', location: 'Schulküche', sessions: [periods(TUESDAY, 1, 5)], grades: [6], feeCents: 400, feeNote: 'Lebensmittel', min: 8, cancellable: true, categories: [community], popularity: 1.4, companions: 1 },
   { key: 'tue-upcycling', title: 'Upcycling-Werkstatt', description: 'Aus Altem Neues: Taschen, Lampen und Spiele aus Fundstücken.', location: 'Werkraum', sessions: [periods(TUESDAY, 1, 5)], grades: [6], categories: [creative] },
   { key: 'tue-board-games', title: 'Brettspielturnier', description: 'Von Klassikern bis zu neuen Spielen, mit Turnier am Ende.', location: 'Bibliothek', sessions: [periods(TUESDAY, 1, 5)], grades: [6], categories: [community], popularity: 1.1 },
   { key: 'tue-circus', title: 'Zirkuswerkstatt', description: 'Jonglieren, Balancieren, Akrobatik: am Ende eine kleine Vorstellung.', location: 'Turnsaal 1', sessions: [periods(TUESDAY, 1, 5)], grades: [6], categories: [sport], popularity: 1.2 },
   // Leaves five minutes before the first period: its own time group.
-  { key: 'tue-forest', title: 'Naturerlebnis Wald', description: 'Spurensuche, Bachforschung und ein Lager aus Ästen.', location: 'Treffpunkt Haupteingang', sessions: [{ date: TUESDAY, from: '07:30', to: '12:15', minutes: 250 }], grades: [6], categories: [nature], companions: 1 },
+  { key: 'tue-forest', title: 'Naturerlebnis Wald', description: 'Spurensuche, Bachforschung und ein Lager aus Ästen.', location: 'Treffpunkt Haupteingang', sessions: [clock(TUESDAY, '07:30', '12:15')], grades: [6], categories: [nature], companions: 1 },
   { key: 'tue-applications', title: 'Bewerbungstraining', description: 'Lebenslauf, Bewerbungsschreiben und ein geübtes Gespräch.', location: 'EDV-Saal 1', sessions: [periods(TUESDAY, 2, 5)], grades: [7, 8], weight: 2, categories: [careers], popularity: 0.8 },
   { key: 'tue-crafts', title: 'Betriebserkundung Handwerk', description: 'Zu Besuch in Werkstätten: was Lehrlinge dort lernen.', location: 'Treffpunkt Haupteingang', sessions: [periods(TUESDAY, 2, 5)], grades: [7, 8], weight: 2, feeCents: 300, feeNote: 'Fahrt', categories: [careers], companions: 1 },
   { key: 'tue-job-stations', title: 'Berufe-Parcours', description: 'Zwanzig Berufe an Stationen ausprobieren.', location: 'Aula', sessions: [periods(TUESDAY, 2, 5)], grades: [7, 8], weight: 2, categories: [careers], popularity: 1.1 },

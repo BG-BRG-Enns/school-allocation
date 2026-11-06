@@ -19,8 +19,8 @@ import { DB, get, harness, send, signIn, type Harness } from './helpers/harness.
 import { ANNA, BERND, CARLA, SARA } from './helpers/personas.ts'
 
 const DAYS = ['2027-06-21', '2027-06-22', '2027-06-23']
-const MONDAY = { startsAt: '2027-06-21T09:00:00+02:00', endsAt: '2027-06-21T13:00:00+02:00', credits: [{ date: '2027-06-21', minutes: 210 }] }
-const VIENNA = { startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-23T13:00:00+02:00', credits: [{ date: '2027-06-22', minutes: 360 }, { date: '2027-06-23', minutes: 240 }] }
+const MONDAY = { startsAt: '2027-06-21T09:00:00+02:00', endsAt: '2027-06-21T13:00:00+02:00' }
+const VIENNA = { startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-23T13:00:00+02:00' }
 
 interface Ready extends Harness {
   anna: CookieJar

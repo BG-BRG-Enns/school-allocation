@@ -71,7 +71,7 @@ test('a student moves in the swap window: every refusal by its code, the last pl
 
   // The refusals, each by its rule.
   assert.equal((await swap(s.sara, s.items.klettern)).body.error, 'below_minimum', 'Tanz needs one, and Sara is the one')
-  assert.equal((await swap(s.tim, s.items.schwimmen)).body.error, 'coverage_lost', '90 minutes where Klettern credits 210')
+  assert.equal((await swap(s.tim, s.items.schwimmen)).body.error, 'coverage_lost', 'two periods where Klettern credits four')
   assert.equal((await swap(s.sara, s.items.darts)).body.error, 'not_offered', 'overlaps the class trip')
   assert.equal((await swap(s.sara, s.items.wien)).body.error, 'not_offered', 'the class activity she is in by class')
   assert.equal((await swap(s.sara, s.items.tanz)).body.error, 'already_placed')
@@ -194,7 +194,7 @@ test('the class teacher places a student short of minutes into a gap; the organi
   const klettern = items.body.items.find((i) => i.id === s.items.klettern)
   assert.ok(klettern)
   // The body as the form sends it: the optional texts left out when empty.
-  const body = { title: klettern.title, feeCents: klettern.feeCents, places: klettern.places, minParticipants: klettern.minParticipants, cancellableBelowMin: klettern.cancellableBelowMin, fixedClasses: klettern.fixedClasses, eligibleGrades: klettern.eligibleGrades, eligibleClasses: klettern.eligibleClasses, teachers: klettern.teachers.map((t) => t.personId), sessions: klettern.sessions.map((x) => ({ startsAt: x.startsAt, endsAt: x.endsAt, credits: x.credits })) }
+  const body = { title: klettern.title, feeCents: klettern.feeCents, places: klettern.places, minParticipants: klettern.minParticipants, cancellableBelowMin: klettern.cancellableBelowMin, fixedClasses: klettern.fixedClasses, eligibleGrades: klettern.eligibleGrades, eligibleClasses: klettern.eligibleClasses, teachers: klettern.teachers.map((t) => t.personId), sessions: klettern.sessions.map((x) => ({ startsAt: x.startsAt, endsAt: x.endsAt })) }
   const worded = await send<{ error?: string }>(s, s.anna, 'PATCH', `/api/items/${s.items.klettern}`, { ...body, description: 'Mit Helm.' })
   assert.equal(worded.status, 200, JSON.stringify(worded.body))
   assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/items/${s.items.klettern}`, { ...body, places: 30 })).body.error, 'campaign_state', 'the places the run was computed with')

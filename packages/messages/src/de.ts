@@ -721,6 +721,8 @@ export const de = {
       swapUntil: 'Tauschzeit bis',
       wishesPerGroup: 'Wünsche je Zeitblock',
       dailyMinimum: (grade: number) => `Mindestminuten je Tag, ${grade}. Schulstufe`,
+      /** What the minutes are counted in: the periods a session covers. */
+      dailyMinimumHint: 'Gezählt wird die Unterrichtszeit der Einheiten, die die Termine belegen, ohne Pausen: Bei Einheiten zu 50 Minuten sind fünf Einheiten 250 Minuten.',
       showTeachers: 'Der Katalog nennt die Lehrkräfte der Aktivitäten',
       placeHeadroomPercent: 'Plätze über dem Bedarf, in Prozent',
       /** The attendance frame of a project day, two selects beside its date. */
@@ -880,7 +882,7 @@ export const de = {
       complete: 'Begleitung vollständig',
     },
     sessions: {
-      intro: 'Eine Aktivität hat meist einen Termin: einen zusammenhängenden Zeitraum, auch über mehrere Tage, etwa ein Ausflug von Dienstag 8:00 bis Mittwoch 13:00. Er liegt in den Einheiten der Schule oder nach der Uhrzeit. Einen weiteren Termin gibt es nur, wenn die Aktivität unterbrochen ist, etwa je zwei Einheiten am Montag und am Mittwoch: Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler*innen statt, ist das eine eigene Aktivität. Angerechnet werden die Minuten, die du je Projekttag angibst; Anreise und Pausen zählen nicht.',
+      intro: 'Eine Aktivität hat meist einen Termin: einen zusammenhängenden Zeitraum, auch über mehrere Tage, etwa ein Ausflug von Dienstag 8:00 bis Mittwoch 13:00. Er liegt in den Einheiten der Schule oder nach der Uhrzeit. Einen weiteren Termin gibt es nur, wenn die Aktivität unterbrochen ist, etwa je zwei Einheiten am Montag und am Mittwoch: Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler*innen statt, ist das eine eigene Aktivität. Angerechnet wird die Unterrichtszeit der Einheiten, die ein Termin belegt: Pausen und was außerhalb des Stundenrasters liegt, zählen nicht.',
       /** The heading of the only session. */
       single: 'Termin',
       session: (number: number) => `Termin ${number}`,
@@ -895,7 +897,6 @@ export const de = {
       /** The clock time after "Beginn am" and "Ende am". */
       at: 'um',
       endsOn: 'Ende am',
-      minutesOn: (day: string) => `Minuten am ${day}`,
       remove: 'Termin entfernen',
       add: 'Weiterer Termin (nur bei Unterbrechung)',
     },

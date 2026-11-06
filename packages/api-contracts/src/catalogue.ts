@@ -100,16 +100,11 @@ export const TransitionBody = StrictObject({
 export const CampaignDeletedResponse = StrictObject({ removed: Type.Array(StrictObject({ relation: Type.String(), count: Type.Integer() })) })
 export type CampaignDeletedResponse = Static<typeof CampaignDeletedResponse>
 
-export const CreditBody = StrictObject({
-  date: LocalDate,
-  minutes: Type.Integer({ minimum: 0, maximum: 24 * 60 }),
-})
-
+/** A session as a client sends it: when and where. What it credits per project day is the server's, derived from the school's periods (school-core creditsOf); the answer carries it. */
 export const SessionBody = StrictObject({
   startsAt: Instant,
   endsAt: Instant,
   location: Type.Optional(SingleLineText(200)),
-  credits: Type.Array(CreditBody, { minItems: 1, maxItems: 10 }),
 })
 
 export const ItemBody = StrictObject({

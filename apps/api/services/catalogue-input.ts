@@ -36,7 +36,8 @@ export function itemInput(body: Static<typeof ItemBody>, caller: Caller, creatin
     eligibleClasses: uniqueSorted(body.eligibleClasses ?? []),
     teachers,
     companionsWanted: body.companionsWanted ?? 0,
-    sessions: body.sessions.map((session) => ({ startsAt: session.startsAt, endsAt: session.endsAt, location: session.location ?? '', credits: session.credits })),
+    // What a session credits is derived when it is written (services/items.ts credited): a client sends none.
+    sessions: body.sessions.map((session) => ({ startsAt: session.startsAt, endsAt: session.endsAt, location: session.location ?? '', credits: [] })),
     ...(body.categories === undefined ? {} : { categories: uniqueSorted(body.categories.map((id) => id.toLowerCase())) }),
   }
 }

@@ -100,7 +100,6 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.item.sessions.fromPeriod).selectOption('2')
   await page.getByLabel(t.item.sessions.count, { exact: true }).fill('4')
   await expect(page.getByText('08:30 – 12:15')).toBeVisible()
-  await page.getByLabel(t.item.sessions.minutesOn(day('2034-07-03'))).fill('210')
   await page.getByLabel(t.common.field.places, { exact: true }).fill(String(CLIMBING.places))
   await page.getByLabel(t.item.participation.minParticipants).fill('6')
   // For the upper school, whose Monday morning it fits.

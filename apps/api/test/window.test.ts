@@ -208,7 +208,7 @@ test('a catalogue change after the opening: a ranked item withdrawn is pruned fr
   const wien = (await get<{ items: Item[] }>(s, s.anna, `/api/campaigns/${id}/items`)).body.items.find((i) => i.id === s.items.wien) as Item
   const edited = await send(s, s.anna, 'PATCH', `/api/items/${s.items.wien}`, {
     title: wien.title, places: wien.places, fixedClasses: [], cancellableBelowMin: true, teachers: wien.teachers.map((te) => te.personId),
-    sessions: wien.sessions.map((se) => ({ startsAt: se.startsAt, endsAt: se.endsAt, credits: se.credits })),
+    sessions: wien.sessions.map((se) => ({ startsAt: se.startsAt, endsAt: se.endsAt })),
   })
   assert.equal(edited.status, 200, JSON.stringify(edited.body))
   const freed = await get<View>(s, s.sara, `/api/campaigns/${id}/my-choice`)
@@ -219,7 +219,7 @@ test('a catalogue change after the opening: a ranked item withdrawn is pruned fr
   // And back: 5A fixed again, placed again.
   const again = await send(s, s.anna, 'PATCH', `/api/items/${s.items.wien}`, {
     title: wien.title, places: wien.places, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: wien.teachers.map((te) => te.personId),
-    sessions: wien.sessions.map((se) => ({ startsAt: se.startsAt, endsAt: se.endsAt, credits: se.credits })),
+    sessions: wien.sessions.map((se) => ({ startsAt: se.startsAt, endsAt: se.endsAt })),
   })
   assert.equal(again.status, 200, JSON.stringify(again.body))
   const placed = await get<View>(s, s.sara, `/api/campaigns/${id}/my-choice`)

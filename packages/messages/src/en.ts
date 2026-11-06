@@ -714,6 +714,7 @@ export const en: Messages = {
       swapUntil: 'Swap period until',
       wishesPerGroup: 'Choices per time block',
       dailyMinimum: (grade: number) => `Minimum minutes per day, Year ${grade}`,
+      dailyMinimumHint: 'What counts is the lesson time of the periods the sessions cover, without breaks: with periods of 50 minutes, five periods are 250 minutes.',
       showTeachers: 'The catalogue names the teachers of the activities',
       placeHeadroomPercent: 'Places above the need, in percent',
       frameFrom: (day: number) => `Attendance frame from period, project day ${day}`,
@@ -860,7 +861,7 @@ export const en: Messages = {
       complete: 'Companions complete',
     },
     sessions: {
-      intro: 'An activity usually has one session: one continuous span, also over several days, such as a trip from Tuesday 8:00 to Wednesday 13:00. It is given in school periods or by clock time. A further session is only for an activity that is interrupted, such as two periods each on Monday and on Wednesday: whoever is assigned attends every session. The same activity held again for other students is an activity of its own. The minutes you enter for each project day are credited; travel and breaks do not count.',
+      intro: 'An activity usually has one session: one continuous span, also over several days, such as a trip from Tuesday 8:00 to Wednesday 13:00. It is given in school periods or by clock time. A further session is only for an activity that is interrupted, such as two periods each on Monday and on Wednesday: whoever is assigned attends every session. The same activity held again for other students is an activity of its own. What is credited is the lesson time of the periods a session covers: breaks and what lies outside the timetable do not count.',
       single: 'Session',
       session: (number: number) => `Session ${number}`,
       /** Whether the session is placed in the period grid or by the clock. */
@@ -874,7 +875,6 @@ export const en: Messages = {
       /** The clock time after "Starts on" and "Ends on". */
       at: 'at',
       endsOn: 'Ends on',
-      minutesOn: (day: string) => `Minutes on ${day}`,
       remove: 'Remove session',
       add: 'Further session (only for an interruption)',
     },

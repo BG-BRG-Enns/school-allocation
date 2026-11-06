@@ -68,7 +68,7 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
   // Teachers of an item are replaced as a whole when it is edited; sessions too when their times change, else a
   // session keeps its id (the attendance refers to it) and only its location is written.
   item_teacher: { table: ['SELECT', 'INSERT', 'DELETE'] },
-  item_session: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['location'] },
+  item_session: { table: ['SELECT', 'INSERT', 'DELETE'], updateColumns: ['location', 'credits'] },
   // An activity's categories are replaced as a whole when it is edited.
   item_category: { table: ['SELECT', 'INSERT', 'DELETE'] },
   // The period grid is replaced as a whole by an administrator, audited.

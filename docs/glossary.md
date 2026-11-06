@@ -58,7 +58,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | period | Einheit, "2. EH" | period, "P2" | Q5 |
 | period grid | Stundenraster | timetable | |
 | session input mode | "Angabe in" (Einheiten / Uhrzeit) | "Given in" (periods / clock time) | |
-| credited minutes | angerechnete Minuten | credited minutes | |
+| credited minutes | angerechnete Minuten; "die Unterrichtszeit der Einheiten, die ein Termin belegt" | credited minutes; "the lesson time of the periods a session covers" | derived from the period grid, never entered |
 | time group (D-05) | Zeitblock; "Wünsche je Zeitblock" | time block | |
 | wish, ranking | Wunsch, Wünsche; Wünsche abgeben | choice, choices | |
 | choice window | Anmeldezeitraum | registration period | |

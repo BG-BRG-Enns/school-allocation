@@ -51,7 +51,7 @@ test('a school year past its retention is purged whole; the next year, its peopl
   const created = await send<Campaign>(h, anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'Projektwoche 2024', schoolYear: '2023/24', projectDays: ['2024-06-24'] })
   const id = created.body.id
   await send(h, anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'catalogue' })
-  const session = { startsAt: '2024-06-24T08:30:00+02:00', endsAt: '2024-06-24T12:15:00+02:00', credits: [{ date: '2024-06-24', minutes: 210 }] }
+  const session = { startsAt: '2024-06-24T08:30:00+02:00', endsAt: '2024-06-24T12:15:00+02:00' }
   const propose = async (title: string) => {
     const item = await send<Item>(h, bernd, 'POST', `/api/campaigns/${id}/items`, { title, places: 10, teachers: [person(BERND.name)], sessions: [session] })
     assert.equal(item.status, 201, JSON.stringify(item.body))

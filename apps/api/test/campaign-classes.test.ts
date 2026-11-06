@@ -18,7 +18,7 @@ import { ANNA, BERND, CARLA, SARA, TIM } from './helpers/personas.ts'
 
 const ADMIN = { BOOTSTRAP_ADMINS: ANNA.email ?? '' }
 const DAYS = ['2027-06-21', '2027-06-22']
-const MONDAY = { startsAt: '2027-06-21T09:00:00+02:00', endsAt: '2027-06-21T13:00:00+02:00', credits: [{ date: '2027-06-21', minutes: 210 }] }
+const MONDAY = { startsAt: '2027-06-21T09:00:00+02:00', endsAt: '2027-06-21T13:00:00+02:00' }
 
 type Ready = Harness & { anna: CookieJar, bernd: CookieJar, carla: CookieJar, sara: CookieJar, tim: CookieJar, bernd_id: string }
 
@@ -107,7 +107,7 @@ test('a student of a class left out sees nothing of the registration; the openin
     return item.body.id
   }
   await propose({ title: 'Klettern', places: 12, sessions: [MONDAY] })
-  await propose({ title: 'Wien', places: 2, fixedClasses: ['5A'], cancellableBelowMin: false, sessions: [{ startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-22T18:00:00+02:00', credits: [{ date: '2027-06-22', minutes: 420 }] }] })
+  await propose({ title: 'Wien', places: 2, fixedClasses: ['5A'], cancellableBelowMin: false, sessions: [{ startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-22T18:00:00+02:00' }] })
   // The classes offered to the proposal form and the demand: 5A alone.
   assert.deepEqual((await get<{ classes: { className: string }[] }>(s, s.bernd, `/api/campaigns/${id}/classes`)).body.classes.map((c) => c.className), ['5A'])
   const demand = await get<{ demand: { date: string, grades: { grade: number, cells: { needing: number }[] }[] }[] }>(s, s.anna, `/api/campaigns/${id}/demand`)

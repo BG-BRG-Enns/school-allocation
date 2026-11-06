@@ -5,7 +5,7 @@ import type { Static } from 'typebox'
 import type { GrantBody } from './administration.ts'
 import type { AllocationInputProblemSchema, AllocationProblemSchema, AllocationSummarySchema, AllocationWarningSchema, ExplainedDaySchema, ExplainedItemSchema, LevelValueSchema, RuleStandingSchema, SolveRequestSchema, SolveResponseSchema, SolveStatusSchema, StudentExplanationSchema } from './allocation.ts'
 import type { CatalogueProblemCodeSchema, CatalogueProblemSchema, CreditSchema, DayDemandSchema, FrameSchema, ItemStateSchema, RuleDemandSchema, RuleSchema } from './campaigns.ts'
-import type { CreditBody, GateCellSchema, PeriodBody, RuleBody, RuleProblemSchema } from './catalogue.ts'
+import type { GateCellSchema, PeriodBody, RuleBody, RuleProblemSchema } from './catalogue.ts'
 import type { RankingProblemCodeSchema, RankingProblemSchema, RuleReachSchema } from './choices.ts'
 import type { PersonKindSchema, Role } from './common.ts'
 import type { BatchDetailSchema, ChangedFieldSchema, RosterDiffSummarySchema, RosterEntrySchema, RosterProblemCodeSchema, RosterProblemSchema, StoredEntry } from './roster.ts'
@@ -35,7 +35,6 @@ export type DomainSchemaChecks = [
   Assert<Equal<Static<typeof RosterDiffSummarySchema>, Core.RosterDiffSummary>>,
   Assert<Equal<Static<typeof PeriodSchema>, Core.Period>>,
   Assert<Equal<Static<typeof BatchDetailSchema>['diff'], Core.RosterDiff<StoredEntry>>>,
-  Assert<Equal<Static<typeof CreditBody>, Core.Credit>>,
   Assert<Equal<Static<typeof PeriodBody>, Core.Period>>,
   Assert<Equal<Static<typeof SolveRequestSchema>, Core.SolveRequest>>,
   Assert<Equal<Static<typeof SolveResponseSchema>, Core.SolveResponse>>,

@@ -61,9 +61,6 @@ export const deFormal = {
     unbound: 'Das Konto ist noch niemandem aus den Klassenlisten zugeordnet. Falls die Teilnahme an einer Anmeldung vorgesehen ist, bitte an die Administration wenden.',
   },
   item: {
-    sessions: {
-      intro: 'Eine Aktivität hat meist einen Termin: einen zusammenhängenden Zeitraum, auch über mehrere Tage, etwa ein Ausflug von Dienstag 8:00 bis Mittwoch 13:00. Er liegt in den Einheiten der Schule oder nach der Uhrzeit. Einen weiteren Termin gibt es nur, wenn die Aktivität unterbrochen ist, etwa je zwei Einheiten am Montag und am Mittwoch: Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler*innen statt, ist das eine eigene Aktivität. Angerechnet werden die Minuten, die Sie je Projekttag angeben; Anreise und Pausen zählen nicht.',
-    },
     gate: {
       advice: 'Wählen Sie eine Zeit, in der noch Plätze fehlen, oder nehmen Sie eine Schulstufe dazu, der noch Plätze fehlen.',
       organizerAnyway: 'Als Organisation können Sie sie trotzdem einreichen und genehmigen.',

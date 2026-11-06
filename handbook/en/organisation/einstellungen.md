@@ -26,7 +26,7 @@ A **time block** is the activities on a project day that take place at the same 
 
 ## Minimum minutes per day
 
-For each year: how many minutes of activities students need on a project day. The allocation fills these minutes as well as possible; any shortfall is shown as missing minutes. The minutes an activity specifies for each day are credited. You cannot calculate an allocation without minimum minutes for every year in the registration; you can enter and change them until publication.
+For each year: how many minutes of activities students need on a project day. The allocation fills these minutes as well as possible; any shortfall is shown as missing minutes. What is credited is the lesson time of the periods an activity's sessions cover, without breaks: with periods of 50 minutes, five periods are 250 minutes, whether one activity fills them or two. Nobody enters these minutes; when the timetable changes, SchulWahl works them out again for registrations that have not opened yet. You cannot calculate an allocation without minimum minutes for every year in the registration; you can enter and change them until publication.
 
 ## Places above the need
 

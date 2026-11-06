@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // Proposing or editing an activity: what it is, who teaches it, when it
-// takes place and what each session credits per project day, how many may
-// rank it and who, which classes are fixed into it, what it costs. A
+// takes place, how many may rank it and who, which classes are fixed into it, what it costs. A
 // session is placed in the school's period grid ("from the 2nd period, 2
-// periods") or, for a trip, by the clock. The rules are the server's
+// periods") or, for a trip, by the clock; what it credits per project day
+// the server derives from the school's periods. The rules are the server's
 // (school-core); a refusal names them here.
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -85,7 +85,6 @@ interface SessionForm {
   endDate: string
   end: string
   location: string
-  credits: Record<string, number>
 }
 const sessions = ref<SessionForm[]>([])
 
@@ -224,7 +223,6 @@ function fromStored(s: Item['sessions'][number]): SessionForm {
     endDate: localDateOf(s.endsAt),
     end: localTimeOf(s.endsAt),
     location: s.location,
-    credits: Object.fromEntries(s.credits.map((c) => [c.date, c.minutes])),
   }
   const span = periodsOnGrid(grid.value, s.startsAt, s.endsAt)
   if (span !== null) {
@@ -243,7 +241,7 @@ function defaultPeriods(): { fromPeriod: number, count: number } {
 
 function addSession(): void {
   const day = campaign.value?.projectDays[0] ?? ''
-  const s: SessionForm = { mode: grid.value.length > 0 ? 'periods' : 'clock', ...defaultPeriods(), date: day, start: '08:00', endDate: day, end: '13:00', location: '', credits: {} }
+  const s: SessionForm = { mode: grid.value.length > 0 ? 'periods' : 'clock', ...defaultPeriods(), date: day, start: '08:00', endDate: day, end: '13:00', location: '' }
   syncPeriods(s)
   sessions.value.push(s)
 }
@@ -252,7 +250,7 @@ function removeSession(index: number): void {
   sessions.value.splice(index, 1)
 }
 
-/** In period mode the clock fields follow the grid; the credit of a day not yet entered follows the clock. */
+/** In period mode the clock fields follow the grid. */
 function syncPeriods(s: SessionForm): void {
   if (s.mode !== 'periods') return
   const span = spanOfPeriods(grid.value, Number(s.fromPeriod), Number(s.count))
@@ -262,25 +260,9 @@ function syncPeriods(s: SessionForm): void {
   s.endDate = s.date
 }
 
-/** The days a session touches, which it may credit; an end at midnight does not touch the next day. */
+/** The days a session touches; an end at midnight does not touch the next day. */
 function touched(s: SessionForm): string[] {
   return touchedDates(s.date, s.endDate, s.end)
-}
-
-/** Minutes between the session's clock times on one day: the starting point for the credit a teacher then corrects. */
-function clockMinutes(s: SessionForm): number {
-  const [sh = 0, sm = 0] = s.start.split(':').map(Number)
-  const [eh = 0, em = 0] = s.end.split(':').map(Number)
-  return Math.max(0, eh * 60 + em - (sh * 60 + sm))
-}
-
-function creditOf(s: SessionForm, date: string): number {
-  if (s.credits[date] === undefined) s.credits[date] = touched(s).length === 1 ? clockMinutes(s) : 0
-  return s.credits[date]
-}
-
-function setCredit(s: SessionForm, date: string, value: string): void {
-  s.credits[date] = Number(value)
 }
 
 /** The periods a session may span from its first one: up to the grid's last. */
@@ -401,7 +383,6 @@ function input(): ItemInput {
         startsAt: instant(s.date, s.start),
         endsAt: instant(s.endDate || s.date, s.end),
         location: s.location.trim() || undefined,
-        credits: touched(s).map((date) => ({ date, minutes: creditOf(s, date) })),
       }
     }),
   }
@@ -736,24 +717,6 @@ async function save(propose: boolean): Promise<void> {
             :id="`s-${index}-location`"
             v-model="s.location"
             maxlength="200"
-          >
-        </p>
-      </div>
-      <div class="row">
-        <p
-          v-for="date in touched(s)"
-          :key="date"
-          class="field"
-        >
-          <label :for="`s-${index}-credit-${date}`">{{ t.item.sessions.minutesOn(formatDay(date)) }}</label>
-          <input
-            :id="`s-${index}-credit-${date}`"
-            type="number"
-            min="0"
-            max="1440"
-            step="5"
-            :value="creditOf(s, date)"
-            @input="setCredit(s, date, ($event.target as HTMLInputElement).value)"
           >
         </p>
       </div>

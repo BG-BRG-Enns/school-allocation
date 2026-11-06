@@ -5,9 +5,11 @@
 // allows and nothing else.
 
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
+import { DEFAULT_PERIODS } from '@school-allocation/school-core'
 import { verifyAuditChain } from '../lib/audit-chain.ts'
-import { readAudit } from '../lib/audit.ts'
+import { readAudit, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { createDatabase } from '../lib/db.ts'
 import type { Campaign } from '../lib/models/campaigns.ts'
 import type { Item } from '../lib/models/items.ts'
@@ -19,8 +21,8 @@ import { ANNA, BERND, CARLA, SARA, TIM } from './helpers/personas.ts'
 const ADMIN = { BOOTSTRAP_ADMINS: ANNA.email ?? '' }
 const DAYS = ['2027-06-21', '2027-06-22', '2027-06-23']
 // Monday 09:00–13:00 and Tuesday 08:00 – Wednesday 13:00, Vienna time.
-const MONDAY = { startsAt: '2027-06-21T09:00:00+02:00', endsAt: '2027-06-21T13:00:00+02:00', credits: [{ date: '2027-06-21', minutes: 210 }] }
-const VIENNA = { startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-23T13:00:00+02:00', location: 'Wien', credits: [{ date: '2027-06-22', minutes: 360 }, { date: '2027-06-23', minutes: 240 }] }
+const MONDAY = { startsAt: '2027-06-21T09:00:00+02:00', endsAt: '2027-06-21T13:00:00+02:00' }
+const VIENNA = { startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-23T13:00:00+02:00', location: 'Wien' }
 
 interface Ready extends Harness {
   anna: CookieJar
@@ -127,10 +129,10 @@ test('a teacher proposes within the rules, the organizer returns, approves and p
   // The rules, refused with their codes.
   const invalid = await send<{ error: string, problems: { code: string, session?: number }[], unknownTeachers: string[] }>(s, s.bernd, 'POST', url, {
     title: 'Falsch', places: 5, minParticipants: 10, fixedClasses: ['7C'], cancellableBelowMin: true, teachers: ['00000000-0000-4000-8000-000000000000'],
-    sessions: [{ startsAt: '2027-06-28T09:00:00+02:00', endsAt: '2027-06-28T08:00:00+02:00', credits: [{ date: '2027-06-21', minutes: 60 }] }],
+    sessions: [{ startsAt: '2027-06-28T09:00:00+02:00', endsAt: '2027-06-28T08:00:00+02:00' }],
   })
   assert.equal(invalid.status, 422)
-  assert.deepEqual(invalid.body.problems.map((p) => p.code).sort(), ['credit_date_outside_session', 'fixed_class_unknown', 'fixed_item_cancellable', 'min_above_places', 'session_ends_before_start', 'session_outside_project_days'])
+  assert.deepEqual(invalid.body.problems.map((p) => p.code).sort(), ['fixed_class_unknown', 'fixed_item_cancellable', 'min_above_places', 'session_ends_before_start', 'session_outside_project_days'])
   assert.deepEqual(invalid.body.unknownTeachers, ['00000000-0000-4000-8000-000000000000'])
   assert.equal((await send(s, s.bernd, 'POST', url, { title: 'x', places: 5, teachers: [], sessions: [MONDAY], extra: 1 })).status, 400)
   assert.equal((await send(s, s.sara, 'POST', url, { title: 'x', places: 5, teachers: [], sessions: [MONDAY] })).status, 404, 'a student cannot even see it')
@@ -265,3 +267,64 @@ test('a draft is deleted by its teacher, anything later is withdrawn by an organ
 })
 
 export type { Harness }
+
+test('what a session credits is derived from the periods it covers and never sent; the migration brings stored sessions to the rule; a changed grid derives it again until the registration opens', DB, async (t) => {
+  const s = await school(t)
+  const campaign = await campaignTakingProposals(s)
+  const url = `/api/campaigns/${campaign.id}/items`
+  const creditsOf = async (id: string) => ((await get<{ items: Item[] }>(s, s.anna, url)).body.items.find((i) => i.id === id) as Item).sessions.map((x) => x.credits)
+  const make = async (title: string, session: { startsAt: string, endsAt: string }): Promise<Item> => {
+    const made = await send<Item>(s, s.bernd, 'POST', url, { title, places: 12, teachers: [], sessions: [session] })
+    assert.equal(made.status, 201, JSON.stringify(made.body))
+    return made.body
+  }
+
+  // A credit a client sends is no part of the body any more.
+  assert.equal((await send(s, s.bernd, 'POST', url, { title: 'x', places: 5, teachers: [], sessions: [{ ...MONDAY, credits: [{ date: '2027-06-21', minutes: 999 }] }] })).status, 400)
+
+  // On the school's grid: 09:00–13:00 is 20 minutes of the 2nd period, the 3rd to the 5th, and 40 of the 6th; two periods are 100, the break between them not.
+  const climbing = await make('Klettern', MONDAY)
+  assert.deepEqual(climbing.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 210 }]])
+  const chess = await make('Schach', { startsAt: '2027-06-21T08:30:00+02:00', endsAt: '2027-06-21T10:15:00+02:00' })
+  assert.deepEqual(chess.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 100 }]])
+  // Over two days, each date by its own periods: Tuesday from 08:00 to the grid's end, Wednesday until 13:00.
+  const vienna = await make('Wien', VIENNA)
+  assert.deepEqual(vienna.sessions.map((x) => x.credits), [[{ date: '2027-06-22', minutes: 475 }, { date: '2027-06-23', minutes: 290 }]])
+  // An evening shares nothing with the grid: by the clock.
+  const theatre = await make('Theater', { startsAt: '2027-06-21T19:00:00+02:00', endsAt: '2027-06-21T21:00:00+02:00' })
+  assert.deepEqual(theatre.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 120 }]])
+  const expected = new Map([[climbing.id, climbing.sessions.map((x) => x.credits)], [chess.id, chess.sessions.map((x) => x.credits)], [vienna.id, vienna.sessions.map((x) => x.credits)], [theatre.id, theatre.sessions.map((x) => x.credits)]])
+
+  // The migration's statement, on sessions as they were typed before it: the same numbers as the server's arithmetic.
+  const owner = createDatabase(s.ownerUrl, () => {})
+  t.after(() => owner.close())
+  await owner.query('update item_session set credits = \'[{"date": "2027-06-21", "minutes": 1}]\'')
+  assert.deepEqual(await creditsOf(climbing.id), [[{ date: '2027-06-21', minutes: 1 }]])
+  await owner.query(await readFile(new URL('../migrations/0009_derived_credits.sql', import.meta.url), 'utf8'))
+  for (const [id, credits] of expected) assert.deepEqual(await creditsOf(id), credits)
+
+  // Another grid, six periods of 45 minutes from 08:00 with five minutes between: the registration is not open, so its sessions follow.
+  const short = [0, 1, 2, 3, 4, 5].map((n) => {
+    const at = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+    return { period: n + 1, starts: at(480 + n * 50), ends: at(480 + n * 50 + 45) }
+  })
+  assert.equal((await send(s, s.anna, 'PUT', '/api/admin/settings/periods', { periods: short })).status, 200)
+  // 09:00–13:00 now: 35 minutes of the 2nd period (08:50–09:35) and the 3rd to the 6th whole.
+  assert.deepEqual(await creditsOf(climbing.id), [[{ date: '2027-06-21', minutes: 215 }]])
+  assert.deepEqual(await creditsOf(theatre.id), [[{ date: '2027-06-21', minutes: 120 }]])
+
+  // Opened, the registration keeps what its choices compute with, whatever the grid becomes; an edit of the words keeps it too.
+  assert.equal((await send(s, s.bernd, 'POST', `/api/items/${climbing.id}/propose`)).status, 200)
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/items/${climbing.id}/approve`)).status, 200)
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${campaign.id}/transition`, { to: 'published' })).status, 200)
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${campaign.id}`, { name: campaign.name, schoolYear: '2026/27', projectDays: DAYS, opensAt: '2027-03-01T08:00:00+01:00', closesAt: '2027-03-08T20:00:00+01:00' })).status, 200)
+  assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${campaign.id}/transition`, { to: 'open' })).status, 200)
+  assert.equal((await send(s, s.anna, 'PUT', '/api/admin/settings/periods', { periods: DEFAULT_PERIODS })).status, 200)
+  assert.deepEqual(await creditsOf(climbing.id), [[{ date: '2027-06-21', minutes: 215 }]])
+  const renamed = await send<Item>(s, s.anna, 'PATCH', `/api/items/${climbing.id}`, { title: 'Klettern in der Halle', places: 12, teachers: [s.berndPerson], sessions: [MONDAY] })
+  assert.equal(renamed.status, 200, JSON.stringify(renamed.body))
+  assert.deepEqual(renamed.body.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 215 }]])
+
+  const changes = (await readAudit(owner, SCHOOL_SCOPE)).filter((e) => e.action === 'settings.periods-changed').map((e) => e.metadata.sessions)
+  assert.deepEqual(changes, [4, 0], 'four sessions followed the first change, none the second')
+})

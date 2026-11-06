@@ -11,4 +11,4 @@ Change the start and end times, use **Add period** to add a period at the end or
 - Every period ends after it starts.
 - No period starts before the previous one ends.
 
-Sessions already entered keep their clock times if you change the timetable later.
+Sessions already entered keep their clock times if you change the timetable later. The minutes they credit are counted from the periods they cover: for registrations that have not opened yet, SchulWahl works these minutes out again with the new timetable; a registration that has opened keeps what its choices and its allocation compute with.

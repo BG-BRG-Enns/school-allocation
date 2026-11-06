@@ -22,11 +22,11 @@ On the registration's page, **Companions sought** leads to a list per project da
 
 ## Sessions
 
-![The sessions: one session in periods, from period 2, lasting 4 periods, with clock times and credited minutes on the project day](/bilder/en/aktivitaet-termine.png)
+![The sessions: one session in periods, from period 2, lasting 4 periods, with its clock times](/bilder/en/aktivitaet-termine.png)
 
 An activity usually has **one** session: one continuous span. It fits into the school's periods: choose the **Day**, **from period** and **Number of periods**; SchulWahl shows the clock times. For a trip or anything else outside the timetable, under **Given in**, choose **Clock time** and enter the start and end; such a session can also run over several days, from Tuesday 8:00 to Wednesday 13:00, say.
 
-**Minutes on** each project day are the minutes the session credits to students on that day. Travel and breaks do not count. Credited minutes fill the minimum minutes students need each day.
+You do not enter how many minutes a session credits to students on each project day: SchulWahl counts the lesson time of the periods the session covers. Two periods of 50 minutes are 100 minutes, the break between them does not count; a trip from 8:00 to 13:00 counts the periods within that time, a period it cuts into by its minutes. What lies outside the timetable does not count; only a session wholly outside it, in the evening for example, counts by the clock. The credited minutes are shown in the catalogue and fill the minimum minutes students need each day.
 
 **Further session (only for an interruption)** is for an activity that does not take place in one piece, such as two periods each on Monday and on Wednesday. Whoever is assigned attends every session. If the same activity is held again for other students, create it as an activity of its own.
 

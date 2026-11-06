@@ -22,11 +22,11 @@ Auf der Seite der Anmeldung führt **Begleitung gesucht** zu einer Liste je Proj
 
 ## Termine
 
-![Die Termine: ein Termin in Einheiten, ab der 2. Einheit, 4 Einheiten lang, mit der Uhrzeit und den angerechneten Minuten am Projekttag](/bilder/de/aktivitaet-termine.png)
+![Die Termine: ein Termin in Einheiten, ab der 2. Einheit, 4 Einheiten lang, mit der Uhrzeit dazu](/bilder/de/aktivitaet-termine.png)
 
 Eine Aktivität hat meist **einen** Termin: einen zusammenhängenden Zeitraum. Er liegt in den Einheiten der Schule: Wähle den **Tag**, **ab Einheit** und die **Anzahl Einheiten**; SchulWahl zeigt die Uhrzeit dazu. Für einen Ausflug oder anderes außerhalb des Stundenrasters wählst du bei **Angabe in** die **Uhrzeit** und gibst Beginn und Ende an; so ein Termin kann auch über mehrere Tage gehen, etwa von Dienstag 8:00 bis Mittwoch 13:00.
 
-**Minuten am** jedem Projekttag sind die Minuten, die der Termin den Schüler\*innen an diesem Tag anrechnet. Anreise und Pausen zählen nicht. Die angerechneten Minuten füllen die Mindestminuten, die für Schüler\*innen je Tag gelten.
+Wie viele Minuten ein Termin den Schüler\*innen je Projekttag anrechnet, trägst du nicht ein: SchulWahl zählt die Unterrichtszeit der Einheiten, die der Termin belegt. Zwei Einheiten zu 50 Minuten sind 100 Minuten, die Pause dazwischen zählt nicht; ein Ausflug von 8:00 bis 13:00 zählt die Einheiten, die in dieser Zeit liegen, eine angeschnittene mit ihren Minuten. Was außerhalb des Stundenrasters liegt, zählt nicht; nur ein Termin, der ganz außerhalb liegt, etwa am Abend, zählt nach der Uhr. Die angerechneten Minuten stehen im Katalog und füllen die Mindestminuten, die für Schüler\*innen je Tag gelten.
 
 **Weiterer Termin (nur bei Unterbrechung)** ist für eine Aktivität, die nicht in einem Stück stattfindet, etwa je zwei Einheiten am Montag und am Mittwoch. Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler\*innen statt, lege sie als eigene Aktivität an.
 

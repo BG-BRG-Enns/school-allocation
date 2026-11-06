@@ -26,7 +26,7 @@ Ein **Zeitblock** sind die Aktivitäten eines Projekttags, die zur selben Zeit s
 
 ## Mindestminuten je Tag
 
-Für jede Schulstufe: wie viele Minuten an Aktivitäten Schüler\*innen an einem Projekttag mindestens haben sollen. Die Zuteilung füllt diese Minuten so gut wie möglich; was fehlt, zeigt sie als fehlende Minuten. Angerechnet werden die Minuten, die eine Aktivität je Tag angibt. Ohne Mindestminuten für jede Schulstufe der Anmeldung lässt sich keine Zuteilung berechnen; du kannst sie bis zur Veröffentlichung eintragen und ändern.
+Für jede Schulstufe: wie viele Minuten an Aktivitäten Schüler\*innen an einem Projekttag mindestens haben sollen. Die Zuteilung füllt diese Minuten so gut wie möglich; was fehlt, zeigt sie als fehlende Minuten. Angerechnet wird die Unterrichtszeit der Einheiten, die die Termine einer Aktivität belegen, ohne Pausen: Bei Einheiten zu 50 Minuten sind fünf Einheiten 250 Minuten, gleich ob sie eine Aktivität füllt oder zwei. Niemand trägt diese Minuten ein; ändert sich das Stundenraster, rechnet SchulWahl sie für Anmeldungen, die noch nicht geöffnet sind, neu. Ohne Mindestminuten für jede Schulstufe der Anmeldung lässt sich keine Zuteilung berechnen; du kannst sie bis zur Veröffentlichung eintragen und ändern.
 
 ## Plätze über dem Bedarf
 

@@ -11,10 +11,12 @@ import type { ItemCheckBody, ItemCheckResponse, ClassConflictView } from '@schoo
 import { acceptsProposals, addedCells, checkItem, classConflicts, demandByDay, gateCells, gateRefused, isStaffOnly, itemTransition, servedCells, type CampaignState, type ClassActivity, type GateCell, type ItemState, type OfferedItem } from '@school-allocation/school-core'
 import { actorOf, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
+import { sessionCredits } from '../lib/credits.ts'
 import { lockedCampaign, readCampaign } from '../lib/dao/campaigns.ts'
 import { knownCategories } from '../lib/dao/categories.ts'
 import * as store from '../lib/dao/items.ts'
 import { numberApprovedItems, readItem, readProposedShape, writeParts } from '../lib/dao/items.ts'
+import { readPeriods } from '../lib/dao/settings.ts'
 import { readDetails } from '../lib/dao/teacher-detail.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError, ClassConflictError, ItemInvalid, TargetReached } from '../lib/errors.ts'
@@ -49,17 +51,33 @@ async function validate(client: Queryable, campaignId: string, input: ItemInput)
   if (categories.some((id) => !categoriesKnown.has(id))) throw new ApplicationError('category_unknown')
 }
 
+const spanKey = (session: { startsAt: string, endsAt: string }) => `${Date.parse(session.startsAt)}-${Date.parse(session.endsAt)}`
+
+/**
+ * The activity with what each of its sessions credits, derived from the
+ * school's grid as it stands (lib/credits.ts). A session of a stored
+ * activity whose times are unchanged keeps the credit it has: that is
+ * what the choice and a run computed with, and an edit of the words must
+ * not change it because the grid changed since.
+ */
+async function credited(client: Queryable, input: ItemInput, stored: readonly { startsAt: string, endsAt: string, credits: Item['sessions'][number]['credits'] }[] = []): Promise<ItemInput> {
+  const grid = await readPeriods(client)
+  const kept = new Map(stored.map((session) => [spanKey(session), session.credits]))
+  return { ...input, sessions: input.sessions.map((session) => ({ ...session, credits: kept.get(spanKey(session)) ?? sessionCredits(grid, session.startsAt, session.endsAt) })) }
+}
+
 /**
  * Writes an activity as a draft; the campaign must be taking proposals. A
  * teacher drafting their own is not recorded; someone who is no teacher of
  * the roster creates by organizer right, on a teacher's behalf, and that is.
  */
-export async function createItem(db: Database, campaignId: string, input: ItemInput, caller: Caller): Promise<Item> {
+export async function createItem(db: Database, campaignId: string, sent: ItemInput, caller: Caller): Promise<Item> {
   const id = await db.tx(async (client) => {
     await lockScope(client, campaignId)
     const campaign = await store.lockCampaignForCreate(client, campaignId)
     if (!campaign) throw new ApplicationError('not_found')
     if (!acceptsProposals(campaign.state)) throw new ApplicationError('campaign_state')
+    const input = await credited(client, sent)
     await validate(client, campaignId, input)
     const row = await store.insertItem(client, campaignId, input, caller)
     if (!row) throw new Error('catalog_item insert returned no row')
@@ -109,7 +127,7 @@ export async function updateItem(db: Database, id: string, sent: ItemInput, call
     const current = await lockedItem(client, id)
     if (!current) throw new ApplicationError('not_found')
     // Categories left out are the ones it has: a client that knows none keeps them.
-    const input = { ...sent, categories: sent.categories ?? current.categoryIds }
+    const input = { ...await credited(client, sent, current.sessions), categories: sent.categories ?? current.categoryIds }
     const campaign = await store.lockCampaignForUpdate(client, current)
     // What a teacher may do without organizer rights: tend their own draft
     // while the catalogue takes proposals. Everything else is an
