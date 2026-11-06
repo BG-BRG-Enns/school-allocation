@@ -80,7 +80,10 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | duty to lead (`teacher_detail.lead_duty`) | Leitungspflicht; "keine Leitungspflicht"; "Ohne Leitungspflicht: …" | duty to lead; "no duty to lead" | a mark for the overview alone; from the availability sheet's Leitung column (N: none) or set beside the Kürzel |
 | progress during the window | Stand der Anmeldung; "wer sich schon angemeldet hat" | registration status | |
 | on-behalf entry | "Für jemanden eintragen" | "Enter for someone" | |
-| exemption | Befreiung, befreien | exemption, exempt | |
+| exemption | Befreiung, befreien; on the activity's page "Nimmt nicht teil", "nimmt doch teil" | exemption, exempt; "Not taking part", "takes part after all" | no reason asked on the activity's page |
+| direct placement | "direkt eingeteilt", "direkt einteilen"; "nimmt in dieser Zeit an keiner Klassenaktivität teil" | "placed directly", "place"; "takes part in no class activity during this time" | the box of a placement, on by default |
+| reclaim | "zurückholen" | "reclaim" | a class activity's teachers, for a student of its classes placed elsewhere |
+| overnight | "mit Übernachtung" | "with an overnight stay" | a session over more than one local date |
 | allocation run | Berechnung; "Zuteilung berechnen"; "Berechnungen"; "Berechnung als Excel" | calculation; "Calculate allocation" | Q2 |
 | seed | Losnummer | draw number | explained once: decides how ties are drawn |
 | time limit | Rechenzeit | computing time | the deterministic second is the handbook's business |

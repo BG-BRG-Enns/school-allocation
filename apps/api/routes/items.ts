@@ -11,6 +11,7 @@ import { itemInput } from '../services/catalogue-input.ts'
 import { visibleCampaign } from '../services/catalogue.ts'
 import { approveItem, checkItemOffer, createItem, deleteDraft, proposeItem, returnItem, unproposeItem, updateItem, withVisibleItem } from '../services/items.ts'
 import { companionsList, joinItem, leaveItem, setCompanions } from '../services/companions.ts'
+import { bringBack, findStudents, placementsOf, placeStudent, reclaimStudent, removePlacement, takeOut } from '../services/placements.ts'
 import { withdrawItem } from '../services/withdrawal.ts'
 
 export interface ItemsRoutesOptions {
@@ -86,6 +87,43 @@ export async function itemsRoutes(app: FastifyInstance, { db, guards, baseUrl, w
   registerEndpoint(app, endpoints.putItemsByIdCompanions, { ...signedIn }, async (request) => {
     const caller = callerOf(request)
     return withVisibleItem(db, request.params.id, caller, () => setCompanions(db, request.params.id, request.body, caller))
+  })
+
+  // Direct placement and leaving a class activity: the students a teacher finds; an activity's placements; placing, removing and
+  // reclaiming a student; its teachers' list of who does not take part. The service says who may do which.
+  registerEndpoint(app, endpoints.getCampaignsByIdStudents, { ...signedIn }, async (request) => {
+    const caller = callerOf(request)
+    return findStudents(db, await visibleCampaign(db, caller, request.params.id), caller, request.query.q)
+  })
+
+  registerEndpoint(app, endpoints.getItemsByIdPlacements, { ...signedIn }, async (request) => {
+    const caller = callerOf(request)
+    return withVisibleItem(db, request.params.id, caller, () => placementsOf(db, request.params.id.toLowerCase(), caller))
+  })
+
+  registerEndpoint(app, endpoints.putItemsByIdPlacementsByPersonId, { ...signedIn }, async (request) => {
+    const caller = callerOf(request)
+    return withVisibleItem(db, request.params.id, caller, () => placeStudent(db, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), request.body.leavesClass ?? true, caller))
+  })
+
+  registerEndpoint(app, endpoints.deleteItemsByIdPlacementsByPersonId, { ...signedIn }, async (request) => {
+    const caller = callerOf(request)
+    return withVisibleItem(db, request.params.id, caller, () => removePlacement(db, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller))
+  })
+
+  registerEndpoint(app, endpoints.postItemsByIdReclaimsByPersonId, { ...signedIn }, async (request) => {
+    const caller = callerOf(request)
+    return withVisibleItem(db, request.params.id, caller, () => reclaimStudent(db, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller))
+  })
+
+  registerEndpoint(app, endpoints.putItemsByIdAbsencesByPersonId, { ...signedIn }, async (request) => {
+    const caller = callerOf(request)
+    return withVisibleItem(db, request.params.id, caller, () => takeOut(db, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller))
+  })
+
+  registerEndpoint(app, endpoints.deleteItemsByIdAbsencesByPersonId, { ...signedIn }, async (request) => {
+    const caller = callerOf(request)
+    return withVisibleItem(db, request.params.id, caller, () => bringBack(db, request.params.id.toLowerCase(), request.params.personId.toLowerCase(), caller))
   })
 
   registerEndpoint(app, endpoints.postAdminItemsByIdApprove, { ...organizer }, async (request) => {

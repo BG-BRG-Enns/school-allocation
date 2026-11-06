@@ -11,10 +11,11 @@ import { useRouter } from 'vue-router'
 import { spanOfPeriods, type DayDemand, type Period } from '@school-allocation/school-core'
 import Collapsible from '../components/Collapsible.vue'
 import DemandTable from '../components/DemandTable.vue'
+import Placements from '../components/Placements.vue'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { loadParticipants, type ParticipantsResponse } from '../lib/allocation-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
-import { checkItem, createItem, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, setCompanions, updateItem, type Campaign, type Category, type ClassConflictView, type GateCellView, type Item, type ItemCheckResponse, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
+import { checkItem, createItem, placeStudent, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, setCompanions, updateItem, type Campaign, type Category, type ClassConflictView, type GateCellView, type Item, type ItemCheckResponse, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodsOnGrid, touchedDates } from '../lib/format.ts'
 import { cellsAddedBy, cellsText, refusalText } from '../lib/offer-cells.ts'
@@ -22,6 +23,7 @@ import { describeCells } from '@school-allocation/school-core'
 import { t } from '../lib/i18n.ts'
 import { ASSIGNMENT_SOURCE_LABELS, CATALOGUE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
+import type { PendingPlacement } from '../lib/placements.ts'
 import { session } from '../lib/session.ts'
 
 const props = defineProps<{ id: string, itemId?: string }>()
@@ -57,6 +59,8 @@ const eligibleClasses = ref<string[]>([])
 const categories = ref<Category[]>([])
 const categoryIds = ref<string[]>([])
 const teachers = ref<{ personId: string, displayName: string }[]>([])
+/** The students placed into a new activity before its first save; entered with it. */
+const pendingPlacements = ref<PendingPlacement[]>([])
 /** Which of the teachers leads; '' while none is named. Stored with the activity: whoever is added accompanies. */
 const leadId = ref('')
 /** How many companions the lead wants beside them (the school's wish 6). */
@@ -137,6 +141,7 @@ async function load(): Promise<void> {
       sessions.value = item.sessions.map(fromStored)
     } else {
       existing.value = null
+      pendingPlacements.value = []
       places.value = DEFAULT_PLACES
       placesTouched.value = false
       categoryIds.value = []
@@ -309,6 +314,10 @@ const soughtText = computed(() => {
   const sought = Math.max(0, wanted - companions.value.length)
   return sought > 0 ? t.item.teachers.sought(sought) : t.item.teachers.complete
 })
+/** Whether the form's fields may be saved: a new activity and a draft by its teachers, any by an organizer. Submitted, an activity is the organization's to change. */
+const editable = computed(() => organizes.value || !existing.value || existing.value.state === 'draft')
+/** Whether a session of the activity goes over a night, as the form stands. */
+const overnight = computed(() => sessions.value.some((s) => touched(s).length > 1))
 /**
  * The companions alone (the owner's decision of 2026-11-04): the lead of a submitted or approved activity, or an organizer,
  * changes the list and the number wanted without the rest of the form, which stays as the activity was submitted.
@@ -421,6 +430,9 @@ async function save(propose: boolean): Promise<void> {
       const item = existing.value ? await updateItem(existing.value.id, input()) : await createItem(props.id, input())
       // Saved: a refused submission leaves this draft, and the next save changes it rather than making another.
       existing.value = item
+      // The students placed into it while it was new, now that there is an activity to place them into.
+      for (const p of pendingPlacements.value) await placeStudent(item.id, p.personId, p.leavesClass)
+      pendingPlacements.value = []
       if (propose && item.state === 'draft') await proposeItem(item.id)
     } catch (err) {
       // The submission refused by the school's rules: the activity is saved as a draft, the refusal says what to change.
@@ -464,8 +476,14 @@ async function save(propose: boolean): Promise<void> {
   </p>
   <form
     v-if="campaign"
-    @submit.prevent="companionsOnly && !organizes ? saveCompanions() : save(false)"
+    @submit.prevent="companionsOnly && !organizes ? saveCompanions() : editable ? save(false) : undefined"
   >
+    <p
+      v-if="!editable && !companionsOnly"
+      class="notice"
+    >
+      {{ t.placements.readOnly }}
+    </p>
     <p
       v-if="existing?.reviewNote"
       class="notice"
@@ -996,6 +1014,17 @@ async function save(propose: boolean): Promise<void> {
       >
     </p>
 
+    <!-- A stored activity's once it is loaded: until then it would show as a new one's, and what was typed into the search would go with the reload. -->
+    <Placements
+      v-if="(props.itemId === undefined || existing !== null) && existing?.state !== 'withdrawn'"
+      v-model:pending="pendingPlacements"
+      :campaign-id="props.id"
+      :item-id="existing?.id ?? null"
+      :fixed-classes="fixedClasses"
+      :overnight="overnight"
+      :taken="check?.taken ?? []"
+    />
+
     <ul
       v-if="problems.length > 0 || refusals.length > 0"
       class="alert"
@@ -1016,7 +1045,7 @@ async function save(propose: boolean): Promise<void> {
       {{ saving.error.value }}
     </p>
     <p
-      v-if="!(companionsOnly && !organizes)"
+      v-if="!(companionsOnly && !organizes) && editable"
       class="actions"
     >
       <button

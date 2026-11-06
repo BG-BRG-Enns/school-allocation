@@ -190,18 +190,6 @@ export async function interruptRun(client: Queryable, runId: string): Promise<bo
   return rowCount === 1
 }
 
-/** Person id → the items they are placed into by class, exemptions left out. */
-export async function fixedItemsByPerson(db: Queryable, campaignId: string): Promise<Map<string, string[]>> {
-  const { rows } = await db.query<{ person_id: string, item_id: string }>('select person_id, item_id from pre_assignment where campaign_id = $1 and exempted_at is null order by person_id, item_id', [campaignId])
-  const byPerson = new Map<string, string[]>()
-  for (const row of rows) {
-    const list = byPerson.get(row.person_id) ?? []
-    list.push(row.item_id)
-    byPerson.set(row.person_id, list)
-  }
-  return byPerson
-}
-
 /** The identity of the account that started a run, as the audit actor of what the job does on their behalf. */
 export async function actorOfUser(db: Queryable, userId: string): Promise<AuditActor | undefined> {
   const { rows: [row] } = await db.query<{ tid: string, oid: string, display_name: string }>('select tid, oid, display_name from app_user where id = $1', [userId])

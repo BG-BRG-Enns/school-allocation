@@ -29,6 +29,14 @@ export const loadCompanions = (campaignId: string) => apiRequest(endpoints.getCa
 export const joinItem = (id: string) => apiRequest(endpoints.postItemsByIdCompanionsMe, { params: { id } })
 export const leaveItem = (id: string) => apiRequest(endpoints.deleteItemsByIdCompanionsMe, { params: { id } })
 export const setCompanions = (id: string, body: CompanionsBody) => apiRequest(endpoints.putItemsByIdCompanions, { params: { id }, body })
+/** Direct placement and leaving a class activity: the students a teacher finds, an activity's placements, and the acts on them; each act answers with the placements as they are then. */
+export const findStudents = (campaignId: string, q: string) => apiRequest(endpoints.getCampaignsByIdStudents, { params: { id: campaignId }, query: { q } })
+export const loadPlacements = (id: string) => apiRequest(endpoints.getItemsByIdPlacements, { params: { id } })
+export const placeStudent = (id: string, personId: string, leavesClass: boolean) => apiRequest(endpoints.putItemsByIdPlacementsByPersonId, { params: { id, personId }, body: { leavesClass } })
+export const removePlacement = (id: string, personId: string) => apiRequest(endpoints.deleteItemsByIdPlacementsByPersonId, { params: { id, personId } })
+export const reclaimStudent = (id: string, personId: string) => apiRequest(endpoints.postItemsByIdReclaimsByPersonId, { params: { id, personId } })
+export const takeOutOfClassActivity = (id: string, personId: string) => apiRequest(endpoints.putItemsByIdAbsencesByPersonId, { params: { id, personId } })
+export const bringBackToClassActivity = (id: string, personId: string) => apiRequest(endpoints.deleteItemsByIdAbsencesByPersonId, { params: { id, personId } })
 
 export const createCampaign = (input: { kind: 'project_week', name: string, schoolYear: string, projectDays: string[], classes?: string[], frames?: Record<string, { from: number, to: number }> }) => apiRequest(endpoints.postAdminCampaigns, { body: input })
 
@@ -51,6 +59,7 @@ export const withdrawItem = (id: string, reason: string) => apiRequest(endpoints
 export const catalogueExportPath = (id: string) => endpointPath(endpoints.getAdminCampaignsByIdExportCatalogueXlsx, { params: { id } })
 
 export type { AvailabilityStatus, PlanningResponse } from '@school-allocation/api-contracts'
+export type { OtherActivity, PlacementsResponse } from '@school-allocation/api-contracts'
 export const loadMyAvailability = () => apiRequest(endpoints.getMyAvailability, { })
 export const setMyAvailability = (date: string, status: AvailabilityStatus) => apiRequest(endpoints.putMyAvailabilityByDate, { params: { date }, body: { status } })
 export const loadCampaignAvailability = (id: string) => apiRequest(endpoints.getCampaignsByIdAvailability, { params: { id } })

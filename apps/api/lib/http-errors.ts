@@ -18,6 +18,8 @@ export const APPLICATION_ERROR_STATUS = {
   category_exists: 409,
   category_in_use: 409,
   companions_full: 409,
+  class_member: 409,
+  not_class_member: 409,
   category_unknown: 422,
   class_unknown: 404,
   coverage_lost: 422,

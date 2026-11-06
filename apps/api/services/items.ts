@@ -15,6 +15,7 @@ import { sessionCredits } from '../lib/credits.ts'
 import { lockedCampaign, readCampaign } from '../lib/dao/campaigns.ts'
 import { knownCategories } from '../lib/dao/categories.ts'
 import * as store from '../lib/dao/items.ts'
+import { deleteItemPlacements } from '../lib/dao/pre-assignments.ts'
 import { numberApprovedItems, readItem, readProposedShape, writeParts } from '../lib/dao/items.ts'
 import { readPeriods } from '../lib/dao/settings.ts'
 import { readDetails } from '../lib/dao/teacher-detail.ts'
@@ -26,6 +27,7 @@ import { isOrganizer, isOwn } from '../lib/policies.ts'
 import { datesOfSpan, instantOf } from '../lib/time.ts'
 import { demandInputs } from './campaigns.ts'
 import { itemInput } from './catalogue-input.ts'
+import { takenFrom } from './placements.ts'
 import { reconcilePreAssignments } from './pre-assignments.ts'
 import { mayView } from './visibility.ts'
 
@@ -189,6 +191,8 @@ export async function deleteDraft(db: Database, id: string, caller: Caller): Pro
     if (current.state !== 'draft' || current.number !== null) throw new ApplicationError('item_state')
     // An archived campaign changes no more, a forgotten draft included.
     if ((await store.lockCampaignForUpdate(client, current))?.state === 'archived') throw new ApplicationError('campaign_state')
+    // A draft goes with whom its teachers placed into it and took out of it.
+    await deleteItemPlacements(client, id)
     await store.deleteItem(client, id)
   })
 }
@@ -411,6 +415,8 @@ export async function checkItemOffer(db: Database, campaign: Campaign, body: Ite
     refused: campaign.lockNewOffers && !classActivity && refused,
     locked: campaign.lockNewOffers,
     conflicts: await classConflictsOf(db, campaign.id, { id: itemId ?? '', ...shape }),
+    // For a class activity: who of its classes a direct placement elsewhere takes out of it, so its teachers see it while they fill the form.
+    taken: await takenFrom(db, campaign, shape, itemId),
   }
 }
 

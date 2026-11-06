@@ -1,11 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync } from 'node:fs'
-import { checkAllocationInput, compilePass, prepareStudent, prepareStudents, solverItems } from '../src/allocation-compile.ts'
+import { checkAllocationInput, compilePass, fixedOverlaps, prepareStudent, prepareStudents, solverItems } from '../src/allocation-compile.ts'
 import { explainStudent, summarizeAllocation } from '../src/allocation-explain.ts'
 import { fnv1a32, levelNames, tieWeight, type AllocationInput, type AllocationItem, type AllocationResult, type AllocationStudent, type PassResult } from '../src/allocation-model.ts'
 import { assembleAssignments, cancelledOf, recomputeLevels, validateAllocation } from '../src/allocation-validate.ts'
 import type { ItemRules, SessionInput } from '../src/catalogue.ts'
+import { groupKeyOf } from '../src/choices.ts'
 
 // The week of the decision record (docs/open-decisions.md D-24): Monday
 // 2027-06-21 to Wednesday, Vienna time (UTC+2 in June). Classes 5A and 5B
@@ -284,4 +285,26 @@ test('the input is checked before any solving: a grade without a minimum, no stu
   const strict = { ...INPUT, items: INPUT.items.map((i) => (i.id === 'climbing' ? { ...i, rules: { ...i.rules, minParticipants: 5, cancellableBelowMin: false } } : i)) }
   assert.deepEqual(checkAllocationInput(strict).warnings, [{ code: 'minimum_out_of_reach', itemId: 'climbing', possible: 1, minimum: 5 }], 'only max ranked it, and a paid item is nobody\'s fallback')
   assert.equal(prepareStudents(INPUT).length, 6)
+})
+
+test('an activity over a night is nobody\'s fallback: a wish, or a class\'s, never a place given to someone short of minutes', () => {
+  // A camp from Tuesday into Wednesday, free of charge and open to all: ida, who saved no list, gets every other fee-free item as a fallback, not the camp.
+  const camp = item('camp', [session(1, 8, 13, 300, [{ day: 2, minutes: 300 }])])
+  const input: AllocationInput = { ...INPUT, items: [...INPUT.items, camp] }
+  const items = solverItems(input, new Set())
+  const ida = prepareStudent(input, input.students[5] as AllocationStudent, items)
+  assert.equal(ida.options.some((o) => o.itemId === 'camp'), false)
+  assert.equal(ida.options.some((o) => o.itemId === 'museum' && o.kind === 'fallback'), true)
+  // Ranked, it is a wish like any other.
+  const keen: AllocationStudent = { ...(input.students[5] as AllocationStudent), ranking: { [groupKeyOf(camp)]: ['camp'] }, savedIn: 'first' }
+  assert.deepEqual(prepareStudent(input, keen, items).options.filter((o) => o.itemId === 'camp').map((o) => [o.kind, o.rank]), [['wish', 1]])
+})
+
+test('two placements of a student may overlap only where one is a direct placement beside a class activity', () => {
+  // The Monday class activity and the dance in its morning.
+  const both = { fixedItemIds: ['dance', 'mondayclass'] }
+  assert.deepEqual(fixedOverlaps(INPUT, both), [['dance', 'mondayclass']])
+  assert.deepEqual(fixedOverlaps(INPUT, { ...both, besideClassItemIds: ['dance'] }), [])
+  // Two activities that are nobody's class activity never both hold, whatever is said of them.
+  assert.deepEqual(fixedOverlaps(INPUT, { fixedItemIds: ['dance', 'minigolf'], besideClassItemIds: ['dance'] }), [['dance', 'minigolf']])
 })

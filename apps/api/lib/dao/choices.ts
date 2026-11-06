@@ -42,12 +42,6 @@ export async function memberCampaignIds(db: Queryable, personId: string, ids: re
   return rows.map((row) => row.id)
 }
 
-/** The items a student is placed into, exemptions left out. */
-export async function fixedItemIds(db: Queryable, campaignId: string, personId: string): Promise<Set<string>> {
-  const { rows } = await db.query<{ item_id: string }>('select item_id from pre_assignment where campaign_id = $1 and person_id = $2 and exempted_at is null', [campaignId, personId])
-  return new Set(rows.map((row) => row.item_id))
-}
-
 export async function findChoice(db: Queryable, campaign: Campaign, student: CampaignStudent) {
   const { rows: [row] } = await db.query<{ ranking: Ranking, saved_in: 'first' | 'late', version: number }>(
     'select ranking, saved_in, version from choice where campaign_id = $1 and person_id = $2', [campaign.id, student.personId],
@@ -103,4 +97,19 @@ export async function listChoices(db: Queryable, campaign: Campaign) {
     'select person_id, ranking, saved_in, updated_at from choice where campaign_id = $1', [campaign.id],
   )
   return rows.map((row) => ({ personId: row.person_id, ranking: row.ranking, savedIn: row.saved_in, updatedAt: row.updated_at }))
+}
+
+/** The students of a campaign's classes a teacher finds by a part of their name or by their class: the name and the class, nothing else. */
+export async function searchCampaignStudents(db: Queryable, campaign: Pick<Campaign, 'id' | 'rosterBatchId'>, q: string): Promise<{ personId: string, displayName: string, className: string }[]> {
+  const pattern = `%${q.replaceAll(/[\\%_]/g, (c) => `\\${c}`)}%`
+  const { rows } = await db.query<{ person_id: string, display_name: string, class_name: string }>(
+    `select e.person_id, e.display_name, e.class_name
+       from roster_entry e
+       join campaign_class cc on cc.campaign_id = $1 and cc.class_name = e.class_name
+      where e.batch_id = ${campaignRosterBatch(campaign)} and e.kind = 'student' and e.person_id is not null and e.grade is not null
+        and (e.display_name ilike $2 or e.class_name ilike $3)
+      order by e.class_name, e.display_name limit 30`,
+    [campaign.id, pattern, q],
+  )
+  return rows.map((row) => ({ personId: row.person_id, displayName: row.display_name, className: row.class_name }))
 }

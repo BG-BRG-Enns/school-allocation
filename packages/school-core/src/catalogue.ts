@@ -210,6 +210,11 @@ export function creditedMinutesByDate(sessions: readonly { credits: readonly Cre
   return minutes
 }
 
+/** Whether an activity includes a night: a session of it touches more than one local date. Nobody is placed into such an activity who did not ask for it, or whose class it is not. */
+export function isOvernight(sessions: readonly { dates: readonly string[] }[]): boolean {
+  return sessions.some((session) => session.dates.length > 1)
+}
+
 /** A student as the eligibility rules see them. */
 export interface StudentOf {
   className: string

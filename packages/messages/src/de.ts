@@ -499,6 +499,8 @@ export const de = {
     class_conflict: 'Eine Klasse ist zur selben Zeit schon in einer anderen Klassenaktivität. Sieh dir bitte den Hinweis an.',
     target_reached: 'In jedem Feld, in das diese Aktivität Plätze brächte, ist das Ziel schon erreicht. Sieh dir bitte den Hinweis an.',
     companions_full: 'Inzwischen ist die Begleitung vergeben.',
+    class_member: 'Die Klasse dieser Person nimmt an der Aktivität als ganze teil. Unter „Nimmt nicht teil“ steht, wer davon ausgenommen ist.',
+    not_class_member: 'Diese Person ist in keiner der Klassen, die an der Aktivität als ganze teilnehmen.',
     teacher_overlap: 'Zur selben Zeit ist diese Lehrkraft schon bei einer anderen Aktivität.',
     teacher_unavailable: 'An einem Tag dieser Aktivität ist diese Lehrkraft als nicht verfügbar eingetragen.',
     sessions_outside_days: 'An den gestrichenen Tagen gibt es schon Termine. Ändere bitte zuerst die betroffenen Aktivitäten.',
@@ -782,6 +784,10 @@ export const de = {
       savedHidden: 'Die gespeicherte Aktivität ist durch den Filter ausgeblendet.',
       /** An activity without places and without classes: its teachers alone. */
       staffOnly: 'nur Lehrkräfte',
+      /** An activity with a session over a night. */
+      overnight: 'mit Übernachtung',
+      /** Below an activity's places: how many of them its teachers filled directly. */
+      directlyPlaced: (count: number) => `davon ${count} direkt eingeteilt`,
       grades: 'Schulstufen',
       allGrades: 'alle',
       /** Where a submitted activity's places go, the cells still short of the target: "5. Schulstufe, 4.–5. EH". */
@@ -971,6 +977,37 @@ export const de = {
     link: 'Meine Verfügbarkeit eintragen',
   },
 
+  /** Placements.vue: the students a teacher placed into an activity, and a class activity's list of who does not take part. */
+  placements: {
+    heading: 'Direkt eingeteilt',
+    intro: 'Schüler*innen, die ohne Wahl in diese Aktivität kommen. Jede direkt eingeteilte Person belegt einen Platz der Aktivität. Mit dem Häkchen nimmt sie in dieser Zeit an keiner Klassenaktivität teil; die Lehrkräfte der Klassenaktivität sehen das und können sie zurückholen.',
+    search: 'Schüler*in suchen (Name oder Klasse)',
+    place: (name: string, className: string) => `${name} (${className}) einteilen`,
+    none: 'Niemand ist direkt eingeteilt.',
+    pending: 'Wird mit dem Speichern der Aktivität eingetragen.',
+    leavesClass: 'nimmt in dieser Zeit an keiner Klassenaktivität teil',
+    /** The box's name for one student. */
+    leavesClassOf: (name: string) => `${name} nimmt in dieser Zeit an keiner Klassenaktivität teil`,
+    /** The class activities a placement takes the student out of. */
+    leaves: (activities: string) => `nicht bei ${activities}`,
+    other: (title: string, lead: string | null) => lead === null ? `„${title}“` : `„${title}“ (Leitung: ${lead})`,
+    remove: (name: string) => `${name} austragen`,
+    /** After an act that took a student out of another activity: whom to tell. */
+    tell: (title: string, lead: string | null) => lead === null ? `Bitte der Leitung von „${title}“ Bescheid sagen: Die Person ist dort nicht mehr eingeteilt.` : `Bitte ${lead} Bescheid sagen: Die Person ist bei „${title}“ nicht mehr eingeteilt.`,
+    absentHeading: 'Nimmt nicht teil',
+    absentIntro: 'Schüler*innen der Klassen dieser Aktivität, die nicht dabei sind: hier eingetragen, oder in dieser Zeit direkt in eine andere Aktivität eingeteilt. Wer hier eingetragen wird, nennt keinen Grund.',
+    absentNone: 'Alle Schüler*innen der Klassen nehmen teil.',
+    takeOut: (name: string, className: string) => `${name} (${className}) nimmt nicht teil`,
+    onList: 'eingetragen',
+    placedIn: (activities: string) => `direkt eingeteilt in ${activities}`,
+    bringBack: (name: string) => `${name} nimmt doch teil`,
+    reclaim: (name: string) => `${name} zurückholen`,
+    overnight: 'Diese Aktivität geht über Nacht: Bitte hier eintragen, wer nicht mitfährt.',
+    /** In the form of a class activity not saved yet. */
+    taken: (names: string) => `In dieser Zeit direkt in eine andere Aktivität eingeteilt und daher nicht dabei: ${names}. Nach dem Speichern lassen sie sich hier zurückholen.`,
+    /** A teacher of the activity who may not change it: submitted, it is the organization's. */
+    readOnly: 'Die Aktivität ist eingereicht: Ändern kann sie die Organisation, die Begleitung die Leitung. Direkt einteilen können alle Lehrkräfte der Aktivität.',
+  },
   /** Begleitung.vue: the list a teacher joins an activity from (the school's wish 6). */
   companions: {
     heading: 'Begleitung gesucht',
@@ -1066,6 +1103,8 @@ export const de = {
     nothingOffered: 'Für dich wird nichts angeboten.',
     /** After the title of a class activity, in bold. */
     fixedForYourClass: 'mit deiner ganzen Klasse',
+    /** An activity a teacher placed the student into directly. */
+    fixedDirectly: 'von einer Lehrkraft eingeteilt',
     /** A time group's legend, after its time: "1 von 3 Wünschen". */
     groupCount: (wishes: number, required: number) => `${wishes} von ${required} ${byCount(required, 'Wunsch', 'Wünschen')}`,
     wish: 'Wunsch',

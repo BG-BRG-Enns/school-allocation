@@ -24,8 +24,10 @@ export interface AllocationStudent {
   personId: string
   className: string
   grade: number
-  /** The items the student is placed into by class (D-24), exemptions left out. */
+  /** The items the student is placed into without ranking: by class (D-24) and directly, as they hold (placements.ts). */
   fixedItemIds: string[]
+  /** Of those, the direct placements beside a class activity that overlaps them: the one pair that may overlap. Left out when there is none, as in every run stored before there were direct placements. */
+  besideClassItemIds?: string[]
   /** The saved ranking, or null for a student who never saved one. */
   ranking: Ranking | null
   savedIn: SubmissionWindow | null

@@ -142,6 +142,8 @@ export const ItemSchema = StrictObject({
   })),
   /** How many companions the lead wants beside them; what is still sought is this less the teachers that do not lead. */
   companionsWanted: Type.Number(),
+  /** How many students its teachers placed into it directly: each takes one of `places`. A number, never who. */
+  directlyPlaced: Type.Number(),
   sessions: Type.Array(StrictObject({
     id: Type.String(),
     startsAt: Type.String(),

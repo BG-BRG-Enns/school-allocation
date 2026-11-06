@@ -12,6 +12,7 @@ export type ApplicationErrorCode = 'no_groups' | 'validation_failed' | 'duplicat
   | 'not_assigned' | 'retention_not_reached'
   | 'category_exists' | 'category_in_use' | 'category_unknown' | 'too_many_categories'
   | 'companions_full' | 'teacher_overlap' | 'teacher_unavailable'
+  | 'class_member' | 'not_class_member'
 
 /** A change the current state refuses; `code` is the answer's error code. */
 export class ApplicationError extends Error {

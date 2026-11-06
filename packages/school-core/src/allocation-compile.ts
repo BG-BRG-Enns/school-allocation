@@ -10,7 +10,7 @@
 // deterministic down to the order of every list, so the same input gives
 // the same request.
 
-import { creditedMinutesByDate, overlaps, type ItemRules, type Span } from './catalogue.ts'
+import { creditedMinutesByDate, isOvernight, overlaps, type ItemRules, type Span } from './catalogue.ts'
 import { offeredTo, timeGroupsOf, type OfferableItem } from './choices.ts'
 import { ruleAmount, ruleApplies, ruleProgress, type CampaignRule } from './rules.ts'
 import {
@@ -142,6 +142,8 @@ export function prepareStudent(input: AllocationInput, student: AllocationStuden
     if (ranked.has(item.id)) continue
     const full = offeredById.get(item.id) as AllocationItem
     if (full.feeCents !== 0) continue
+    // Nobody spends a night away who did not ask to: an activity over a night is a wish or a class's, never a fallback.
+    if (isOvernight(full.sessions)) continue
     const fallback = option(input, student, full, 'fallback', cap + 1, costNorm, rules)
     // A fallback is for a day the student still has to cover, or for a rule still open: the rules come before the wishes.
     if (![...fallback.credit.keys()].some((date) => required.has(date)) && fallback.amounts.size === 0) continue
@@ -327,14 +329,17 @@ function rulesOutOfReach(input: AllocationInput, prepared: readonly PreparedStud
 }
 
 /** The pairs of a student's fixed items whose sessions overlap, in id order. */
-export function fixedOverlaps(input: AllocationInput, student: Pick<AllocationStudent, 'fixedItemIds'>): [string, string][] {
+export function fixedOverlaps(input: AllocationInput, student: Pick<AllocationStudent, 'fixedItemIds' | 'besideClassItemIds'>): [string, string][] {
   const items = new Map(input.items.map((item) => [item.id, item]))
   const fixed = [...student.fixedItemIds].sort(byText).map((id) => items.get(id)).filter((item): item is AllocationItem => item !== undefined)
+  // A direct placement beside a class activity is the one pair that may overlap: the student is away from the class for that time.
+  const beside = new Set(student.besideClassItemIds ?? [])
   const pairs: [string, string][] = []
   for (let a = 0; a < fixed.length; a++) {
     for (let b = a + 1; b < fixed.length; b++) {
       const itemA = fixed[a] as AllocationItem
       const itemB = fixed[b] as AllocationItem
+      if (beside.has(itemA.id) !== beside.has(itemB.id) && (beside.has(itemA.id) ? itemB : itemA).rules.fixedClasses.length > 0) continue
       if (itemsOverlap(itemA, itemB)) pairs.push([itemA.id, itemB.id])
     }
   }

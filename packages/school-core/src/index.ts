@@ -6,6 +6,7 @@ export {
   CAMPAIGN_STATES,
   CAMPAIGN_TRANSITIONS,
   acceptsChoices,
+  acceptsPlacements,
   isCampaignState,
   transition,
   type CampaignState,
@@ -88,6 +89,7 @@ export {
   checkItem,
   creditedMinutesByDate,
   creditsOf,
+  isOvernight,
   isStaffOnly,
   isEligible,
   isItemState,
@@ -120,11 +122,13 @@ export {
   type PeriodProblemCode,
 } from './periods.ts'
 
-export { checkFrame, DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, demandCells, FRAME_PROBLEM_CODES, framePeriods, itemShares, placeTarget, type CellDemand, type ClassSize, type DayDemand, type DemandCell, type DemandDay, type Frame, type FrameProblemCode, type GradeDemand, type ItemShare, type OfferedItem } from './demand.ts'
+export { checkFrame, DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, demandCells, FRAME_PROBLEM_CODES, framePeriods, itemShares, placeTarget, type CellDemand, type ClassSize, type DayDemand, type DemandCell, type DemandDay, type Frame, type FrameProblemCode, type GradeDemand, type ItemShare, type OfferedItem, type PlacedOf } from './demand.ts'
 
 export { addedCells, demandAround, describeCells, gateCells, gateRefused, gradesOpenTo, servedCells, type DescribedCells, type GateCell, type GateShape, type ServedCell } from './offer-gate.ts'
 
 export { allClassConflicts, classConflicts, type ClassActivity, type ClassConflict } from './class-conflicts.ts'
+
+export { effectivePlacements, PLACEMENT_SOURCES, rankablePlaces, type EffectivePlacements, type LeftClassItem, type PlacedItem, type PlacementRow, type PlacementSource } from './placements.ts'
 
 export { AVAILABILITY_STATUSES, mayTakePlace, type AvailabilityStatus } from './planning.ts'
 
@@ -266,4 +270,4 @@ export {
  * whenever a change here would give a different allocation or validation
  * for the same input; an allocation run records it (docs/domain-and-api.md).
  */
-export const CORE_VERSION = 2
+export const CORE_VERSION = 3

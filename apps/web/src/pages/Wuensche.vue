@@ -225,7 +225,7 @@ async function exempt(): Promise<void> {
             v-for="item in d.fixed"
             :key="item.id"
           >
-            <strong>{{ item.title }}</strong> · {{ t.wishes.fixedForYourClass }}
+            <strong>{{ item.title }}</strong> · {{ view?.directItemIds.includes(item.id) ? t.wishes.fixedDirectly : t.wishes.fixedForYourClass }}
             <span
               v-if="item.feeCents > 0"
               class="muted"

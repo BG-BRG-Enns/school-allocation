@@ -53,6 +53,7 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
             u.display_name as proposer_name,
             (select b.person_id from identity_binding b where b.tid = u.tid and b.oid = u.oid and b.unbound_at is null) as proposer_person,
             i.created_at, i.updated_at, i.approved_at, i.first_proposed_at, i.withdrawn_at, i.withdraw_reason, i.companions_wanted,
+            (select count(*)::integer from pre_assignment p where p.item_id = i.id and p.source = 'direct') as directly_placed,
             coalesce((select json_agg(json_build_object('personId', t.person_id, 'displayName', coalesce(e.display_name, '?'), 'lead', t.lead) order by t.position)
                         from item_teacher t
                         left join roster_entry e on e.person_id = t.person_id
@@ -88,6 +89,7 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
     proposedBy: { id: row.proposed_by, displayName: row.proposer_name, personId: row.proposer_person },
     teachers: row.teachers,
     companionsWanted: row.companions_wanted,
+    directlyPlaced: row.directly_placed,
     sessions: row.sessions,
     categoryIds: row.category_ids,
     createdAt: row.created_at.toISOString(),

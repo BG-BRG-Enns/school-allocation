@@ -75,6 +75,11 @@ export function localDateOf(iso: string): string {
   return localDate.format(new Date(iso))
 }
 
+/** Whether an activity includes a night: a session of it ends on a later local date than it starts (an end at midnight belongs to the day before). */
+export function includesNight(sessions: readonly { startsAt: string, endsAt: string }[]): boolean {
+  return sessions.some((s) => localDateOf(s.startsAt) !== localDateOf(new Date(Date.parse(s.endsAt) - 1).toISOString()))
+}
+
 /** The local time of an instant in the school's zone, HH:MM. */
 export function localTimeOf(iso: string): string {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: SCHOOL_TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso))

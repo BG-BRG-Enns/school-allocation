@@ -8,6 +8,9 @@ import { checkFrame, checkRules, demandByDay, demandCells, itemShares, ruleDeman
 import type { ItemShare } from '@school-allocation/api-contracts/campaigns'
 import { type Actor, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
+import { campaignStudents } from '../lib/dao/choices.ts'
+import { listPlacements } from '../lib/dao/pre-assignments.ts'
+import { withPlacements } from '../lib/placements.ts'
 import * as store from '../lib/dao/campaigns.ts'
 import { lockedCampaign, readCampaign, rosterClassSizes } from '../lib/dao/campaigns.ts'
 import { knownCategories } from '../lib/dao/categories.ts'
@@ -333,7 +336,9 @@ export async function demandInputs(db: Queryable, campaign: Campaign): Promise<D
     items.set(row.id, { ...item, sessions: [...item.sessions, { startMs: row.startsAt.getTime(), endMs: row.endsAt.getTime() }] })
   }
   const days = campaign.days.map((day) => ({ date: day.date, frame: day.frame, cells: demandCells(day.frame, grid, (time) => instantInSchoolZone(day.date, time), dayBounds(day.date)) }))
-  return { classes, days, items }
+  // Whoever is placed directly takes a place and needs none; whoever is out of a class activity needs places like the rest.
+  const classOf = new Map((await campaignStudents(db, campaign)).map((student) => [student.personId, student.className]))
+  return { classes, days, items: withPlacements(items, await listPlacements(db, campaign.id), classOf) }
 }
 
 /**

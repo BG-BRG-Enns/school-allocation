@@ -5,7 +5,7 @@
 // not; the campaign moves to review either way. Several runs per campaign;
 // the review reads a run's numbers from its stored rows.
 
-import { ALLOCATION_CONTRACT, assembleAssignments, cancelledOf, checkAllocationInput, compilePass, CORE_VERSION, explainStudent, summarizeAllocation, transition, validateAllocation, type AllocationInput, type AllocationResult, type Assignment, type CompiledPass, type PassResult, type SolveResponse } from '@school-allocation/school-core'
+import { ALLOCATION_CONTRACT, assembleAssignments, cancelledOf, checkAllocationInput, compilePass, CORE_VERSION, effectivePlacements, explainStudent, rankablePlaces, summarizeAllocation, transition, validateAllocation, type AllocationInput, type AllocationResult, type Assignment, type CompiledPass, type PassResult, type SolveResponse } from '@school-allocation/school-core'
 import { RUN_LIMITS } from '@school-allocation/api-contracts/allocation'
 import { randomInt } from 'node:crypto'
 import { createHash } from 'node:crypto'
@@ -17,6 +17,8 @@ import * as store from '../lib/dao/allocation.ts'
 import { lockedCampaign, readCampaign, updateState } from '../lib/dao/campaigns.ts'
 import { listCategories } from '../lib/dao/categories.ts'
 import { campaignStudents, listChoices } from '../lib/dao/choices.ts'
+import { listPlacements } from '../lib/dao/pre-assignments.ts'
+import { directlyPlaced, placementsByPerson } from '../lib/placements.ts'
 import type { Database, Queryable } from '../lib/db.ts'
 import { ApplicationError } from '../lib/errors.ts'
 import { runJob } from '../lib/jobs.ts'
@@ -43,10 +45,15 @@ const SOLVED = new Set(['OPTIMAL', 'FEASIBLE'])
 export async function snapshotOf(client: Queryable, campaign: Campaign, seed: number, deterministicTimePerLevel: number): Promise<AllocationInput> {
   // One after another: `client` may be a transaction's, which takes one query at a time.
   const students = await campaignStudents(client, campaign)
-  const fixed = await store.fixedItemsByPerson(client, campaign.id)
   const choices = await listChoices(client, campaign)
   const items = await catalogueItems(client, campaign.id)
   const saved = new Map(choices.map((c) => [c.personId, c]))
+  // The placements as they hold among the approved activities (school-core placements.ts): by class unless taken out of it,
+  // and direct; a direct placement takes one of its activity's places.
+  const spans = new Map(items.map((item) => [item.id, { id: item.id, sessions: item.sessions.map((s) => ({ startMs: instantOf(s.startsAt) ?? 0, endMs: instantOf(s.endsAt) ?? 0 })) }]))
+  const rows = await listPlacements(client, campaign.id)
+  const byPerson = placementsByPerson(rows)
+  const placed = directlyPlaced(rows, new Map(students.map((s) => [s.personId, s.className])))
   return {
     projectDays: campaign.projectDays,
     dailyMinimum: campaign.dailyMinimum,
@@ -55,12 +62,15 @@ export async function snapshotOf(client: Queryable, campaign: Campaign, seed: nu
     limits: { deterministicTimePerLevel },
     students: students.map((s) => {
       const choice = saved.get(s.personId)
-      return { personId: s.personId, className: s.className, grade: s.grade, fixedItemIds: fixed.get(s.personId) ?? [], ranking: choice?.ranking ?? null, savedIn: choice?.savedIn ?? null }
+      const held = effectivePlacements(byPerson.get(s.personId) ?? [], spans)
+      // Left out when there is none, so the input of a registration without such placements reads as it always did.
+      const beside = held.besideClassItemIds.length > 0 ? { besideClassItemIds: held.besideClassItemIds } : {}
+      return { personId: s.personId, className: s.className, grade: s.grade, fixedItemIds: held.itemIds, ...beside, ranking: choice?.ranking ?? null, savedIn: choice?.savedIn ?? null }
     }),
     items: items.map((item) => ({
       id: item.id,
       feeCents: item.feeCents,
-      rules: { fixedClasses: item.fixedClasses, eligibleGrades: item.eligibleGrades, eligibleClasses: item.eligibleClasses, places: item.places, minParticipants: item.minParticipants, cancellableBelowMin: item.cancellableBelowMin },
+      rules: { fixedClasses: item.fixedClasses, eligibleGrades: item.eligibleGrades, eligibleClasses: item.eligibleClasses, places: rankablePlaces(item.places, placed.get(item.id) ?? 0), minParticipants: item.minParticipants, cancellableBelowMin: item.cancellableBelowMin },
       sessions: item.sessions.map((s) => {
         const startMs = instantOf(s.startsAt) ?? 0
         const endMs = instantOf(s.endsAt) ?? 0

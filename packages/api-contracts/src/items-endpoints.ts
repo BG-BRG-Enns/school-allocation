@@ -4,6 +4,7 @@ import { ClassConflictResponse, ItemBody, ItemCheckBody, ItemCheckResponse, Item
 import { ErrorResponse, IdParams } from './common.ts'
 import { CompanionsBody, CompanionsResponse } from './companions.ts'
 import { defineEndpoint } from './endpoint.ts'
+import { ItemPersonParams, PlacementBody, PlacementsResponse, StudentsQuery, StudentsResponse } from './placements.ts'
 import { ItemSchema } from './campaigns.ts'
 
 /** The activity's problems, or a category it names that the school does not have. */
@@ -38,3 +39,22 @@ export const postAdminItemsByIdApprove = defineEndpoint({ ...metadata.postAdminI
 export const postAdminItemsByIdReturn = defineEndpoint({ ...metadata.postAdminItemsByIdReturn, schema: { params: IdParams, body: NoteBody, response: { '200': ItemSchema, '4xx': ErrorResponse } } })
 
 export const postAdminItemsByIdWithdraw = defineEndpoint({ ...metadata.postAdminItemsByIdWithdraw, schema: { params: IdParams, body: ReasonBody, response: { '200': ItemSchema, '4xx': ErrorResponse } } })
+
+/**
+ * Direct placement and leaving a class activity (the decisions of 2026-11-06): the students a teacher finds, an
+ * activity's placements, placing and removing a student, reclaiming one for a class activity, and its teachers' list of
+ * who does not take part. Every act answers with the placements as they are then.
+ */
+export const getCampaignsByIdStudents = defineEndpoint({ ...metadata.getCampaignsByIdStudents, schema: { params: IdParams, querystring: StudentsQuery, response: { '200': StudentsResponse, '4xx': ErrorResponse } } })
+
+export const getItemsByIdPlacements = defineEndpoint({ ...metadata.getItemsByIdPlacements, schema: { params: IdParams, response: { '200': PlacementsResponse, '4xx': ErrorResponse } } })
+
+export const putItemsByIdPlacementsByPersonId = defineEndpoint({ ...metadata.putItemsByIdPlacementsByPersonId, schema: { params: ItemPersonParams, body: PlacementBody, response: { '200': PlacementsResponse, '4xx': ErrorResponse } } })
+
+export const deleteItemsByIdPlacementsByPersonId = defineEndpoint({ ...metadata.deleteItemsByIdPlacementsByPersonId, schema: { params: ItemPersonParams, response: { '200': PlacementsResponse, '4xx': ErrorResponse } } })
+
+export const postItemsByIdReclaimsByPersonId = defineEndpoint({ ...metadata.postItemsByIdReclaimsByPersonId, schema: { params: ItemPersonParams, response: { '200': PlacementsResponse, '4xx': ErrorResponse } } })
+
+export const putItemsByIdAbsencesByPersonId = defineEndpoint({ ...metadata.putItemsByIdAbsencesByPersonId, schema: { params: ItemPersonParams, response: { '200': PlacementsResponse, '4xx': ErrorResponse } } })
+
+export const deleteItemsByIdAbsencesByPersonId = defineEndpoint({ ...metadata.deleteItemsByIdAbsencesByPersonId, schema: { params: ItemPersonParams, response: { '200': PlacementsResponse, '4xx': ErrorResponse } } })

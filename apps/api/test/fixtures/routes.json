@@ -92,6 +92,31 @@
   },
   {
     "method": "DELETE",
+    "url": "/api/items/:id/absences/:personId",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "personId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "personId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "DELETE",
     "url": "/api/items/:id/companions/me",
     "body": null,
     "params": {
@@ -101,6 +126,31 @@
       ],
       "properties": {
         "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "DELETE",
+    "url": "/api/items/:id/placements/:personId",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "personId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "personId": {
           "type": "string",
           "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
         }
@@ -1041,6 +1091,39 @@
   },
   {
     "method": "GET",
+    "url": "/api/campaigns/:id/students",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": {
+      "type": "object",
+      "required": [
+        "q"
+      ],
+      "properties": {
+        "q": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        }
+      },
+      "additionalProperties": false
+    },
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
     "url": "/api/campaigns/:id/teachers",
     "body": null,
     "params": {
@@ -1081,6 +1164,26 @@
     "url": "/api/health",
     "body": null,
     "params": null,
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "GET",
+    "url": "/api/items/:id/placements",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
     "querystring": null,
     "bodyLimit": null
   },
@@ -2872,6 +2975,31 @@
   },
   {
     "method": "POST",
+    "url": "/api/items/:id/reclaims/:personId",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "personId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "personId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "POST",
     "url": "/api/items/:id/unpropose",
     "body": null,
     "params": {
@@ -3344,6 +3472,31 @@
   },
   {
     "method": "PUT",
+    "url": "/api/items/:id/absences/:personId",
+    "body": null,
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "personId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "personId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "PUT",
     "url": "/api/items/:id/companions",
     "body": {
       "type": "object",
@@ -3379,6 +3532,39 @@
       ],
       "properties": {
         "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "querystring": null,
+    "bodyLimit": null
+  },
+  {
+    "method": "PUT",
+    "url": "/api/items/:id/placements/:personId",
+    "body": {
+      "type": "object",
+      "properties": {
+        "leavesClass": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "object",
+      "required": [
+        "id",
+        "personId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "personId": {
           "type": "string",
           "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
         }

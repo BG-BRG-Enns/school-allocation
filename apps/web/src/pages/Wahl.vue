@@ -17,7 +17,7 @@ import { approveItem, catalogueExportPath, deleteCampaign, deleteItem, loadCampa
 import { ApiError } from '../lib/api-rules.ts'
 import { withBase } from '../lib/base.ts'
 import { useFeedback } from '../lib/feedback.ts'
-import { datesBetween, formatDay, formatFee, formatSpan, formatWhenShort, instantInSchoolZone, localDateOf, localTimeOf, nextDay } from '../lib/format.ts'
+import { datesBetween, formatDay, formatFee, formatSpan, formatWhenShort, includesNight, instantInSchoolZone, localDateOf, localTimeOf, nextDay } from '../lib/format.ts'
 import { groupByStartDay, type DayGroup } from '../lib/item-order.ts'
 import { bringsText, daysOf, offerOf } from '../lib/offer-cells.ts'
 import { useUiState } from '../lib/ui-state.ts'
@@ -285,10 +285,15 @@ function own(item: Item): boolean {
   const me = session.value
   return me !== null && me !== undefined && (item.proposedBy.id === me.id || item.teachers.some((t) => t.personId === me.person?.id))
 }
-/** Whether the caller leads the activity: the form lets them change its companions once it is submitted or approved. */
-function leads(item: Item): boolean {
+/** Whether the caller is the class teacher of a class the activity takes as a whole: its page lets them say who of the class does not take part. */
+function classTeacherOfItem(item: Item): boolean {
+  const own = view.value?.may.classTeacherOf ?? []
+  return item.fixedClasses.some((name) => own.includes(name))
+}
+/** Whether the caller is a teacher of the activity: once it is submitted or approved, its page lets its lead change the companions and every teacher of it place students directly. */
+function teachesItem(item: Item): boolean {
   const me = session.value?.person?.id
-  return me !== undefined && item.teachers.some((t) => t.lead && t.personId === me)
+  return me !== undefined && item.teachers.some((teacher) => teacher.personId === me)
 }
 
 // Organizer's settings.
@@ -1442,6 +1447,10 @@ function onSubmitPending(): void {
                   class="muted"
                 > · {{ t.campaign.items.fixedFor(item.fixedClasses.join(', ')) }}</span>
                 <span
+                  v-if="includesNight(item.sessions)"
+                  class="muted"
+                > · {{ t.campaign.items.overnight }}</span>
+                <span
                   v-if="item.feeCents > 0"
                   class="muted"
                 > · {{ formatFee(item.feeCents) }}</span>
@@ -1482,7 +1491,13 @@ function onSubmitPending(): void {
               <td>
                 {{ item.places }}
                 <p
-                  v-if="isStaffOnly(item)"
+                  v-if="item.directlyPlaced > 0"
+                  class="muted short"
+                >
+                  {{ t.campaign.items.directlyPlaced(item.directlyPlaced) }}
+                </p>
+                <p
+                  v-else-if="isStaffOnly(item)"
                   class="muted short"
                 >
                   {{ t.campaign.items.staffOnly }}
@@ -1491,7 +1506,7 @@ function onSubmitPending(): void {
               <td><span :class="['badge', `badge-${item.state}`]">{{ ITEM_STATE_LABELS[item.state] ?? item.state }}</span></td>
               <td class="row-actions">
                 <RouterLink
-                  v-if="(own(item) && item.state === 'draft' && campaign.state === 'catalogue') || (organizes && item.state !== 'withdrawn') || (leads(item) && (item.state === 'proposed' || item.state === 'approved') && campaign.state !== 'archived')"
+                  v-if="(own(item) && item.state === 'draft' && campaign.state === 'catalogue') || (organizes && item.state !== 'withdrawn') || ((teachesItem(item) || classTeacherOfItem(item)) && (item.state === 'proposed' || item.state === 'approved') && campaign.state !== 'archived')"
                   class="button ghost-link small"
                   :to="`/wahlen/${campaign.id}/aktivitaet/${item.id}`"
                 >

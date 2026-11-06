@@ -83,6 +83,8 @@ export const RuleReachSchema = StrictObject({
 export const ChoiceViewSchema = StrictObject({
   campaign: CampaignSchema,
   fixed: Type.Array(ItemSchema),
+  /** Of `fixed`, the activities a teacher placed the student into directly; the others are their class's. */
+  directItemIds: Type.Array(Type.String()),
   groups: Type.Array(GroupViewSchema),
   ranking: Type.Record(Type.String(), Type.Array(Type.String())),
   window: Type.Union([Type.Literal('first'), Type.Literal('late'), Type.Null()]),
