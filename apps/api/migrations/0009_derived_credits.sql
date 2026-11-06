@@ -1,3 +1,4 @@
+-- schema-version: 3
 -- What a session credits per project day is no longer entered by the
 -- teacher but derived from the school's periods it covers (school-core
 -- creditsOf, written by the server whenever a session's times are set):
@@ -15,7 +16,13 @@
 -- computed with. The server does the same when the grid changes
 -- (services/settings.ts); apps/api/test/catalogue.test.ts holds this
 -- statement to the server's arithmetic. The zone is the school's, fixed
--- (lib/time.ts SCHOOL_TIME_ZONE). Additive: no schema version.
+-- (lib/time.ts SCHOOL_TIME_ZONE).
+--
+-- The column keeps its shape, its meaning changes: a release built before
+-- this one would let a teacher type credits again, and this one would keep
+-- them as derived (a session whose times are unchanged keeps its credit).
+-- Hence schema version 3: an earlier release does not start on a database
+-- this migration ran on.
 with touched as (
   select s.id, s.starts_at, s.ends_at, d::date as day
     from item_session s
