@@ -136,23 +136,26 @@ async function placePublished(db: Database, context: WindowContext, id: string, 
     const classItems = new Set(classActivitiesBeside(state, student, item).map((other) => other.id))
     const overlapping = rowsOverlapping(state, student.personId, item)
     const own = state.rows.find((row) => row.personId === student.personId && row.itemId === item.id)
-    // Not placed into it by a hand: in it by a wish, a fallback, a swap or the organizer's hand, or not at all. The placement supersedes
-    // such a row with a fixed one, which the student cannot swap out of, and leaves what overlaps.
-    if (own === undefined || own.source !== 'fixed') {
-      const leaves = [...overlapping.filter((row) => leavesClass || !classItems.has(row.itemId)).map((row) => row.itemId), ...(own === undefined ? [] : [item.id])]
-      return [{ move: { personId: student.personId, toItemId: item.id, leaves }, act: 'placed', besideClass: !leavesClass }]
-    }
-    // Placed already: the box alone. Out of the class activities it overlaps, or back into those the student is not in, which leaves
-    // whatever else of theirs those overlap (what the run gave them for the time they were out), this placement excepted. Two class
-    // activities brought back in one go may overlap the same row: it is left once, by the first.
     const inClass = overlapping.filter((row) => classItems.has(row.itemId)).map((row) => row.itemId)
-    if (leavesClass) return inClass.length === 0 ? [] : [{ move: { personId: student.personId, toItemId: null, leaves: inClass }, act: 'takenOut', besideClass: false }]
-    const gone = new Set<string>()
-    return [...classItems].filter((itemId) => !inClass.includes(itemId)).map((itemId) => {
+    // Back into the class activities the student is not in (out of them by an earlier placement, or by hand), which leaves whatever
+    // else of theirs those overlap (what the run gave them for the time they were out), this placement and what it leaves excepted.
+    // Two class activities brought back in one go may overlap the same row: it is left once, by the first.
+    const returns = (gone: Set<string>) => [...classItems].filter((itemId) => !inClass.includes(itemId)).map((itemId) => {
       const leaves = rowsOverlapping(state, student.personId, state.items.get(itemId) as Item).filter((row) => row.itemId !== item.id && !classItems.has(row.itemId) && !gone.has(row.itemId)).map((row) => row.itemId)
       for (const left of leaves) gone.add(left)
       return { move: { personId: student.personId, toItemId: itemId, leaves }, act: 'returned' as const, besideClass: true }
     })
+    // Not placed into it by a hand: in it by a wish, a fallback, a swap or the organizer's hand, or not at all. The placement supersedes
+    // such a row with a fixed one, which the student cannot swap out of, and leaves what overlaps; beside the class activities, it also
+    // brings the student back into those an earlier placement took them out of.
+    if (own === undefined || own.source !== 'fixed') {
+      const leaves = [...overlapping.filter((row) => leavesClass || !classItems.has(row.itemId)).map((row) => row.itemId), ...(own === undefined ? [] : [item.id])]
+      const placed = { move: { personId: student.personId, toItemId: item.id, leaves }, act: 'placed' as const, besideClass: !leavesClass }
+      return leavesClass ? [placed] : [placed, ...returns(new Set(leaves))]
+    }
+    // Placed already: the box alone. Out of the class activities it overlaps, or back into those the student is not in.
+    if (leavesClass) return inClass.length === 0 ? [] : [{ move: { personId: student.personId, toItemId: null, leaves: inClass }, act: 'takenOut', besideClass: false }]
+    return returns(new Set())
   })
 }
 
