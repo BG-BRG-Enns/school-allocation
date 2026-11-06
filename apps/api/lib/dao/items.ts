@@ -1,4 +1,4 @@
-import { leadOf, type CampaignState } from '@school-allocation/school-core'
+import type { CampaignState } from '@school-allocation/school-core'
 import { type Caller } from '../actor.ts'
 import type { Queryable } from '../db.ts'
 import type { Item, ItemInput } from '../models/items.ts'
@@ -36,7 +36,7 @@ export async function readItem(db: Queryable, id: string): Promise<Item | undefi
 
 export async function writeParts(client: Queryable, itemId: string, input: ItemInput): Promise<void> {
   for (const [position, personId] of input.teachers.entries()) {
-    await client.query('insert into item_teacher (item_id, person_id, position) values ($1, $2, $3)', [itemId, personId, position])
+    await client.query('insert into item_teacher (item_id, person_id, position, lead) values ($1, $2, $3, $4)', [itemId, personId, position, personId === input.lead])
   }
   for (const [position, session] of input.sessions.entries()) {
     await client.query(
@@ -46,12 +46,6 @@ export async function writeParts(client: Queryable, itemId: string, input: ItemI
   }
 }
 
-/** The teachers, in order, each marked whether they lead (school-core leadOf). */
-function withLead(teachers: ItemRow['teachers'], proposer: string | null): Item['teachers'] {
-  const lead = leadOf(teachers.map((teacher) => teacher.personId), proposer)
-  return teachers.map((teacher) => ({ ...teacher, lead: teacher.personId === lead }))
-}
-
 async function readItems(db: Queryable, where: string, values: unknown[]): Promise<Item[]> {
   const { rows } = await db.query<ItemRow>(
     `select i.id, i.campaign_id, i.number, i.title, i.description, i.location, i.fee_cents, i.fee_note, i.places, i.min_participants,
@@ -59,7 +53,7 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
             u.display_name as proposer_name,
             (select b.person_id from identity_binding b where b.tid = u.tid and b.oid = u.oid and b.unbound_at is null) as proposer_person,
             i.created_at, i.updated_at, i.approved_at, i.first_proposed_at, i.withdrawn_at, i.withdraw_reason, i.companions_wanted,
-            coalesce((select json_agg(json_build_object('personId', t.person_id, 'displayName', coalesce(e.display_name, '?')) order by t.position)
+            coalesce((select json_agg(json_build_object('personId', t.person_id, 'displayName', coalesce(e.display_name, '?'), 'lead', t.lead) order by t.position)
                         from item_teacher t
                         left join roster_entry e on e.person_id = t.person_id
                              and e.batch_id = ${CURRENT_BATCH_ID}
@@ -92,7 +86,7 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
     state: row.state,
     reviewNote: row.review_note,
     proposedBy: { id: row.proposed_by, displayName: row.proposer_name, personId: row.proposer_person },
-    teachers: withLead(row.teachers, row.proposer_person),
+    teachers: row.teachers,
     companionsWanted: row.companions_wanted,
     sessions: row.sessions,
     categoryIds: row.category_ids,
@@ -175,11 +169,11 @@ export async function removeTeacher(db: Queryable, id: string, personId: string)
   await db.query('delete from item_teacher where item_id = $1 and person_id = $2', [id, personId])
 }
 
-/** The teachers replaced as a whole (the lead first) and the number of companions wanted written. */
-export async function replaceTeachers(db: Queryable, id: string, teachers: readonly string[], companionsWanted: number) {
+/** The teachers replaced as a whole, `lead` among them marked as the lead (null: nobody leads), and the number of companions wanted written. */
+export async function replaceTeachers(db: Queryable, id: string, teachers: readonly string[], lead: string | null, companionsWanted: number) {
   await db.query('delete from item_teacher where item_id = $1', [id])
   for (const [position, personId] of teachers.entries()) {
-    await db.query('insert into item_teacher (item_id, person_id, position) values ($1, $2, $3)', [id, personId, position])
+    await db.query('insert into item_teacher (item_id, person_id, position, lead) values ($1, $2, $3, $4)', [id, personId, position, personId === lead])
   }
   await db.query('update catalog_item set companions_wanted = $2, updated_at = app_now() where id = $1', [id, companionsWanted])
 }

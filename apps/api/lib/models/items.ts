@@ -18,6 +18,8 @@ export interface ItemInput extends ItemRules {
   feeNote: string
   /** Person ids of roster teachers: the lead and the companions. */
   teachers: string[]
+  /** The teacher who leads; null when the body named none and none follows from it (the service fills in a stored activity's lead, the rules refuse what is left). */
+  lead: string | null
   /** How many companions the lead wants beside them, 0–8. */
   companionsWanted: number
   sessions: SessionInput[]

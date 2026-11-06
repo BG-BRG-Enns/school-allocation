@@ -10,7 +10,7 @@ Under **Registrations**, use **New registration** to enter the **Name** (Project
 
 **Collect activities** opens the registration to teachers: they see it and submit their activities with **New activity**. Like every step it is confirmed once more; **Back to preparation** takes it back as long as the catalogue is not published, the teachers' drafts stay. The [Teachers](/en/lehrkraefte/aktivitaet) handbook explains the form. You can also create activities yourself, including for a teacher you enter in the form.
 
-An activity's **lead** is whoever created it, as long as they are among its teachers; otherwise the first teacher named. If you are a teacher yourself, a new activity already lists you: when you create it for someone else, take yourself off, and the first teacher named leads.
+One of an activity's teachers is its **lead**; whoever is added or signs up as a companion accompanies, and the lead never changes by itself. If you are a teacher yourself, a new activity already lists you as its lead: when you create it for someone else, take yourself off and add that teacher, who then leads. With several teachers you choose under **Lead** who leads; you can do that for any activity, an approved one included, and if you take the lead off, the form asks for another. The lead passes it on to a companion themselves ([Teachers](/en/lehrkraefte/aktivitaet)). If you later sign up as a companion of an activity you created for someone, you stay a companion.
 
 ## Reviewing activities
 

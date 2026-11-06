@@ -131,13 +131,13 @@ export const ItemSchema = StrictObject({
   proposedBy: StrictObject({
     id: Type.String(),
     displayName: Type.String(),
-    /** Their person in the roster, by their account's binding: who leads when among the teachers. */
+    /** Their person in the roster, by their account's binding. */
     personId: Type.Union([Type.String(), Type.Null()]),
   }),
   teachers: Type.Array(StrictObject({
     personId: Type.String(),
     displayName: Type.String(),
-    /** Whether they lead the activity (school-core leadOf); the others accompany. */
+    /** Whether they lead the activity (stored with the teacher); the others accompany. */
     lead: Type.Boolean(),
   })),
   /** How many companions the lead wants beside them; what is still sought is this less the teachers that do not lead. */

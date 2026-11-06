@@ -44,7 +44,7 @@ async function validate(client: Queryable, campaignId: string, input: ItemInput)
     const endMs = instantOf(session.endsAt) ?? Number.NaN
     return { startMs, endMs, dates: Number.isFinite(startMs) && Number.isFinite(endMs) ? datesOfSpan(startMs, endMs) : [], credits: session.credits }
   })
-  const problems = checkItem({ sessions, rules: input, teachers: input.teachers }, { projectDays: campaign?.projectDays ?? [], classes: classes.map((row) => row.className) })
+  const problems = checkItem({ sessions, rules: input, teachers: input.teachers, lead: input.lead }, { projectDays: campaign?.projectDays ?? [], classes: classes.map((row) => row.className) })
   if (problems.length > 0 || unknownTeachers.length > 0) throw new ItemInvalid(problems, unknownTeachers)
   const categories = input.categories ?? []
   const categoriesKnown = await knownCategories(client, categories)
@@ -126,8 +126,10 @@ export async function updateItem(db: Database, id: string, sent: ItemInput, call
   await db.tx(async (client) => {
     const current = await lockedItem(client, id)
     if (!current) throw new ApplicationError('not_found')
-    // Categories left out are the ones it has: a client that knows none keeps them.
-    const input = { ...await credited(client, sent, current.sessions), categories: sent.categories ?? current.categoryIds }
+    // Categories left out are the ones it has: a client that knows none keeps them. So is the lead, as long as they stay
+    // among the teachers: a body that names none and takes the lead out is refused (no_lead), never led by whoever is first.
+    const kept = current.teachers.find((teacher) => teacher.lead && sent.teachers.includes(teacher.personId))?.personId ?? null
+    const input = { ...await credited(client, sent, current.sessions), lead: sent.lead ?? kept, categories: sent.categories ?? current.categoryIds }
     const campaign = await store.lockCampaignForUpdate(client, current)
     // What a teacher may do without organizer rights: tend their own draft
     // while the catalogue takes proposals. Everything else is an
@@ -165,6 +167,9 @@ export async function updateItem(db: Database, id: string, sent: ItemInput, call
     }
     if (!asTeacher) {
       await appendAudit(client, { scopeId: current.campaignId, actor: actorOf(caller), action: 'item.changed', metadata: { itemId: id, state: current.state } })
+      // An organizer's edit that names another lead says so by itself, as a hand-over does.
+      const led = current.teachers.find((teacher) => teacher.lead)?.personId ?? null
+      if (led !== input.lead) await appendAudit(client, { scopeId: current.campaignId, actor: actorOf(caller), action: 'item.lead-changed', metadata: { itemId: id, from: led, to: input.lead } })
     }
   })
   return requireFound(await readItem(db, id))

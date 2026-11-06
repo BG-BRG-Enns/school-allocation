@@ -114,7 +114,7 @@ test('a teacher sets their own days while a registration takes proposals; an org
   assert.equal(verifyAuditChain(await readAudit(s.db, campaign.id)).valid, true)
 })
 
-test('the lead is the creator when among the teachers, else the first named; the overview shows who leads and accompanies what on each day', DB, async (t) => {
+test('a new activity is led by its creator when among the teachers; the lead stays until another is named; the overview shows who leads and accompanies what on each day', DB, async (t) => {
   const s = await school(t)
   const campaign = await draftCampaign(s)
   await transition(s, campaign.id, 'catalogue')
@@ -125,11 +125,14 @@ test('the lead is the creator when among the teachers, else the first named; the
   assert.equal(climbing.status, 201, JSON.stringify(climbing.body))
   assert.equal(climbing.body.proposedBy.personId, s.berndPerson)
   assert.deepEqual(climbing.body.teachers.map((teacher) => [teacher.personId, teacher.lead]), [[s.carlaPerson, false], [s.berndPerson, true]])
-  // Anna, a teacher too, creates one for Carla and Bernd: named first as its creator, she leads; once she takes herself off, the first named does.
+  // Anna, a teacher too, creates one for Carla and Bernd without naming a lead: put first as its creator, she leads. Taking herself
+  // off without naming another is refused: nobody becomes the lead by standing first. With Carla named, Carla leads.
   const vienna = await send<Item>(s, s.anna, 'POST', url, { title: 'Wien', places: 8, teachers: [s.carlaPerson, s.berndPerson], sessions: [VIENNA] })
   assert.equal(vienna.status, 201, JSON.stringify(vienna.body))
   assert.deepEqual(vienna.body.teachers.map((teacher) => [teacher.personId, teacher.lead]), [[s.annaPerson, true], [s.carlaPerson, false], [s.berndPerson, false]])
-  const handedOver = await send<Item>(s, s.anna, 'PATCH', `/api/items/${vienna.body.id}`, { title: 'Wien', places: 8, teachers: [s.carlaPerson, s.berndPerson], sessions: [VIENNA] })
+  const leaderless = await send<{ error: string, problems: { code: string }[] }>(s, s.anna, 'PATCH', `/api/items/${vienna.body.id}`, { title: 'Wien', places: 8, teachers: [s.carlaPerson, s.berndPerson], sessions: [VIENNA] })
+  assert.deepEqual([leaderless.status, leaderless.body.problems.map((p) => p.code)], [422, ['no_lead']])
+  const handedOver = await send<Item>(s, s.anna, 'PATCH', `/api/items/${vienna.body.id}`, { title: 'Wien', places: 8, teachers: [s.carlaPerson, s.berndPerson], lead: s.carlaPerson, sessions: [VIENNA] })
   assert.equal(handedOver.status, 200, JSON.stringify(handedOver.body))
   assert.deepEqual(handedOver.body.teachers.map((teacher) => [teacher.personId, teacher.lead]), [[s.carlaPerson, true], [s.berndPerson, false]])
   // A withdrawn activity is nobody's work.

@@ -12,10 +12,16 @@ export const COMPANION_PROBLEM_CODES = ['none_sought', 'overlap', 'unavailable',
 export type CompanionProblemCode = typeof COMPANION_PROBLEM_CODES[number]
 export const CompanionProblemSchema = Literals(COMPANION_PROBLEM_CODES)
 
-/** The companions as the lead or an organizer sets them: the teachers beside the lead, in order, and how many are wanted. */
+/**
+ * The companions as the lead or an organizer sets them: the teachers beside
+ * the lead, in order, and how many are wanted. With `lead`, the lead is
+ * handed over to that teacher, one of the companions sent: the lead until
+ * now stays as a companion.
+ */
 export const CompanionsBody = StrictObject({
   companions: Type.Array(Uuid, { maxItems: 8 }),
   wanted: Type.Integer({ minimum: 0, maximum: 8 }),
+  lead: Type.Optional(Uuid),
 })
 export type CompanionsBody = Static<typeof CompanionsBody>
 
