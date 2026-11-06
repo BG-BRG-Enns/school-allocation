@@ -302,9 +302,12 @@ test('an activity over a night is nobody\'s fallback: a wish, or a class\'s, nev
 
 test('two placements of a student may overlap only where one is a direct placement beside a class activity', () => {
   // The Monday class activity and the dance in its morning.
-  const both = { fixedItemIds: ['dance', 'mondayclass'] }
+  // The Monday class activity is 5B's: beside it, a student of 5B may dance.
+  const both = { className: '5B', fixedItemIds: ['dance', 'mondayclass'] }
   assert.deepEqual(fixedOverlaps(INPUT, both), [['dance', 'mondayclass']])
   assert.deepEqual(fixedOverlaps(INPUT, { ...both, besideClassItemIds: ['dance'] }), [])
+  // Not a student of another class placed into it directly: that is two placements at once.
+  assert.deepEqual(fixedOverlaps(INPUT, { ...both, className: '6A', besideClassItemIds: ['dance'] }), [['dance', 'mondayclass']])
   // Two activities that are nobody's class activity never both hold, whatever is said of them.
-  assert.deepEqual(fixedOverlaps(INPUT, { fixedItemIds: ['dance', 'minigolf'], besideClassItemIds: ['dance'] }), [['dance', 'minigolf']])
+  assert.deepEqual(fixedOverlaps(INPUT, { className: '5B', fixedItemIds: ['dance', 'minigolf'], besideClassItemIds: ['dance'] }), [['dance', 'minigolf']])
 })

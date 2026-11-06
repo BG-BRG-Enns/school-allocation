@@ -32,21 +32,27 @@ export interface OfferedItem {
   /** Its sessions' spans. */
   sessions: readonly { startMs: number, endMs: number }[]
   /**
-   * Per class, the students placed into it directly (placements.ts):
-   * `leaving` instead of their class activities of that time, `beside`
-   * them. They hold a place of their own and need none in the cells it
-   * touches. Left out: nobody.
+   * The students placed into it directly (placements.ts), each once: they
+   * hold a place of their own and need none in the cells it touches.
+   * `beside` marks a placement beside a class activity the student stays
+   * in: counted with their class there. Left out: nobody.
    */
   placed?: readonly PlacedOf[]
-  /** For a class activity, per class of it, how many of its students are not in it: taken out by hand, or by a direct placement elsewhere. They need places like a class without it. Left out: nobody. */
-  away?: readonly { className: string, students: number }[]
+  /** For a class activity, the students of its classes who are not in it: taken out by hand, or by a direct placement elsewhere. They need places like a class without it. Left out: nobody. */
+  away?: readonly AwayOf[]
 }
 
-/** The students of one class placed directly into an activity. */
+/** A student placed directly into an activity; the id tells one student from another, nothing more. */
 export interface PlacedOf {
   className: string
-  leaving: number
-  beside: number
+  personId: string
+  beside: boolean
+}
+
+/** A student of a class activity's class who is not in it. */
+export interface AwayOf {
+  className: string
+  personId: string
 }
 
 /** The attendance frame of a project day: everyone is at school from period `from` to period `to` of the grid. */
@@ -201,14 +207,16 @@ function cellDemand(cell: DemandCell, classes: readonly ClassSize[], inCell: rea
   const fixedClasses = new Set(inCell.flatMap((item) => item.fixedClasses))
   // Of a class in a class activity here, only those not in it need a place; of any class, whoever is placed directly
   // into an activity here needs none (beside a class activity they are counted with their class already).
-  const awayOf = (className: string) => inCell.filter((item) => item.fixedClasses.includes(className)).reduce((sum, item) => sum + (item.away?.find((a) => a.className === className)?.students ?? 0), 0)
-  const placedOf = (className: string, fixed: boolean) => inCell.reduce((sum, item) => {
-    const placed = item.placed?.find((p) => p.className === className)
-    return sum + (placed ? placed.leaving + (fixed ? 0 : placed.beside) : 0)
-  }, 0)
+  // Each student once, however many activities of the cell name them: a day counted whole has a morning and an afternoon.
+  const awayOf = (className: string) => new Set(inCell.filter((item) => item.fixedClasses.includes(className)).flatMap((item) => (item.away ?? []).filter((a) => a.className === className).map((a) => a.personId)))
+  const placedOf = (className: string, fixed: boolean) => new Set(inCell.flatMap((item) => (item.placed ?? []).filter((p) => p.className === className && !(fixed && p.beside)).map((p) => p.personId)))
   const needing = new Map(classes.map((c) => {
     const fixed = fixedClasses.has(c.className)
-    return [c.className, Math.max(0, Math.min(c.students, fixed ? awayOf(c.className) : c.students) - placedOf(c.className, fixed))]
+    const placed = placedOf(c.className, fixed)
+    if (!fixed) return [c.className, Math.max(0, c.students - placed.size)]
+    // Of a class in a class activity here, only those out of it can need a place, and of them those not placed.
+    const away = awayOf(c.className)
+    return [c.className, Math.min(c.students, [...away].filter((personId) => !placed.has(personId)).length)]
   }))
   const offered = new Map(classes.map((c) => [c.className, 0]))
   const byItem = new Map<OfferedItem, Map<string, number>>()

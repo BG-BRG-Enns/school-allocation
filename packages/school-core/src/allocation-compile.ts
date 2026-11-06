@@ -329,17 +329,19 @@ function rulesOutOfReach(input: AllocationInput, prepared: readonly PreparedStud
 }
 
 /** The pairs of a student's fixed items whose sessions overlap, in id order. */
-export function fixedOverlaps(input: AllocationInput, student: Pick<AllocationStudent, 'fixedItemIds' | 'besideClassItemIds'>): [string, string][] {
+export function fixedOverlaps(input: AllocationInput, student: Pick<AllocationStudent, 'fixedItemIds' | 'besideClassItemIds' | 'className'>): [string, string][] {
   const items = new Map(input.items.map((item) => [item.id, item]))
   const fixed = [...student.fixedItemIds].sort(byText).map((id) => items.get(id)).filter((item): item is AllocationItem => item !== undefined)
-  // A direct placement beside a class activity is the one pair that may overlap: the student is away from the class for that time.
+  // A direct placement beside a class activity of the student's own class is the one pair that may overlap: the student is
+  // away from the class for that time. Beside another class's activity, or another placement, it overlaps like any two.
   const beside = new Set(student.besideClassItemIds ?? [])
+  const ownClass = (item: AllocationItem) => item.rules.fixedClasses.includes(student.className)
   const pairs: [string, string][] = []
   for (let a = 0; a < fixed.length; a++) {
     for (let b = a + 1; b < fixed.length; b++) {
       const itemA = fixed[a] as AllocationItem
       const itemB = fixed[b] as AllocationItem
-      if (beside.has(itemA.id) !== beside.has(itemB.id) && (beside.has(itemA.id) ? itemB : itemA).rules.fixedClasses.length > 0) continue
+      if (beside.has(itemA.id) !== beside.has(itemB.id) && ownClass(beside.has(itemA.id) ? itemB : itemA)) continue
       if (itemsOverlap(itemA, itemB)) pairs.push([itemA.id, itemB.id])
     }
   }

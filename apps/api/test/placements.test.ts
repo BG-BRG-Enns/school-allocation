@@ -163,6 +163,10 @@ test('a teacher places a student into their own activity; the placement beats th
   assert.equal(direct.status, 200, JSON.stringify(direct.body))
   assert.deepEqual([names(direct.body.placed), direct.body.absent, direct.body.classActivity], [[TIM.name], [], false])
   assert.equal((await get<{ items: Item[] }>(s, s.anna, `/api/campaigns/${id}/items`)).body.items.find((i) => i.id === s.items.wien)?.directlyPlaced, 1)
+  // And the other way round: the trip is 5A's again, with Tim placed into it directly. Taken off it, he is off it: that placement goes.
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/items/${s.items.wien}`, { title: 'Wien', places: 0, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [s.berndPerson], sessions: [session(TUESDAY, '08:00', '13:00', WEDNESDAY)] })).status, 200)
+  const off = await send<PlacementsResponse>(s, s.bernd, 'PUT', `/api/items/${s.items.wien}/absences/${s.timPerson}`)
+  assert.deepEqual([off.body.placed, off.body.absent.map((a) => [a.displayName, a.by])], [[], [[TIM.name, 'list']]])
 
   const owner = createDatabase(s.ownerUrl, () => {})
   t.after(() => owner.close())
@@ -177,6 +181,7 @@ test('a teacher places a student into their own activity; the placement beats th
     ['preassignment.placed', s.timPerson, []],
     ['preassignment.exempted', s.timPerson, null],
     ['preassignment.placed', s.timPerson, []],
+    ['preassignment.exempted', s.timPerson, null],
   ])
 })
 

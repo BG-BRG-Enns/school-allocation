@@ -14,32 +14,40 @@ const items = new Map<string, OfferedItem>([['trip', item(0, 8, 18, ['5A'])], ['
 const classOf = new Map([['sara', '5A'], ['tim', '5A'], ['mia', '6A']])
 const row = (itemId: string, personId: string, source: 'class' | 'direct', flags: { exempted?: boolean, leavesClass?: boolean } = {}): PlacementRecord => ({ itemId, personId, source, exempted: flags.exempted ?? false, leavesClass: flags.leavesClass ?? true })
 
+const placedOf = (result: Map<string, OfferedItem>, id: string) => (result.get(id)?.placed ?? []).map((p) => `${p.personId}:${p.className}:${p.beside ? 'beside' : 'instead'}`)
+const awayOf = (result: Map<string, OfferedItem>, id: string) => (result.get(id)?.away ?? []).map((a) => `${a.personId}:${a.className}`)
+
 test('a direct placement takes a place of its activity and takes its student out of the class activity it overlaps', () => {
   const result = withPlacements(items, [row('workshop', 'sara', 'direct'), row('workshop', 'mia', 'direct')], classOf)
   assert.equal(result.get('workshop')?.places, 3)
-  assert.deepEqual(result.get('workshop')?.placed, [{ className: '5A', leaving: 1, beside: 0 }, { className: '6A', leaving: 1, beside: 0 }])
-  assert.deepEqual(result.get('trip')?.away, [{ className: '5A', students: 1 }])
-  // Nothing for an activity nobody is placed into, and nothing for the trip after it.
+  assert.deepEqual(placedOf(result, 'workshop'), ['mia:6A:instead', 'sara:5A:instead'])
+  assert.deepEqual(awayOf(result, 'trip'), ['sara:5A'])
+  // Nothing for an activity nobody is placed into, and nothing for the trip from a placement after it.
   assert.deepEqual([result.get('evening')?.placed, result.get('evening')?.away, result.get('evening')?.places], [undefined, undefined, 10])
-  assert.deepEqual(withPlacements(items, [row('evening', 'sara', 'direct')], classOf).get('trip')?.away, undefined)
+  assert.deepEqual(awayOf(withPlacements(items, [row('evening', 'sara', 'direct')], classOf), 'trip'), [])
 })
 
-test('beside the class activity a student stays in it; taken out of it by hand, their placement beside it counts as one instead of it', () => {
+test('beside the class activity a student stays in it; out of it, by hand or by another placement, their placement beside it is one instead of it', () => {
   const beside = withPlacements(items, [row('rehearsal', 'tim', 'direct', { leavesClass: false })], classOf)
-  assert.deepEqual([beside.get('rehearsal')?.placed, beside.get('trip')?.away], [[{ className: '5A', leaving: 0, beside: 1 }], undefined])
+  assert.deepEqual([placedOf(beside, 'rehearsal'), awayOf(beside, 'trip')], [['tim:5A:beside'], []])
   // On the trip's list and rehearsing: out of the trip once, and placed, so not someone who needs a place during the rehearsal.
   const listed = withPlacements(items, [row('trip', 'tim', 'class', { exempted: true }), row('rehearsal', 'tim', 'direct', { leavesClass: false })], classOf)
-  assert.deepEqual([listed.get('rehearsal')?.placed, listed.get('trip')?.away], [[{ className: '5A', leaving: 1, beside: 0 }], [{ className: '5A', students: 1 }]])
-  // Out by the list and by a placement at once: one student, counted once.
+  assert.deepEqual([placedOf(listed, 'rehearsal'), awayOf(listed, 'trip')], [['tim:5A:instead'], ['tim:5A']])
+  // Out of the trip by the workshop: the rehearsal has no class activity left to be beside.
+  const taken = withPlacements(items, [row('workshop', 'tim', 'direct'), row('evening', 'tim', 'direct', { leavesClass: false }), row('rehearsal', 'sara', 'direct', { leavesClass: false })], classOf)
+  assert.deepEqual([placedOf(taken, 'evening'), placedOf(taken, 'rehearsal'), awayOf(taken, 'trip')], [['tim:5A:instead'], ['sara:5A:beside'], ['tim:5A']])
+  // Out by the list and by a placement at once: one student, once.
   const both = withPlacements(items, [row('trip', 'sara', 'class', { exempted: true }), row('workshop', 'sara', 'direct')], classOf)
-  assert.deepEqual(both.get('trip')?.away, [{ className: '5A', students: 1 }])
+  assert.deepEqual(awayOf(both, 'trip'), ['sara:5A'])
+  // The class rows need not be written yet: before the window opens there are none, and the trip is 5A's all the same.
+  assert.deepEqual(awayOf(withPlacements(items, [row('trip', 'sara', 'class'), row('workshop', 'sara', 'direct')], classOf), 'trip'), ['sara:5A'])
 })
 
 test('rows of people who are not the campaign\'s students, and of activities that are not counted, count for nothing', () => {
   const rows = [row('workshop', 'gone', 'direct'), row('workshop', 'sara', 'direct'), row('withdrawn', 'tim', 'direct'), row('trip', 'gone', 'class', { exempted: true })]
   const result = withPlacements(items, rows, classOf)
   assert.equal(result.get('workshop')?.places, 4)
-  assert.deepEqual(result.get('trip')?.away, [{ className: '5A', students: 1 }])
+  assert.deepEqual(awayOf(result, 'trip'), ['sara:5A'])
   assert.deepEqual([...directlyPlaced(rows, classOf)], [['workshop', 1], ['withdrawn', 1]])
   assert.deepEqual([...placementsByPerson(rows)].map(([personId, own]) => [personId, own.length]), [['gone', 2], ['sara', 1], ['tim', 1]])
 })

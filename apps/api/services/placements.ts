@@ -245,7 +245,12 @@ export async function takeOut(db: Database, id: string, personId: string, caller
   return db.tx(async (client) => {
     const { item, campaign } = await lockedForChange(client, id, caller)
     const student = await classMember(client, campaign, item, personId, caller)
-    const row = await store.lockPlacement(client, campaign.id, item.id, student.personId)
+    let row = await store.lockPlacement(client, campaign.id, item.id, student.personId)
+    // Placed into it directly before their class became one of its classes: that placement goes, the student is the class's now.
+    if (row?.source === 'direct') {
+      await store.deleteDirectPlacements(client, campaign.id, [item.id], student.personId)
+      row = undefined
+    }
     if (row?.exempted !== true) {
       if (row === undefined) await store.insertExemptedPlacement(client, campaign.id, item.id, student.personId, caller.id)
       else await store.exemptPlacement(client, campaign.id, item.id, student.personId, caller.id)

@@ -5,12 +5,8 @@
 // like a class without it. Pure: the rows, the classes and the spans are
 // the caller's.
 
-import { overlaps, rankablePlaces, type OfferedItem } from '@school-allocation/school-core'
+import { effectivePlacements, rankablePlaces, type AwayOf, type OfferedItem, type PlacedOf, type PlacementRow } from '@school-allocation/school-core'
 import type { PlacementRecord } from './dao/pre-assignments.ts'
-
-function itemsOverlap(a: Pick<OfferedItem, 'sessions'>, b: Pick<OfferedItem, 'sessions'>): boolean {
-  return a.sessions.some((s) => b.sessions.some((t) => overlaps(s, t)))
-}
 
 /** The rows of each student, by person id. */
 export function placementsByPerson(rows: readonly PlacementRecord[]): Map<string, PlacementRecord[]> {
@@ -30,43 +26,37 @@ export function directlyPlaced(rows: readonly PlacementRecord[], classOf: Readon
 
 /**
  * The demand's activities with what the placements change: an activity's
- * places less the students placed into it directly, those students per
- * class (they need no place where it is), and for a class activity how
- * many of each of its classes are not in it: on its list, or placed
- * directly, instead of it, into another of these activities that overlaps
- * it. `classOf` knows the campaign's students; rows of others and of
- * activities not in `items` count for nothing.
+ * places less the students placed into it directly, those students (they
+ * need no place where it is), and for a class activity the students of its
+ * classes who are not in it. Who is in what is what holds for each student
+ * (school-core effectivePlacements), over these activities: a class
+ * placement is the student's class being one of the activity's classes,
+ * whether its row is written yet or not, unless they were taken out of it
+ * by hand; a direct placement beside a class activity counts as beside it
+ * only while that class placement holds. `classOf` knows the campaign's
+ * students; rows of others and of activities not in `items` count for
+ * nothing.
  */
 export function withPlacements(items: ReadonlyMap<string, OfferedItem>, rows: readonly PlacementRecord[], classOf: ReadonlyMap<string, string>): Map<string, OfferedItem> {
-  const known = rows.filter((row) => items.has(row.itemId) && classOf.has(row.personId))
-  const direct = known.filter((row) => row.source === 'direct')
-  // A placement beside a class activity the student was taken out of by hand is beside nothing: for the demand it is one
-  // instead of it, so the student, counted as out of the class activity, is counted as placed here.
-  const offList = (row: PlacementRecord) => known.some((other) => other.personId === row.personId && other.source === 'class' && other.exempted
-    && itemsOverlap(items.get(other.itemId) as OfferedItem, items.get(row.itemId) as OfferedItem))
-  const leaves = (row: PlacementRecord) => row.leavesClass || offList(row)
+  const spans = new Map([...items].map(([id, item]) => [id, { id, sessions: item.sessions }]))
+  const byPerson = placementsByPerson(rows.filter((row) => items.has(row.itemId) && classOf.has(row.personId)))
+  const placed = new Map<string, PlacedOf[]>()
+  const away = new Map<string, AwayOf[]>()
+  // Every student with a row, in a stable order: the others are in their class activities and nowhere else.
+  for (const [personId, own] of [...byPerson].sort(([a], [b]) => a.localeCompare(b, 'en'))) {
+    const className = classOf.get(personId) as string
+    const exempted = new Set(own.filter((row) => row.source === 'class' && row.exempted).map((row) => row.itemId))
+    const byClass: PlacementRow[] = [...items].filter(([, item]) => item.fixedClasses.includes(className)).map(([itemId]) => ({ itemId, source: 'class', exempted: exempted.has(itemId), leavesClass: true }))
+    const direct: PlacementRow[] = own.filter((row) => row.source === 'direct' && !items.get(row.itemId)?.fixedClasses.includes(className)).map((row) => ({ itemId: row.itemId, source: 'direct', exempted: false, leavesClass: row.leavesClass }))
+    const held = effectivePlacements([...byClass, ...direct], spans)
+    for (const row of direct) placed.set(row.itemId, [...(placed.get(row.itemId) ?? []), { className, personId, beside: held.besideClassItemIds.includes(row.itemId) }])
+    for (const left of held.left) away.set(left.itemId, [...(away.get(left.itemId) ?? []), { className, personId }])
+  }
   const result = new Map<string, OfferedItem>()
   for (const [id, item] of items) {
-    const own = direct.filter((row) => row.itemId === id)
-    const placed = [...new Set(own.map((row) => classOf.get(row.personId) as string))].sort((a, b) => a.localeCompare(b, 'de')).map((className) => {
-      const ofClass = own.filter((row) => classOf.get(row.personId) === className)
-      return { className, leaving: ofClass.filter(leaves).length, beside: ofClass.filter((row) => !leaves(row)).length }
-    })
-    const away = item.fixedClasses.map((className) => {
-      const out = new Set<string>()
-      for (const row of known) {
-        if (classOf.get(row.personId) !== className) continue
-        if (row.source === 'class' && row.itemId === id && row.exempted) out.add(row.personId)
-        if (row.source === 'direct' && row.leavesClass && row.itemId !== id && itemsOverlap(items.get(row.itemId) as OfferedItem, item)) out.add(row.personId)
-      }
-      return { className, students: out.size }
-    }).filter((a) => a.students > 0)
-    result.set(id, {
-      ...item,
-      places: rankablePlaces(item.places, own.length),
-      ...(placed.length > 0 ? { placed } : {}),
-      ...(away.length > 0 ? { away } : {}),
-    })
+    const own = placed.get(id) ?? []
+    const out = away.get(id) ?? []
+    result.set(id, { ...item, places: rankablePlaces(item.places, own.length), ...(own.length > 0 ? { placed: own } : {}), ...(out.length > 0 ? { away: out } : {}) })
   }
   return result
 }
