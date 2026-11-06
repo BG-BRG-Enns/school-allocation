@@ -15,11 +15,20 @@ export function placementsByPerson(rows: readonly PlacementRecord[]): Map<string
   return byPerson
 }
 
-/** Per activity, how many of `rows` are direct placements of the campaign's students into it. */
-export function directlyPlaced(rows: readonly PlacementRecord[], classOf: ReadonlyMap<string, string>): Map<string, number> {
+/**
+ * Per activity, how many of the campaign's students are placed into it
+ * directly and so take one of its places. Not a student whose class the
+ * activity takes as a whole (`fixedClassesOf`): placed into it before
+ * their class became one of its classes, they are in it with their class,
+ * which takes no place. The same count as the choice's (dao directCounts)
+ * and the demand's (withPlacements).
+ */
+export function directlyPlaced(rows: readonly PlacementRecord[], classOf: ReadonlyMap<string, string>, fixedClassesOf: ReadonlyMap<string, readonly string[]>): Map<string, number> {
   const counts = new Map<string, number>()
   for (const row of rows) {
-    if (row.source === 'direct' && classOf.has(row.personId)) counts.set(row.itemId, (counts.get(row.itemId) ?? 0) + 1)
+    const className = classOf.get(row.personId)
+    if (row.source !== 'direct' || className === undefined || (fixedClassesOf.get(row.itemId) ?? []).includes(className)) continue
+    counts.set(row.itemId, (counts.get(row.itemId) ?? 0) + 1)
   }
   return counts
 }

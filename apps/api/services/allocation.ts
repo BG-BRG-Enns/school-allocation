@@ -53,7 +53,7 @@ export async function snapshotOf(client: Queryable, campaign: Campaign, seed: nu
   const spans = new Map(items.map((item) => [item.id, { id: item.id, sessions: item.sessions.map((s) => ({ startMs: instantOf(s.startsAt) ?? 0, endMs: instantOf(s.endsAt) ?? 0 })) }]))
   const rows = await listPlacements(client, campaign.id)
   const byPerson = placementsByPerson(rows)
-  const placed = directlyPlaced(rows, new Map(students.map((s) => [s.personId, s.className])))
+  const placed = directlyPlaced(rows, new Map(students.map((s) => [s.personId, s.className])), new Map(items.map((item) => [item.id, item.fixedClasses])))
   return {
     projectDays: campaign.projectDays,
     dailyMinimum: campaign.dailyMinimum,

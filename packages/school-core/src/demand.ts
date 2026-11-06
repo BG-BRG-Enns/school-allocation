@@ -145,7 +145,7 @@ export function demandByDay(days: readonly DemandDay[], classes: readonly ClassS
   const grades = [...new Set(classes.map((c) => c.grade))].sort((a, b) => a - b)
   const classActivities = classActivitiesOf(classes, items)
   return days.map((day) => {
-    const cells = day.cells.map((cell) => cellDemand(cell, classes, items.filter((item) => touches(item, cell)), classActivities))
+    const cells = day.cells.map((cell) => cellDemand(cell, classes, items.filter((item) => touches(item, cell)), classActivities, items))
     return {
       date: day.date,
       frame: day.frame,
@@ -185,7 +185,7 @@ export function itemShares(days: readonly DemandDay[], classes: readonly ClassSi
   const shares: ItemShare[] = []
   for (const day of days) {
     for (const cell of day.cells) {
-      const { byItem } = cellDemand(cell, classes, items.filter((item) => touches(item, cell)), classActivities)
+      const { byItem } = cellDemand(cell, classes, items.filter((item) => touches(item, cell)), classActivities, items)
       for (const [item, perClass] of byItem) {
         for (const grade of [...new Set(classes.map((c) => c.grade))].sort((a, b) => a - b)) {
           const places = classes.filter((c) => c.grade === grade).reduce((sum, c) => sum + (perClass.get(c.className) ?? 0), 0)
@@ -203,7 +203,7 @@ function classActivitiesOf(classes: readonly ClassSize[], items: readonly Offere
 }
 
 /** Per class of one cell: who still needs a place, and the places offered them, over the items touching the cell; and per item its share per class. */
-function cellDemand(cell: DemandCell, classes: readonly ClassSize[], inCell: readonly OfferedItem[], classActivities: ReadonlyMap<string, readonly OfferedItem[]>): { period: number | null, needing: Map<string, number>, offered: Map<string, number>, byItem: Map<OfferedItem, Map<string, number>> } {
+function cellDemand(cell: DemandCell, classes: readonly ClassSize[], inCell: readonly OfferedItem[], classActivities: ReadonlyMap<string, readonly OfferedItem[]>, catalogue: readonly OfferedItem[]): { period: number | null, needing: Map<string, number>, offered: Map<string, number>, byItem: Map<OfferedItem, Map<string, number>> } {
   const fixedClasses = new Set(inCell.flatMap((item) => item.fixedClasses))
   // Of a class in a class activity here, only those not in it need a place; of any class, whoever is placed directly
   // into an activity here needs none (beside a class activity they are counted with their class already).
@@ -230,11 +230,14 @@ function cellDemand(cell: DemandCell, classes: readonly ClassSize[], inCell: rea
    */
   const needOf = (c: ClassSize, item: OfferedItem): number => {
     const needs = needing.get(c.className) ?? 0
-    const blocking = (classActivities.get(c.className) ?? []).filter((activity) => activity !== item && overlapsFixed(item, activity.sessions))
-    if (blocking.length === 0) return needs
-    const out = blocking.map((activity) => new Set((activity.away ?? []).filter((a) => a.className === c.className).map((a) => a.personId)))
     const placed = placedOf(c.className, fixedClasses.has(c.className))
-    const free = [...(out[0] ?? [])].filter((personId) => out.every((set) => set.has(personId)) && !placed.has(personId))
+    // Whoever is placed into another activity that overlaps the item, in whatever period, never ranks the item: of those
+    // who need a place here, they are not whom it is for.
+    const taken = new Set(catalogue.filter((other) => other !== item && overlapsFixed(item, other.sessions)).flatMap((other) => (other.placed ?? []).filter((p) => p.className === c.className).map((p) => p.personId)))
+    const blocking = (classActivities.get(c.className) ?? []).filter((activity) => activity !== item && overlapsFixed(item, activity.sessions))
+    if (blocking.length === 0) return Math.max(0, needs - [...taken].filter((personId) => !placed.has(personId)).length)
+    const out = blocking.map((activity) => new Set((activity.away ?? []).filter((a) => a.className === c.className).map((a) => a.personId)))
+    const free = [...(out[0] ?? [])].filter((personId) => out.every((set) => set.has(personId)) && !placed.has(personId) && !taken.has(personId))
     return Math.min(needs, free.length)
   }
   for (const item of inCell) {

@@ -61,6 +61,8 @@ const categoryIds = ref<string[]>([])
 const teachers = ref<{ personId: string, displayName: string }[]>([])
 /** The students placed into a new activity before its first save; entered with it. */
 const pendingPlacements = ref<PendingPlacement[]>([])
+/** Counts the times the placements section is to load again: after the queue of a new activity was entered. */
+const placementsShown = ref(0)
 /** The activities the first save's placements took students out of: whom to tell, shown before the page is left. */
 const placementTells = ref<OtherActivity[]>([])
 /** Which of the teachers leads; '' while none is named. Stored with the activity: whoever is added accompanies. */
@@ -445,6 +447,8 @@ async function save(propose: boolean): Promise<void> {
           refused ??= err instanceof Error ? err : new Error(String(err))
         }
       }
+      // The section loaded the activity's placements when it got its id, before the queue was through: again now.
+      if (queued.length > 0) placementsShown.value += 1
       if (refused !== undefined) throw refused
       if (propose && item.state === 'draft') await proposeItem(item.id)
     } catch (err) {
@@ -1032,6 +1036,7 @@ async function save(propose: boolean): Promise<void> {
     <!-- A stored activity's once it is loaded: until then it would show as a new one's, and what was typed into the search would go with the reload. -->
     <Placements
       v-if="(props.itemId === undefined || existing !== null) && existing?.state !== 'withdrawn'"
+      :key="placementsShown"
       v-model:pending="pendingPlacements"
       :campaign-id="props.id"
       :item-id="existing?.id ?? null"

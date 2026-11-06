@@ -48,6 +48,10 @@ test('rows of people who are not the campaign\'s students, and of activities tha
   const result = withPlacements(items, rows, classOf)
   assert.equal(result.get('workshop')?.places, 4)
   assert.deepEqual(awayOf(result, 'trip'), ['sara:5A'])
-  assert.deepEqual([...directlyPlaced(rows, classOf)], [['workshop', 1], ['withdrawn', 1]])
+  const fixedClassesOf = new Map([...items].map(([id, item]) => [id, item.fixedClasses]))
+  assert.deepEqual([...directlyPlaced(rows, classOf, fixedClassesOf)], [['workshop', 1], ['withdrawn', 1]])
+  // Placed into the trip directly before 5A became its class: with the class, and no place taken; Mia, of another class, takes one.
+  assert.deepEqual([...directlyPlaced([row('trip', 'sara', 'direct'), row('trip', 'mia', 'direct')], classOf, fixedClassesOf)], [['trip', 1]])
+  assert.equal(withPlacements(new Map([['trip', item(5, 8, 18, ['5A'])]]), [row('trip', 'sara', 'direct'), row('trip', 'mia', 'direct')], classOf).get('trip')?.places, 4)
   assert.deepEqual([...placementsByPerson(rows)].map(([personId, own]) => [personId, own.length]), [['gone', 2], ['sara', 1], ['tim', 1]])
 })

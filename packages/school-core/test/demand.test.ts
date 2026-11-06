@@ -171,7 +171,12 @@ test('an activity that overlaps a class activity is for those of the class who a
   // One of 1A does not go: the course is theirs, in all four periods.
   const trip = open(0, [session(MONDAY, '08:30', '10:15')], { fixedClasses: ['1A'], away: [{ className: '1A', personId: 'a' }] })
   assert.deepEqual(offered([trip, course]), [10, 10, 10, 10])
-  // Placed into something else in the 4th period, they need the course there no more.
+  // Placed into something else in the 4th period, the course overlaps their placement: they never rank it, in any period.
   const rehearsal = open(0, [session(MONDAY, '10:30', '11:20')], { placed: [{ className: '1A', personId: 'a', beside: false }] })
-  assert.deepEqual(offered([trip, course, rehearsal]), [10, 10, 0, 10])
+  assert.deepEqual(offered([trip, course, rehearsal]), [0, 0, 0, 0])
+  // The same without a class activity: of 1B's twenty, the one placed in the 2nd period is not whom a course over the 2nd and 3rd is for.
+  const early = open(0, [session(MONDAY, '08:30', '09:20')], { placed: [{ className: '1B', personId: 'x', beside: false }] })
+  const long = open(30, [session(MONDAY, '08:30', '10:15')], { eligibleClasses: ['1B'] })
+  const cells = demandByDay(day, classes, [early, long])[0]?.grades[0]?.cells.map((cell) => [cell.needing, cell.offered])
+  assert.deepEqual(cells, [[39, 30], [40, 30], [40, 0], [40, 0]], 'he needs a place again in the 3rd period, and the course is not it; its places are the other nineteen\'s')
 })

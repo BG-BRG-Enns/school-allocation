@@ -122,8 +122,10 @@ export async function deleteItemPlacements(db: Queryable, itemId: string) {
  * Per activity of a campaign, how many of the campaign's students are
  * placed into it directly: each takes one of its places. Its students as
  * every reader takes them (dao/choices.ts campaignStudents): of its roster,
- * in a class taking part. A placement of someone who has left counts for
- * nothing, here as in the run (lib/placements.ts directlyPlaced).
+ * in a class taking part, and not of a class the activity takes as a
+ * whole (such a student is in it with their class, which takes no place).
+ * A placement of someone who has left counts for nothing, here as in the
+ * run (lib/placements.ts directlyPlaced).
  */
 export async function directCounts(db: Queryable, campaign: Pick<Campaign, 'id' | 'rosterBatchId'>): Promise<Map<string, number>> {
   const { rows } = await db.query<{ item_id: string, placed: string }>(
@@ -131,7 +133,8 @@ export async function directCounts(db: Queryable, campaign: Pick<Campaign, 'id' 
        from pre_assignment p
        join roster_entry e on e.batch_id = ${campaignRosterBatch(campaign)} and e.kind = 'student' and e.person_id = p.person_id and e.grade is not null
        join campaign_class cc on cc.campaign_id = p.campaign_id and cc.class_name = e.class_name
-      where p.campaign_id = $1 and p.source = 'direct'
+       join catalog_item i on i.id = p.item_id
+      where p.campaign_id = $1 and p.source = 'direct' and not (e.class_name = any(i.fixed_classes))
       group by p.item_id`,
     [campaign.id],
   )
