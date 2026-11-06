@@ -160,3 +160,18 @@ test('students out of a class activity need places like a class without it; whoe
   const afternoonTrip = open(0, [session(MONDAY, '13:15', '15:00')], { fixedClasses: ['1A'], away: away('a', 'b') })
   assert.deepEqual(grade5([morningTrip, afternoonTrip]), { period: null, fixed: 18, needing: 22, offered: 0 })
 })
+
+test('an activity that overlaps a class activity is for those of the class who are out of it, in every period it touches, also after the class is back', () => {
+  // Monday framed from the 2nd to the 5th period. 1A is away in the 2nd and 3rd; a course for 1A alone runs from the 2nd to the 5th.
+  const day = [framed(MONDAY, 2, 5)]
+  const course = open(10, [session(MONDAY, '08:30', '12:15')], { eligibleClasses: ['1A'] })
+  const offered = (items: OfferedItem[]) => demandByDay(day, classes, items)[0]?.grades[0]?.cells.map((cell) => cell.offered)
+  // Everyone on the trip: the course starts during it, so nobody of 1A ranks it, in the afternoon either.
+  assert.deepEqual(offered([open(0, [session(MONDAY, '08:30', '10:15')], { fixedClasses: ['1A'] }), course]), [0, 0, 0, 0])
+  // One of 1A does not go: the course is theirs, in all four periods.
+  const trip = open(0, [session(MONDAY, '08:30', '10:15')], { fixedClasses: ['1A'], away: [{ className: '1A', personId: 'a' }] })
+  assert.deepEqual(offered([trip, course]), [10, 10, 10, 10])
+  // Placed into something else in the 4th period, they need the course there no more.
+  const rehearsal = open(0, [session(MONDAY, '10:30', '11:20')], { placed: [{ className: '1A', personId: 'a', beside: false }] })
+  assert.deepEqual(offered([trip, course, rehearsal]), [10, 10, 0, 10])
+})

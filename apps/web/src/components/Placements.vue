@@ -33,6 +33,8 @@ const props = defineProps<{
   overnight: boolean
   /** For a class activity not saved yet: the students of its classes a direct placement elsewhere takes out of it. */
   taken: readonly { displayName: string, className: string }[]
+  /** The activities the placements of a new activity took students out of when it was first saved: whom to tell. */
+  told: readonly OtherActivity[]
 }>()
 const pending = defineModel<PendingPlacement[]>('pending', { required: true })
 
@@ -125,7 +127,7 @@ async function remove(personId: string): Promise<void> {
       {{ acting.error.value }}
     </p>
     <p
-      v-for="other in view?.tell ?? []"
+      v-for="other in [...told, ...(view?.tell ?? [])]"
       :key="other.itemId"
       role="status"
       class="notice"

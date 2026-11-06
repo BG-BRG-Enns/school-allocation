@@ -372,14 +372,16 @@ async function refuseClassConflicts(client: Queryable, campaignId: string, candi
  * for a page that shows both.
  */
 async function gateFor(client: Queryable, campaign: Campaign, itemId: string | null, shape: OfferedItem, previous: StoredShape | null): Promise<{ before: ReturnType<typeof demandByDay>, after: ReturnType<typeof demandByDay>, served: GateCell[], cells: GateCell[], refused: boolean }> {
-  const { classes, days, items } = await demandInputs(client, campaign)
-  if (itemId !== null) items.delete(itemId)
-  const others = [...items.values()]
-  const before = demandByDay(days, classes, others)
+  const { classes, days, items, placed } = await demandInputs(client, campaign)
+  // The activity under its own id, or under none while it is new: its placements go with it, out of the catalogue without it
+  // and into the one with it, as the form shapes it.
+  const key = itemId ?? ''
+  items.delete(key)
+  const before = demandByDay(days, classes, placed(items))
   const served = servedCells(shape, days, classes)
   const judged = previous === null ? served : addedCells(servedCells(previous, days, classes), served, shape.places > previous.places)
   const cells = gateCells(judged, before, campaign.placeHeadroomPercent)
-  return { before, after: demandByDay(days, classes, [...others, shape]), served: gateCells(served, before, campaign.placeHeadroomPercent), cells, refused: gateRefused(cells) }
+  return { before, after: demandByDay(days, classes, placed(new Map([...items, [key, shape]]))), served: gateCells(served, before, campaign.placeHeadroomPercent), cells, refused: gateRefused(cells) }
 }
 
 /**

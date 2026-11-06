@@ -126,6 +126,13 @@ test('a teacher places a student into their own activity; the placement beats th
   const tuesday = demand.body.demand.find((day) => day.date === TUESDAY)
   assert.deepEqual(tuesday?.grades.map((g) => [g.grade, g.cells[0]?.fixed, g.cells[0]?.needing, g.cells[0]?.offered]), [[9, 2, 0, 0], [10, 0, 1, 7]])
 
+  // The check of the workshop shows both sides of it: without it Sara is on the trip and its places are not there; with it, what Plätze und Bedarf says.
+  type Cells = { date: string, grades: { grade: number, cells: { fixed: number, needing: number, offered: number }[] }[] }[]
+  const sides = await send<{ before: Cells, after: Cells }>(s, s.carla, 'POST', `/api/campaigns/${id}/items/check`, { itemId: s.items.werkstatt })
+  const onTuesday = (days: Cells) => days.find((day) => day.date === TUESDAY)?.grades.map((g) => [g.grade, g.cells[0]?.fixed, g.cells[0]?.needing, g.cells[0]?.offered])
+  assert.deepEqual(onTuesday(sides.body.before), [[9, 2, 0, 0], [10, 0, 1, 3]])
+  assert.deepEqual(onTuesday(sides.body.after), [[9, 2, 0, 0], [10, 0, 1, 7]])
+
   // The later claim stands: Anna places Sara into the lab, in the workshop's hours. Sara leaves the workshop, and the answer names it and its lead: whom to tell.
   const claimed = await place(s.anna, s.items.labor, s.saraPerson)
   assert.deepEqual([names(claimed.body.placed), others(claimed.body.tell)], [[SARA.name], [['Werkstatt', CARLA.name]]])
@@ -240,6 +247,16 @@ test('a class activity\'s teachers keep its list of who does not take part, with
   // The organizer's page shows Vienna among the placements only for who is in it: nobody now.
   assert.deepEqual((await view(s.anna, s.items.wien)).body.absent.map((a) => [a.displayName, a.by]), [[SARA.name, 'placed'], [TIM.name, 'list']])
 
+  // Placed into the Wednesday course directly, and then the course becomes her class's: taken back, the direct placement leaves Mia in it by class.
+  const owner = createDatabase(s.ownerUrl, () => {})
+  t.after(() => owner.close())
+  assert.equal((await send(s, s.anna, 'PUT', `/api/items/${s.items.mittwoch}/placements/${s.miaPerson}`, {})).status, 200)
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/items/${s.items.mittwoch}`, { title: 'Mittwochskurs', places: 10, fixedClasses: ['6A'], cancellableBelowMin: false, teachers: [s.annaPerson], sessions: [session(WEDNESDAY, '08:30', '12:15')] })).status, 200)
+  const rowOf = async () => (await owner.query<{ source: string }>('select source from pre_assignment where item_id = $1 and person_id = $2', [s.items.mittwoch, s.miaPerson])).rows.map((row) => row.source)
+  assert.deepEqual(await rowOf(), ['direct'], 'the direct placement stands in the class placement\'s place')
+  assert.equal((await send(s, s.anna, 'DELETE', `/api/items/${s.items.mittwoch}/placements/${s.miaPerson}`)).status, 200)
+  assert.deepEqual(await rowOf(), ['class'])
+
   // Closed and computed: Sara's placement is her fixed item, the trip is nobody's; Tim, who saved no list, gets fallbacks, never the night away.
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'closed' })).status, 200)
   assert.equal((await send(s, s.bernd, 'PUT', `/api/items/${s.items.wien}/absences/${s.saraPerson}`)).status, 409, 'closed: a teacher changes the placements no more')
@@ -262,8 +279,6 @@ test('a class activity\'s teachers keep its list of who does not take part, with
   const timResult = await get<MyResultResponse>(s, s.tim, `/api/campaigns/${id}/my-result`)
   assert.equal(titles(timResult.body.items).includes('Wien'), false)
 
-  const owner = createDatabase(s.ownerUrl, () => {})
-  t.after(() => owner.close())
   const acts = (await readAudit(owner, id)).filter((e) => e.action === 'preassignment.exempted' || e.action === 'preassignment.exemption-lifted').map((e) => [e.action, e.metadata.personId, e.metadata.reason ?? null])
   assert.deepEqual(acts, [
     ['preassignment.exempted', s.timPerson, null], ['preassignment.exemption-lifted', s.timPerson, null], ['preassignment.exempted', s.timPerson, null],

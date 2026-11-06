@@ -15,7 +15,7 @@ import Placements from '../components/Placements.vue'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { loadParticipants, type ParticipantsResponse } from '../lib/allocation-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
-import { checkItem, createItem, placeStudent, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, setCompanions, updateItem, type Campaign, type Category, type ClassConflictView, type GateCellView, type Item, type ItemCheckResponse, type ItemInput, type ItemInvalidBody } from '../lib/campaigns-api.ts'
+import { checkItem, createItem, placeStudent, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, setCompanions, updateItem, type Campaign, type Category, type ClassConflictView, type GateCellView, type Item, type ItemCheckResponse, type ItemInput, type ItemInvalidBody, type OtherActivity } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodsOnGrid, touchedDates } from '../lib/format.ts'
 import { cellsAddedBy, cellsText, refusalText } from '../lib/offer-cells.ts'
@@ -61,6 +61,8 @@ const categoryIds = ref<string[]>([])
 const teachers = ref<{ personId: string, displayName: string }[]>([])
 /** The students placed into a new activity before its first save; entered with it. */
 const pendingPlacements = ref<PendingPlacement[]>([])
+/** The activities the first save's placements took students out of: whom to tell, shown before the page is left. */
+const placementTells = ref<OtherActivity[]>([])
 /** Which of the teachers leads; '' while none is named. Stored with the activity: whoever is added accompanies. */
 const leadId = ref('')
 /** How many companions the lead wants beside them (the school's wish 6). */
@@ -142,6 +144,7 @@ async function load(): Promise<void> {
     } else {
       existing.value = null
       pendingPlacements.value = []
+      placementTells.value = []
       places.value = DEFAULT_PLACES
       placesTouched.value = false
       categoryIds.value = []
@@ -430,9 +433,19 @@ async function save(propose: boolean): Promise<void> {
       const item = existing.value ? await updateItem(existing.value.id, input()) : await createItem(props.id, input())
       // Saved: a refused submission leaves this draft, and the next save changes it rather than making another.
       existing.value = item
-      // The students placed into it while it was new, now that there is an activity to place them into.
-      for (const p of pendingPlacements.value) await placeStudent(item.id, p.personId, p.leavesClass)
+      // The students placed into it while it was new, now that there is an activity to place them into. Not those of a
+      // class it takes as a whole: they are in it. One the server refuses leaves the queue like the others, and is said.
+      const queued = pendingPlacements.value.filter((p) => !fixedClasses.value.includes(p.className))
       pendingPlacements.value = []
+      let refused: Error | undefined
+      for (const p of queued) {
+        try {
+          placementTells.value = [...placementTells.value, ...(await placeStudent(item.id, p.personId, p.leavesClass)).tell]
+        } catch (err) {
+          refused ??= err instanceof Error ? err : new Error(String(err))
+        }
+      }
+      if (refused !== undefined) throw refused
       if (propose && item.state === 'draft') await proposeItem(item.id)
     } catch (err) {
       // The submission refused by the school's rules: the activity is saved as a draft, the refusal says what to change.
@@ -455,6 +468,8 @@ async function save(propose: boolean): Promise<void> {
       throw err
     }
   })
+  // A placement of the new activity took a student out of another: the page says whom to tell, so it stays.
+  if (ok && placementTells.value.length > 0) return
   // Back to the list, which marks the row and scrolls to it.
   if (ok) await router.push({ path: `/wahlen/${props.id}`, query: existing.value ? { item: existing.value.id } : {} })
 }
@@ -1023,6 +1038,7 @@ async function save(propose: boolean): Promise<void> {
       :fixed-classes="fixedClasses"
       :overnight="overnight"
       :taken="check?.taken ?? []"
+      :told="placementTells"
     />
 
     <ul

@@ -143,6 +143,16 @@ async function lockedForChange(client: Queryable, id: string, caller: Caller): P
   return { item, campaign }
 }
 
+/**
+ * After a direct placement went, while class placements are written (the
+ * window has opened): they follow the catalogue again. A student placed
+ * into an activity before their class became one of its classes has no
+ * class row there (the direct one stood in its place); they get it now.
+ */
+async function restoreClassPlacements(client: Queryable, campaign: Campaign): Promise<void> {
+  if (acceptsChoices(campaign.state) || campaign.state === 'closed') await reconcilePreAssignments(client, campaign.id)
+}
+
 /** The student of the campaign's roster, or `not_found`: a person who is none is nobody to place. */
 async function studentOf(client: Queryable, campaign: Campaign, personId: string): Promise<CampaignStudent> {
   const student = await campaignStudent(client, campaign, personId)
@@ -180,7 +190,10 @@ export async function placeStudent(db: Database, id: string, personId: string, l
     const moved = (await store.listPlacements(client, campaign.id, student.personId))
       .filter((row) => row.source === 'direct' && row.itemId !== item.id && items.has(row.itemId) && itemsOverlap(items.get(row.itemId) as Item, item))
       .map((row) => row.itemId)
-    if (moved.length > 0) await store.deleteDirectPlacements(client, campaign.id, moved, student.personId)
+    if (moved.length > 0) {
+      await store.deleteDirectPlacements(client, campaign.id, moved, student.personId)
+      await restoreClassPlacements(client, campaign)
+    }
     // A class row of this very activity can only be one left behind: the student was taken out of it by hand, and their
     // class is no longer one of its classes. It goes, so the direct placement takes its key.
     if ((await store.lockPlacement(client, campaign.id, item.id, student.personId))?.source === 'class') {
@@ -199,6 +212,7 @@ export async function removePlacement(db: Database, id: string, personId: string
     const { item, campaign } = await lockedForChange(client, id, caller)
     if (!mayPlaceInto(caller, item)) throw new ApplicationError('forbidden')
     if (await store.deleteDirectPlacements(client, campaign.id, [item.id], personId.toLowerCase()) === 0) throw new ApplicationError('not_found')
+    await restoreClassPlacements(client, campaign)
     await appendAudit(client, { scopeId: campaign.id, actor: actorOf(caller), action: 'preassignment.removed', metadata: { itemId: item.id, personId: personId.toLowerCase() } })
     return viewOf(client, campaign, item, caller)
   })
@@ -229,6 +243,7 @@ export async function reclaimStudent(db: Database, id: string, personId: string,
       .map((row) => row.itemId)
     if (taken.length === 0) throw new ApplicationError('not_found')
     await store.deleteDirectPlacements(client, campaign.id, taken, student.personId)
+    await restoreClassPlacements(client, campaign)
     await appendAudit(client, { scopeId: campaign.id, actor: actorOf(caller), action: 'preassignment.reclaimed', metadata: { itemId: item.id, personId: student.personId, from: taken } })
     return viewOf(client, campaign, item, caller, taken.map((itemId) => otherOf(items.get(itemId) as Item)))
   })
