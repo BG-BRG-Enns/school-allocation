@@ -294,8 +294,8 @@ function addTeacher(teacher: { personId: string, displayName: string }): void {
 
 function removeTeacher(personId: string): void {
   teachers.value = teachers.value.filter((t) => t.personId !== personId)
-  // The lead taken out: nobody leads until another is named, and the server refuses an activity without one.
-  if (leadId.value === personId) leadId.value = ''
+  // The lead taken out: the only teacher left leads; among several nobody does until one is named, and the server refuses an activity without a lead.
+  if (leadId.value === personId) leadId.value = teachers.value.length === 1 ? (teachers.value[0]?.personId ?? '') : ''
 }
 
 /** Who leads as the form stands: the teacher named as the lead. */
@@ -546,6 +546,13 @@ async function save(propose: boolean): Promise<void> {
         id="lead"
         v-model="leadId"
       >
+        <option
+          v-if="leadId === ''"
+          value=""
+          disabled
+        >
+          –
+        </option>
         <option
           v-for="teacher in teachers"
           :key="teacher.personId"
