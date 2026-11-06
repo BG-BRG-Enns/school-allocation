@@ -19,7 +19,7 @@ const ADMIN = { BOOTSTRAP_ADMINS: ANNA.email ?? '' }
 const DAYS = ['2027-06-21', '2027-06-22']
 const MONDAY = '2027-06-21'
 const TUESDAY = '2027-06-22'
-const session = (day: string, from: string, to: string, minutes: number) => ({ startsAt: `${day}T${from}:00+02:00`, endsAt: `${day}T${to}:00+02:00`, credits: [{ date: day, minutes }] })
+const session = (day: string, from: string, to: string) => ({ startsAt: `${day}T${from}:00+02:00`, endsAt: `${day}T${to}:00+02:00` })
 
 interface Ready extends Harness {
   anna: CookieJar
@@ -69,9 +69,9 @@ test('a teacher joins an activity that seeks a companion from the list, not twic
   }
 
   // Bernd's climbing wants one companion; the lone lead counts as none named, so one is sought.
-  const climbing = await propose(s.bernd, { title: 'Klettern', places: 12, teachers: [s.berndPerson], companionsWanted: 1, sessions: [session(MONDAY, '08:30', '12:15', 210)] })
+  const climbing = await propose(s.bernd, { title: 'Klettern', places: 12, teachers: [s.berndPerson], companionsWanted: 1, sessions: [session(MONDAY, '08:30', '12:15')] })
   assert.deepEqual([climbing.companionsWanted, climbing.teachers.length], [1, 1])
-  assert.equal((await send(s, s.bernd, 'POST', url, { title: 'Zu viele', places: 12, teachers: [s.berndPerson], companionsWanted: 9, sessions: [session(MONDAY, '08:30', '12:15', 210)] })).status, 400, 'at most eight')
+  assert.equal((await send(s, s.bernd, 'POST', url, { title: 'Zu viele', places: 12, teachers: [s.berndPerson], companionsWanted: 9, sessions: [session(MONDAY, '08:30', '12:15')] })).status, 400, 'at most eight')
 
   // The list: a student does not see the registration while it takes proposals, let alone the list; Carla sees the climbing on Monday, sought 1, and may join; Bernd sees it as its lead.
   assert.equal((await get(s, s.sara, `/api/campaigns/${id}/companions`)).status, 404)
@@ -93,13 +93,13 @@ test('a teacher joins an activity that seeks a companion from the list, not twic
   assert.equal(entry((await get<List>(s, s.anna, `/api/campaigns/${id}/companions`)).body, MONDAY, climbing.id), undefined, 'full and not hers: off the list')
 
   // Over her own time: Bernd's dance in the climbing's hours is refused to Carla, and the list says why.
-  const dance = await propose(s.bernd, { title: 'Tanz', places: 10, teachers: [s.berndPerson], companionsWanted: 1, sessions: [session(MONDAY, '10:00', '11:00', 50)] })
+  const dance = await propose(s.bernd, { title: 'Tanz', places: 10, teachers: [s.berndPerson], companionsWanted: 1, sessions: [session(MONDAY, '10:00', '11:00')] })
   assert.deepEqual(entry((await get<List>(s, s.carla, `/api/campaigns/${id}/companions`)).body, MONDAY, dance.id)?.join, { ok: false, problem: 'overlap' })
   const overlap = await send<{ error: string }>(s, s.carla, 'POST', `/api/items/${dance.id}/companions/me`)
   assert.deepEqual([overlap.status, overlap.body.error], [409, 'teacher_overlap'])
 
   // On a day she is unavailable: refused; "nur wenn nötig" passes.
-  const darts = await propose(s.bernd, { title: 'Darts', places: 20, teachers: [s.berndPerson], companionsWanted: 1, sessions: [session(TUESDAY, '08:30', '12:15', 210)] })
+  const darts = await propose(s.bernd, { title: 'Darts', places: 20, teachers: [s.berndPerson], companionsWanted: 1, sessions: [session(TUESDAY, '08:30', '12:15')] })
   assert.equal((await send(s, s.carla, 'PUT', `/api/my-availability/${TUESDAY}`, { status: 'unavailable' })).status, 200)
   const tuesday = (await get<List>(s, s.carla, `/api/campaigns/${id}/companions`)).body.days.find((d) => d.date === TUESDAY)
   assert.deepEqual([tuesday?.myStatus, tuesday?.items[0]?.join], ['unavailable', { ok: false, problem: 'unavailable' }])

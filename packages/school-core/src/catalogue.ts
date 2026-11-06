@@ -37,6 +37,9 @@ export function acceptsProposals(campaignState: string): boolean {
   return campaignState === 'catalogue'
 }
 
+/** A day has this many minutes; no credit is above it. */
+const MINUTES_PER_DAY = 24 * 60
+
 /** A local date, YYYY-MM-DD. */
 export const LOCAL_DATE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
 
@@ -48,10 +51,42 @@ export interface Span {
   dates: string[]
 }
 
-/** The minutes a session earns on one project day: given by the teacher, not derived from the clock, since travel and breaks do not count. */
+/** The minutes a session earns on one project day: derived from the school's periods it covers (creditsOf), so breaks and what lies outside the timetable do not count. */
 export interface Credit {
   date: string
   minutes: number
+}
+
+/** A local date a session touches, as the caller computed it in the school's zone: the day's own span and the spans of the grid's periods on it. */
+export interface CreditDay {
+  date: string
+  startMs: number
+  endMs: number
+  periods: readonly Pick<Span, 'startMs' | 'endMs'>[]
+}
+
+const MINUTE_MS = 60_000
+
+/** The whole minutes two spans share. */
+function sharedMinutes(a: Pick<Span, 'startMs' | 'endMs'>, b: Pick<Span, 'startMs' | 'endMs'>): number {
+  return Math.max(0, Math.round((Math.min(a.endMs, b.endMs) - Math.max(a.startMs, b.startMs)) / MINUTE_MS))
+}
+
+/**
+ * What a session credits on each date it touches: the minutes it shares
+ * with the periods of the school's grid on that date. A session of two
+ * periods credits their two lengths, the break between them not; a trip
+ * by the clock credits the periods it covers, so the minimum a day asks
+ * for means the same however the day is cut into activities. A session
+ * that shares nothing with the grid on any of its dates (a school without
+ * a grid, an evening) credits its clock minutes on each date instead, so
+ * every session credits something. One entry per date, in the days'
+ * order; never more than a day has minutes.
+ */
+export function creditsOf(span: Pick<Span, 'startMs' | 'endMs'>, days: readonly CreditDay[]): Credit[] {
+  const onGrid = days.map((day) => day.periods.reduce((sum, period) => sum + sharedMinutes(span, period), 0))
+  const minutes = onGrid.some((m) => m > 0) ? onGrid : days.map((day) => sharedMinutes(span, day))
+  return days.map((day, index) => ({ date: day.date, minutes: Math.min(MINUTES_PER_DAY, minutes[index] ?? 0) }))
 }
 
 export interface SessionInput extends Span {
@@ -112,9 +147,6 @@ export interface CatalogueProblem {
   session?: number
 }
 
-/** A day has this many minutes; a credit above it is a typo. */
-const MINUTES_PER_DAY = 24 * 60
-
 /**
  * The problems of an activity as proposed, against its campaign's project
  * days and the roster's classes. Shapes (a title's length, a grade's range)
@@ -136,7 +168,8 @@ export function checkItem(item: ItemInput, context: ItemContext): CatalogueProbl
       seen.add(credit.date)
       if (!Number.isInteger(credit.minutes) || credit.minutes < 0 || credit.minutes > MINUTES_PER_DAY) problems.push({ code: 'credit_minutes_invalid', session: index })
     }
-    if (session.credits.every((credit) => credit.minutes <= 0)) problems.push({ code: 'no_credit', session: index })
+    // A span that is none has its own problem and no credit to speak of.
+    if (session.endMs > session.startMs && session.credits.every((credit) => credit.minutes <= 0)) problems.push({ code: 'no_credit', session: index })
   })
   for (let i = 0; i < item.sessions.length; i++) {
     for (let j = i + 1; j < item.sessions.length; j++) {

@@ -248,3 +248,28 @@ export function listCampaignItems(db: Queryable, campaignId: string): Promise<It
 export function listApprovedItems(db: Queryable, campaignId: string): Promise<Item[]> {
   return readItems(db, 'where i.campaign_id = $1 and i.state = \'approved\'', [campaignId])
 }
+
+/** The registrations not yet open: what their sessions credit follows the school's grid when it changes. */
+export async function listCampaignsBeforeOpening(db: Queryable) {
+  const { rows } = await db.query<{ id: string }>('select id from campaign where state in (\'draft\', \'catalogue\', \'published\') order by id')
+  return rows.map((row) => ({ id: row.id }))
+}
+
+/** The sessions of those of `campaignIds` that are still not open, read under their locks. */
+export async function listSessionsBeforeOpening(db: Queryable, campaignIds: readonly string[]) {
+  const { rows } = await db.query<{ id: string, starts_at: Date, ends_at: Date }>(
+    `select s.id, s.starts_at, s.ends_at
+       from item_session s
+       join catalog_item i on i.id = s.item_id
+       join campaign c on c.id = i.campaign_id
+      where c.id = any($1::uuid[]) and c.state in ('draft', 'catalogue', 'published')
+      order by s.id`,
+    [campaignIds],
+  )
+  return rows.map((row) => ({ id: row.id, startsAt: row.starts_at.toISOString(), endsAt: row.ends_at.toISOString() }))
+}
+
+/** What a session credits written in place: the session keeps its id. */
+export async function updateSessionCredits(db: Queryable, id: string, credits: readonly { date: string, minutes: number }[]) {
+  await db.query('update item_session set credits = $2 where id = $1', [id, JSON.stringify(credits)])
+}

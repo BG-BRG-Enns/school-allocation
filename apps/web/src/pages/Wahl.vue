@@ -954,6 +954,12 @@ function onSubmitPending(): void {
             </label>
             <span class="muted">{{ t.campaign.settings.lockHint }}</span>
           </p>
+          <p
+            v-if="Object.keys(dailyMinimum).length > 0"
+            class="muted"
+          >
+            {{ t.campaign.settings.dailyMinimumHint }}
+          </p>
           <div class="row">
             <p
               v-for="grade in Object.keys(dailyMinimum)"

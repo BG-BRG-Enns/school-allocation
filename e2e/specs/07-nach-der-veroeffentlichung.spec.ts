@@ -25,7 +25,7 @@ test.describe.configure({ mode: 'serial' })
 
 const DAY = '2034-06-26'
 const NAME = sample.sportsWeek
-const session = (from: string, to: string) => ({ startsAt: `${DAY}T${from}:00+02:00`, endsAt: `${DAY}T${to}:00+02:00`, credits: [{ date: DAY, minutes: 120 }] })
+const session = (from: string, to: string) => ({ startsAt: `${DAY}T${from}:00+02:00`, endsAt: `${DAY}T${to}:00+02:00` })
 
 /** The browser's fetch, failing the step on a refusal: the setup asks for nothing it may not have. */
 async function must<T>(answer: Promise<{ status: number, body: T }>, what: string): Promise<T> {

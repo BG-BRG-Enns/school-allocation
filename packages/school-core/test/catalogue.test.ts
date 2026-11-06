@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { acceptsProposals, checkItem, creditedMinutesByDate, isEligible, isPreAssigned, isStaffOnly, ITEM_STATES, itemTransition, overlaps, type ItemInput, type ItemRules, type SessionInput } from '../src/catalogue.ts'
+import { acceptsProposals, checkItem, creditedMinutesByDate, creditsOf, isEligible, isPreAssigned, isStaffOnly, ITEM_STATES, itemTransition, overlaps, type CreditDay, type ItemInput, type ItemRules, type SessionInput } from '../src/catalogue.ts'
+import { DEFAULT_PERIODS, type Period } from '../src/periods.ts'
 
 const DAY = 24 * 60 * 60 * 1000
 // Monday 2027-06-21 08:00 Europe/Vienna = 06:00Z; the dates are what the API computes for the span.
@@ -93,4 +94,57 @@ test('an item goes draft → proposed → approved, back to draft when returned,
   assert.equal(acceptsProposals('catalogue'), true)
   assert.equal(acceptsProposals('published'), false)
   assert.equal(acceptsProposals('draft'), false)
+})
+
+// The credit a session earns, derived from the grid: the day's periods as spans on a zone-free clock, a day 24 hours long.
+const HOUR = 60 * 60 * 1000
+const clock = (time: string, dayIndex = 0): number => dayIndex * DAY + (Number(time.slice(0, 2)) * 60 + Number(time.slice(3))) * 60_000
+const gridDay = (date: string, dayIndex: number, periods: readonly Period[] = DEFAULT_PERIODS): CreditDay => ({
+  date,
+  startMs: dayIndex * DAY,
+  endMs: (dayIndex + 1) * DAY,
+  periods: periods.map((p) => ({ startMs: clock(p.starts, dayIndex), endMs: clock(p.ends, dayIndex) })),
+})
+const mondayGrid = gridDay('2027-06-21', 0)
+const tuesdayGrid = gridDay('2027-06-22', 1)
+
+test('a session in periods credits their lengths, the breaks between them not; however a day is cut, the periods add up alike', () => {
+  // The 2nd and 3rd period: 08:30–10:15 by the clock is 105 minutes, two periods are 100.
+  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('10:15') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 100 }])
+  // The 4th to the 6th, after the long break: 150. Together with the first the five periods of the frame: 250, as one session over them credits.
+  assert.deepEqual(creditsOf({ startMs: clock('10:30'), endMs: clock('13:10') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 150 }])
+  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('13:10') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 250 }])
+})
+
+test('a trip by the clock credits the periods it covers, a part of one by its minutes, nothing outside the timetable', () => {
+  // 08:00–13:00: 25 minutes of the 1st period, the 2nd to the 5th whole, 40 of the 6th.
+  assert.deepEqual(creditsOf({ startMs: clock('08:00'), endMs: clock('13:00') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 265 }])
+  // From before the first period until the evening: the whole grid, ten periods, and not the evening.
+  assert.deepEqual(creditsOf({ startMs: clock('07:00'), endMs: clock('21:00') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 500 }])
+})
+
+test('a session over several days credits each date by its own periods; a return in the night credits that day nothing', () => {
+  // Monday 08:30 to Tuesday 13:10: Monday from the 2nd period, Tuesday the first six.
+  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('13:10', 1) }, [mondayGrid, tuesdayGrid]), [{ date: '2027-06-21', minutes: 450 }, { date: '2027-06-22', minutes: 300 }])
+  // Back at two in the night: Tuesday is touched and credits nothing.
+  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('02:00', 1) }, [mondayGrid, tuesdayGrid]), [{ date: '2027-06-21', minutes: 450 }, { date: '2027-06-22', minutes: 0 }])
+})
+
+test('a session that shares nothing with the grid credits its clock minutes, so every session credits something', () => {
+  // An evening at the theatre.
+  assert.deepEqual(creditsOf({ startMs: clock('19:00'), endMs: clock('22:00') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 180 }])
+  // A school without a grid: the clock, per date, an end at midnight included.
+  const bare = [gridDay('2027-06-21', 0, []), gridDay('2027-06-22', 1, [])]
+  assert.deepEqual(creditsOf({ startMs: clock('08:00'), endMs: clock('13:00') }, [bare[0] as CreditDay]), [{ date: '2027-06-21', minutes: 300 }])
+  assert.deepEqual(creditsOf({ startMs: clock('20:00'), endMs: clock('12:00', 1) }, bare), [{ date: '2027-06-21', minutes: 240 }, { date: '2027-06-22', minutes: 720 }])
+  // The day summer time ends has 25 hours: no credit is above a day's minutes.
+  assert.deepEqual(creditsOf({ startMs: 0, endMs: 25 * HOUR }, [{ date: '2027-10-31', startMs: 0, endMs: 25 * HOUR, periods: [] }]), [{ date: '2027-10-31', minutes: 1440 }])
+})
+
+test('what the derivation gives passes the rules of an activity', () => {
+  const span = { startMs: MON, endMs: MON + 4 * HOUR }
+  const day: CreditDay = { date: '2027-06-21', startMs: MON - 8 * HOUR, endMs: MON + 16 * HOUR, periods: [{ startMs: MON, endMs: MON + 50 * 60_000 }] }
+  const credits = creditsOf(span, [day])
+  assert.deepEqual(credits, [{ date: '2027-06-21', minutes: 50 }])
+  assert.deepEqual(checkItem({ ...item, sessions: [{ ...span, dates: ['2027-06-21'], credits }] }, context), [])
 })

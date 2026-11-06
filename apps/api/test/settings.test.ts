@@ -77,7 +77,7 @@ test('the period grid starts with the Austrian default, is read by everyone sign
   t.after(() => owner.close())
   const events = await readAudit(owner, SCHOOL_SCOPE)
   assert.deepEqual(events.at(-1)?.action, 'settings.periods-changed')
-  assert.deepEqual(events.at(-1)?.metadata, { periods: 6, first: '08:00', last: '13:50' })
+  assert.deepEqual(events.at(-1)?.metadata, { periods: 6, first: '08:00', last: '13:50', sessions: 0 })
 })
 
 test('the school speaks German until an administrator sets another language, which everyone signed in reads and the page names; a change is audited with the one before', DB, async (t) => {
@@ -156,7 +156,7 @@ test('class teachers come from the roster\'s address column and from the app; a 
   // Bernd takes 5A to Vienna: the class page shows it.
   const trip = await send<Item>(s, s.bernd, 'POST', `/api/campaigns/${id}/items`, {
     title: 'Wien', places: 0, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [s.berndPerson],
-    sessions: [{ startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-22T18:00:00+02:00', credits: [{ date: '2027-06-22', minutes: 420 }] }],
+    sessions: [{ startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-22T18:00:00+02:00' }],
   })
   assert.equal(trip.status, 201, JSON.stringify(trip.body))
   await send(s, s.bernd, 'POST', `/api/items/${trip.body.id}/propose`)
@@ -214,12 +214,12 @@ test('the window\'s settings are kept in order and changeable until it opens; th
   // Bernd proposes a course for the 9th grade on Monday; Carla a trip that takes 5A on Tuesday with two extra places.
   const course = await send<Item>(s, s.bernd, 'POST', `/api/campaigns/${id}/items`, {
     title: 'Klettern', places: 12, eligibleGrades: [9], teachers: [s.berndPerson],
-    sessions: [{ startsAt: '2027-06-21T09:00:00+02:00', endsAt: '2027-06-21T13:00:00+02:00', credits: [{ date: '2027-06-21', minutes: 210 }] }],
+    sessions: [{ startsAt: '2027-06-21T09:00:00+02:00', endsAt: '2027-06-21T13:00:00+02:00' }],
   })
   assert.equal(course.status, 201, JSON.stringify(course.body))
   const trip = await send<Item>(s, s.carla, 'POST', `/api/campaigns/${id}/items`, {
     title: 'Wien', places: 2, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [s.carlaPerson],
-    sessions: [{ startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-22T18:00:00+02:00', credits: [{ date: '2027-06-22', minutes: 420 }] }],
+    sessions: [{ startsAt: '2027-06-22T08:00:00+02:00', endsAt: '2027-06-22T18:00:00+02:00' }],
   })
   assert.equal(trip.status, 201)
   type Demand = { date: string, frame: { from: number, to: number } | null, periods: (number | null)[], grades: { grade: number, students: number, cells: { period: number | null, fixed: number, needing: number, offered: number }[] }[] }[]

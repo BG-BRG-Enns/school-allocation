@@ -43,7 +43,7 @@ test('the real solver: a run comes back validated and stored, with its record', 
   const id = created.body.id
   await send(h, anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'catalogue' })
   const berndJar = await signIn(h, BERND)
-  const session = (day: string, from: string, to: string, minutes: number) => ({ startsAt: `${day}T${from}:00+02:00`, endsAt: `${day}T${to}:00+02:00`, credits: [{ date: day, minutes }] })
+  const session = (day: string, from: string, to: string) => ({ startsAt: `${day}T${from}:00+02:00`, endsAt: `${day}T${to}:00+02:00` })
   const items: string[] = []
   const propose = async (body: Record<string, unknown>) => {
     const item = await send<Item>(h, berndJar, 'POST', `/api/campaigns/${id}/items`, { teachers: [bernd], ...body })
@@ -55,10 +55,10 @@ test('the real solver: a run comes back validated and stored, with its record', 
   }
   // Monday: four morning items (210 minutes) of twelve places, a paid one among them; Tuesday: three full-day items of fifteen places and one cancellable below eight.
   const morning: string[] = []
-  for (const [title, fee] of [['Klettern', 0], ['Tanz', 0], ['Chemie', 0], ['Segeln', 2500]] as const) morning.push(await propose({ title, places: 12, feeCents: fee, sessions: [session(DAYS[0] as string, '08:30', '12:15', 210)] }))
+  for (const [title, fee] of [['Klettern', 0], ['Tanz', 0], ['Chemie', 0], ['Segeln', 2500]] as const) morning.push(await propose({ title, places: 12, feeCents: fee, sessions: [session(DAYS[0] as string, '08:30', '12:15')] }))
   const tuesday: string[] = []
-  for (const title of ['Museum', 'Wandern', 'Schwimmen']) tuesday.push(await propose({ title, places: 15, sessions: [session(DAYS[1] as string, '08:30', '13:30', 300)] }))
-  tuesday.push(await propose({ title: 'Theater', places: 15, minParticipants: 8, cancellableBelowMin: true, sessions: [session(DAYS[1] as string, '08:30', '13:30', 300)] }))
+  for (const title of ['Museum', 'Wandern', 'Schwimmen']) tuesday.push(await propose({ title, places: 15, sessions: [session(DAYS[1] as string, '08:30', '13:30')] }))
+  tuesday.push(await propose({ title: 'Theater', places: 15, minParticipants: 8, cancellableBelowMin: true, sessions: [session(DAYS[1] as string, '08:30', '13:30')] }))
   const window = { name: 'Synthetische Woche', schoolYear: '2026/27', projectDays: DAYS, opensAt: '2027-03-01T08:00:00+01:00', closesAt: '2027-03-08T20:00:00+01:00', lateUntil: '2027-03-12T20:00:00+01:00', dailyMinimum: { 9: 200, 10: 200 } }
   assert.equal((await send(h, anna, 'PATCH', `/api/admin/campaigns/${id}`, window)).status, 200)
   await send(h, anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'published' })

@@ -16,7 +16,7 @@ import { ANNA, BERND, SARA } from './helpers/personas.ts'
 
 const ADMIN = { BOOTSTRAP_ADMINS: ANNA.email ?? '' }
 const DAYS = ['2027-06-21', '2027-06-22']
-const MONDAY = { startsAt: '2027-06-21T09:00:00+02:00', endsAt: '2027-06-21T13:00:00+02:00', credits: [{ date: '2027-06-21', minutes: 210 }] }
+const MONDAY = { startsAt: '2027-06-21T09:00:00+02:00', endsAt: '2027-06-21T13:00:00+02:00' }
 
 type Ready = Harness & { anna: CookieJar, bernd: CookieJar }
 
