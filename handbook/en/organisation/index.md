@@ -17,8 +17,8 @@ Every registration goes through the same states. You take the next step with a b
 | Late registration | Anyone without complete choices submits them | automatically at the end of late registration, or **End registration** | – |
 | Registration closed | The registration's class lists are frozen | **Calculate allocation** | – |
 | Allocation in review | You review and compare calculations | **Publish** | – |
-| Allocation published | Everyone sees their allocation; swaps, placements by class teachers, changes by hand | **Close registration** | – |
-| Closed | Everything stays readable, nothing changes any more | – | – |
+| Allocation published | Everyone sees their allocation; swaps, placements by class teachers, changes by hand | **Archive registration** | – |
+| Archived | Everything stays readable, nothing changes any more | – | – |
 
 From the opening on there is no way back: the invitations are out, the students are choosing.
 

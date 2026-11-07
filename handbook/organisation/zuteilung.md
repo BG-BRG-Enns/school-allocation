@@ -22,9 +22,9 @@ Vor der ersten Berechnung müssen für alle Schulstufen der Anmeldung die Mindes
 **Zuteilung** auf der Seite der Anmeldung öffnet die Seite der Berechnungen.
 
 - **Losnummer**: Sie entscheidet, wie Gleichstände ausgehen. Leer zieht SchulWahl eine.
-- **Rechenzeit je Ziel**, 1 bis 60: Mehr Rechenzeit findet eher die beste Einteilung, dauert aber länger.
+- **Suchaufwand je Ziel**, 1 bis 60: Ein höherer Wert sucht gründlicher und findet eher eine bessere Einteilung, dauert aber länger. Wie lange, hängt von der Größe der Anmeldung und vom Server ab.
 
-**Zuteilung berechnen** startet die Berechnung; nach einigen Minuten, je nach Rechenzeit und Größe der Schule, steht sie in der Liste **Berechnungen**. **Wiederholen** startet eine Berechnung mit derselben Losnummer und Rechenzeit noch einmal; sie kann anders ausgehen. Du kannst beliebig viele Berechnungen machen, etwa mit anderen Losnummern, und sie vergleichen.
+**Zuteilung berechnen** startet die Berechnung; nach einigen Minuten, je nach Suchaufwand und Größe der Schule, steht sie in der Liste **Berechnungen**. **Wiederholen** startet eine Berechnung mit derselben Losnummer und Suchaufwand noch einmal; sie kann anders ausgehen. Du kannst beliebig viele Berechnungen machen, etwa mit anderen Losnummern, und sie vergleichen.
 
 Sagt die Seite, dass die Berechnung auf diesem Server nicht eingerichtet ist oder das Rechenmodul nicht antwortet, ist das Sache des Betriebs.
 
@@ -32,7 +32,7 @@ Sagt die Seite, dass die Berechnung auf diesem Server nicht eingerichtet ist ode
 
 ![Die Prüfung einer Berechnung: oben Veröffentlichen, darunter Losnummer und Rechenzeit, die Zahlen der Berechnung und die Ziele mit ihren Werten je Runde](/bilder/de/zuteilung-pruefen.png)
 
-Eine fertige Berechnung zeigt zuerst ihre Zahlen: wie viele Schüler\*innen an allen Tagen eingeteilt sind, wie vielen Minuten fehlen, wie viele einen Restplatz haben, wie vielen eine Regel fehlt, wie viele Aktivitäten ausfallen. Darunter die **Ziele** mit ihrem Wert je Runde. „✓ bestmöglich“ heißt, dass es keine bessere Einteilung gibt; „≈ vielleicht nicht bestmöglich“, dass die Rechenzeit nicht gereicht hat, das zu beweisen. Mehr Rechenzeit hilft dann oft.
+Eine fertige Berechnung zeigt zuerst ihre Zahlen: wie viele Schüler\*innen an allen Tagen eingeteilt sind, wie vielen Minuten fehlen, wie viele einen Restplatz haben, wie vielen eine Regel fehlt, wie viele Aktivitäten ausfallen. Darunter die **Ziele** mit ihrem Wert je Runde. „✓ bestmöglich“ heißt, dass es keine bessere Einteilung gibt; „≈ vielleicht nicht bestmöglich“, dass der Suchaufwand nicht gereicht hat, das zu beweisen. Mehr Suchaufwand hilft dann oft.
 
 Weiter unten:
 

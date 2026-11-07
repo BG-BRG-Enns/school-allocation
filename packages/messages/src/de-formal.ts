@@ -42,7 +42,6 @@ export const deFormal = {
     category_in_use: 'Eine Aktivität oder eine Regel verwendet diese Kategorie. Umbenennen geht, entfernen nicht.',
     category_unknown: 'Eine der Kategorien gibt es nicht mehr. Bitte die Seite neu laden.',
     class_conflict: 'Eine Klasse ist zur selben Zeit schon in einer anderen Klassenaktivität. Bitte den Hinweis ansehen.',
-    target_reached: 'In jedem Feld, in das diese Aktivität Plätze brächte, ist das Ziel schon erreicht. Bitte den Hinweis ansehen.',
   },
   campaign: {
     transitions: {

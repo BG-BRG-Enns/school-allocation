@@ -1,6 +1,6 @@
 # Categories and rules
 
-With categories and rules, a registration makes sure everyone does something in particular, such as “at least one sport activity” or “in year 7, at least 200 minutes of careers guidance”.
+Use categories and rules to set targets, such as “at least one sport activity” or “in year 7, at least 200 minutes of careers guidance”. SchulWahl tries to meet these targets during allocation and shows which remain unmet.
 
 ## Categories
 

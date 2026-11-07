@@ -12,7 +12,7 @@ Auch jetzt teilst du unter **Direkt eingeteilt** Schüler\*innen in deine Aktivi
 
 ## Wenn eine Aktivität ausfällt
 
-Darf eine Aktivität ausfallen und haben sie sich zu wenige für ihre Mindestzahl gewünscht, fällt sie bei der Zuteilung aus. Mit der Veröffentlichung bekommst du dann eine E-Mail, und statt der Liste steht: „Diese Aktivität fällt aus: Für ihre Mindestzahl kamen zu wenige Wünsche.“
+Darf eine Aktivität ausfallen und erreicht die Zuteilung ihre Mindestzahl nicht, fällt sie dabei aus – auch wenn genug sie gewünscht, aber andere Aktivitäten bekommen haben. Mit der Veröffentlichung bekommst du dann eine E-Mail, und statt der Liste steht: „Diese Aktivität fällt aus: Bei der Zuteilung wurde die Mindestzahl an Teilnehmer\*innen nicht erreicht.“
 
 ## Kosten
 

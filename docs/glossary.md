@@ -45,7 +45,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | Concept (code) | `de` | `en` | Note |
 | -------------- | ---- | ---- | ---- |
 | campaign | Anmeldung, Anmeldungen | registration | Q1 |
-| campaign states | In Vorbereitung · Angebote werden gesammelt · Katalog veröffentlicht · Anmeldung läuft · Nachfrist · Anmeldung beendet · Zuteilung wird berechnet · Zuteilung in Prüfung · Einteilung veröffentlicht · Abgeschlossen | in preparation · collecting activities · catalogue published · registration open · late registration · registration closed · allocating · allocation in review · allocation published · closed | Q2; English has one word, allocation |
+| campaign states | In Vorbereitung · Angebote werden gesammelt · Katalog veröffentlicht · Anmeldung läuft · Nachfrist · Anmeldung beendet · Zuteilung wird berechnet · Zuteilung in Prüfung · Einteilung veröffentlicht · Abgeschlossen | in preparation · collecting activities · catalogue published · registration open · late registration · registration closed · allocating · allocation in review · allocation published · archived | Q2; English has one word, allocation |
 | item | Aktivität | activity | "Angebot" only in "Angebote werden gesammelt" |
 | class activity (D-24) | Klassenaktivität; "für die ganze 5A"; "Ganze Klassen, die fix teilnehmen (sie wählen für diese Zeit nichts)" | class activity; "whole class 5A" | |
 | extra places of a class activity | "für die ganze 5A, dazu 6 freie Plätze" | "whole class 5A, plus 6 open places" | |
@@ -87,17 +87,17 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | overnight | "mit Übernachtung" | "with an overnight stay" | a session over more than one local date |
 | allocation run | Berechnung; "Zuteilung berechnen"; "Berechnungen"; "Berechnung als Excel" | calculation; "Calculate allocation" | Q2 |
 | seed | Losnummer | draw number | explained once: decides how ties are drawn |
-| time limit | Rechenzeit | computing time | the deterministic second is the handbook's business |
+| time limit | Suchaufwand | search effort | a deterministic budget per goal, not elapsed seconds; how long it takes depends on the registration and the server |
 | levels L1–L5 | Ziele (in dieser Reihenfolge) | goals (in this order) | each line says what it protects |
 | average rank | durchschnittlicher Wunsch | average choice | |
-| run status | gültig, vielleicht nicht die beste · keine Einteilung möglich · in der Rechenzeit keine gefunden · Fehler in den Daten | valid, maybe not the best · no allocation possible · none found in time · data error | |
+| run status | gültig, vielleicht nicht die beste · keine Einteilung möglich · mit dem Suchaufwand keine gefunden · Fehler in den Daten | valid, maybe not the best · no allocation possible · none found in time · data error | |
 | pass (D-20) | Runde ("1. Runde: Anmeldezeitraum, 2. Runde: Nachfrist") | round | |
 | fallback place (D-06) | Restplatz | remaining place | "auf einen Restplatz ohne Kosten" |
 | deficit | fehlende Minuten | missing minutes | |
 | category | Kategorie, Kategorien | category, categories | the school's, one list for every registration; an activity belongs to none, one or several |
 | rule (of a registration) | Regel; "Sport: mindestens 1 Aktivität"; "9. Schulstufe, nur 7A" | rule; "Sport: at least 1 activity"; "year 9, only 7A" | only for these; the allocation's hard constraints are Bedingungen (conditions) |
 | rule standing | erfüllt; "es fehlt 1 Aktivität"; "1 von 2" | met; "1 activity missing"; "1 of 2" | |
-| rule levels | "Schüler\*innen, denen eine Regel fehlt"; "Fehlende Aktivitäten (Minuten) für Regeln insgesamt" | "students missing a rule"; "total activities (minutes) missing for rules" | after the missing minutes, before the wishes |
+| rule levels | "Schüler\*innen, die nicht alle Regeln erfüllen"; "Fehlende Aktivitäten (Minuten) für Regeln insgesamt" | "students who do not meet all the rules"; "total activities (minutes) missing for rules" | after the missing minutes, before the wishes |
 | unplaced students | "Noch nicht vollständig eingeteilt" | "Not fully placed" | Short of minutes on a day or of a rule. |
 | the solver | Berechnung (organizers); Rechenmodul (administrators) | calculation service | "Solver" stays in the deploy guide |
 | change by hand | von Hand; "Einteilung von Hand ändern" | by hand | |
@@ -118,6 +118,6 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | mail priority | persönliche E-Mails · an Lehrkräfte · an Schüler\*innen | personal · to teachers · to students | the order they go out in |
 | expired mail | nicht mehr gesendet | no longer sent | a reminder whose window ended first |
 | attendance | Anwesenheit; anwesend / abwesend / entschuldigt | attendance; present / absent / excused | |
-| archive | Abschließen; Abgeschlossen | close; closed | |
+| archive | Abschließen; Abgeschlossen | archive; archived | English says archive, not close: closing is what the registration period does |
 | students, participants | Schüler\*innen, Schüler\*in; Teilnehmer\*innen | students; participants | Q3 |
 | teachers | Lehrkraft, Lehrkräfte | teacher, teachers | Q4 |

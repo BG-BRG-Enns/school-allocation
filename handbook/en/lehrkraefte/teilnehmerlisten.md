@@ -12,7 +12,7 @@ Now too, under **Placed directly**, you place students into your activity and re
 
 ## If an activity is cancelled
 
-If an activity can be cancelled and too few students chose it to meet its minimum, it is cancelled during allocation. On publication, you then receive an email, and instead of the list it says: “This activity is cancelled: too few students chose it to meet its minimum.”
+If an activity can be cancelled and the allocation does not reach its minimum, it is cancelled then – even when enough students chose it but received other activities. On publication, you then receive an email, and instead of the list it says: “This activity is cancelled: the allocation did not reach its minimum number of participants.”
 
 ## Cost
 

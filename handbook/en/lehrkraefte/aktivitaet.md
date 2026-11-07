@@ -22,9 +22,9 @@ Under **Companions (0 to 8)** you say how many teachers should come along beside
 
 ### Companions sought
 
-![Companions sought: per project day the activities that still seek a companion, with time, lead and the button I accompany](/bilder/en/begleitung-gesucht.png)
+![Companions sought: per project day the activities that still seek a companion, with time, lead and the button Join as an accompanying teacher](/bilder/en/begleitung-gesucht.png)
 
-On the registration's page, **Companions sought** leads to a list per project day: the activities that still seek a companion and the ones you accompany, with time, lead, "Companions 1 of 2" and your availability on the day. A submitted activity is on it before its approval, marked "not approved yet". **I accompany** signs you up; from then on you are a teacher of the activity like a named one and later see its participants. It is not possible when you already lead or accompany something at the same time or are entered as unavailable on the day ("only if needed" is enough); the list tells you. If the companions have been found meanwhile, signing up tells you. Until registration opens you take yourself off with **Take me off**; after that tell the lead or the organisation, who take you out.
+On the registration's page, **Companions sought** leads to a list per project day: the activities that still seek a companion and the ones you accompany, with time, lead, "Companions 1 of 2" and your availability on the day. A submitted activity is on it before its approval, marked "not approved yet". **Join as an accompanying teacher** signs you up; from then on you are a teacher of the activity like a named one and later see its participants. It is not possible when you already lead or accompany something at the same time or are entered as unavailable on the day ("only if needed" is enough); the list tells you. If the companions have been found meanwhile, signing up tells you. Until registration opens you take yourself off with **Take me off**; after that tell the lead or the organisation, who take you out.
 
 ## Sessions
 

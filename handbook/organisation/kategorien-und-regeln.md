@@ -1,6 +1,6 @@
 # Kategorien und Regeln
 
-Mit Kategorien und Regeln sorgt eine Anmeldung dafür, dass alle etwas Bestimmtes machen, etwa „mindestens eine Sport-Aktivität“ oder „in der 7. Schulstufe mindestens 200 Minuten Berufsorientierung“.
+Mit Kategorien und Regeln legst du Ziele fest, etwa „mindestens eine Sport-Aktivität“ oder „in der 7. Schulstufe mindestens 200 Minuten Berufsorientierung“. SchulWahl versucht, sie bei der Zuteilung zu erfüllen, und zeigt, welche offen bleiben.
 
 ## Kategorien
 
