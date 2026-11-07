@@ -8,7 +8,7 @@ Die Anmeldung öffnet zum **Beginn** aus den [Einstellungen](./einstellungen) vo
 
 ![Die Seite Meine Wünsche: je Projekttag die Zeitblöcke, in jedem die Aktivitäten zum Reihen, darüber der Stand der Wünsche](/bilder/de/wuensche.png)
 
-Schüler\*innen öffnen die Anmeldung und klicken **Wünsche abgeben oder ändern**. Je Projekttag sehen sie die Zeitblöcke und reihen in jedem die Aktivitäten: 1. Wunsch, 2. Wunsch und so weiter. Jede Änderung wird sofort gespeichert. Oben steht, ob ihre Wünsche vollständig sind, in welchem Zeitraum sie gespeichert wurden und die wievielte Fassung es ist. Eine Aktivität, die ihre ganze Klasse mitnimmt, steht mit „mit deiner ganzen Klasse“ dabei; Aktivitäten, die nicht für ihre Schulstufe oder Klasse sind, sehen sie nicht.
+Schüler\*innen öffnen die Anmeldung und klicken **Wünsche abgeben oder ändern**. Je Projekttag sehen sie die Zeitblöcke und reihen in jedem die Aktivitäten: 1. Wunsch, 2. Wunsch und so weiter. Jede Änderung wird sofort gespeichert. Oben steht, ob ihre Wünsche vollständig sind und in welchem Zeitraum sie gespeichert wurden. Eine Aktivität, die ihre ganze Klasse mitnimmt, steht mit „mit deiner ganzen Klasse“ dabei; Aktivitäten, die nicht für ihre Schulstufe oder Klasse sind, sehen sie nicht.
 
 ## Stand der Anmeldung
 

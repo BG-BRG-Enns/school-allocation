@@ -549,7 +549,7 @@ export const de = {
     swap_closed: 'Gerade ist keine Tauschzeit.',
     not_offered: 'Diese Aktivität wird nicht angeboten: Sie fällt aus, ist zurückgezogen, ist nicht für diese Schulstufe oder Klasse, oder sie liegt zur Zeit einer Klassenaktivität.',
     already_placed: 'Diese Aktivität ist schon eingetragen.',
-    item_full: 'Diese Aktivität ist voll. Jemand war schneller.',
+    item_full: 'Diese Aktivität hat gerade keine freien Plätze. Eine andere wählen oder später noch einmal nachsehen.',
     not_placed: 'Diese Aktivität ist nicht eingetragen.',
     leaves_fixed: 'Diese Einteilung wurde für die ganze Klasse oder direkt von einer Lehrkraft festgelegt. Sie lässt sich hier nicht ändern.',
     below_minimum: 'Die bisherige Aktivität käme unter ihre Mindestzahl.',
@@ -1108,14 +1108,14 @@ export const de = {
     titleOnBehalf: 'Für jemanden eintragen',
     onBehalf: (name: string, className: string) => `Für ${name} (${className}). Was du einträgst, wird mit Begründung protokolliert.`,
     /** After the campaign's name: "bis zu 3 Wünsche je Zeitblock". */
-    cap: (cap: number) => `bis zu ${cap} ${byCount(cap, 'Wunsch', 'Wünsche')} je Zeitblock`,
+    cap: (cap: number) => `Gib je Zeitblock ${cap} ${byCount(cap, 'Wunsch', 'Wünsche')} in deiner bevorzugten Reihenfolge an; werden weniger Aktivitäten angeboten, wähle alle.`,
     closesAt: (when: string) => `Anmeldung bis ${when}`,
     lateUntil: (when: string) => `Nachfrist bis ${when}`,
     notAccepting: 'Gerade nimmt die Anmeldung keine Wünsche an.',
     lateNotice: 'Wünsche aus der Nachfrist kommen nach den anderen dran.',
     /** After the state's badge: the window (a WINDOW_LABELS word) and the version of the saved list. */
-    savedIn: (window: string, version: number) => `gespeichert (${window}), Fassung ${version}`,
-    nothingOffered: 'Für dich wird nichts angeboten.',
+    savedIn: (window: string) => `Deine Wünsche sind gespeichert (${window}).`,
+    nothingOffered: 'Zurzeit gibt es für dich keine Aktivitäten zur Wahl. Wenn du teilnehmen solltest, wende dich an deinen Klassenvorstand.',
     /** After the title of a class activity, in bold. */
     fixedForYourClass: 'mit deiner ganzen Klasse',
     /** An activity a teacher placed the student into directly. */
@@ -1126,7 +1126,7 @@ export const de = {
     /** The select of an item's wish number. */
     wishFor: (title: string) => `Wunsch ${title}`,
     saveWishes: 'Wünsche speichern',
-    allGroupsComplete: 'Alle Zeitblöcke haben ihre Wünsche, und die Regeln sind erfüllt.',
+    allGroupsComplete: 'Deine Wunschliste ist vollständig: Du hast alle nötigen Wünsche angegeben und die Regeln so weit wie möglich berücksichtigt.',
     wishesMissing: 'Es fehlen noch Wünsche.',
     /** Follows the two above for a student, whose changes need no button. */
     savedAtOnce: 'Jede Änderung wird sofort gespeichert.',
@@ -1141,7 +1141,7 @@ export const de = {
       /** When the offer cannot reach the minimum. */
       limited: 'mehr bietet der Katalog nicht',
       /** When the wishes per time block leave no room for more next to the other rules. */
-      crowded: 'mehr geht neben den anderen Regeln nicht',
+      crowded: 'deine Wünsche gelten für diese Regel: Kein einzelner Wunsch ließe sich ändern, ohne eine andere Regel schwerer erfüllbar zu machen',
     },
     exemptions: {
       title: 'Befreiungen',
@@ -1398,7 +1398,7 @@ export const de = {
       /** A fixed row of an activity the student's class is not in as a whole: a teacher placed them. */
       direct: 'von einer Lehrkraft eingeteilt',
       wish: (rank: number | null) => `dein ${rank}. Wunsch`,
-      fallback: 'Restplatz, weil deine Wünsche hier nicht reichten',
+      fallback: 'automatisch zugeteilt: kostenloser Platz außerhalb deiner Wunschliste',
       swap: 'dein Tausch',
       other: 'eingeteilt',
     },
@@ -1411,7 +1411,7 @@ export const de = {
     noItem: 'An diesem Tag hast du keine Aktivität.',
     credited: (minutes: number) => `${minutes} Minuten angerechnet`,
     fee: (amount: string) => `Kosten: ${amount}`,
-    deficit: (minutes: number) => `Hier fehlen dir noch ${minutes} Minuten. Dein Klassenvorstand teilt dich in eine Aktivität mit freien Plätzen ein.`,
+    deficit: (minutes: number) => `Dein Tagesprogramm ist noch nicht vollständig: Es fehlen ${minutes} Minuten an Aktivitäten. Dein Klassenvorstand teilt dich in eine Aktivität mit freien Plätzen ein.`,
     noFee: 'Deine Aktivitäten kosten nichts.',
     /** The registration's rules with what the student's activities bring. */
     rules: 'Regeln der Anmeldung',
@@ -1933,10 +1933,10 @@ export const de = {
     },
     grace_reminder: {
       subject: 'Letzte Erinnerung: Wünsche für {{campaign}} bis {{deadline}}',
-      body: 'Hallo {{first_name}},\n\nmorgen endet die Nachfrist für {{campaign}}, und deine Wünsche fehlen noch:\n\n{{link}}',
+      body: 'Hallo {{first_name}},\n\ndie Nachfrist für {{campaign}} endet am {{deadline}}. Deine Wünsche sind noch nicht vollständig. Bitte ergänze sie bis dahin:\n\n{{link}}',
     },
     missed_deadline: {
-      subject: '{{campaign}}: keine Wünsche abgegeben',
+      subject: '{{campaign}}: Anmeldefrist abgelaufen – Wünsche unvollständig',
       body: 'Hallo {{first_name}},\n\ndie Anmeldung für {{campaign}} ist zu Ende, und deine Wünsche sind nicht vollständig. Du bekommst deshalb Restplätze ohne Kosten, oder dein Klassenvorstand teilt dich ein. Deine Einteilung siehst du nach der Veröffentlichung hier:\n\n{{link}}',
     },
     class_missing: {

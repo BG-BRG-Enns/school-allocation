@@ -544,7 +544,7 @@ export const en: Messages = {
     swap_closed: 'There is no swap period at the moment.',
     not_offered: 'This activity is not offered: it is cancelled, withdrawn, not for this year or class, or overlaps with a class activity.',
     already_placed: 'This activity is already entered.',
-    item_full: 'This activity is full. Someone got there first.',
+    item_full: 'This activity has no free places at the moment. Choose another one or look again later.',
     not_placed: 'This activity is not entered.',
     leaves_fixed: 'This placement was set for the whole class or directly by a teacher. It cannot be changed here.',
     below_minimum: 'The previous activity would fall below its minimum.',
@@ -1068,14 +1068,14 @@ export const en: Messages = {
     titleOnBehalf: 'Enter for someone',
     onBehalf: (name: string, className: string) => `For ${name} (${className}). What you enter is recorded with a reason.`,
     /** After the campaign's name: "up to 3 choices per time block". */
-    cap: (cap: number) => `up to ${cap} ${byCount(cap, 'choice', 'choices')} per time block`,
+    cap: (cap: number) => `Give ${cap} ${byCount(cap, 'choice', 'choices')} per time block in your order of preference; if fewer activities are offered, choose them all.`,
     closesAt: (when: string) => `Registration until ${when}`,
     lateUntil: (when: string) => `Late registration until ${when}`,
     notAccepting: 'The registration is not accepting choices at the moment.',
     lateNotice: 'Late registration choices are considered after the others.',
     /** After the state's badge: the window (a WINDOW_LABELS word) and the version of the saved list. */
-    savedIn: (window: string, version: number) => `saved (${window}), version ${version}`,
-    nothingOffered: 'Nothing is offered to you.',
+    savedIn: (window: string) => `Your choices are saved (${window}).`,
+    nothingOffered: 'There are no activities for you to choose from at the moment. If you should be taking part, please contact your class teacher.',
     /** After the title of a class activity, in bold. */
     fixedForYourClass: 'with your whole class',
     fixedDirectly: 'placed by a teacher',
@@ -1085,7 +1085,7 @@ export const en: Messages = {
     /** The select of an item's wish number. */
     wishFor: (title: string) => `Choice ${title}`,
     saveWishes: 'Save choices',
-    allGroupsComplete: 'Choices are complete for all time blocks, and the rules are met.',
+    allGroupsComplete: 'Your choices are complete: you have given all the choices needed and taken the rules into account as far as possible.',
     wishesMissing: 'Some choices are still missing.',
     /** Follows the two above for a student, whose changes need no button. */
     savedAtOnce: 'Every change is saved at once.',
@@ -1096,7 +1096,7 @@ export const en: Messages = {
       done: 'fine',
       notYet: 'more choices needed',
       limited: 'the catalogue offers no more',
-      crowded: 'the other rules leave no room for more',
+      crowded: 'your choices are accepted for this rule: no single choice could be changed without making another rule harder to meet',
     },
     exemptions: {
       title: 'Exemptions',
@@ -1348,7 +1348,7 @@ export const en: Messages = {
       fixed: 'with your class',
       direct: 'placed by a teacher',
       wish: (rank: number | null) => `your choice ${rank}`,
-      fallback: 'remaining place, because your choices could not be met here',
+      fallback: 'allocated automatically: a free place outside your choices',
       swap: 'your swap',
       other: 'placed',
     },
@@ -1361,7 +1361,7 @@ export const en: Messages = {
     noItem: 'You have no activity on this day.',
     credited: (minutes: number) => `${minutes} ${byCount(minutes, 'minute', 'minutes')} credited`,
     fee: (amount: string) => `Cost: ${amount}`,
-    deficit: (minutes: number) => `You are still missing ${minutes} ${byCount(minutes, 'minute', 'minutes')} here. Your class teacher will place you in an activity with open places.`,
+    deficit: (minutes: number) => `Your day is not complete yet: ${minutes} ${byCount(minutes, 'minute', 'minutes')} of activities are missing. Your class teacher will place you in an activity with open places.`,
     noFee: 'Your activities have no cost.',
     rules: 'Rules of this registration',
     ruleMissing: 'Your class teacher can place you in a suitable activity with open places.',
@@ -1878,10 +1878,10 @@ export const en: Messages = {
     },
     grace_reminder: {
       subject: 'Final reminder: choices for {{campaign}} by {{deadline}}',
-      body: 'Hello {{first_name}},\n\nLate registration for {{campaign}} ends tomorrow, and your choices are still missing:\n\n{{link}}',
+      body: 'Hello {{first_name}},\n\nLate registration for {{campaign}} ends on {{deadline}}. Your choices are not complete yet. Please complete them by then:\n\n{{link}}',
     },
     missed_deadline: {
-      subject: '{{campaign}}: no choices submitted',
+      subject: '{{campaign}}: registration period over – choices incomplete',
       body: 'Hello {{first_name}},\n\nRegistration for {{campaign}} has ended, and your choices are not complete. You will therefore get remaining places with no cost, or your class teacher will place you. You can see your allocation here once it is published:\n\n{{link}}',
     },
     class_missing: {
