@@ -30,6 +30,6 @@ SchulWahl allocates a school's students to the activities of its project week: t
 - If you **organise** registrations, read the [Organisation](/en/organisation/) handbook.
 - **Teachers** and class teachers read the [Teachers](/en/lehrkraefte/) handbook.
 
-Students do not need a handbook: their pages explain themselves. The organisation handbook shows what they see. In SchulWahl, the **Help** link at the top of every page opens the handbook for your role.
+Students do not need a handbook: their pages explain themselves. The organisation handbook shows what they see. In SchulWahl, the **Help** link at the top of every page opens the right handbook.
 
 The [operations guide](https://github.com/BG-BRG-Enns/school-allocation/blob/main/deploy/README.md) covers running the service: the server, Microsoft Entra setup and updates. These handbooks describe the latest published version of SchulWahl.

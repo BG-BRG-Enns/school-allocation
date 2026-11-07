@@ -11,7 +11,7 @@ Innerhalb dieser Bedingungen verfolgt die Berechnung ihre Ziele, in dieser Reihe
 5. Das Ganze geht so gut wie möglich aus: möglichst frühe Wünsche für alle.
 6. Wo zwei Einteilungen gleich gut sind, entscheidet das Los.
 
-Reichen die Wünsche einer Person nicht, für die Minuten oder eine Regel, bekommt sie einen **Restplatz**: einen freien Platz in einer Aktivität ohne Kosten. Eine Aktivität mit „Darf ausfallen, wenn die Mindestzahl bei der Zuteilung nicht erreicht wird“ kann ausfallen, wenn die Zuteilung ihre Mindestzahl nicht erreicht. Wünsche aus der Nachfrist kommen in einer zweiten **Runde** dran, nach allen anderen.
+Reichen die Wünsche einer Person nicht, für die Minuten oder eine Regel, bekommt sie einen **Restplatz**: einen freien Platz in einer Aktivität ohne Kosten und ohne Übernachtung. Ein Zusatzangebot ([Einstellungen](./einstellungen#anwesenheitsrahmen-je-projekttag)) steht in keiner Wahl und bekommt von der Zuteilung niemanden; wer dort ist, wurde direkt eingeteilt. Eine Aktivität mit „Darf ausfallen, wenn die Mindestzahl bei der Zuteilung nicht erreicht wird“ kann ausfallen, wenn die Zuteilung ihre Mindestzahl nicht erreicht. Wünsche aus der Nachfrist kommen in einer zweiten **Runde** dran, nach allen anderen.
 
 Vor der ersten Berechnung müssen für alle Schulstufen der Anmeldung die Mindestminuten je Tag eingetragen sein ([Einstellungen](./einstellungen)).
 

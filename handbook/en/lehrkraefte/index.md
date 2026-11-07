@@ -1,15 +1,17 @@
 # Teachers
 
-As a teacher, you propose activities for project week and see who is with you after allocation. As a class teacher, you also guide your class. You do not need a role for this: the school's class lists tell SchulWahl that you are a teacher.
+As a teacher, you propose activities for project week and later see who is with you. As a class teacher, you also guide your class.
+
+You do not need to read this handbook to take part: SchulWahl's pages show you what to do. It is for anyone who wants an overview beforehand.
 
 ## Signing in
 
-Sign in with your school Microsoft account. **My account** shows what SchulWahl recognises you as: a teacher. If it says your account is not linked to anyone yet, contact the administration.
+Sign in with your school Microsoft account. If something does not work, contact the administration.
 
 ## The process
 
-1. **Collecting activities**: The registration appears under **Registrations**, you [submit activities](./aktivitaet) and enter your [availability](./verfuegbarkeit) on the project days.
-2. **Catalogue published**: Your approved activities appear with numbers in the catalogue everyone sees.
+1. **Collecting activities**: You find the project week under **Registrations**. You [submit activities](./aktivitaet) and enter your [availability](./verfuegbarkeit).
+2. **Catalogue published**: Your approved activities appear in the catalogue everyone sees.
 3. **Registration open**: Students submit their choices. As a class teacher, you see who in your class has finished ([As class teacher](./klassenvorstand)).
-4. **Allocation published**: You see your activities' [participants](./teilnehmerlisten). If an activity is cancelled, you receive an email. As a class teacher, you place anyone still short of time.
+4. **Allocation published**: You see your activities' [participants](./teilnehmerlisten). As a class teacher, you place anyone still short of time.
 5. **Project week**: As a class teacher, you record your class's attendance.

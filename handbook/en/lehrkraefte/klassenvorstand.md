@@ -1,6 +1,6 @@
 # As class teacher
 
-If you are a class teacher, a registration's page has the **My class** button with your class's name, such as **My class 5A**. You become a class teacher through the administration or organisation, or because the class list names you.
+If you are a class teacher, a registration's page has the **My class** button with your class's name, such as **My class 5A**. If the button is missing although you are a class teacher, contact the organisation.
 
 ## Before registration
 
@@ -30,4 +30,4 @@ The person receives an email, and the organisation sees the change with your rea
 
 ![Attendance on a project day: present, absent or excused for each person and session, with a note, and the Save attendance button](/bilder/en/anwesenheit.png)
 
-Under **Attendance**, enter whether the students in your class were **present**, **absent** or **excused** for each project day and session, optionally with a note, and click **Save attendance**. You can make corrections until the registration is closed; a recorded attendance entry can be changed, but cannot be cleared again. **Attendance as Excel** provides your class's list. After closing, everything is read-only.
+Under **Attendance**, enter whether the students in your class were **present**, **absent** or **excused** for each project day and session, optionally with a note, and click **Save attendance**. You can make corrections until the organisation closes the project week. A recorded attendance entry can be changed, but cannot be cleared again. **Attendance as Excel** provides your class's list. After closing, everything is read-only.

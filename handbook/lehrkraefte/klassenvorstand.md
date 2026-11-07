@@ -1,6 +1,6 @@
 # Als Klassenvorstand
 
-Bist du Klassenvorstand, steht auf der Seite einer Anmeldung der Knopf **Meine Klasse** mit dem Namen deiner Klasse, etwa **Meine Klasse 5A**. Klassenvorstand wirst du durch die Administration oder die Organisation, oder weil die Klassenliste dich nennt.
+Bist du Klassenvorstand, steht auf der Seite einer Anmeldung der Knopf **Meine Klasse** mit dem Namen deiner Klasse, etwa **Meine Klasse 5A**. Fehlt der Knopf, obwohl du Klassenvorstand bist, wende dich an die Organisation.
 
 ## Vor der Anmeldung
 
@@ -30,4 +30,4 @@ Die Person bekommt eine E-Mail, und die Organisation sieht die Änderung mit dei
 
 ![Die Anwesenheit eines Projekttags: je Person und Termin anwesend, abwesend oder entschuldigt, mit einer Notiz, und der Knopf Anwesenheit speichern](/bilder/de/anwesenheit.png)
 
-Unter **Anwesenheit** trägst du je Projekttag und Termin für die Schüler\*innen deiner Klasse ein, ob sie **anwesend**, **abwesend** oder **entschuldigt** waren, auf Wunsch mit einer Notiz, und klickst **Anwesenheit speichern**. Korrigieren kannst du bis zum Abschluss der Anmeldung; eine eingetragene Anwesenheit lässt sich ändern, aber nicht wieder leeren. **Anwesenheit als Excel** liefert die Liste deiner Klasse. Nach dem Abschluss ist alles nur noch zu lesen.
+Unter **Anwesenheit** trägst du je Projekttag und Termin für die Schüler\*innen deiner Klasse ein, ob sie **anwesend**, **abwesend** oder **entschuldigt** waren, auf Wunsch mit einer Notiz, und klickst **Anwesenheit speichern**. Korrigieren kannst du, bis die Organisation die Projektwoche abschließt. Eine eingetragene Anwesenheit lässt sich ändern, aber nicht wieder leeren. **Anwesenheit als Excel** liefert die Liste deiner Klasse. Nach dem Abschluss ist alles nur noch zu lesen.

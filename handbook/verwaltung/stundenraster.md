@@ -11,4 +11,4 @@ Das Stundenraster enthält die Einheiten der Schule mit Beginn und Ende. Lehrkr�
 - Jede Einheit endet nach ihrem Beginn.
 - Keine Einheit beginnt, bevor die vorige endet.
 
-Termine, die schon eingetragen sind, behalten ihre Uhrzeit, wenn du das Stundenraster später änderst. Was sie an Minuten anrechnen, zählt SchulWahl aus den Einheiten, die sie belegen: Bei Anmeldungen, die noch nicht geöffnet sind, rechnet es diese Minuten mit dem neuen Stundenraster neu; eine geöffnete Anmeldung behält, womit ihre Wünsche und ihre Zuteilung rechnen.
+Termine, die schon eingetragen sind, behalten ihre Uhrzeit, wenn du das Stundenraster später änderst. Was sie an Minuten zählen, ist ihre Zeit im Anwesenheitsrahmen eines Tags, ohne Rahmen die Zeit von der ersten bis zur letzten Einheit ([Einstellungen](/organisation/einstellungen#anwesenheitsrahmen-je-projekttag)): Bei Anmeldungen, die noch nicht geöffnet sind, zählt SchulWahl diese Minuten mit dem neuen Stundenraster neu; eine geöffnete Anmeldung behält, womit ihre Wünsche und ihre Zuteilung rechnen.

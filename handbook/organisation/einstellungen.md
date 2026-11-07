@@ -6,11 +6,34 @@
 
 ## Anwesenheitsrahmen je Projekttag
 
-Neben jedem Projekttag steht sein **Anwesenheitsrahmen**: die Einheiten des [Stundenrasters](/verwaltung/stundenraster), in denen an diesem Tag alle in der Schule sind, etwa **2. bis 6. Einheit** an einem Sporttag mit kurzen Kursen. Mit Rahmen zählt [Plätze und Bedarf](./anlegen#plätze-und-bedarf) den Tag Einheit für Einheit; ohne Rahmen (**kein Rahmen**, die Voreinstellung) zählt der ganze Tag, was zu Tagen mit ganztägigen Aktivitäten passt. Der Rahmen lässt sich ändern, bis die Anmeldung öffnet.
+Neben jedem Projekttag steht sein **Anwesenheitsrahmen**: die Einheiten des [Stundenrasters](/verwaltung/stundenraster), in denen an diesem Tag alle Schüler\*innen an einer Aktivität teilnehmen oder in der Schule sind, etwa **2. bis 5. Einheit**. Der Rahmen reicht vom Beginn seiner ersten Einheit bis zum Ende seiner letzten, die Pausen dazwischen eingeschlossen. Ohne Rahmen (**kein Rahmen**, die Voreinstellung) gilt die Zeit von der ersten bis zur letzten Einheit des Stundenrasters.
+
+Diese Zeit ist es, die zählt:
+
+- Eine Aktivität zählt an einem Tag ihre Minuten im Rahmen, nach der Uhr. Ob die Lehrkraft eine Pause macht oder durcharbeitet, weiß niemand, deshalb zählen Pausen im Rahmen mit; was davor, danach oder in der Nacht liegt, zählt nicht. Ein Ausflug von 8:45 bis 10:30 zählt mit dem Rahmen 2. bis 5. Einheit (8:30 bis 12:15) 105 Minuten, einer von 9:00 bis 13:00 zählt 195.
+- Die [Mindestminuten je Tag](#mindestminuten-je-tag), die [Mindestlänge einer Aktivität](#mindestlänge-einer-aktivität-je-projekttag) und die Regeln in Minuten ([Kategorien und Regeln](./kategorien-und-regeln)) rechnen mit diesen Minuten.
+- [Plätze und Bedarf](./anlegen#plätze-und-bedarf) zählt einen Tag mit Rahmen Einheit für Einheit, einen ohne Rahmen in einer Spalte über dieselbe Zeit.
+
+Eine Aktivität, die an keinem Tag in diese Zeit fällt, etwa ein Theaterbesuch am Abend, ist ein **Zusatzangebot**: Sie zählt keine Minuten und keine Plätze, die Schüler\*innen wählen sie nicht, und die Zuteilung teilt niemanden ein. Im Katalog steht sie mit „Zusatzangebot: Anmeldung bei der Lehrkraft“; ihre Lehrkräfte holen die Schüler\*innen unter **Direkt eingeteilt** hinein, auch die Organisation tut es dort. Tausch und Klassenvorstand bieten ein Zusatzangebot nicht an, denn es füllt keine Lücke.
+
+Der Rahmen lässt sich ändern, bis die Anmeldung öffnet. Ändert er sich, zählt SchulWahl die Minuten der Termine dieser Anmeldung neu.
 
 ## Mindestlänge einer Aktivität je Projekttag
 
-Neben dem Anwesenheitsrahmen steht je Projekttag die **Mindestlänge einer Aktivität** in Minuten, etwa 180 am Dienstag und 100 am Mittwoch; leer heißt keine. Eine Aktivität muss an dem Tag mindestens so viele Minuten anrechnen, alle ihre Termine zusammen, gezählt wie bei den [Mindestminuten je Tag](#mindestminuten-je-tag); eine kürzere nimmt das Formular nicht an, und es sagt den Lehrkräften schon beim Eintragen, wie die Aktivität dasteht. Ausgenommen sind Aktivitäten nur für Lehrkräfte und die Tage eines Termins über Nacht; Klassenaktivitäten nicht. Eine später erhöhte Mindestlänge ändert an schon eingereichten oder genehmigten Aktivitäten nichts; erst die nächste Änderung ihrer Termine muss sie erreichen. In [Eingereichte Aktivitäten prüfen](./anlegen#eingereichte-aktivitäten-prüfen) steht bei jeder Aktivität, wie sie dasteht. Die Mindestlänge lässt sich ändern, bis die Anmeldung öffnet.
+Neben dem Anwesenheitsrahmen steht je Projekttag die **Mindestlänge einer Aktivität** in Minuten, etwa 180 am Dienstag und 100 am Mittwoch; leer heißt keine. An jedem Tag, an dem eine Aktivität Zeit im [Anwesenheitsrahmen](#anwesenheitsrahmen-je-projekttag) einnimmt, muss sie dort mindestens so lange dauern, alle ihre Termine an dem Tag zusammen. Eine kürzere lässt sich nicht speichern, auch nicht als Entwurf; das Formular sagt den Lehrkräften schon beim Eintragen, um wie viele Minuten sie verlängern sollen. Ausgenommen sind Aktivitäten nur für Lehrkräfte; Klassenaktivitäten nicht.
+
+Auch ein Ausflug über Nacht muss am Rückreisetag die Mindestlänge erreichen, sobald er in den Rahmen hineinreicht: Mit dem Rahmen ab 8:30 und 100 Minuten Mindestlänge ist ein Ausflug, der um 8:30 zurück ist, am Rückreisetag frei und wird dort nicht geprüft; einer, der um 8:45 zurück ist, nimmt 15 Minuten ein und ist zu kurz. Ob eine Lehrkraft, die anderswo mehr leistet, eine Ausnahme verdient, entscheidet die Organisation, nicht SchulWahl.
+
+Eine später erhöhte Mindestlänge ändert an schon eingereichten oder genehmigten Aktivitäten nichts; erst die nächste Änderung ihrer Termine muss sie erreichen. Dasselbe gilt, wenn ein geänderter Rahmen oder ein geändertes Stundenraster die Minuten einer Aktivität verkürzt: SchulWahl zählt neu, prüft aber nicht noch einmal. In [Eingereichte Aktivitäten prüfen](./anlegen#eingereichte-aktivitäten-prüfen) steht bei jeder zu kurzen Aktivität, um wie viel sie zu kurz ist. Die Mindestlänge lässt sich ändern, bis die Anmeldung öffnet.
+
+### Was die Einstellungen zusammen bedeuten
+
+Mindestminuten, Mindestlänge und Rahmen wirken zusammen; SchulWahl rechnet das nicht für dich aus. Zwei Beispiele mit 200 Mindestminuten und 200 Minuten Mindestlänge:
+
+- Rahmen **2. bis 6. Einheit** (8:30 bis 13:10, 280 Minuten): Jede Aktivität dauert mindestens 200 Minuten, zwei passen nicht hinein. Die Schüler\*innen sind an diesem Tag in einer Aktivität und warten in der Schule, bis sie beginnt oder bis sie nach Hause dürfen.
+- Rahmen **2. bis 5. Einheit** (8:30 bis 12:15, 225 Minuten): Die Schüler\*innen sind während des Rahmens in genau einer Aktivität.
+
+Kürzere Kurse an einem Tag gibt es nur mit einer kleineren Mindestlänge, etwa 100 Minuten für zwei Kurse am Vormittag.
 
 ## Anmeldezeitraum und Nachfrist
 
@@ -30,7 +53,7 @@ Ein **Zeitblock** sind die Aktivitäten eines Projekttags, die zur selben Zeit s
 
 ## Mindestminuten je Tag
 
-Für jede Schulstufe: wie viele Minuten an Aktivitäten Schüler\*innen an einem Projekttag mindestens haben sollen. Die Zuteilung füllt diese Minuten so gut wie möglich; was fehlt, zeigt sie als fehlende Minuten. Angerechnet wird die Unterrichtszeit der Einheiten, die die Termine einer Aktivität belegen, ohne Pausen: Bei Einheiten zu 50 Minuten sind fünf Einheiten 250 Minuten, gleich ob sie eine Aktivität füllt oder zwei. Niemand trägt diese Minuten ein; ändert sich das Stundenraster, rechnet SchulWahl sie für Anmeldungen, die noch nicht geöffnet sind, neu. Ohne Mindestminuten für jede Schulstufe der Anmeldung lässt sich keine Zuteilung berechnen; du kannst sie bis zur Veröffentlichung eintragen und ändern.
+Für jede Schulstufe: wie viele Minuten an Aktivitäten Schüler\*innen an einem Projekttag mindestens haben sollen. Die Zuteilung füllt diese Minuten so gut wie möglich; was fehlt, zeigt sie als fehlende Minuten. Gezählt wird die Zeit der Aktivitäten im [Anwesenheitsrahmen](#anwesenheitsrahmen-je-projekttag), Pausen eingeschlossen: Von der 2. bis zum Ende der 6. Einheit sind es 280 Minuten (8:30 bis 13:10), gleich ob eine Aktivität sie füllt oder zwei. Niemand trägt diese Minuten ein; ändern sich das Stundenraster oder der Rahmen, zählt SchulWahl sie für Anmeldungen, die noch nicht geöffnet sind, neu. Ohne Mindestminuten für jede Schulstufe der Anmeldung lässt sich keine Zuteilung berechnen; du kannst sie bis zur Veröffentlichung eintragen und ändern.
 
 ## Plätze über dem Bedarf
 

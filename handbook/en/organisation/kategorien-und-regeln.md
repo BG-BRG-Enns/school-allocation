@@ -20,7 +20,7 @@ You enter the rules under **Change settings** ([Settings](./einstellungen)) unti
 
 - a **Category**;
 - the **Years** it applies to and, if needed, **Only these classes**, such as “7A, 7B”; left empty, it applies to every class of those years;
-- what it **Counts**: activities or minutes, meaning the credited minutes of the activities;
+- what it **Counts**: activities or minutes, meaning the activities' minutes in the [attendance frame](./einstellungen#attendance-frame-per-project-day); an extra someone is placed in directly counts as an activity, but without minutes;
 - **At least**: 1 to 20 activities or 1 to 10000 minutes.
 
 A registration has at most 20 rules. Class activities count: if the whole class goes on a trip in the category, the rule may already be met.

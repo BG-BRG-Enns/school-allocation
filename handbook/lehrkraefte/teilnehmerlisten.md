@@ -8,7 +8,7 @@ Bei jeder Person steht ihre Klasse und wie sie in die Aktivität kam: ihr Wunsch
 
 ## Nach der Veröffentlichung einteilen
 
-Auch jetzt teilst du unter **Direkt eingeteilt** Schüler\*innen in deine Aktivität ein und trägst sie wieder aus, und bei einer Klassenaktivität trägst du unter **Nimmt nicht teil** ein, wer doch nicht mitkommt, und holst zurück, wer woanders eingeteilt ist ([Eine Aktivität einreichen](./aktivitaet#schüler-innen-direkt-einteilen)). Jede dieser Änderungen ändert die veröffentlichte Einteilung: Die Person verlässt, was sich mit der Aktivität überschneidet, auch was die Zuteilung ihr gegeben hat, bekommt eine E-Mail mit ihrer neuen Einteilung, und die Seite sagt dir, wem du Bescheid sagen sollst. Einen Grund nennt niemand; in der Liste der Änderungen der Organisation steht, was es war. Wer von dir direkt eingeteilt wird, kann diese Aktivität in der Tauschzeit nicht selbst verlassen. Die neue Einteilung steht sofort in der Teilnehmerliste unten.
+Auch jetzt kannst du Schüler\*innen [direkt einteilen](./aktivitaet#schüler-innen-direkt-einteilen) und bei einer Aktivität mit der ganzen Klasse eintragen, wer nicht mitkommt. Die Person wird aus bisherigen Aktivitäten ausgetragen, die sich damit überschneiden. Aus deiner Aktivität kann sie nicht selbst wegtauschen. Sie bekommt eine E-Mail, und das Formular zeigt dir, wem du Bescheid sagen sollst.
 
 ## Wenn eine Aktivität ausfällt
 

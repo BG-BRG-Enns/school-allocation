@@ -58,17 +58,18 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | period | Einheit, "2. EH" | period, "P2" | Q5 |
 | period grid | Stundenraster | timetable | |
 | session input mode | "Angabe in" (Einheiten / Uhrzeit) | "Given in" (periods / clock time) | |
-| credited minutes | angerechnete Minuten; "die Unterrichtszeit der Einheiten, die ein Termin belegt" | credited minutes; "the lesson time of the periods a session covers" | derived from the period grid, never entered |
+| credited minutes | angerechnete Minuten; "die Zeit im Anwesenheitsrahmen" | credited minutes; "the time inside the attendance frame" | a session's clock minutes inside the day's window, breaks included; derived, never entered; the teacher pages do not name them |
 | time group (D-05) | Zeitblock; "Wünsche je Zeitblock" | time block | |
 | wish, ranking | Wunsch, Wünsche; Wünsche abgeben | choice, choices | |
 | choice window | Anmeldezeitraum | registration period | |
 | grace week | Nachfrist | late registration | |
 | swap window | Tauschzeit | swap period | |
 | demand view | Plätze und Bedarf | places and demand | per project day a table, the grades as rows, the day's cells as columns |
-| attendance frame (`Frame`, `campaign_day`) | Anwesenheitsrahmen; "2.–6. EH"; "kein Rahmen" | attendance frame; "no frame" | the periods everyone is at school in on a project day; with one the demand counts the day per period |
-| minimum length of an activity (`campaign_day.min_activity_minutes`) | Mindestlänge einer Aktivität | minimum length of an activity | per project day, in credited minutes: what an activity must credit on the day over all its sessions, or it is refused; teachers-only activities and the days of a night away are exempt |
-| demand cell | Feld (einer Einheit oder eines Tags, je Schulstufe) | cell | a period of the frame, or the whole day, for one grade |
-| offer gate (`lock_new_offers`) | Sperre; "Neue Angebote sperren, sobald das Ziel erreicht ist"; "bringt Plätze in"; "nur, wo das Ziel erreicht ist" | lock new offers; "brings places to"; "only where the target is reached" | a teacher's submission is refused when every cell it serves has reached the target; never an organizer's, never a class activity |
+| attendance frame (`Frame`, `campaign_day`) | Anwesenheitsrahmen; "2.–6. EH"; "kein Rahmen"; Anwesenheitszeit (teachers) | attendance frame; "no frame"; attendance time (teachers) | the periods in which every student takes part in an activity or is at school on a project day; from its first period's start to its last's end it is the day's window, without one the grid's first period to its last; sessions credit inside it, and the demand counts a framed day per period |
+| minimum length of an activity (`campaign_day.min_activity_minutes`) | Mindestlänge einer Aktivität; "Bitte verlängere die Aktivität am … um … Minuten" | minimum length of an activity; "Please lengthen the activity on … by … minutes" | per project day, in credited minutes: what an activity must credit on each day it credits more than 0 on, over all its sessions, or it is refused; no exemption for a night away; teachers-only activities are exempt |
+| extra (school-core `isExtra`) | Zusatzangebot; "Zusatzangebot: Anmeldung bei der Lehrkraft" | extra; "Extra: sign up with the teacher" | an activity wholly outside the window on every day: credits nothing, never ranked or assigned by the run, its teachers place students directly |
+| demand cell | Feld (einer Einheit oder eines Tags, je Schulstufe) | cell | a period of the frame, or the day's window, for one grade |
+| offer gate (`lock_new_offers`) | Sperre; "Neue Angebote sperren, sobald das Ziel erreicht ist"; "hilft bei"; "genug Plätze" | lock new offers; "helps with"; "enough places" | a teacher's submission is refused when every cell it serves has reached the target; never an organizer's, never a class activity |
 | first submission | Eingereicht am | Submitted on | the first time an activity was submitted; a return and a resubmission keep it |
 | review page | Eingereichte Aktivitäten prüfen; "3 von 12"; Überspringen | Review submissions; "3 of 12"; Skip | the submitted activities one after the other, by the first submission |
 | class conflict | "Eine Klasse kann zur selben Zeit nur in einer Klassenaktivität sein." | "A class can be in one class activity at a time." | two class activities naming one class with overlapping sessions |
