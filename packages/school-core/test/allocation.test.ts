@@ -323,4 +323,10 @@ test('an extra (wholly outside the windows, crediting nothing) is no option: nev
   // A stored ranking that names it is no wish either: the theatre is in no group the student is offered.
   const keen: AllocationStudent = { ...(input.students[5] as AllocationStudent), ranking: { [groupKeyOf(theatre)]: ['theatre'] }, savedIn: 'first' }
   assert.equal(prepareStudent(input, keen, items).options.some((o) => o.itemId === 'theatre'), false)
+  // Nor is it the solver's item: a minimum it may not fall below would hold the run to students nobody can give it.
+  assert.equal(items.some((i) => i.id === 'theatre'), false)
+  const strict = item('strict-theatre', [session(0, 19, 22, 0)], { minParticipants: 5, cancellableBelowMin: false })
+  const withStrict: AllocationInput = { ...INPUT, items: [...INPUT.items, strict] }
+  assert.equal(compilePass(withStrict, 1, 'run').itemIds.includes('strict-theatre'), false)
+  assert.equal(checkAllocationInput(withStrict).warnings.some((w) => w.code === 'minimum_out_of_reach' && w.itemId === 'strict-theatre'), false)
 })

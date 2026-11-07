@@ -82,9 +82,10 @@ export interface CompiledPass {
 const byId = <T extends { id: string }>(a: T, b: T) => a.id.localeCompare(b.id, 'en')
 const byText = (a: string, b: string) => a.localeCompare(b, 'en')
 
-/** The items the solver gets variables for: approved items with places to rank, minus the ones cancelled before. */
+/** The items the solver gets variables for: approved items with places to rank, no extra, minus the ones cancelled before. */
 export function solverItems(input: AllocationInput, cancelled: ReadonlySet<string>): AllocationItem[] {
-  return input.items.filter((item) => item.rules.places > 0 && !cancelled.has(item.id)).sort(byId)
+  // An extra is nobody's option (offeredTo), so its places and its minimum are its teachers' business, as a class activity's without places.
+  return input.items.filter((item) => item.rules.places > 0 && !isExtra(item.sessions) && !cancelled.has(item.id)).sort(byId)
 }
 
 /** Whether the solver may decide not to run an item (D-08): it says so, it is nobody's class activity, and it has a minimum to fall below. */
