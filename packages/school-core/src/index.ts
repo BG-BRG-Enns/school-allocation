@@ -274,4 +274,4 @@ export {
  * whenever a change here would give a different allocation or validation
  * for the same input; an allocation run records it (docs/domain-and-api.md).
  */
-export const CORE_VERSION = 3
+export const CORE_VERSION = 4

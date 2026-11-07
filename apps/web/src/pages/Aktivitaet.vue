@@ -215,8 +215,9 @@ const gateHints = computed<{ text: string, alert: boolean }[]>(() => {
   const c = check.value
   if (!c || isFixed.value || staffOnly.value) return []
   const lines: { text: string, alert: boolean }[] = []
-  if (c.served.length === 0 && sessions.value.length > 0) lines.push({ text: t.item.gate.servesNothing, alert: false })
-  else {
+  // An extra says how its students come in; an activity serving no cell otherwise (one in a break) has nothing to act on.
+  if (c.extra) lines.push({ text: t.item.gate.servesNothing, alert: false })
+  else if (c.served.length > 0) {
     const under = cellsAddedBy(c.served, c.before, c.after).filter((cell) => !cell.reached)
     lines.push(under.length > 0 ? { text: t.item.gate.brings(cellsText(describeCells(under, c.before))), alert: false } : { text: t.item.gate.bringsNothing, alert: c.locked })
   }

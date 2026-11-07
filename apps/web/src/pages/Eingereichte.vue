@@ -145,7 +145,8 @@ const brings = computed(() => {
   if (!c || !item) return ''
   if (item.fixedClasses.length > 0 && item.places === 0) return ''
   if (isStaffOnly(item)) return t.item.participation.staffOnly
-  if (c.served.length === 0) return t.item.gate.servesNothing
+  if (c.extra) return t.item.gate.servesNothing
+  if (c.served.length === 0) return ''
   const under = cellsAddedBy(c.served, c.before, c.after).filter((cell) => !cell.reached)
   return under.length > 0 ? t.campaign.items.brings(cellsText(describeCells(under, c.before))) : t.campaign.items.bringsNothing
 })

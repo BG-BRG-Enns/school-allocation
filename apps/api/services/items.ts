@@ -8,7 +8,7 @@
 import { requireFound } from '../lib/errors.ts'
 
 import type { ItemCheckBody, ItemCheckResponse, ClassConflictView } from '@school-allocation/api-contracts/catalogue'
-import { acceptsProposals, addedCells, checkItem, classConflicts, demandByDay, gateCells, gateRefused, isStaffOnly, itemTransition, lengthStandings, servedCells, type CampaignState, type ClassActivity, type Frame, type GateCell, type ItemState, type OfferedItem } from '@school-allocation/school-core'
+import { acceptsProposals, addedCells, checkItem, classConflicts, demandByDay, gateCells, gateRefused, isExtra, isStaffOnly, itemTransition, lengthStandings, servedCells, type CampaignState, type ClassActivity, type Frame, type GateCell, type ItemState, type OfferedItem } from '@school-allocation/school-core'
 import { actorOf, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { sessionCredits, windowsOf } from '../lib/credits.ts'
@@ -452,6 +452,8 @@ export async function checkItemOffer(db: Database, campaign: Campaign, body: Ite
     // The activity against the minimum length of each day it takes up part of the window on, as a save would check it, with
     // the window the message names.
     length: lengthStandings({ sessions: sessionInputs(sessions), rules: shape }, minimumsIn(campaign), campaign.projectDays, windowsOf(campaign.projectDays, framesIn(campaign), await readPeriods(db))),
+    // Serving no cell is not being an extra: a session wholly in a break inside the frame credits its minutes and is ranked.
+    extra: isExtra(sessionInputs(sessions)),
   }
 }
 
