@@ -8,7 +8,7 @@ Registration opens automatically at the **Start** set in the [settings](./einste
 
 ![The My choices page: time blocks for each project day, with activities to rank in each, and the choices' status above](/bilder/en/wuensche.png)
 
-Students open the registration and click **Submit or change choices**. For each project day, they see the time blocks and rank the activities in each: choice 1, choice 2 and so on. Every change is saved at once. The top shows whether their choices are complete, the period in which they were saved and the version number. An activity taking their whole class is marked “with your whole class”; they do not see activities that are not for their year or class.
+Students open the registration and click **Submit or change choices**. For each project day, they see the time blocks and rank the activities in each: choice 1, choice 2 and so on. Every change is saved at once. The top shows whether their choices are complete and the period in which they were saved. An activity taking their whole class is marked “with your whole class”; they do not see activities that are not for their year or class.
 
 ## Registration status
 

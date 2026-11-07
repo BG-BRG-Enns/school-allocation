@@ -45,14 +45,14 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | Concept (code) | `de` | `en` | Note |
 | -------------- | ---- | ---- | ---- |
 | campaign | Anmeldung, Anmeldungen | registration | Q1 |
-| campaign states | In Vorbereitung · Angebote werden gesammelt · Katalog veröffentlicht · Anmeldung läuft · Nachfrist · Anmeldung beendet · Zuteilung wird berechnet · Zuteilung in Prüfung · Einteilung veröffentlicht · Abgeschlossen | in preparation · collecting activities · catalogue published · registration open · late registration · registration closed · allocating · allocation in review · allocation published · closed | Q2; English has one word, allocation |
+| campaign states | In Vorbereitung · Angebote werden gesammelt · Katalog veröffentlicht · Anmeldung läuft · Nachfrist · Anmeldung beendet · Zuteilung wird berechnet · Zuteilung in Prüfung · Einteilung veröffentlicht · Abgeschlossen | in preparation · collecting activities · catalogue published · registration open · late registration · registration closed · allocating · allocation in review · allocation published · archived | Q2; English has one word, allocation |
 | item | Aktivität | activity | "Angebot" only in "Angebote werden gesammelt" |
 | class activity (D-24) | Klassenaktivität; "für die ganze 5A"; "Ganze Klassen, die fix teilnehmen (sie wählen für diese Zeit nichts)" | class activity; "whole class 5A" | |
 | extra places of a class activity | "für die ganze 5A, dazu 6 freie Plätze" | "whole class 5A, plus 6 open places" | |
 | places | Plätze | places | |
 | activity of its teachers alone (no places, no class) | "nur Lehrkräfte"; "nur für Lehrkräfte" | "teachers only"; "for teachers only" | a supervision, a duty; not in the catalogue |
 | minimum | Mindestzahl | minimum | one word for minimum participants everywhere |
-| cancellable below minimum | "Fällt aus, wenn zu wenige kommen" | "Cancelled if too few" | |
+| cancellable below minimum | "Darf ausfallen, wenn die Mindestzahl bei der Zuteilung nicht erreicht wird" | "May be cancelled if the allocation does not reach the minimum" | |
 | fee | Kosten | cost | Q6 |
 | session | Termin | session | |
 | period | Einheit, "2. EH" | period, "P2" | Q5 |
@@ -70,13 +70,13 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | demand cell | Feld (einer Einheit oder eines Tags, je Schulstufe) | cell | a period of the frame, or the whole day, for one grade |
 | offer gate (`lock_new_offers`) | Sperre; "Neue Angebote sperren, sobald das Ziel erreicht ist"; "bringt Plätze in"; "nur, wo das Ziel erreicht ist" | lock new offers; "brings places to"; "only where the target is reached" | a teacher's submission is refused when every cell it serves has reached the target; never an organizer's, never a class activity |
 | first submission | Eingereicht am | Submitted on | the first time an activity was submitted; a return and a resubmission keep it |
-| review page | Eingereichte durchgehen; "3 von 12"; Überspringen | Review submissions; "3 of 12"; Skip | the submitted activities one after the other, by the first submission |
+| review page | Eingereichte Aktivitäten prüfen; "3 von 12"; Überspringen | Review submissions; "3 of 12"; Skip | the submitted activities one after the other, by the first submission |
 | class conflict | "Eine Klasse kann zur selben Zeit nur in einer Klassenaktivität sein." | "A class can be in one class activity at a time." | two class activities naming one class with overlapping sessions |
-| place headroom (`placeHeadroomPercent`) | Ziel; "Plätze über dem Bedarf, in Prozent"; "unter dem Ziel" | target; "places above the need, in percent"; "short of the target" | the need and 20 % on top by default |
+| place headroom (`placeHeadroomPercent`) | Ziel; "Plätze über dem Bedarf, in Prozent"; "unter dem Ziel" | target; "extra places to offer (%)"; "short of the target" | the need and 20 % on top by default |
 | availability | Verfügbarkeit; verfügbar · nicht verfügbar · nur wenn nötig | availability; available · unavailable · if needed | no reason is ever asked |
 | lead, companions | Leitung, leitet; Begleitung, begleitet | lead, leads; companions, accompanies | stored: the creator of a new activity when among its teachers; whoever is added accompanies |
 | hand over the lead | "Leitung übergeben an"; "Leitung übergeben" | "Hand the lead over to"; "Hand over the lead" | to a companion; the lead until then stays as a companion |
-| companions sought (`catalog_item.companions_wanted`) | Begleitungen (0 bis 8); "noch 1 gesucht"; "Begleitung vollständig"; "Begleitung 1 von 2"; Begleitung gesucht; Ich begleite; Austragen | Companions (0 to 8); "1 still sought"; "Companions complete"; "Companions 1 of 2"; Companions sought; I accompany; Take me off | how many the lead wants beside them; sought = wanted − companions named; the list per project day a teacher joins from |
+| companions sought (`catalog_item.companions_wanted`) | Begleitlehrkräfte insgesamt (0–8, ohne Leitung); "noch 1 gesucht"; "Begleitung vollständig"; "Begleitung 1 von 2"; Begleitung gesucht; Ich begleite; Austragen | Accompanying teachers in all (0–8, without the lead); "1 still sought"; "Companions complete"; "Companions 1 of 2"; Companions sought; Join as an accompanying teacher; Take me off | how many the lead wants beside them; sought = wanted − companions named; the list per project day a teacher joins from |
 | planning overview | Lehrkräfte je Tag; "leitet an keinem Tag etwas" | teachers by day; "leads nothing on any day" | |
 | duty to lead (`teacher_detail.lead_duty`) | Leitungspflicht; "keine Leitungspflicht"; "Ohne Leitungspflicht: …" | duty to lead; "no duty to lead" | a mark for the overview alone; from the availability sheet's Leitung column (N: none) or set beside the Kürzel |
 | progress during the window | Stand der Anmeldung; "wer sich schon angemeldet hat" | registration status | |
@@ -87,17 +87,17 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | overnight | "mit Übernachtung" | "with an overnight stay" | a session over more than one local date |
 | allocation run | Berechnung; "Zuteilung berechnen"; "Berechnungen"; "Berechnung als Excel" | calculation; "Calculate allocation" | Q2 |
 | seed | Losnummer | draw number | explained once: decides how ties are drawn |
-| time limit | Rechenzeit | computing time | the deterministic second is the handbook's business |
+| time limit | Suchaufwand | search effort | a deterministic budget per goal, not elapsed seconds; how long it takes depends on the registration and the server |
 | levels L1–L5 | Ziele (in dieser Reihenfolge) | goals (in this order) | each line says what it protects |
 | average rank | durchschnittlicher Wunsch | average choice | |
-| run status | gültig, vielleicht nicht die beste · keine Einteilung möglich · in der Rechenzeit keine gefunden · Fehler in den Daten | valid, maybe not the best · no allocation possible · none found in time · data error | |
+| run status | gültig, vielleicht nicht die beste · keine Einteilung möglich · mit dem Suchaufwand keine gefunden · Fehler in den Daten | valid, maybe not the best · no allocation possible · none found within the search effort · data error | |
 | pass (D-20) | Runde ("1. Runde: Anmeldezeitraum, 2. Runde: Nachfrist") | round | |
 | fallback place (D-06) | Restplatz | remaining place | "auf einen Restplatz ohne Kosten" |
 | deficit | fehlende Minuten | missing minutes | |
 | category | Kategorie, Kategorien | category, categories | the school's, one list for every registration; an activity belongs to none, one or several |
 | rule (of a registration) | Regel; "Sport: mindestens 1 Aktivität"; "9. Schulstufe, nur 7A" | rule; "Sport: at least 1 activity"; "year 9, only 7A" | only for these; the allocation's hard constraints are Bedingungen (conditions) |
 | rule standing | erfüllt; "es fehlt 1 Aktivität"; "1 von 2" | met; "1 activity missing"; "1 of 2" | |
-| rule levels | "Schüler\*innen, denen eine Regel fehlt"; "Fehlende Aktivitäten (Minuten) für Regeln insgesamt" | "students missing a rule"; "total activities (minutes) missing for rules" | after the missing minutes, before the wishes |
+| rule levels | "Schüler\*innen, die nicht alle Regeln erfüllen"; "Fehlende Aktivitäten (Minuten) für Regeln insgesamt" | "students who do not meet all the rules"; "total activities (minutes) missing for rules" | after the missing minutes, before the wishes |
 | unplaced students | "Noch nicht vollständig eingeteilt" | "Not fully placed" | Short of minutes on a day or of a rule. |
 | the solver | Berechnung (organizers); Rechenmodul (administrators) | calculation service | "Solver" stays in the deploy guide |
 | change by hand | von Hand; "Einteilung von Hand ändern" | by hand | |
@@ -118,6 +118,6 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | mail priority | persönliche E-Mails · an Lehrkräfte · an Schüler\*innen | personal · to teachers · to students | the order they go out in |
 | expired mail | nicht mehr gesendet | no longer sent | a reminder whose window ended first |
 | attendance | Anwesenheit; anwesend / abwesend / entschuldigt | attendance; present / absent / excused | |
-| archive | Abschließen; Abgeschlossen | close; closed | |
+| archive | Abschließen; Abgeschlossen | archive; archived | English says archive, not close: closing is what the registration period does |
 | students, participants | Schüler\*innen, Schüler\*in; Teilnehmer\*innen | students; participants | Q3 |
 | teachers | Lehrkraft, Lehrkräfte | teacher, teachers | Q4 |

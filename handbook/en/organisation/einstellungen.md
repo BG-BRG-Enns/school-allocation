@@ -2,7 +2,7 @@
 
 **Change settings** on the registration page opens the form. What you can change depends on the status; the button later becomes **Change minimum minutes and swap period** and finally **Change swap period**.
 
-![The Registration settings form: name, school year, project days with their attendance frame, registration period with start, end and late registration, swap period, choices per time block and places above the need](/bilder/en/einstellungen.png)
+![The Registration settings form: name, school year, project days with their attendance frame, registration period with start, end and late registration, swap period, choices per time block and extra places to offer](/bilder/en/einstellungen.png)
 
 ## Attendance frame per project day
 
@@ -32,13 +32,13 @@ A **time block** is the activities on a project day that take place at the same 
 
 For each year: how many minutes of activities students need on a project day. The allocation fills these minutes as well as possible; any shortfall is shown as missing minutes. What is credited is the lesson time of the periods an activity's sessions cover, without breaks: with periods of 50 minutes, five periods are 250 minutes, whether one activity fills them or two. Nobody enters these minutes; when the timetable changes, SchulWahl works them out again for registrations that have not opened yet. You cannot calculate an allocation without minimum minutes for every year in the registration; you can enter and change them until publication.
 
-## Places above the need
+## Extra places to offer
 
-By what percentage the activities should offer more places than students need, 20 unless you enter otherwise. **Places and demand** computes the target for each project day and year from it ([Setting up and the catalogue](./anlegen)). More places than needed leave room for the choices.
+By what percentage the activities should offer more places than students need, 20 unless you enter otherwise: with 20%, 120 places are planned for every 100 students who need one. **Places and demand** computes the target for each project day and year from it ([Setting up and the catalogue](./anlegen)). More places than needed leave room for the choices.
 
 ## Lock new offers
 
-**Lock new offers once the target is reached** keeps the offers where places are missing: a teacher can submit an activity only if at least one cell of [Places and demand](./anlegen#places-and-demand) its places go to (every period it touches, times every year it is offered to, on each of its days) is still short of the target. The target is that of the **places above the need**; there is no second number. Only an activity all of whose cells have reached the target is refused; one that touches no cell is not checked. Class activities are exempt, extra places or not. The organisation may always create, submit and approve and sees a note only. An activity returned or taken back to draft is checked at its resubmission for the cells that get more places than at its last submission only: a correction locks nobody out. The lock is off until you turn it on, and can be changed until registration opens.
+**Lock new offers once the target is reached** keeps the offers where places are missing: a teacher can submit an activity only if at least one cell of [Places and demand](./anlegen#places-and-demand) its places go to (every period it touches, times every year it is offered to, on each of its days) is still short of the target. The target is that of the **extra places to offer**; there is no second number. Only an activity all of whose cells have reached the target is refused; one that touches no cell is not checked. Class activities are exempt, extra places or not. The organisation may always create, submit and approve and sees a note only. An activity returned or taken back to draft is checked at its resubmission for the cells that get more places than at its last submission only: a correction locks nobody out. The lock is off until you turn it on, and can be changed until registration opens.
 
 ## Rules
 
@@ -53,6 +53,6 @@ A rule asks the students of a year (or only some of its classes) for at least so
 | Setting | Can be changed until |
 | ------- | -------------------- |
 | Name, school year, project days | the catalogue is published |
-| Attendance frame, minimum length of an activity, registration period, late registration, choices per time block, places above the need, lock new offers, rules, teachers in the catalogue | registration opens |
+| Attendance frame, minimum length of an activity, registration period, late registration, choices per time block, extra places to offer, lock new offers, rules, teachers in the catalogue | registration opens |
 | Minimum minutes per day | the allocation is published |
 | Swap period | the swap period starts |

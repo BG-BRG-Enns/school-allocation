@@ -1,6 +1,6 @@
 # Categories and rules
 
-With categories and rules, a registration makes sure everyone does something in particular, such as “at least one sport activity” or “in year 7, at least 200 minutes of careers guidance”.
+Use categories and rules to set targets, such as “at least one sport activity” or “in year 7, at least 200 minutes of careers guidance”. SchulWahl tries to meet these targets during allocation and shows which remain unmet.
 
 ## Categories
 
@@ -30,6 +30,6 @@ A registration has at most 20 rules. Class activities count: if the whole class 
 ## What the rules do
 
 - **Places and demand** shows, for each rule and year, how much the students still need after their class activities and the most the category's places can bring. If that is not enough, the rule is marked; the category then needs more activities.
-- With their **choices**, students see the rules and how far their choices reach. Their choices are complete only once they reach every rule, as far as the catalogue allows. When the choices per time block leave no room for every rule, it is enough that no other choice would bring one rule closer without missing another. The page then says “the other rules leave no room for more”.
+- With their **choices**, students see the rules and how far their choices reach. Their choices are complete only once they reach every rule, as far as the catalogue allows. When the choices per time block leave no room for every rule, it is enough that no other choice would bring one rule closer without missing another. The page then says that the choices are accepted for this rule, because no single choice could be changed without making another rule harder to meet.
 - The **allocation** meets the rules after the minimum minutes and before the choices ([Allocation](./zuteilung)). A rule is not a must: where it cannot be met, the calculation shows who misses it. If a person's choices are not enough, they also get a remaining place with no cost for a rule.
 - **After publication**, a swap is refused if a rule would then no longer be met or would miss even more. The class teacher places those who miss a rule. You can override a rule when changing the allocation by hand ([After publication](./nach-der-veroeffentlichung)).

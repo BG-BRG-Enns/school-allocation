@@ -110,7 +110,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(page.getByText('08:30 – 12:15')).toBeVisible()
   await expect(page.getByText(t.item.length.short(day('2034-07-05'), SCHOOL.campaign.activityMinimums['2034-07-05'] ?? 0, 50))).toHaveCount(0)
   await page.getByLabel(t.common.field.places, { exact: true }).fill(String(CLIMBING.places))
-  await page.getByLabel(t.item.participation.minParticipants).fill('6')
+  await page.getByLabel(t.item.participation.minParticipants, { exact: true }).fill('6')
   // For the upper school, whose Monday morning it fits.
   const grades = page.getByRole('group', { name: t.item.participation.eligibleGrades })
   for (const grade of CLIMBING.grades) await grades.getByLabel(`${grade}.`, { exact: true }).check()
@@ -190,7 +190,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.item.teachers.lead, { exact: true }).selectOption({ label: CARLA.name })
   await expect(page.getByText(t.item.participants.lead(CARLA.name))).toBeVisible()
   await picture(page, 'leitung', [page.getByRole('heading', { name: t.common.field.teachers, exact: true }), page.getByLabel(t.item.teachers.wanted)])
-  await expect(page.getByLabel(t.item.participation.minParticipants)).toHaveCount(0)
+  await expect(page.getByLabel(t.item.participation.minParticipants, { exact: true })).toHaveCount(0)
   await picture(page, 'nur-lehrkraefte', [page.getByRole('heading', { name: t.item.participation.heading }), page.getByText(t.item.participation.staffOnly)])
   await page.getByRole('button', { name: t.item.saveAndPropose }).click()
   await expect(page.getByRole('heading', { name: sample.projectWeek })).toBeVisible()
@@ -234,7 +234,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.item.title).fill(sample.vienna)
   await page.getByRole('group', { name: t.item.participation.fixedClasses }).getByLabel('5A').check()
   await expect(page.getByLabel(t.item.participation.extraPlaces)).toBeVisible()
-  await expect(page.getByLabel(t.item.participation.minParticipants)).toHaveCount(0)
+  await expect(page.getByLabel(t.item.participation.minParticipants, { exact: true })).toHaveCount(0)
   // On a day Bernd is not there, the form says so and still lets him save.
   await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-04')
   await expect(page.getByText(t.item.teachers.unavailableOn(BERND.name, day('2034-07-04')))).toBeVisible()

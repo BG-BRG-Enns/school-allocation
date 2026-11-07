@@ -428,6 +428,7 @@ const levelDelta = (name: string): number | null => {
             >
             {{ t.allocation.change.force }}
           </label>
+          <span class="muted">{{ t.allocation.change.forceHint }}</span>
         </p>
         <p class="actions">
           <button
@@ -459,7 +460,8 @@ const levelDelta = (name: string): number | null => {
         v-else-if="solver"
         class="muted"
       >
-        {{ t.allocation.start.ready(solver.ortools ?? '', solver.contract ?? '') }}
+        {{ t.allocation.start.ready }}
+        <small>{{ t.allocation.start.versions(solver.ortools ?? '', solver.contract ?? '') }}</small>
       </p>
       <p
         v-if="campaign.state !== 'closed' && campaign.state !== 'review' && campaign.state !== 'allocating'"

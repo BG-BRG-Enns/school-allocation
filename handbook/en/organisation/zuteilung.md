@@ -11,28 +11,28 @@ Within these conditions, the calculation pursues its goals in this order:
 5. The overall result is as good as possible: choices as high as possible for everyone.
 6. Where two allocations are equally good, a draw decides.
 
-If a person's choices are not enough, for the minutes or for a rule, they get a **remaining place**: an open place in an activity with no cost. An activity marked “Cancelled if too few” can be cancelled if too few students can be found to meet its minimum. Late registration choices are considered in a second **round**, after everyone else.
+If a person's choices are not enough, for the minutes or for a rule, they get a **remaining place**: an open place in an activity with no cost. An activity marked “May be cancelled if the allocation does not reach the minimum” can be cancelled if the allocation does not reach its minimum. Late registration choices are considered in a second **round**, after everyone else.
 
 Before the first calculation, every year in the registration needs its minimum minutes per day ([Settings](./einstellungen)).
 
 ## Calculating
 
-![New calculation with draw number and computing time, followed by calculations with status, draw number, computing time and missing minutes](/bilder/en/zuteilung-berechnen.png)
+![New calculation with draw number and search effort, followed by calculations with status, draw number, search effort and missing minutes](/bilder/en/zuteilung-berechnen.png)
 
 **Allocation** on the registration page opens the calculations page.
 
 - **Draw number (blank: drawn for you)**: This decides how ties are settled. If left blank, SchulWahl draws one.
-- **Computing time per goal (1–60)**: More computing time is more likely to find the best allocation, but takes longer.
+- **Search effort per goal (1–60)**: Higher values allow a more thorough search, which may find a better allocation but takes longer. How long depends on the size of the registration and the server.
 
-**Calculate allocation** starts the calculation; after a few minutes, depending on the computing time and the size of the school, it appears in the **Calculations** list. **Repeat** starts a calculation again with the same draw number and computing time; it may come out differently. You can make as many calculations as you like, for example with different draw numbers, and compare them.
+**Calculate allocation** starts the calculation; after a few minutes, depending on the search effort and the size of the school, it appears in the **Calculations** list. **Repeat** starts a calculation again with the same draw number and search effort; it may come out differently. You can make as many calculations as you like, for example with different draw numbers, and compare them.
 
 If the page says that allocation calculation is not configured on this server or that the calculation service is not responding, that is the operator's responsibility.
 
 ## Reviewing a calculation
 
-![The review of a calculation: Publish at the top, followed by draw number and computing time, the calculation's figures and the goals with their values for each round](/bilder/en/zuteilung-pruefen.png)
+![The review of a calculation: Publish at the top, followed by draw number and search effort, the calculation's figures and the goals with their values for each round](/bilder/en/zuteilung-pruefen.png)
 
-A finished calculation first shows its figures: how many students are placed for every day, how many have missing minutes, how many have a remaining place, how many miss a rule, and how many activities are cancelled. Below are the **Goals (in this order)** with their value for each round. “✓ optimal” means there is no better allocation; “≈ perhaps not optimal” means the computing time was not enough to prove this. More computing time often helps then.
+A finished calculation first shows its figures: how many students are placed for every day, how many have missing minutes, how many have a remaining place, how many miss a rule, and how many activities are cancelled. Below are the **Goals (in this order)** with their value for each round. “✓ optimal” means there is no better allocation; “≈ perhaps not optimal” means the search effort was not enough to prove this. More search effort often helps then.
 
 Further down:
 

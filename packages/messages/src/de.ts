@@ -314,8 +314,8 @@ export const de = {
     runFailure: {
       solver_unreachable: 'Das Rechenmodul war nicht erreichbar',
       solver_answer_invalid: 'Das Rechenmodul hat keine gültige Antwort geliefert',
-      solver_infeasible: 'Keine Einteilung möglich, meist wegen der Mindestzahl einer Aktivität, die nicht ausfallen darf',
-      solver_unknown: 'In der Rechenzeit wurde keine Einteilung gefunden',
+      solver_infeasible: 'Mit den aktuellen Vorgaben ist keine gültige Einteilung möglich. Zuerst zu prüfen: die Mindestzahlen der Aktivitäten, die nicht ausfallen dürfen.',
+      solver_unknown: 'Mit dem Suchaufwand wurde keine Einteilung gefunden',
       model_invalid: 'Fehler in den Daten für die Berechnung',
       validation_failed: 'Die Prüfung hat einen Fehler in der berechneten Einteilung gefunden; sie wurde verworfen',
       internal_error: 'Ein Fehler im Programm; Näheres steht im Protokoll des Servers',
@@ -325,17 +325,17 @@ export const de = {
       OPTIMAL: 'bestmöglich',
       FEASIBLE: 'gültig, vielleicht nicht die beste',
       INFEASIBLE: 'keine Einteilung möglich',
-      UNKNOWN: 'in der Rechenzeit keine gefunden',
+      UNKNOWN: 'mit dem Suchaufwand keine gefunden',
       MODEL_INVALID: 'Fehler in den Daten',
     },
     /** The levels of the lexicographic objective (school-core levelNames); a threshold level is named by its number. */
     level: {
       students_with_deficit: 'Schüler*innen, denen Minuten fehlen',
       deficit_minutes: 'Fehlende Minuten insgesamt',
-      total_cost: 'Wünsche insgesamt (gewichtet, weniger ist besser)',
+      total_cost: 'Bewertung nach Wunschreihenfolge, nach Dauer gewichtet (kleiner ist besser)',
       tiebreak: 'Los',
       over: (threshold: number) => `Schüler*innen mit durchschnittlichem Wunsch über ${threshold}`,
-      students_missing_rule: 'Schüler*innen, denen eine Regel fehlt',
+      students_missing_rule: 'Schüler*innen, die nicht alle Regeln erfüllen',
       rule_missing_items: 'Fehlende Aktivitäten für Regeln insgesamt',
       rule_missing_minutes: 'Fehlende Minuten für Regeln insgesamt',
     },
@@ -385,10 +385,10 @@ export const de = {
       already_placed: 'schon eingeteilt',
       item_full: 'voll',
       not_placed: 'nicht eingeteilt',
-      leaves_fixed: 'Klassenaktivität bleibt',
+      leaves_fixed: 'feste Einteilung bleibt',
       below_minimum: 'die bisherige Aktivität käme unter ihre Mindestzahl',
       overlap: 'überschneidet sich',
-      coverage_lost: 'es würden Minuten fehlen',
+      coverage_lost: 'es würde mehr Zeit fehlen',
       rule_lost: 'eine Regel wäre nicht mehr erfüllt',
       fills_nothing: 'füllt keine Lücke',
     },
@@ -468,7 +468,7 @@ export const de = {
     blocked: 'Dein Zugang ist gesperrt. Bitte wende dich an die Schule.',
     invalid_transition: 'Das geht jetzt nicht mehr (oder noch nicht).',
     rate_limited: 'Zu viele Versuche. Bitte warte einen Moment.',
-    FST_ERR_VALIDATION: 'Da fehlt etwas, oder es ist zu lang.',
+    FST_ERR_VALIDATION: 'Eine Angabe fehlt oder ist ungültig.',
     FST_ERR_CTP_BODY_TOO_LARGE: 'Die Datei ist zu groß.',
     request_failed: 'Das hat nicht geklappt. Bitte versuch es noch einmal.',
     // The roster
@@ -501,7 +501,7 @@ export const de = {
     minimum_invalid: 'Eine Mindestlänge passt nicht: Sie muss eine ganze Zahl von 1 bis 1440 Minuten sein und zu einem Projekttag gehören.',
     frame_invalid: 'Ein Anwesenheitsrahmen passt nicht: Er endet vor seinem Beginn, nennt eine Einheit, die das Stundenraster nicht hat, oder einen Tag, der kein Projekttag ist.',
     class_conflict: 'Eine Klasse ist zur selben Zeit schon in einer anderen Klassenaktivität. Sieh dir bitte den Hinweis an.',
-    target_reached: 'In jedem Feld, in das diese Aktivität Plätze brächte, ist das Ziel schon erreicht. Sieh dir bitte den Hinweis an.',
+    target_reached: 'Für die gewählten Zeiten und Schulstufen gibt es bereits genug Plätze, um das festgelegte Ziel zu erreichen. Eine andere Zeit oder eine weitere passende Schulstufe hilft; der Hinweis unter den Terminen zeigt, wo noch Plätze fehlen.',
     companions_full: 'Inzwischen ist die Begleitung vergeben.',
     class_member: 'Die Klasse dieser Person nimmt an der Aktivität als ganze teil. Unter „Nimmt nicht teil“ steht, wer davon ausgenommen ist.',
     not_class_member: 'Diese Person ist in keiner der Klassen, die an der Aktivität als ganze teilnehmen.',
@@ -549,12 +549,12 @@ export const de = {
     swap_closed: 'Gerade ist keine Tauschzeit.',
     not_offered: 'Diese Aktivität wird nicht angeboten: Sie fällt aus, ist zurückgezogen, ist nicht für diese Schulstufe oder Klasse, oder sie liegt zur Zeit einer Klassenaktivität.',
     already_placed: 'Diese Aktivität ist schon eingetragen.',
-    item_full: 'Diese Aktivität ist voll. Jemand war schneller.',
+    item_full: 'Diese Aktivität hat gerade keine freien Plätze. Eine andere wählen oder später noch einmal nachsehen.',
     not_placed: 'Diese Aktivität ist nicht eingetragen.',
-    leaves_fixed: 'Eine Klassenaktivität lässt sich nicht verlassen.',
+    leaves_fixed: 'Diese Einteilung wurde für die ganze Klasse oder direkt von einer Lehrkraft festgelegt. Sie lässt sich hier nicht ändern.',
     below_minimum: 'Die bisherige Aktivität käme unter ihre Mindestzahl.',
     overlap: 'Die Aktivität überschneidet sich mit einer, die bleibt.',
-    coverage_lost: 'Danach würden an einem Tag Minuten fehlen, die jetzt nicht fehlen.',
+    coverage_lost: 'Nach diesem Wechsel würde an mindestens einem Projekttag mehr Zeit fehlen als bisher.',
     rule_lost: 'Danach wäre eine Regel der Anmeldung nicht mehr erfüllt, oder es fehlte mehr dafür als jetzt.',
     fills_nothing: 'Diese Aktivität füllt keine Lücke: An ihrem Tag ist das Programm schon voll.',
     fully_placed: 'Hier ist das Programm an jedem Tag schon voll; es gibt keine Lücke zu füllen.',
@@ -633,7 +633,7 @@ export const de = {
       /** On the registration's page, for the organization: the classes of the lists in force that are not in. */
       notTakingPart: (classes: string) => `Klassen der Klassenlisten, die nicht teilnehmen: ${classes}`,
       /** Why the list was refused: an activity or a rule still names these classes. */
-      inUse: (classes: string) => `Diese Klassen nennt noch eine Aktivität oder eine Regel: ${classes}. Erst ohne sie dort lassen sie sich herausnehmen.`,
+      inUse: (classes: string) => `Diese Klassen werden noch in Aktivitäten oder Regeln verwendet: ${classes}. Entferne sie zuerst dort; danach kannst du sie aus dieser Anmeldung herausnehmen.`,
     },
   },
 
@@ -680,7 +680,7 @@ export const de = {
       consequences: {
         catalogue: ['Lehrkräfte sehen die Anmeldung und reichen ihre Aktivitäten ein.', 'Rückweg: zur Vorbereitung, solange der Katalog nicht veröffentlicht ist.'],
         published: ['Keine neuen Vorschläge mehr; Bezeichnung, Schuljahr und Projekttage stehen fest.', 'Die genehmigten Aktivitäten bekommen Nummern, die bleiben.', 'Alle sehen den Katalog, auch die Schüler*innen; zum Beginn aus den Einstellungen öffnet die Anmeldung von selbst.', 'Rückweg: zum Sammeln; die Nummern bleiben.'],
-        open: ['Jede Schüler*in der Klassenlisten bekommt die Einladung per E-Mail.', 'Klassenaktivitäten nehmen ihre Klassen mit.', 'Kein Rückweg.'],
+        open: ['Die Schüler*innen der teilnehmenden Klassen werden per E-Mail eingeladen, sofern eine E-Mail-Adresse hinterlegt ist.', 'Klassenaktivitäten nehmen ihre Klassen mit.', 'Kein Rückweg.'],
         closed: ['Die Anmeldung endet jetzt; eine Nachfrist gibt es dann nicht.', 'Die Klassenlisten dieser Anmeldung werden festgehalten; wer keine vollständigen Wünsche hat, bekommt eine E-Mail, die Klassenvorstände ihre Liste.', 'Kein Rückweg.'],
         archived: ['Danach ändert sich nichts mehr: kein Tausch, keine Einteilung, keine Anwesenheit.', 'Alles bleibt lesbar.', 'Kein Rückweg.'],
         draft: ['Lehrkräfte sehen die Anmeldung nicht mehr; ihre Entwürfe bleiben.', 'Rückweg: Angebote sammeln.'],
@@ -692,7 +692,7 @@ export const de = {
         noApproved: 'Keine Aktivität ist genehmigt: Der Katalog wäre leer.',
         noClasses: 'Keine Klasse nimmt teil: Niemand sieht die Anmeldung, niemand wird eingeladen.',
         opensAtPast: (when: string) => `Der Beginn ${when} liegt in der Vergangenheit: Die Anmeldung öffnet gleich nach der Veröffentlichung von selbst.`,
-        noEnd: 'Die Anmeldung hat kein Ende: Sie läuft, bis sie von Hand beendet wird.',
+        noEnd: 'Kein Ende festgelegt: Die Anmeldung bleibt offen, bis du sie von Hand beendest.',
         noEndAck: 'Ich öffne die Anmeldung ohne Ende und beende sie von Hand.',
         mailOff: 'Der E-Mail-Versand ist auf diesem Server nicht eingerichtet: Die Einladungen warten im Postausgang, bis er es ist.',
         /** Class activities that put a class into two at once, as "5A: Wanderung, Finale". */
@@ -733,6 +733,7 @@ export const de = {
       dailyMinimumHint: 'Gezählt wird die Unterrichtszeit der Einheiten, die die Termine belegen, ohne Pausen: Bei Einheiten zu 50 Minuten sind fünf Einheiten 250 Minuten.',
       showTeachers: 'Der Katalog nennt die Lehrkräfte der Aktivitäten',
       placeHeadroomPercent: 'Plätze über dem Bedarf, in Prozent',
+      placeHeadroomHint: 'Mit 20 % werden für je 100 Schüler*innen, die einen Platz bekommen sollen, 120 Plätze geplant.',
       /** The attendance frame of a project day, two selects beside its date. */
       frameFrom: (day: number) => `Anwesenheitsrahmen ab Einheit, Projekttag ${day}`,
       frameTo: (day: number) => `bis Einheit, Projekttag ${day}`,
@@ -770,7 +771,7 @@ export const de = {
       served: '(diese Aktivität)',
       cell: (needing: number, target: number, offered: number) => `${needing} ohne Platz · Ziel ${target} · ${offered} angeboten`,
       short: (missing: number) => `${missing} unter dem Ziel`,
-      rulesIntro: 'Je Regel und Schulstufe: was den Schüler*innen nach ihren Klassenaktivitäten noch fehlt, und höchstens was die Plätze der Aktivitäten der Kategorie bringen, die sie wählen können. Eine Regel, für die das nicht reicht, ist markiert.',
+      rulesIntro: 'Je Regel und Schulstufe stehen die Aktivitäten oder Minuten, die den Schüler*innen über ihre Klassenaktivitäten hinaus noch fehlen, neben dem Höchsten, was die wählbaren Aktivitäten der Kategorie mit ihren Plätzen bringen. Reicht das nicht, ist die Regel markiert.',
       needed: 'Bedarf',
       offered: 'Bieten höchstens',
       ruleShort: 'reicht nicht',
@@ -830,9 +831,9 @@ export const de = {
 
   /** Eingereichte.vue: the organizer goes through the submitted activities one after the other. */
   review: {
-    heading: 'Eingereichte durchgehen',
+    heading: 'Eingereichte Aktivitäten prüfen',
     organizersOnly: 'Diese Seite ist für die Organisation.',
-    link: 'Eingereichte durchgehen',
+    link: 'Eingereichte Aktivitäten prüfen',
     back: 'Zurück zum Überblick',
     /** The order of the queue: by the first submission, or under the day an activity starts on. */
     order: 'Reihenfolge',
@@ -900,19 +901,19 @@ export const de = {
       handOver: 'Leitung übergeben an',
       handOverSubmit: 'Leitung übergeben',
       handOverHint: 'Übergeben geht an eine Begleitung; eine andere Lehrkraft zuerst als Begleitung hinzufügen und speichern.',
-      handOverConfirm: (name: string) => `Die Leitung an ${name} übergeben? Die bisherige Leitung bleibt als Begleitung eingetragen und ändert die Begleitung dann nicht mehr.`,
+      handOverConfirm: (name: string) => `Die Leitung an ${name} übergeben? Die bisherige Leitung bleibt als Begleitlehrkraft eingetragen; die Begleitlehrkräfte verwaltet danach die neue Leitung.`,
       /** A teacher not plainly available on some of the activity's days, the days as format.ts formatDay writes them. */
       unavailableOn: (name: string, days: string) => `${name} ist am ${days} nicht verfügbar.`,
       ifNeededOn: (name: string, days: string) => `${name} ist am ${days} nur verfügbar, wenn es nötig ist.`,
       /** How many companions the lead wants beside them (the school's wish 6). */
-      wanted: 'Begleitungen (0 bis 8)',
-      wantedHint: 'Wie viele Lehrkräfte neben der Leitung mitkommen sollen. Was noch fehlt, steht unter „Begleitung gesucht“, und Lehrkräfte tragen sich dort selbst ein.',
+      wanted: 'Begleitlehrkräfte insgesamt (0–8, ohne Leitung)',
+      wantedHint: 'Wie viele Lehrkräfte neben der Leitung mitkommen sollen; bereits eingetragene Begleitlehrkräfte zählen mit. Was noch fehlt, steht unter „Begleitung gesucht“, und Lehrkräfte tragen sich dort selbst ein.',
       /** "noch 1 gesucht" */
       sought: (count: number) => `noch ${count} gesucht`,
       complete: 'Begleitung vollständig',
     },
     sessions: {
-      intro: 'Eine Aktivität hat meist einen Termin: einen zusammenhängenden Zeitraum, auch über mehrere Tage, etwa ein Ausflug von Dienstag 8:00 bis Mittwoch 13:00. Er liegt in den Einheiten der Schule oder nach der Uhrzeit. Einen weiteren Termin gibt es nur, wenn die Aktivität unterbrochen ist, etwa je zwei Einheiten am Montag und am Mittwoch: Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler*innen statt, ist das eine eigene Aktivität. Angerechnet wird die Unterrichtszeit der Einheiten, die ein Termin belegt: Pausen und was außerhalb des Stundenrasters liegt, zählen nicht.',
+      intro: 'Eine Aktivität hat meist einen Termin: einen zusammenhängenden Zeitraum, auch über mehrere Tage, etwa ein Ausflug von Dienstag 8:00 bis Mittwoch 13:00. Er liegt in den Einheiten der Schule oder nach der Uhrzeit. Einen weiteren Termin gibt es nur, wenn die Aktivität unterbrochen ist, etwa je zwei Einheiten am Montag und am Mittwoch: Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler*innen statt, ist das eine eigene Aktivität. Angerechnet werden die Unterrichtsminuten der Einheiten, die ein Termin belegt, ohne Pausen. Liegt der gesamte Termin außerhalb des Stundenrasters, zählt stattdessen seine tatsächliche Dauer.',
       /** The heading of the only session. */
       single: 'Termin',
       session: (number: number) => `Termin ${number}`,
@@ -928,7 +929,7 @@ export const de = {
       at: 'um',
       endsOn: 'Ende am',
       remove: 'Termin entfernen',
-      add: 'Weiterer Termin (nur bei Unterbrechung)',
+      add: 'Weiterer Termin für dieselbe Gruppe (nur bei Unterbrechung)',
     },
     participation: {
       heading: 'Teilnahme',
@@ -936,7 +937,7 @@ export const de = {
       /** The places of an activity for fixed classes: those other students may rank. */
       extraPlaces: 'Zusätzliche Plätze für andere Schüler*innen',
       minParticipants: 'Mindestzahl',
-      cancellable: 'Fällt aus, wenn zu wenige kommen',
+      cancellable: 'Darf ausfallen, wenn die Mindestzahl bei der Zuteilung nicht erreicht wird',
       /** No places and no classes: nobody ranks it and nobody is placed into it. */
       staffOnly: 'Ohne Plätze und ohne ganze Klassen ist die Aktivität nur für Lehrkräfte: Schüler*innen sehen sie nicht im Katalog, und niemand kann sie wählen.',
       eligibleGrades: 'Angeboten für Schulstufen (keine Auswahl: alle)',
@@ -956,7 +957,7 @@ export const de = {
     gate: {
       brings: (cells: string) => `Diese Aktivität bringt Plätze dorthin, wo noch welche fehlen: ${cells}.`,
       bringsNothing: 'Diese Aktivität bringt Plätze nur dorthin, wo das Ziel schon erreicht ist.',
-      servesNothing: 'Diese Aktivität liegt außerhalb der Anwesenheitsrahmen: Plätze und Bedarf zählen sie nirgends.',
+      servesNothing: 'Diese Aktivität findet außerhalb der Zeiten statt, für die Plätze geplant werden. Deshalb wird sie in „Plätze und Bedarf“ nicht mitgezählt.',
       /** The refusal, a sentence per day; `periods` null for a day counted whole. */
       refused: (day: string, periods: string | null) => periods === null ? `Am ${day} hat jede Schulstufe dieser Aktivität ihr Ziel erreicht.` : `Am ${day} hat jede Schulstufe dieser Aktivität in der ${periods} ihr Ziel erreicht.`,
       advice: 'Wähle eine Zeit, in der noch Plätze fehlen, oder nimm eine Schulstufe dazu, der noch Plätze fehlen.',
@@ -966,7 +967,7 @@ export const de = {
     conflict: (className: string, day: string, from: string, to: string, title: string, lead: string) => `Die ${className} ist am ${day} von ${from} bis ${to} schon in ‚${title}‘ (Leitung: ${lead}). Eine Klasse kann zur selben Zeit nur in einer Klassenaktivität sein.`,
     participants: {
       heading: (count: number) => `Teilnehmer*innen (${count})`,
-      cancelled: 'Diese Aktivität fällt aus: Für ihre Mindestzahl kamen zu wenige Wünsche.',
+      cancelled: 'Diese Aktivität fällt aus: Bei der Zuteilung wurde die Mindestzahl an Teilnehmer*innen nicht erreicht.',
       none: 'In diese Aktivität ist niemand eingeteilt.',
       lead: (name: string) => `Leitung: ${name}`,
       companions: (names: string) => `Begleitung: ${names}`,
@@ -983,7 +984,7 @@ export const de = {
   /** Verfuegbarkeit.vue: a teacher's own availability on the project days of the registrations collecting activities. */
   availability: {
     intro: 'Trag ein, an welchen Projekttagen du für eine Aktivität da bist. Ohne Eintrag giltst du als verfügbar. Einen Grund gibst du nicht an.',
-    none: 'Zurzeit sammelt keine Anmeldung Angebote. Solange eine sammelt, trägst du hier ein, an welchen ihrer Projekttage du da bist; danach ändert das die Organisation.',
+    none: 'Deine Verfügbarkeit trägst du hier ein, solange Lehrkräfte Aktivitäten einreichen können. Zurzeit ist keine Anmeldung in dieser Phase. Für spätere Änderungen wende dich an die Organisation.',
     teachersOnly: 'Die Verfügbarkeit tragen die Lehrkräfte ein.',
     /** The label of a day's choice for a screen reader, the day as format.ts formatDay writes it. */
     statusOn: (day: string) => `Verfügbarkeit am ${day}`,
@@ -994,7 +995,7 @@ export const de = {
   /** Placements.vue: the students a teacher placed into an activity, and a class activity's list of who does not take part. */
   placements: {
     heading: 'Direkt eingeteilt',
-    intro: 'Schüler*innen, die ohne Wahl in diese Aktivität kommen. Jede direkt eingeteilte Person belegt einen Platz der Aktivität. Mit dem Häkchen nimmt sie an keiner Klassenaktivität ihrer Klasse teil, die sich mit dieser Aktivität überschneidet, und zwar an der ganzen nicht, auch nicht an deren anderen Tagen; die Lehrkräfte der Klassenaktivität sehen das und können sie zurückholen. Ohne das Häkchen bleibt sie in der Klassenaktivität und fehlt dort nur während dieser Aktivität.',
+    intro: 'Schüler*innen, die ohne Wahl in diese Aktivität kommen. Jede direkt eingeteilte Person belegt einen Platz der Aktivität. Mit Häkchen nimmt die Person an keiner Klassenaktivität ihrer Klasse teil, die sich zeitlich mit dieser Aktivität überschneidet. Das gilt jeweils für die gesamte Klassenaktivität, einschließlich aller weiteren Termine und Tage; die Lehrkräfte der Klassenaktivität sehen das und können die Person zurückholen. Ohne Häkchen bleibt sie in der Klassenaktivität und fehlt dort nur während dieser Aktivität.',
     search: 'Schüler*in suchen (Name oder Klasse)',
     place: (name: string, className: string) => `${name} (${className}) einteilen`,
     none: 'Niemand ist direkt eingeteilt.',
@@ -1020,7 +1021,7 @@ export const de = {
     /** In the form of a class activity not saved yet. */
     taken: (names: string) => `In dieser Zeit direkt in eine andere Aktivität eingeteilt und daher nicht dabei: ${names}. Nach dem Speichern lassen sie sich hier zurückholen.`,
     /** A teacher of the activity who may not change it: submitted, it is the organization's. */
-    readOnly: 'Die Aktivität ist eingereicht: Ändern kann sie die Organisation, die Begleitung die Leitung. Direkt einteilen können alle Lehrkräfte der Aktivität.',
+    readOnly: 'Die Aktivität ist eingereicht. Die Organisation kann ihre Angaben ändern; die Leitung verwaltet die Begleitlehrkräfte. Alle Lehrkräfte dieser Aktivität können weiterhin Schüler*innen direkt einteilen.',
   },
   /** Begleitung.vue: the list a teacher joins an activity from (the school's wish 6). */
   companions: {
@@ -1107,14 +1108,14 @@ export const de = {
     titleOnBehalf: 'Für jemanden eintragen',
     onBehalf: (name: string, className: string) => `Für ${name} (${className}). Was du einträgst, wird mit Begründung protokolliert.`,
     /** After the campaign's name: "bis zu 3 Wünsche je Zeitblock". */
-    cap: (cap: number) => `bis zu ${cap} ${byCount(cap, 'Wunsch', 'Wünsche')} je Zeitblock`,
+    cap: (cap: number) => `Gib je Zeitblock ${cap} ${byCount(cap, 'Wunsch', 'Wünsche')} in deiner bevorzugten Reihenfolge an; werden weniger Aktivitäten angeboten, wähle alle.`,
     closesAt: (when: string) => `Anmeldung bis ${when}`,
     lateUntil: (when: string) => `Nachfrist bis ${when}`,
     notAccepting: 'Gerade nimmt die Anmeldung keine Wünsche an.',
     lateNotice: 'Wünsche aus der Nachfrist kommen nach den anderen dran.',
     /** After the state's badge: the window (a WINDOW_LABELS word) and the version of the saved list. */
-    savedIn: (window: string, version: number) => `gespeichert (${window}), Fassung ${version}`,
-    nothingOffered: 'Für dich wird nichts angeboten.',
+    savedIn: (window: string) => `Deine Wünsche sind gespeichert (${window}).`,
+    nothingOffered: 'Zurzeit gibt es für dich keine Aktivitäten zur Wahl. Wenn du teilnehmen solltest, wende dich an deinen Klassenvorstand.',
     /** After the title of a class activity, in bold. */
     fixedForYourClass: 'mit deiner ganzen Klasse',
     /** An activity a teacher placed the student into directly. */
@@ -1125,7 +1126,7 @@ export const de = {
     /** The select of an item's wish number. */
     wishFor: (title: string) => `Wunsch ${title}`,
     saveWishes: 'Wünsche speichern',
-    allGroupsComplete: 'Alle Zeitblöcke haben ihre Wünsche, und die Regeln sind erfüllt.',
+    allGroupsComplete: 'Deine Wunschliste ist vollständig: Du hast alle nötigen Wünsche angegeben und die Regeln so weit wie möglich berücksichtigt.',
     wishesMissing: 'Es fehlen noch Wünsche.',
     /** Follows the two above for a student, whose changes need no button. */
     savedAtOnce: 'Jede Änderung wird sofort gespeichert.',
@@ -1140,7 +1141,7 @@ export const de = {
       /** When the offer cannot reach the minimum. */
       limited: 'mehr bietet der Katalog nicht',
       /** When the wishes per time block leave no room for more next to the other rules. */
-      crowded: 'mehr geht neben den anderen Regeln nicht',
+      crowded: 'deine Wünsche gelten für diese Regel: Kein einzelner Wunsch ließe sich ändern, ohne eine andere Regel schwerer erfüllbar zu machen',
     },
     exemptions: {
       title: 'Befreiungen',
@@ -1178,7 +1179,7 @@ export const de = {
       itemFor: (name: string) => `Aktivität für ${name}`,
       reasonFor: (name: string) => `Begründung für ${name}`,
       place: 'Einteilen',
-      note: 'Als Klassenvorstand teilst du hier ein, wem noch Zeit oder eine Regel fehlt. Wer eingeteilt wird, bekommt Bescheid; die Organisation sieht jede Änderung mit deiner Begründung.',
+      note: 'Teile hier Schüler*innen ein, deren Tagesprogramm noch zu kurz ist oder die eine Regel noch nicht erfüllen. Sie werden benachrichtigt; die Organisation sieht deine Änderung und Begründung.',
     },
     attendance: {
       heading: 'Anwesenheit',
@@ -1225,7 +1226,7 @@ export const de = {
 
   /** Zuteilung.vue: the organizer's runs, their review and the changes after publication. */
   allocation: {
-    published: 'Die Einteilung ist veröffentlicht; die E-Mails sind unterwegs.',
+    published: 'Die Einteilung ist veröffentlicht. Die Benachrichtigungen sind zum Versand vorgemerkt; den Versandstatus findest du unter „E-Mails“.',
     changed: 'Die Einteilung ist geändert. Die Person bekommt Bescheid.',
     started: 'Die Zuteilung wird berechnet.',
     /** A student's place on a day in the review, in brackets after the item. */
@@ -1260,7 +1261,8 @@ export const de = {
       free: (count: number) => `${count} frei`,
       /** An item with more students than places, after a forced change: how many too many. */
       over: (count: number) => `${count} zu viel`,
-      force: 'Auch wenn die Aktivität voll ist, dann zu wenige bleiben oder eine Regel nicht mehr erfüllt ist (wird vermerkt)',
+      force: 'Ausnahme von Platzbegrenzung, Mindestzahl oder Regeln zulassen',
+      forceHint: 'Die Ausnahme wird zusammen mit deiner Begründung protokolliert.',
       submit: 'Ändern',
     },
     start: {
@@ -1271,12 +1273,14 @@ export const de = {
         after: 'die Administration kann das ändern.',
       },
       unreachable: 'Das Rechenmodul antwortet nicht. Eine Berechnung würde fehlschlagen.',
-      ready: (ortools: string, contract: string) => `Bereit zur Berechnung (OR-Tools ${ortools}, Schnittstelle ${contract}).`,
+      ready: 'Bereit zur Berechnung.',
+      /** The versions of the calculation service, as a technical detail beside the status. */
+      versions: (ortools: string, contract: string) => `Rechenmodul: OR-Tools ${ortools}, Schnittstelle ${contract}`,
       notClosed: 'Die Zuteilung lässt sich berechnen, sobald die Anmeldung beendet ist.',
       seed: 'Losnummer (leer: wird gezogen)',
       seedExample: 'z. B. 4711',
-      limit: 'Rechenzeit je Ziel (1–60)',
-      limitHint: 'Mehr Rechenzeit findet eher die beste Einteilung, dauert aber länger (eine Sekunde hier sind auf dem Server mehrere).',
+      limit: 'Suchaufwand je Ziel (1–60)',
+      limitHint: 'Ein höherer Wert sucht gründlicher und findet eher eine bessere Einteilung, dauert aber länger. Wie lange, hängt von der Größe der Anmeldung und vom Server ab.',
       submit: 'Zuteilung berechnen',
       running: 'Die Zuteilung wird gerade berechnet …',
     },
@@ -1287,11 +1291,11 @@ export const de = {
       started: 'Gestartet',
       status: 'Stand',
       seed: 'Losnummer',
-      limit: 'Rechenzeit',
+      limit: 'Suchaufwand',
       deficit: 'Fehlende Minuten',
       notCovered: 'Nicht alle Tage',
       published: 'veröffentlicht',
-      repeatHint: (seed: number, limit: number) => `Mit Losnummer ${seed} und Rechenzeit ${limit} noch einmal berechnen`,
+      repeatHint: (seed: number, limit: number) => `Mit Losnummer ${seed} und Suchaufwand ${limit} noch einmal berechnen`,
       repeat: 'Wiederholen',
     },
     /** The review of one run. */
@@ -1315,7 +1319,7 @@ export const de = {
       /** After the passes' sentence, when the registration has rules. */
       passesRules: 'Die Regeln der Anmeldung kommen nach den fehlenden Minuten und vor den Wünschen.',
       ruleGaps: (count: number) => `Fehlende Regeln (${count})`,
-      meta: (seed: number, limit: number, solver: string, ortools: string, rules: number) => `Losnummer ${seed} · Rechenzeit ${limit} · Rechenmodul ${solver} (OR-Tools ${ortools}) · Regeln Version ${rules}`,
+      meta: (seed: number, limit: number, solver: string, ortools: string, rules: number) => `Losnummer ${seed} · Suchaufwand ${limit} · Rechenmodul ${solver} (OR-Tools ${ortools}) · Regeln Version ${rules}`,
       runExport: 'Berechnung als Excel',
       levels: 'Ziele (in dieser Reihenfolge)',
       level: 'Ziel',
@@ -1369,7 +1373,7 @@ export const de = {
       start: (seq: number) => `Berechnung ${seq} veröffentlichen …`,
       confirm: 'Veröffentlichung bestätigen',
       noCancellations: 'Keine Aktivität fällt aus.',
-      cancellations: 'Diese Aktivitäten fallen aus, weil zu wenige sie gewünscht haben:',
+      cancellations: 'Diese Aktivitäten fallen aus, weil die Zuteilung ihre Mindestzahl nicht erreicht hat:',
       confirmCancellations: 'Ich bestätige, dass sie ausfallen.',
       submit: 'Jetzt veröffentlichen',
     },
@@ -1394,7 +1398,7 @@ export const de = {
       /** A fixed row of an activity the student's class is not in as a whole: a teacher placed them. */
       direct: 'von einer Lehrkraft eingeteilt',
       wish: (rank: number | null) => `dein ${rank}. Wunsch`,
-      fallback: 'Restplatz, weil deine Wünsche hier nicht reichten',
+      fallback: 'automatisch zugeteilt: kostenloser Platz außerhalb deiner Wunschliste',
       swap: 'dein Tausch',
       other: 'eingeteilt',
     },
@@ -1407,7 +1411,7 @@ export const de = {
     noItem: 'An diesem Tag hast du keine Aktivität.',
     credited: (minutes: number) => `${minutes} Minuten angerechnet`,
     fee: (amount: string) => `Kosten: ${amount}`,
-    deficit: (minutes: number) => `Hier fehlen dir noch ${minutes} Minuten. Dein Klassenvorstand teilt dich in eine Aktivität mit freien Plätzen ein.`,
+    deficit: (minutes: number) => `Dein Tagesprogramm ist noch nicht vollständig: Es fehlen ${minutes} Minuten an Aktivitäten. Dein Klassenvorstand teilt dich in eine Aktivität mit freien Plätzen ein.`,
     noFee: 'Deine Aktivitäten kosten nichts.',
     /** The registration's rules with what the student's activities bring. */
     rules: 'Regeln der Anmeldung',
@@ -1425,7 +1429,7 @@ export const de = {
     entered: (item: string) => `neu ${item}`,
     explanation: {
       heading: 'So kam deine Einteilung zustande',
-      rule: (seed: number, seq: number) => `Zuerst sollte niemand ohne volle Woche bleiben, dann sollten so wenige Minuten wie möglich fehlen, dann sollten so wenige Schüler*innen wie möglich vor allem späte Wünsche bekommen, dann sollte das Ganze so gut wie möglich ausgehen. Wo zwei Einteilungen gleich gut waren, hat das Los entschieden, mit der Losnummer ${seed} (Berechnung ${seq}).`,
+      rule: (seed: number, seq: number) => `Zuerst sollte niemand ohne volle Woche bleiben, dann sollten so wenige Minuten wie möglich fehlen, danach sollten möglichst wenige Schüler*innen überwiegend ihre weniger bevorzugten Aktivitäten bekommen, und anschließend sollten die Wünsche insgesamt möglichst gut erfüllt werden. Wo zwei Einteilungen gleich gut waren, hat das Los entschieden, mit der Losnummer ${seed} (Berechnung ${seq}).`,
       late: 'Du hast dich in der Nachfrist angemeldet; deshalb kamen zuerst die anderen dran.',
       noWishes: 'Du hast keine Wünsche abgegeben und bist deshalb auf Restplätzen ohne Kosten.',
       /** After `rule`, when the registration has rules. */
@@ -1801,7 +1805,7 @@ export const de = {
       description: 'Beschreibung',
       location: 'Ort',
       minParticipants: 'Mindestzahl',
-      cancellableBelowMinimum: 'Fällt aus, wenn zu wenige kommen',
+      cancellableBelowMinimum: 'Darf ausfallen, wenn die Mindestzahl nicht erreicht wird',
       fixedClasses: 'Ganze Klassen',
       grades: 'Schulstufen',
       classes: 'Klassen',
@@ -1929,10 +1933,10 @@ export const de = {
     },
     grace_reminder: {
       subject: 'Letzte Erinnerung: Wünsche für {{campaign}} bis {{deadline}}',
-      body: 'Hallo {{first_name}},\n\nmorgen endet die Nachfrist für {{campaign}}, und deine Wünsche fehlen noch:\n\n{{link}}',
+      body: 'Hallo {{first_name}},\n\ndie Nachfrist für {{campaign}} endet am {{deadline}}. Deine Wünsche sind noch nicht vollständig. Bitte ergänze sie bis dahin:\n\n{{link}}',
     },
     missed_deadline: {
-      subject: '{{campaign}}: keine Wünsche abgegeben',
+      subject: '{{campaign}}: Anmeldefrist abgelaufen – Wünsche unvollständig',
       body: 'Hallo {{first_name}},\n\ndie Anmeldung für {{campaign}} ist zu Ende, und deine Wünsche sind nicht vollständig. Du bekommst deshalb Restplätze ohne Kosten, oder dein Klassenvorstand teilt dich ein. Deine Einteilung siehst du nach der Veröffentlichung hier:\n\n{{link}}',
     },
     class_missing: {

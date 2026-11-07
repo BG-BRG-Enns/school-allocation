@@ -12,7 +12,7 @@ import type { Page } from '@playwright/test'
 import { expect, test } from '../support/test.ts'
 import { runTick, setClock } from '../support/clock.ts'
 import { refused } from '../support/console.ts'
-import { anyCount, t } from '../support/messages.ts'
+import { t } from '../support/messages.ts'
 import { ANNA, BERND, SARA, TIM } from '../support/personas.ts'
 import { picture, section, shot } from '../support/screenshot.ts'
 import { sample } from '../support/sample.ts'
@@ -80,7 +80,7 @@ test('die Anmeldung öffnet sich zu ihrer Zeit; eine Schülerin gibt ihre Wünsc
   await shot(page, '25-wuensche')
   await picture(page, 'wuensche', page.locator('main'))
   // Every change a version of its own.
-  await expect(page.getByText(anyCount((version) => t.wishes.savedIn(t.labels.window.first, version)))).toBeVisible()
+  await expect(page.getByText(t.wishes.savedIn(t.labels.window.first))).toBeVisible()
   await signOut(page)
 })
 

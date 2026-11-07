@@ -10,7 +10,7 @@ The table shows every school year with data: its registrations and their status,
 
 ## Deleting a school year
 
-You can delete a school year once its retention period has passed and all its registrations are closed. Until then, the selection field tells you why you cannot delete it yet.
+You can delete a school year once its retention period has passed and all its registrations are archived. Until then, the selection field tells you why you cannot delete it yet.
 
 1. First save what the school needs to keep, such as the allocation with the cost as an Excel file for the accounts department ([Excel files](/en/organisation/excel)).
 2. Choose the **School year** and enter it again to confirm.

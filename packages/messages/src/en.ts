@@ -237,7 +237,7 @@ export const en: Messages = {
       allocating: 'Allocating',
       review: 'Allocation in review',
       results: 'Allocation published',
-      archived: 'Closed',
+      archived: 'Archived',
     },
     /** An activity's state (school-core ITEM_STATES). */
     itemState: {
@@ -310,8 +310,8 @@ export const en: Messages = {
     runFailure: {
       solver_unreachable: 'The calculation service could not be reached',
       solver_answer_invalid: 'The calculation service returned an unusable answer',
-      solver_infeasible: 'No allocation possible, usually because of the minimum for an activity that cannot be cancelled',
-      solver_unknown: 'No allocation found within the computing time',
+      solver_infeasible: 'No valid allocation is possible with the current settings. First to check: the minimums of the activities that cannot be cancelled.',
+      solver_unknown: 'No allocation found within the search effort',
       model_invalid: 'Error in the data for the calculation',
       validation_failed: 'Validation found an error in the calculated allocation; it was discarded',
       internal_error: 'A program error; details are in the server log',
@@ -321,17 +321,17 @@ export const en: Messages = {
       OPTIMAL: 'optimal',
       FEASIBLE: 'valid, maybe not the best',
       INFEASIBLE: 'no allocation possible',
-      UNKNOWN: 'none found in time',
+      UNKNOWN: 'none found within the search effort',
       MODEL_INVALID: 'data error',
     },
     /** The levels of the lexicographic objective (school-core levelNames); a threshold level is named by its number. */
     level: {
       students_with_deficit: 'Students with missing minutes',
       deficit_minutes: 'Total missing minutes',
-      total_cost: 'Total choices (weighted, fewer is better)',
+      total_cost: 'Ranking score, weighted by duration (lower is better)',
       tiebreak: 'Draw',
       over: (threshold: number) => `Students with an average choice above ${threshold}`,
-      students_missing_rule: 'Students missing a rule',
+      students_missing_rule: 'Students who do not meet all the rules',
       rule_missing_items: 'Total activities missing for rules',
       rule_missing_minutes: 'Total minutes missing for rules',
     },
@@ -380,10 +380,10 @@ export const en: Messages = {
       already_placed: 'already placed',
       item_full: 'full',
       not_placed: 'not placed',
-      leaves_fixed: 'class activity stays',
+      leaves_fixed: 'fixed placement stays',
       below_minimum: 'the previous activity would fall below its minimum',
       overlap: 'overlaps',
-      coverage_lost: 'minutes would be missing',
+      coverage_lost: 'more time would be missing',
       rule_lost: 'a rule would no longer be met',
       fills_nothing: 'fills no gap',
     },
@@ -463,7 +463,7 @@ export const en: Messages = {
     blocked: 'Your access is blocked. Please contact the school.',
     invalid_transition: 'This is no longer possible (or not yet).',
     rate_limited: 'Too many attempts. Please wait a moment.',
-    FST_ERR_VALIDATION: 'Something is missing or too long.',
+    FST_ERR_VALIDATION: 'An entry is missing or invalid.',
     FST_ERR_CTP_BODY_TOO_LARGE: 'The file is too large.',
     request_failed: 'That did not work. Please try again.',
     // The roster
@@ -496,7 +496,7 @@ export const en: Messages = {
     minimum_invalid: 'A minimum length does not fit: it must be a whole number from 1 to 1440 minutes and belong to a project day.',
     frame_invalid: 'An attendance frame does not fit: it ends before it starts, names a period the timetable does not have, or a day that is no project day.',
     class_conflict: 'A class is already in another class activity at the same time. Please look at the note.',
-    target_reached: 'Every cell this activity would bring places to has reached its target already. Please look at the note.',
+    target_reached: 'For the chosen times and grades there are already enough places to reach the set target. Another time or a further suitable grade helps; the note below the sessions shows where places are still missing.',
     companions_full: 'The companions have been found meanwhile.',
     class_member: 'This person\'s class takes part in the activity as a whole. "Not taking part" lists who is left out of it.',
     not_class_member: 'This person is in none of the classes that take part in the activity as a whole.',
@@ -544,12 +544,12 @@ export const en: Messages = {
     swap_closed: 'There is no swap period at the moment.',
     not_offered: 'This activity is not offered: it is cancelled, withdrawn, not for this year or class, or overlaps with a class activity.',
     already_placed: 'This activity is already entered.',
-    item_full: 'This activity is full. Someone got there first.',
+    item_full: 'This activity has no free places at the moment. Choose another one or look again later.',
     not_placed: 'This activity is not entered.',
-    leaves_fixed: 'You cannot leave a class activity.',
+    leaves_fixed: 'This placement was set for the whole class or directly by a teacher. It cannot be changed here.',
     below_minimum: 'The previous activity would fall below its minimum.',
     overlap: 'The activity overlaps with one that stays.',
-    coverage_lost: 'This would leave missing minutes on a day that currently has none.',
+    coverage_lost: 'After this swap, more time would be missing on at least one project day than now.',
     rule_lost: 'A rule of the registration would then no longer be met, or more would be missing for it than now.',
     fills_nothing: 'This activity fills no gap: the programme for its day is already full.',
     fully_placed: 'The programme is already full for every day; there is no gap to fill.',
@@ -628,7 +628,7 @@ export const en: Messages = {
       /** On the registration's page, for the organization: the classes of the lists in force that are not in. */
       notTakingPart: (classes: string) => `Classes of the class lists not taking part: ${classes}`,
       /** Why the list was refused: an activity or a rule still names these classes. */
-      inUse: (classes: string) => `An activity or a rule still names these classes: ${classes}. Change those first.`,
+      inUse: (classes: string) => `These classes are still used in activities or rules: ${classes}. Remove them there first; then you can take them out of this registration.`,
     },
   },
 
@@ -654,7 +654,7 @@ export const en: Messages = {
       collect: 'Collect activities',
       publish: 'Publish catalogue',
       open: 'Open registration',
-      archive: 'Close registration',
+      archive: 'Archive registration',
       close: 'End registration',
       backToDraft: 'Back to preparation',
       backToCatalogue: 'Back to collecting',
@@ -674,7 +674,7 @@ export const en: Messages = {
       consequences: {
         catalogue: ['Teachers see the registration and submit their activities.', 'Way back: to preparation, as long as the catalogue is not published.'],
         published: ['No new proposals; the name, school year and project days are fixed.', 'The approved activities get numbers, which stay.', 'Everyone sees the catalogue, students included; at the start set in the settings, registration opens by itself.', 'Way back: to collecting; the numbers stay.'],
-        open: ['Every student of the class lists gets the invitation email.', 'Class activities take their classes with them.', 'No way back.'],
+        open: ['The students of the participating classes are invited by email, where an email address is on file.', 'Class activities take their classes with them.', 'No way back.'],
         closed: ['Registration ends now; there is no late registration then.', 'The class lists of this registration are frozen; anyone without complete choices gets an email, class teachers their list.', 'No way back.'],
         archived: ['Nothing changes afterwards: no swaps, placements or attendance.', 'Everything stays readable.', 'No way back.'],
         draft: ['Teachers no longer see the registration; their drafts stay.', 'Way back: collect activities.'],
@@ -686,7 +686,7 @@ export const en: Messages = {
         noApproved: 'No activity is approved: the catalogue would be empty.',
         noClasses: 'No class takes part: nobody sees the registration, nobody is invited.',
         opensAtPast: (when: string) => `The start ${when} is in the past: registration opens by itself right after publication.`,
-        noEnd: 'Registration has no end: it runs until it is ended by hand.',
+        noEnd: 'No closing date is set: registration stays open until you end it by hand.',
         noEndAck: 'I open the registration without an end and will end it by hand.',
         mailOff: 'Sending email is not configured on this server: the invitations wait in the outbox until it is.',
         classConflicts: (list: string) => `A class is in two class activities at the same time: ${list}. The allocation cannot be calculated like this; take the class out of one of them.`,
@@ -723,7 +723,8 @@ export const en: Messages = {
       dailyMinimum: (grade: number) => `Minimum minutes per day, Year ${grade}`,
       dailyMinimumHint: 'What counts is the lesson time of the periods the sessions cover, without breaks: with periods of 50 minutes, five periods are 250 minutes.',
       showTeachers: 'The catalogue names the teachers of the activities',
-      placeHeadroomPercent: 'Places above the need, in percent',
+      placeHeadroomPercent: 'Extra places to offer (%)',
+      placeHeadroomHint: 'With 20%, 120 places are planned for every 100 students who need one.',
       frameFrom: (day: number) => `Attendance frame from period, project day ${day}`,
       frameTo: (day: number) => `to period, project day ${day}`,
       noFrame: 'no frame',
@@ -758,7 +759,7 @@ export const en: Messages = {
       served: '(this activity)',
       cell: (needing: number, target: number, offered: number) => `${needing} needed · target ${target} · ${offered} offered`,
       short: (missing: number) => `${missing} short of the target`,
-      rulesIntro: 'For each rule and year: what students still need after their class activities, and at most what the places of the category\'s activities they can choose bring. A rule that cannot be met is marked.',
+      rulesIntro: 'For each rule and year, the activities or minutes students still need beyond their class activities stand beside the most that the category\'s choosable activities bring with their places. A shortfall marks the rule.',
       needed: 'Need',
       offered: 'Offered at most',
       ruleShort: 'not enough',
@@ -874,19 +875,19 @@ export const en: Messages = {
       handOver: 'Hand the lead over to',
       handOverSubmit: 'Hand over the lead',
       handOverHint: 'The lead goes to a companion; add another teacher as a companion first and save.',
-      handOverConfirm: (name: string) => `Hand the lead over to ${name}? The lead until now stays as a companion and no longer changes the companions.`,
+      handOverConfirm: (name: string) => `Hand the lead over to ${name}? The lead until now stays as an accompanying teacher; from then on the new lead manages the accompanying teachers.`,
       /** A teacher not plainly available on some of the activity's days, the days as format.ts formatDay writes them. */
       unavailableOn: (name: string, days: string) => `${name} is unavailable on ${days}.`,
       ifNeededOn: (name: string, days: string) => `${name} is available on ${days} only if needed.`,
       /** How many companions the lead wants beside them (the school's wish 6). */
-      wanted: 'Companions (0 to 8)',
-      wantedHint: 'How many teachers should come along beside the lead. What is still missing is listed under "Companions sought", where teachers sign up themselves.',
+      wanted: 'Accompanying teachers in all (0–8, without the lead)',
+      wantedHint: 'How many teachers should come along beside the lead; those already named count. What is still missing is listed under "Companions sought", where teachers sign up themselves.',
       /** "1 still sought" */
       sought: (count: number) => `${count} still sought`,
       complete: 'Companions complete',
     },
     sessions: {
-      intro: 'An activity usually has one session: one continuous span, also over several days, such as a trip from Tuesday 8:00 to Wednesday 13:00. It is given in school periods or by clock time. A further session is only for an activity that is interrupted, such as two periods each on Monday and on Wednesday: whoever is assigned attends every session. The same activity held again for other students is an activity of its own. What is credited is the lesson time of the periods a session covers: breaks and what lies outside the timetable do not count.',
+      intro: 'An activity usually has one session: one continuous span, also over several days, such as a trip from Tuesday 8:00 to Wednesday 13:00. It is given in school periods or by clock time. A further session is only for an activity that is interrupted, such as two periods each on Monday and on Wednesday: whoever is assigned attends every session. The same activity held again for other students is an activity of its own. What is credited are the lesson minutes of the periods a session covers, without breaks. If a whole session lies outside the timetable, its actual duration counts instead.',
       single: 'Session',
       session: (number: number) => `Session ${number}`,
       /** Whether the session is placed in the period grid or by the clock. */
@@ -901,7 +902,7 @@ export const en: Messages = {
       at: 'at',
       endsOn: 'Ends on',
       remove: 'Remove session',
-      add: 'Further session (only for an interruption)',
+      add: 'Another session for the same group (only for an interruption)',
     },
     participation: {
       heading: 'Participation',
@@ -909,7 +910,7 @@ export const en: Messages = {
       /** The places of an activity for fixed classes: those other students may rank. */
       extraPlaces: 'Extra places for other students',
       minParticipants: 'Minimum',
-      cancellable: 'Cancelled if too few',
+      cancellable: 'May be cancelled if the allocation does not reach the minimum',
       staffOnly: 'Without places and without whole classes the activity is for teachers only: students do not see it in the catalogue, and nobody can choose it.',
       eligibleGrades: 'Offered to years (none selected: all)',
       eligibleClasses: 'Offered to classes (none selected: all)',
@@ -927,7 +928,7 @@ export const en: Messages = {
     gate: {
       brings: (cells: string) => `This activity brings places where some are still missing: ${cells}.`,
       bringsNothing: 'This activity brings places only where the target is already reached.',
-      servesNothing: 'This activity lies outside the attendance frames: Places and demand count it nowhere.',
+      servesNothing: 'This activity takes place outside the times places are planned for, so Places and demand does not count it.',
       refused: (day: string, periods: string | null) => periods === null ? `On ${day} every year of this activity has reached its target.` : `On ${day} every year of this activity has reached its target in ${periods}.`,
       advice: 'Choose a time where places are still missing, or add a year that still lacks places.',
       organizerAnyway: 'As the organisation you may submit and approve it anyway.',
@@ -935,7 +936,7 @@ export const en: Messages = {
     conflict: (className: string, day: string, from: string, to: string, title: string, lead: string) => `${className} is already in ‘${title}’ (lead: ${lead}) on ${day} from ${from} to ${to}. A class can be in one class activity at a time.`,
     participants: {
       heading: (count: number) => `${byCount(count, 'Participant', 'Participants')} (${count})`,
-      cancelled: 'This activity is cancelled: too few students chose it to meet its minimum.',
+      cancelled: 'This activity is cancelled: the allocation did not reach its minimum number of participants.',
       none: 'No one is placed in this activity.',
       lead: (name: string) => `Lead: ${name}`,
       companions: (names: string) => `Companions: ${names}`,
@@ -952,7 +953,7 @@ export const en: Messages = {
   /** Verfuegbarkeit.vue: a teacher's own availability on the project days of the registrations collecting activities. */
   availability: {
     intro: 'Enter the project days on which you are there for an activity. Without an entry you count as available. You need not give a reason.',
-    none: 'No registration is collecting activities at the moment. While one is, you enter here on which of its project days you are there; after that, the organisation changes it.',
+    none: 'You enter your availability here while teachers can submit activities. At the moment no registration is in that phase. For later changes, turn to the organisation.',
     teachersOnly: 'Teachers enter their availability.',
     /** The label of a day's choice for a screen reader, the day as format.ts formatDay writes it. */
     statusOn: (day: string) => `Availability on ${day}`,
@@ -962,7 +963,7 @@ export const en: Messages = {
 
   placements: {
     heading: 'Placed directly',
-    intro: 'Students who come into this activity without choosing it. Each one placed directly takes a place of the activity. With the box ticked they take no part in any class activity of their class that overlaps this activity, none of it, its other days included; the teachers of the class activity see that and can reclaim them. Without the tick they stay in the class activity and are only away during this activity.',
+    intro: 'Students who come into this activity without choosing it. Each one placed directly takes a place of the activity. With the box ticked, the student takes no part in any class activity of their class that overlaps this activity in time. That applies to the whole class activity, all its further sessions and days included; the teachers of the class activity see that and can reclaim the student. Without the tick, the student stays in the class activity and is only away during this activity.',
     search: 'Find a student (name or class)',
     place: (name: string, className: string) => `Place ${name} (${className})`,
     none: 'Nobody is placed directly.',
@@ -980,10 +981,10 @@ export const en: Messages = {
     onList: 'entered',
     placedIn: (activities: string) => `placed directly in ${activities}`,
     bringBack: (name: string) => `${name} takes part after all`,
-    reclaim: (name: string) => `Reclaim ${name}`,
+    reclaim: (name: string) => `Return ${name} to this class activity`,
     overnight: 'This activity includes a night: please enter here who does not come along.',
     taken: (names: string) => `Placed directly into another activity during this time and so not in it: ${names}. Once saved, they can be reclaimed here.`,
-    readOnly: 'The activity is submitted: the organisation can change it, the lead its companions. Every teacher of the activity can place students directly.',
+    readOnly: 'The activity is submitted. The organisation can change its details; the lead manages the accompanying teachers. Every teacher of the activity can still place students directly.',
   },
   /** Begleitung.vue: the list a teacher joins an activity from (the school's wish 6). */
   companions: {
@@ -998,7 +999,7 @@ export const en: Messages = {
     notApproved: 'not approved yet',
     leading: 'You lead this activity.',
     accompanying: 'You accompany this activity.',
-    join: 'I accompany',
+    join: 'Join as an accompanying teacher',
     leave: 'Take me off',
     joined: 'Signed up.',
     left: 'Taken off.',
@@ -1067,14 +1068,14 @@ export const en: Messages = {
     titleOnBehalf: 'Enter for someone',
     onBehalf: (name: string, className: string) => `For ${name} (${className}). What you enter is recorded with a reason.`,
     /** After the campaign's name: "up to 3 choices per time block". */
-    cap: (cap: number) => `up to ${cap} ${byCount(cap, 'choice', 'choices')} per time block`,
+    cap: (cap: number) => `Give ${cap} ${byCount(cap, 'choice', 'choices')} per time block in your order of preference; if fewer activities are offered, choose them all.`,
     closesAt: (when: string) => `Registration until ${when}`,
     lateUntil: (when: string) => `Late registration until ${when}`,
     notAccepting: 'The registration is not accepting choices at the moment.',
     lateNotice: 'Late registration choices are considered after the others.',
     /** After the state's badge: the window (a WINDOW_LABELS word) and the version of the saved list. */
-    savedIn: (window: string, version: number) => `saved (${window}), version ${version}`,
-    nothingOffered: 'Nothing is offered to you.',
+    savedIn: (window: string) => `Your choices are saved (${window}).`,
+    nothingOffered: 'There are no activities for you to choose from at the moment. If you should be taking part, please contact your class teacher.',
     /** After the title of a class activity, in bold. */
     fixedForYourClass: 'with your whole class',
     fixedDirectly: 'placed by a teacher',
@@ -1084,7 +1085,7 @@ export const en: Messages = {
     /** The select of an item's wish number. */
     wishFor: (title: string) => `Choice ${title}`,
     saveWishes: 'Save choices',
-    allGroupsComplete: 'Choices are complete for all time blocks, and the rules are met.',
+    allGroupsComplete: 'Your choices are complete: you have given all the choices needed and taken the rules into account as far as possible.',
     wishesMissing: 'Some choices are still missing.',
     /** Follows the two above for a student, whose changes need no button. */
     savedAtOnce: 'Every change is saved at once.',
@@ -1095,7 +1096,7 @@ export const en: Messages = {
       done: 'fine',
       notYet: 'more choices needed',
       limited: 'the catalogue offers no more',
-      crowded: 'the other rules leave no room for more',
+      crowded: 'your choices are accepted for this rule: no single choice could be changed without making another rule harder to meet',
     },
     exemptions: {
       title: 'Exemptions',
@@ -1132,7 +1133,7 @@ export const en: Messages = {
       itemFor: (name: string) => `Activity for ${name}`,
       reasonFor: (name: string) => `Reason for ${name}`,
       place: 'Place',
-      note: 'As class teacher, you place students who are still short of time or of a rule here. Those placed will be notified; the organisation sees every change with your reason.',
+      note: 'Place students here whose day is still too short or who do not yet meet a rule. They will be notified; the organisation sees your change and your reason.',
     },
     attendance: {
       heading: 'Attendance',
@@ -1179,7 +1180,7 @@ export const en: Messages = {
 
   /** Zuteilung.vue: the organizer's runs, their review and the changes after publication. */
   allocation: {
-    published: 'The allocation is published; the emails are on their way.',
+    published: 'The allocation is published. The notifications are queued for sending; see their status under "Emails".',
     changed: 'The allocation has changed. The person will be notified.',
     started: 'The allocation is being calculated.',
     /** A student's place on a day in the review, in brackets after the item. */
@@ -1214,7 +1215,8 @@ export const en: Messages = {
       free: (count: number) => `${count} open`,
       /** An item with more students than places, after a forced change: how many too many. */
       over: (count: number) => `${count} over`,
-      force: 'Even if the activity is full, too few would remain or a rule would no longer be met (recorded)',
+      force: 'Allow an exception from the places, the minimum or the rules',
+      forceHint: 'The exception is recorded together with your reason.',
       submit: 'Change',
     },
     start: {
@@ -1225,12 +1227,14 @@ export const en: Messages = {
         after: 'the administration can change this.',
       },
       unreachable: 'The calculation service is not responding. A calculation would fail.',
-      ready: (ortools: string, contract: string) => `Ready to calculate (OR-Tools ${ortools}, interface ${contract}).`,
+      ready: 'Ready to calculate.',
+      /** The versions of the calculation service, as a technical detail beside the status. */
+      versions: (ortools: string, contract: string) => `Calculation service: OR-Tools ${ortools}, interface ${contract}`,
       notClosed: 'The allocation can be calculated once registration has ended.',
       seed: 'Draw number (blank: drawn for you)',
       seedExample: 'e.g. 4711',
-      limit: 'Computing time per goal (1–60)',
-      limitHint: 'More computing time is more likely to find the best allocation, but takes longer (one second here is several on the server).',
+      limit: 'Search effort per goal (1–60)',
+      limitHint: 'Higher values allow a more thorough search, which may find a better allocation but takes longer. The actual duration depends on the size of the registration and the server.',
       submit: 'Calculate allocation',
       running: 'The allocation is being calculated …',
     },
@@ -1241,11 +1245,11 @@ export const en: Messages = {
       started: 'Started',
       status: 'Status',
       seed: 'Draw number',
-      limit: 'Computing time',
+      limit: 'Search effort',
       deficit: 'Missing minutes',
       notCovered: 'Not every day',
       published: 'published',
-      repeatHint: (seed: number, limit: number) => `Calculate again with draw number ${seed} and computing time ${limit}`,
+      repeatHint: (seed: number, limit: number) => `Calculate again with draw number ${seed} and search effort ${limit}`,
       repeat: 'Repeat',
     },
     /** The review of one run. */
@@ -1266,7 +1270,7 @@ export const en: Messages = {
       ruleMet: (met: number, students: number) => `${met} of ${students} met`,
       passesRules: 'The registration\'s rules come after the missing minutes and before the choices.',
       ruleGaps: (count: number) => `Missing rules (${count})`,
-      meta: (seed: number, limit: number, solver: string, ortools: string, rules: number) => `Draw number ${seed} · Computing time ${limit} · Calculation service ${solver} (OR-Tools ${ortools}) · Rules version ${rules}`,
+      meta: (seed: number, limit: number, solver: string, ortools: string, rules: number) => `Draw number ${seed} · Search effort ${limit} · Calculation service ${solver} (OR-Tools ${ortools}) · Rules version ${rules}`,
       runExport: 'Calculation as Excel',
       levels: 'Goals (in this order)',
       level: 'Goal',
@@ -1320,7 +1324,7 @@ export const en: Messages = {
       start: (seq: number) => `Publish calculation ${seq} …`,
       confirm: 'Confirm publication',
       noCancellations: 'No activity is cancelled.',
-      cancellations: 'These activities are cancelled because too few students chose them:',
+      cancellations: 'These activities are cancelled because the allocation did not reach their minimum:',
       confirmCancellations: 'I confirm that they are cancelled.',
       submit: 'Publish now',
     },
@@ -1344,7 +1348,7 @@ export const en: Messages = {
       fixed: 'with your class',
       direct: 'placed by a teacher',
       wish: (rank: number | null) => `your choice ${rank}`,
-      fallback: 'remaining place, because your choices could not be met here',
+      fallback: 'allocated automatically: a free place outside your choices',
       swap: 'your swap',
       other: 'placed',
     },
@@ -1357,7 +1361,7 @@ export const en: Messages = {
     noItem: 'You have no activity on this day.',
     credited: (minutes: number) => `${minutes} ${byCount(minutes, 'minute', 'minutes')} credited`,
     fee: (amount: string) => `Cost: ${amount}`,
-    deficit: (minutes: number) => `You are still missing ${minutes} ${byCount(minutes, 'minute', 'minutes')} here. Your class teacher will place you in an activity with open places.`,
+    deficit: (minutes: number) => `Your day is not complete yet: ${minutes} ${byCount(minutes, 'minute', 'minutes')} of activities are missing. Your class teacher will place you in an activity with open places.`,
     noFee: 'Your activities have no cost.',
     rules: 'Rules of this registration',
     ruleMissing: 'Your class teacher can place you in a suitable activity with open places.',
@@ -1374,7 +1378,7 @@ export const en: Messages = {
     entered: (item: string) => `new ${item}`,
     explanation: {
       heading: 'How your allocation was made',
-      rule: (seed: number, seq: number) => `First, no one should be left without a full week, then as few minutes as possible should be missing, then as few students as possible should mainly get lower choices, then the overall result should be as good as possible. Where two allocations were equally good, a draw decided, with draw number ${seed} (calculation ${seq}).`,
+      rule: (seed: number, seq: number) => `First, no one should be left without a full week, then as few minutes as possible should be missing, then as few students as possible should mainly get their less preferred activities, and after that the wishes overall should be met as well as possible. Where two allocations were equally good, a draw decided, with draw number ${seed} (calculation ${seq}).`,
       late: 'You registered during late registration; the others were therefore considered first.',
       noWishes: 'You submitted no choices and have therefore been given remaining places with no cost.',
       rules: 'The registration\'s rules came after the missing minutes and before the choices: a remaining place with no cost can also be for a rule.',
@@ -1747,7 +1751,7 @@ export const en: Messages = {
       description: 'Description',
       location: 'Location',
       minParticipants: 'Minimum',
-      cancellableBelowMinimum: 'Cancelled if too few',
+      cancellableBelowMinimum: 'May be cancelled if the minimum is not reached',
       fixedClasses: 'Whole classes',
       grades: 'Years',
       classes: 'Classes',
@@ -1874,10 +1878,10 @@ export const en: Messages = {
     },
     grace_reminder: {
       subject: 'Final reminder: choices for {{campaign}} by {{deadline}}',
-      body: 'Hello {{first_name}},\n\nLate registration for {{campaign}} ends tomorrow, and your choices are still missing:\n\n{{link}}',
+      body: 'Hello {{first_name}},\n\nLate registration for {{campaign}} ends on {{deadline}}. Your choices are not complete yet. Please complete them by then:\n\n{{link}}',
     },
     missed_deadline: {
-      subject: '{{campaign}}: no choices submitted',
+      subject: '{{campaign}}: registration period over – choices incomplete',
       body: 'Hello {{first_name}},\n\nRegistration for {{campaign}} has ended, and your choices are not complete. You will therefore get remaining places with no cost, or your class teacher will place you. You can see your allocation here once it is published:\n\n{{link}}',
     },
     class_missing: {

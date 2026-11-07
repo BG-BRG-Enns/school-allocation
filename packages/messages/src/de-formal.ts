@@ -42,11 +42,16 @@ export const deFormal = {
     category_in_use: 'Eine Aktivität oder eine Regel verwendet diese Kategorie. Umbenennen geht, entfernen nicht.',
     category_unknown: 'Eine der Kategorien gibt es nicht mehr. Bitte die Seite neu laden.',
     class_conflict: 'Eine Klasse ist zur selben Zeit schon in einer anderen Klassenaktivität. Bitte den Hinweis ansehen.',
-    target_reached: 'In jedem Feld, in das diese Aktivität Plätze brächte, ist das Ziel schon erreicht. Bitte den Hinweis ansehen.',
+  },
+  campaigns: {
+    classes: {
+      inUse: (classes: string) => `Diese Klassen werden noch in Aktivitäten oder Regeln verwendet: ${classes}. Entfernen Sie sie zuerst dort; danach können Sie sie aus dieser Anmeldung herausnehmen.`,
+    },
   },
   campaign: {
     transitions: {
       warnings: {
+        noEnd: 'Kein Ende festgelegt: Die Anmeldung bleibt offen, bis Sie sie von Hand beenden.',
         classConflicts: (list: string) => `Eine Klasse ist zur selben Zeit in zwei Klassenaktivitäten: ${list}. So lässt sich die Zuteilung nicht berechnen; nehmen Sie die Klasse aus einer der beiden heraus.`,
       },
     },
@@ -74,14 +79,16 @@ export const deFormal = {
   },
   schoolClass: {
     unplaced: {
-      note: 'Als Klassenvorstand teilen Sie hier ein, wem noch Zeit oder eine Regel fehlt. Wer eingeteilt wird, bekommt Bescheid; die Organisation sieht jede Änderung mit Ihrer Begründung.',
+      note: 'Teilen Sie hier Schüler*innen ein, deren Tagesprogramm noch zu kurz ist oder die eine Regel noch nicht erfüllen. Sie werden benachrichtigt; die Organisation sieht Ihre Änderung und Begründung.',
     },
     attendance: {
       recordable: 'Eintragen und speichern; korrigieren können Sie bis zum Abschluss der Anmeldung.',
     },
   },
   allocation: {
+    published: 'Die Einteilung ist veröffentlicht. Die Benachrichtigungen sind zum Versand vorgemerkt; den Versandstatus finden Sie unter „E-Mails“.',
     change: {
+      forceHint: 'Die Ausnahme wird zusammen mit Ihrer Begründung protokolliert.',
       rules: 'Es gilt dasselbe wie beim Tausch: in eine Aktivität mit freien Plätzen, die zur Schulstufe passt und sich mit nichts überschneidet, das bleibt; eine Klassenaktivität bleibt immer. Eine volle Aktivität, die Mindestzahl oder eine Regel der Anmeldung dürfen Sie übergehen; das Häkchen dafür wird vermerkt.',
     },
     review: {
@@ -119,7 +126,7 @@ export const deFormal = {
   },
   availability: {
     intro: 'Tragen Sie ein, an welchen Projekttagen Sie für eine Aktivität da sind. Ohne Eintrag gelten Sie als verfügbar. Einen Grund geben Sie nicht an.',
-    none: 'Zurzeit sammelt keine Anmeldung Angebote. Solange eine sammelt, tragen Sie hier ein, an welchen ihrer Projekttage Sie da sind; danach ändert das die Organisation.',
+    none: 'Ihre Verfügbarkeit tragen Sie hier ein, solange Lehrkräfte Aktivitäten einreichen können. Zurzeit ist keine Anmeldung in dieser Phase. Für spätere Änderungen wenden Sie sich an die Organisation.',
   },
   companions: {
     intro: 'Je Projekttag die Aktivitäten, die noch eine Begleitung suchen, und die, die Sie begleiten. Tragen Sie sich ein, wo Sie mitkommen; bis die Anmeldung öffnet, tragen Sie sich hier auch wieder aus, danach sagen Sie es der Leitung oder der Organisation.',

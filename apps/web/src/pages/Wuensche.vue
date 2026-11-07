@@ -185,7 +185,7 @@ async function exempt(): Promise<void> {
     </p>
     <p v-if="view.window">
       <span :class="['badge', view.complete ? 'badge-approved' : 'badge-proposed']">{{ view.complete ? t.labels.choiceState.complete : t.labels.choiceState.incomplete }}</span>
-      {{ t.wishes.savedIn(WINDOW_LABELS[view.window] ?? view.window, view.version) }}
+      {{ t.wishes.savedIn(WINDOW_LABELS[view.window] ?? view.window) }}
     </p>
 
     <p v-if="view.groups.length === 0 && view.fixed.length === 0">

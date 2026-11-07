@@ -8,11 +8,11 @@ Bei jeder Person steht ihre Klasse und wie sie in die Aktivität kam: ihr Wunsch
 
 ## Nach der Veröffentlichung einteilen
 
-Auch jetzt teilst du unter **Direkt eingeteilt** Schüler\*innen in deine Aktivität ein und trägst sie wieder aus, und bei einer Klassenaktivität trägst du unter **Nimmt nicht teil** ein, wer doch nicht mitkommt, und holst zurück, wer woanders eingeteilt ist ([Eine Aktivität einreichen](./aktivitaet#schüler-innen-direkt-einteilen)). Jede dieser Änderungen ändert die veröffentlichte Einteilung: Die Person verlässt, was sich mit der Aktivität überschneidet, auch was die Zuteilung ihr gegeben hat, bekommt eine E-Mail mit ihrer neuen Einteilung, und die Seite sagt dir, wem du Bescheid sagen sollst. Einen Grund nennt niemand; in der Liste der Änderungen der Organisation steht, was es war. Was du so einteilst, gilt wie eine Einteilung vor der Zuteilung: Die Person kann es im Tauschfenster nicht selbst verlassen, und die Teilnehmerliste unten ist gleich auf dem neuen Stand.
+Auch jetzt teilst du unter **Direkt eingeteilt** Schüler\*innen in deine Aktivität ein und trägst sie wieder aus, und bei einer Klassenaktivität trägst du unter **Nimmt nicht teil** ein, wer doch nicht mitkommt, und holst zurück, wer woanders eingeteilt ist ([Eine Aktivität einreichen](./aktivitaet#schüler-innen-direkt-einteilen)). Jede dieser Änderungen ändert die veröffentlichte Einteilung: Die Person verlässt, was sich mit der Aktivität überschneidet, auch was die Zuteilung ihr gegeben hat, bekommt eine E-Mail mit ihrer neuen Einteilung, und die Seite sagt dir, wem du Bescheid sagen sollst. Einen Grund nennt niemand; in der Liste der Änderungen der Organisation steht, was es war. Wer von dir direkt eingeteilt wird, kann diese Aktivität in der Tauschzeit nicht selbst verlassen. Die neue Einteilung steht sofort in der Teilnehmerliste unten.
 
 ## Wenn eine Aktivität ausfällt
 
-Darf eine Aktivität ausfallen und haben sie sich zu wenige für ihre Mindestzahl gewünscht, fällt sie bei der Zuteilung aus. Mit der Veröffentlichung bekommst du dann eine E-Mail, und statt der Liste steht: „Diese Aktivität fällt aus: Für ihre Mindestzahl kamen zu wenige Wünsche.“
+Darf eine Aktivität ausfallen und erreicht die Zuteilung ihre Mindestzahl nicht, fällt sie dabei aus – auch wenn genug sie gewünscht, aber andere Aktivitäten bekommen haben. Mit der Veröffentlichung bekommst du dann eine E-Mail, und statt der Liste steht: „Diese Aktivität fällt aus: Bei der Zuteilung wurde die Mindestzahl an Teilnehmer\*innen nicht erreicht.“
 
 ## Kosten
 

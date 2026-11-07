@@ -8,11 +8,11 @@ Each person's entry shows their class and how they joined the activity: their ch
 
 ## Placing after publication
 
-Now too, under **Placed directly**, you place students into your activity and remove them again, and for a class activity you enter under **Not taking part** who does not come along after all, and reclaim whoever is placed elsewhere ([Submitting an activity](./aktivitaet#placing-students-directly)). Each of these changes the published allocation: the student leaves whatever overlaps the activity, including what the allocation gave them, receives an e-mail with their new programme, and the page tells you whom to tell. Nobody gives a reason; the organisation's list of changes says what it was. What you place this way holds like a placement before the allocation: the student cannot leave it on their own in the swap window, and the participant list below is up to date at once.
+Now too, under **Placed directly**, you place students into your activity and remove them again, and for a class activity you enter under **Not taking part** who does not come along after all, and reclaim whoever is placed elsewhere ([Submitting an activity](./aktivitaet#placing-students-directly)). Each of these changes the published allocation: the student leaves whatever overlaps the activity, including what the allocation gave them, receives an e-mail with their new programme, and the page tells you whom to tell. Nobody gives a reason; the organisation's list of changes says what it was. Students you add directly cannot leave this activity themselves during the swap period. Their updated allocation appears immediately in the participant list below.
 
 ## If an activity is cancelled
 
-If an activity can be cancelled and too few students chose it to meet its minimum, it is cancelled during allocation. On publication, you then receive an email, and instead of the list it says: “This activity is cancelled: too few students chose it to meet its minimum.”
+If an activity can be cancelled and the allocation does not reach its minimum, it is cancelled then – even when enough students chose it but received other activities. On publication, you then receive an email, and instead of the list it says: “This activity is cancelled: the allocation did not reach its minimum number of participants.”
 
 ## Cost
 
