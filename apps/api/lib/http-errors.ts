@@ -35,6 +35,7 @@ export const APPLICATION_ERROR_STATUS = {
   group_label_incomplete: 422,
   invalid_date: 422,
   frame_invalid: 422,
+  minimum_invalid: 422,
   invalid_instant: 422,
   invalid_item_transition: 409,
   invalid_school_year: 422,

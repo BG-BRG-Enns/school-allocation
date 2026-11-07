@@ -66,6 +66,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | swap window | Tauschzeit | swap period | |
 | demand view | Plätze und Bedarf | places and demand | per project day a table, the grades as rows, the day's cells as columns |
 | attendance frame (`Frame`, `campaign_day`) | Anwesenheitsrahmen; "2.–6. EH"; "kein Rahmen" | attendance frame; "no frame" | the periods everyone is at school in on a project day; with one the demand counts the day per period |
+| minimum length of an activity (`campaign_day.min_activity_minutes`) | Mindestlänge einer Aktivität | minimum length of an activity | per project day, in credited minutes: what an activity must credit on the day over all its sessions, or it is refused; teachers-only activities and the days of a night away are exempt |
 | demand cell | Feld (einer Einheit oder eines Tags, je Schulstufe) | cell | a period of the frame, or the whole day, for one grade |
 | offer gate (`lock_new_offers`) | Sperre; "Neue Angebote sperren, sobald das Ziel erreicht ist"; "bringt Plätze in"; "nur, wo das Ziel erreicht ist" | lock new offers; "brings places to"; "only where the target is reached" | a teacher's submission is refused when every cell it serves has reached the target; never an organizer's, never a class activity |
 | first submission | Eingereicht am | Submitted on | the first time an activity was submitted; a return and a resubmission keep it |

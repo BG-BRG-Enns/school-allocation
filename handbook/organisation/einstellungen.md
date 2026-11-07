@@ -8,6 +8,10 @@
 
 Neben jedem Projekttag steht sein **Anwesenheitsrahmen**: die Einheiten des [Stundenrasters](/verwaltung/stundenraster), in denen an diesem Tag alle in der Schule sind, etwa **2. bis 6. Einheit** an einem Sporttag mit kurzen Kursen. Mit Rahmen zählt [Plätze und Bedarf](./anlegen#plätze-und-bedarf) den Tag Einheit für Einheit; ohne Rahmen (**kein Rahmen**, die Voreinstellung) zählt der ganze Tag, was zu Tagen mit ganztägigen Aktivitäten passt. Der Rahmen lässt sich ändern, bis die Anmeldung öffnet.
 
+## Mindestlänge einer Aktivität je Projekttag
+
+Neben dem Anwesenheitsrahmen steht je Projekttag die **Mindestlänge einer Aktivität** in Minuten, etwa 180 am Dienstag und 100 am Mittwoch; leer heißt keine. Eine Aktivität muss an dem Tag mindestens so viele Minuten anrechnen, alle ihre Termine zusammen, gezählt wie bei den [Mindestminuten je Tag](#mindestminuten-je-tag); eine kürzere nimmt das Formular nicht an, und es sagt den Lehrkräften schon beim Eintragen, wie die Aktivität dasteht. Ausgenommen sind Aktivitäten nur für Lehrkräfte und die Tage eines Termins über Nacht; Klassenaktivitäten nicht. Eine später erhöhte Mindestlänge ändert an schon eingereichten oder genehmigten Aktivitäten nichts; erst die nächste Änderung ihrer Termine muss sie erreichen. In [Eingereichte durchgehen](./anlegen#eingereichte-durchgehen) steht bei jeder Aktivität, wie sie dasteht. Die Mindestlänge lässt sich ändern, bis die Anmeldung öffnet.
+
 ## Anmeldezeitraum und Nachfrist
 
 - **Beginn**: Zu diesem Zeitpunkt öffnet die Anmeldung von selbst, wenn der Katalog veröffentlicht ist. Mit **Anmeldung öffnen** öffnest du sie früher.
@@ -49,6 +53,6 @@ Eine Regel verlangt von den Schüler\*innen einer Schulstufe (oder nur einiger i
 | Einstellung | Änderbar, bis |
 | ----------- | ------------- |
 | Bezeichnung, Schuljahr, Projekttage | der Katalog veröffentlicht ist |
-| Anwesenheitsrahmen, Anmeldezeitraum, Nachfrist, Wünsche je Zeitblock, Plätze über dem Bedarf, Neue Angebote sperren, Regeln, Lehrkräfte im Katalog | die Anmeldung öffnet |
+| Anwesenheitsrahmen, Mindestlänge einer Aktivität, Anmeldezeitraum, Nachfrist, Wünsche je Zeitblock, Plätze über dem Bedarf, Neue Angebote sperren, Regeln, Lehrkräfte im Katalog | die Anmeldung öffnet |
 | Mindestminuten je Tag | die Einteilung veröffentlicht ist |
 | Tauschzeit | die Tauschzeit beginnt |

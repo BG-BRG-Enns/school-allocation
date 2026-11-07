@@ -35,6 +35,9 @@ test('die Organisation legt die Anmeldung an und öffnet sie für Aktivitäten',
   await expect(page.getByLabel(t.campaign.settings.projectDay(2), { exact: true })).toHaveValue('2034-07-04')
   await page.getByRole('button', { name: t.common.addDay }).click()
   await expect(page.getByLabel(t.campaign.settings.projectDay(3), { exact: true })).toHaveValue('2034-07-05')
+  // The minimum length of an activity per day: none on the sports day of short courses, 180 minutes on Tuesday, 100 on Wednesday.
+  await page.getByLabel(t.campaign.settings.activityMinimum(2)).fill(String(SCHOOL.campaign.activityMinimums['2034-07-04']))
+  await page.getByLabel(t.campaign.settings.activityMinimum(3)).fill(String(SCHOOL.campaign.activityMinimums['2034-07-05']))
   // Every class of the class lists is preselected; one is taken out, and the registration says so afterwards.
   const classes = page.getByRole('group', { name: t.campaigns.classes.legend })
   await expect(classes.getByRole('checkbox', { name: LEFT_OUT, exact: true })).toBeChecked()
@@ -95,11 +98,17 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(page.getByRole('heading', { name: t.common.page.newItem })).toBeVisible()
   await page.getByLabel(t.item.title).fill(sample.climbing)
   await page.getByLabel(t.item.description).fill(sample.climbingDescription)
-  // In the school's periods: Monday from the 2nd period, four periods long (08:30 – 12:15).
+  // One period on Wednesday would fall short of the day's minimum length: the form says so under the sessions, before any save.
+  await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-05')
+  await page.getByLabel(t.item.sessions.count, { exact: true }).fill('1')
+  await expect(page.getByText(t.item.length.short(day('2034-07-05'), SCHOOL.campaign.activityMinimums['2034-07-05'] ?? 0, 50))).toBeVisible()
+  await picture(page, 'mindestlaenge', page.getByText(t.item.length.short(day('2034-07-05'), SCHOOL.campaign.activityMinimums['2034-07-05'] ?? 0, 50)))
+  // In the school's periods: Monday from the 2nd period, four periods long (08:30 – 12:15). Monday asks for no minimum.
   await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-03')
   await page.getByLabel(t.item.sessions.fromPeriod).selectOption('2')
   await page.getByLabel(t.item.sessions.count, { exact: true }).fill('4')
   await expect(page.getByText('08:30 – 12:15')).toBeVisible()
+  await expect(page.getByText(t.item.length.short(day('2034-07-05'), SCHOOL.campaign.activityMinimums['2034-07-05'] ?? 0, 50))).toHaveCount(0)
   await page.getByLabel(t.common.field.places, { exact: true }).fill(String(CLIMBING.places))
   await page.getByLabel(t.item.participation.minParticipants).fill('6')
   // For the upper school, whose Monday morning it fits.
@@ -229,6 +238,9 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   // On a day Bernd is not there, the form says so and still lets him save.
   await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-04')
   await expect(page.getByText(t.item.teachers.unavailableOn(BERND.name, day('2034-07-04')))).toBeVisible()
+  // A class activity is held to the day's minimum length like any other: four periods reach Tuesday's 180 minutes, and the form says so.
+  await page.getByLabel(t.item.sessions.count, { exact: true }).fill('4')
+  await expect(page.getByText(t.item.length.met(day('2034-07-04'), SCHOOL.campaign.activityMinimums['2034-07-04'] ?? 0, 200))).toBeVisible()
   await picture(page, 'klassenaktivitaet', [page.getByRole('heading', { name: t.item.participation.heading }), page.getByRole('group', { name: t.item.participation.eligibleClasses })])
   // Saved as a draft, the class activity has its list of who does not take part: Tim stays at home, no reason asked, and comes along after all.
   await page.getByRole('button', { name: t.common.save, exact: true }).click()
@@ -246,7 +258,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   if (!zoo || !zooLead) throw new Error('the scenario takes 1A to the zoo on Tuesday')
   await page.getByRole('group', { name: t.item.participation.fixedClasses }).getByLabel('5A').uncheck()
   await page.getByRole('group', { name: t.item.participation.fixedClasses }).getByLabel('1A').check()
-  const conflict = t.item.conflict('1A', day('2034-07-04'), '08:30', '10:15', zoo.title, zooLead.name)
+  const conflict = t.item.conflict('1A', day('2034-07-04'), '08:30', '12:15', zoo.title, zooLead.name)
   await expect(page.getByText(conflict)).toBeVisible()
   await refused(page, 409, () => page.getByRole('button', { name: t.item.saveAndPropose }).click())
   await expect(page.getByRole('alert')).toContainText(conflict)

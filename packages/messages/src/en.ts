@@ -256,6 +256,7 @@ export const en: Messages = {
       credit_date_twice: 'A day is credited twice for a session',
       credit_minutes_invalid: 'Credited minutes must be a whole number between 0 and 1440',
       no_credit: 'A session credits no minutes',
+      below_minimum_length: 'The activity is shorter than the minimum length on this day',
       min_above_places: 'The minimum is greater than the number of places',
       fixed_item_cancellable: 'A class activity always takes place and cannot be cancelled',
       fixed_class_unknown: 'One of the whole classes is not in the class lists',
@@ -492,6 +493,7 @@ export const en: Messages = {
     transition_not_available: 'This step is not available in this version yet.',
     project_day_twice: 'A project day is entered twice.',
     invalid_date: 'A date does not exist in the calendar.',
+    minimum_invalid: 'A minimum length does not fit: it must be a whole number from 1 to 1440 minutes and belong to a project day.',
     frame_invalid: 'An attendance frame does not fit: it ends before it starts, names a period the timetable does not have, or a day that is no project day.',
     class_conflict: 'A class is already in another class activity at the same time. Please look at the note.',
     target_reached: 'Every cell this activity would bring places to has reached its target already. Please look at the note.',
@@ -726,6 +728,10 @@ export const en: Messages = {
       frameTo: (day: number) => `to period, project day ${day}`,
       noFrame: 'no frame',
       frameHint: 'The attendance frame of a project day is the periods everyone is at school in, say periods 2 to 6. With a frame, Places and demand counts each period on its own; without one it counts the whole day.',
+      /** The minimum length of an activity on a project day, a minutes input beside its date. */
+      activityMinimum: (day: number) => `Minimum length of an activity in minutes, project day ${day}`,
+      activityMinimumUnit: 'minutes',
+      activityMinimumHint: 'The minimum length is what an activity must credit on this day at least, over all its sessions together; counted as for the minimum minutes per day. A shorter one is not accepted. Exempt are activities for teachers only and the days of a session over a night. Empty means no minimum.',
       lockNewOffers: 'Lock new offers once the target is reached',
       lockHint: 'With the lock, a teacher can submit an activity only if at least one cell its places go to is still short of the target. Class activities are exempt; the organisation may always create and approve.',
     },
@@ -846,6 +852,12 @@ export const en: Messages = {
     editTitle: 'Edit activity',
     /** A refusal that names a session, counted from 1: "… (session 2)". */
     inSession: (problem: string, session: number) => `${problem} (session ${session})`,
+    onDate: (problem: string, day: string) => `${problem} (${day})`,
+    /** The activity against a day's minimum length, under the sessions. */
+    length: {
+      met: (day: string, minimum: number, credited: number) => `${day}: minimum length ${minimum} minutes, ${credited} credited ✓`,
+      short: (day: string, minimum: number, credited: number) => `${day}: minimum length ${minimum} minutes, only ${credited} credited – the activity is not accepted like this`,
+    },
     unknownTeachers: 'A teacher is not in the class lists',
     reviewNote: (note: string) => `Feedback from the organisation: ${note}`,
     title: 'Title',

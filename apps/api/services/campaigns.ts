@@ -108,18 +108,45 @@ function framesIn(campaign: Pick<Campaign, 'days'>): Record<string, Frame> {
   return Object.fromEntries(campaign.days.flatMap((day) => (day.frame === null ? [] : [[day.date, day.frame] as const])))
 }
 
+/**
+ * The minimum length of an activity per project day as stored: a whole
+ * number of minutes from 1 to 1440 for a day the registration has; a day
+ * it does not have is refused as `minimum_invalid` naming the day. Left
+ * out, `fallback` (none at creation, the minimums in force on a change)
+ * for the days that stay.
+ */
+function minimumsOf(minimums: Readonly<Record<string, number>> | undefined, projectDays: readonly string[], fallback: Readonly<Record<string, number>> = {}): Record<string, number> {
+  const wanted = minimums ?? fallback
+  const result: Record<string, number> = {}
+  for (const date of projectDays) {
+    const minutes = wanted[date]
+    if (minutes === undefined) continue
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) throw new ApplicationError('minimum_invalid', date)
+    result[date] = minutes
+  }
+  const strangers = Object.keys(minimums ?? {}).filter((date) => !projectDays.includes(date))
+  if (strangers.length > 0) throw new ApplicationError('minimum_invalid', strangers.join(', '))
+  return result
+}
+
+/** The minimum lengths of a campaign as stored, by date. */
+function minimumsIn(campaign: Pick<Campaign, 'days'>): Record<string, number> {
+  return Object.fromEntries(campaign.days.flatMap((day) => (day.minimumMinutes === null ? [] : [[day.date, day.minimumMinutes] as const])))
+}
+
 export async function createCampaign(db: Database, input: NewCampaign, actor: Actor): Promise<Campaign> {
   const id = await db.tx(async (client) => {
     await lockScope(client, SCHOOL_SCOPE)
     const classes = await classesTakenIn(client, input.classes)
     const frames = await framesOf(client, input.frames, input.projectDays)
+    const minimums = minimumsOf(input.activityMinimums, input.projectDays)
     const row = await store.insertCampaign(client, input, actor)
     if (!row) throw new Error('campaign insert returned no row')
     await store.replaceClasses(client, row.id, classes)
-    await store.replaceDays(client, row.id, input.projectDays, frames)
+    await store.replaceDays(client, row.id, input.projectDays, frames, minimums)
     await appendAudit(client, {
       scopeId: SCHOOL_SCOPE, actor: auditActor(actor), action: 'campaign.created',
-      metadata: { campaignId: row.id, kind: input.kind, schoolYear: input.schoolYear, projectDays: input.projectDays.length, classes: classes.length, frames: Object.keys(frames).length },
+      metadata: { campaignId: row.id, kind: input.kind, schoolYear: input.schoolYear, projectDays: input.projectDays.length, classes: classes.length, frames: Object.keys(frames).length, minimums: Object.keys(minimums).length },
     })
     return row.id
   })
@@ -169,6 +196,11 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     const frames = await framesOf(client, changes.frames, changes.projectDays, framesIn(current))
     const framesChanged = JSON.stringify(changes.projectDays.map((date) => frames[date] ?? null)) !== JSON.stringify(changes.projectDays.map((date) => framesIn(current)[date] ?? null))
     if (framesChanged && !WINDOW_SETTABLE.includes(current.state)) throw new ApplicationError('campaign_state')
+    // The minimum length of an activity per day is a rule of the catalogue, set with the frames until the window opens. A change
+    // checks nothing already accepted (as a change of the grid does not): the next edit of an activity's times is held to it.
+    const minimums = minimumsOf(changes.activityMinimums, changes.projectDays, minimumsIn(current))
+    const minimumsChanged = JSON.stringify(changes.projectDays.map((date) => minimums[date] ?? null)) !== JSON.stringify(changes.projectDays.map((date) => minimumsIn(current)[date] ?? null))
+    if (minimumsChanged && !WINDOW_SETTABLE.includes(current.state)) throw new ApplicationError('campaign_state')
     // The rules: students rank against them, so they are fixed from the opening like the window; ids are the database's,
     // so a list sent again unchanged keeps them and marks no run stale.
     const rules = changes.rules?.map(canonicalRule)
@@ -193,10 +225,10 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     const inUse = uniqueSorted([...namedByRules, ...(removed.length === 0 ? [] : await store.classesInUse(client, id, removed))])
     if (inUse.length > 0) throw new ClassInUse(inUse)
     await store.updateSettings(client, id, changes, window)
-    await store.replaceDays(client, id, changes.projectDays, frames)
+    await store.replaceDays(client, id, changes.projectDays, frames, minimums)
     await appendAudit(client, {
       scopeId: id, actor: auditActor(actor), action: 'campaign.changed',
-      metadata: { campaignId: id, projectDays: changes.projectDays.length, setUp: setUpChanged, window: windowChanged, frames: framesChanged },
+      metadata: { campaignId: id, projectDays: changes.projectDays.length, setUp: setUpChanged, window: windowChanged, frames: framesChanged, minimums: minimumsChanged },
     })
     if (classes !== undefined && classesChanged) {
       await store.replaceClasses(client, id, classes)

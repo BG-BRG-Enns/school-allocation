@@ -17,6 +17,8 @@ export interface NewCampaign {
   classes?: string[]
   /** The attendance frame per project day, by date; a day left out has none (at creation) or keeps its frame (on a change). */
   frames?: Record<string, Frame>
+  /** The minimum length of an activity per project day, in credited minutes, by date; a day left out has none (at creation) or keeps its minimum (on a change). */
+  activityMinimums?: Record<string, number>
 }
 
 /** What an organizer changes: the set-up (while it is being set up or taking proposals), the window settings and the rules (until the window opens). */

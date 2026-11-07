@@ -236,7 +236,7 @@ test('the window\'s settings are kept in order and changeable until it opens; th
   // With a frame on Monday the day is counted per period: the course from 9:00 to 13:00 touches every period of the frame, the 2nd (08:30–09:20) by its last twenty minutes.
   const framed = await send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...setUp, frames: { '2027-06-21': { from: 2, to: 6 } } })
   assert.equal(framed.status, 200, JSON.stringify(framed.body))
-  assert.deepEqual(framed.body.days, [{ date: '2027-06-21', frame: { from: 2, to: 6 } }, { date: '2027-06-22', frame: null }])
+  assert.deepEqual(framed.body.days, [{ date: '2027-06-21', frame: { from: 2, to: 6 }, minimumMinutes: null }, { date: '2027-06-22', frame: null, minimumMinutes: null }])
   const perPeriod = await get<{ demand: Demand }>(s, s.anna, `/api/campaigns/${id}/demand`)
   assert.deepEqual(perPeriod.body.demand[0]?.periods, [2, 3, 4, 5, 6])
   assert.deepEqual(perPeriod.body.demand[0]?.grades[0]?.cells.map((c) => [c.period, c.needing, c.offered]), [[2, 2, 12], [3, 2, 12], [4, 2, 12], [5, 2, 12], [6, 2, 12]])

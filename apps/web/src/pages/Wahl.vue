@@ -303,6 +303,8 @@ const schoolYear = ref('')
 const days = ref<string[]>([])
 /** The attendance frame per project day, beside `days` by index; null for none. */
 const frames = ref<(Frame | null)[]>([])
+/** The minimum length of an activity per project day in minutes, beside `days` by index; '' for none. */
+const minimums = ref<string[]>([])
 const classesDraft = ref<string[]>([])
 /** Why the classes were refused: an activity or a rule still names the ones taken out. */
 const classProblem = ref('')
@@ -334,6 +336,7 @@ function startEditing(): void {
   schoolYear.value = c.schoolYear
   days.value = [...c.projectDays]
   frames.value = c.days.map((day) => day.frame)
+  minimums.value = c.days.map((day) => (day.minimumMinutes === null ? '' : String(day.minimumMinutes)))
   classesDraft.value = [...c.classes]
   classProblem.value = ''
   opensAt.value = localInput(c.opensAt)
@@ -367,6 +370,7 @@ async function onSaveSettings(): Promise<void> {
       changes.placeHeadroomPercent = Number(placeHeadroomPercent.value)
       changes.lockNewOffers = lockNewOffers.value
       changes.frames = Object.fromEntries(days.value.flatMap((day, index) => (day && frames.value[index] ? [[day, frames.value[index]]] : [])))
+      changes.activityMinimums = Object.fromEntries(days.value.flatMap((day, index) => (day && String(minimums.value[index] ?? '').trim() !== '' ? [[day, Number(minimums.value[index])]] : [])))
       changes.rules = rules.value.map((rule) => ({
         categoryId: rule.categoryId,
         grades: [...rule.grades].sort((a, b) => a - b),
@@ -795,6 +799,9 @@ function onSubmitPending(): void {
           <p class="muted">
             {{ t.campaign.settings.frameHint }}
           </p>
+          <p class="muted">
+            {{ t.campaign.settings.activityMinimumHint }}
+          </p>
           <p
             v-for="(_, index) in days"
             :key="index"
@@ -818,11 +825,24 @@ function onSubmitPending(): void {
               :disabled="!windowEditable"
               @update:model-value="frames[index] = $event"
             />
+            <label>
+              <input
+                v-model="minimums[index]"
+                :aria-label="t.campaign.settings.activityMinimum(index + 1)"
+                type="number"
+                min="1"
+                max="1440"
+                step="1"
+                size="5"
+                :disabled="!windowEditable"
+              >
+              {{ t.campaign.settings.activityMinimumUnit }}
+            </label>
             <button
               v-if="days.length > 1 && setUpEditable"
               type="button"
               class="ghost"
-              @click="days.splice(index, 1); frames.splice(index, 1)"
+              @click="days.splice(index, 1); frames.splice(index, 1); minimums.splice(index, 1)"
             >
               {{ t.common.remove }}
             </button>
@@ -832,7 +852,7 @@ function onSubmitPending(): void {
               type="button"
               class="ghost"
               :disabled="days.length >= 10"
-              @click="days.push(nextDay(days.at(-1) ?? '')); frames.push(null)"
+              @click="days.push(nextDay(days.at(-1) ?? '')); frames.push(null); minimums.push('')"
             >
               {{ t.common.addDay }}
             </button>

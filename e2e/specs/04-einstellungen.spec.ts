@@ -16,7 +16,7 @@ import { sample } from '../support/sample.ts'
 import { openAs, signOut } from '../support/sign-in.ts'
 import { day, dayTime, literally, LOCALE, t } from '../support/messages.ts'
 import { classSize, demandOf, SCHOOL } from '../support/scenario.ts'
-import { MONDAY } from '../scenario/school.ts'
+import { MONDAY, TUESDAY, WEDNESDAY } from '../scenario/school.ts'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -137,6 +137,10 @@ test('die Organisation legt den Anmeldezeitraum und den Anwesenheitsrahmen fest 
   await form.getByLabel(t.campaign.settings.frameFrom(1)).selectOption(String(frame.from))
   await form.getByLabel(t.campaign.settings.frameTo(1)).selectOption(String(frame.to))
   await expect(form.getByLabel(t.campaign.settings.frameFrom(2))).toHaveValue('0')
+  // The minimum length of an activity per day, set when the registration was created, stands beside the frames.
+  await expect(form.getByLabel(t.campaign.settings.activityMinimum(1))).toHaveValue('')
+  await expect(form.getByLabel(t.campaign.settings.activityMinimum(2))).toHaveValue(String(SCHOOL.campaign.activityMinimums[TUESDAY]))
+  await expect(form.getByLabel(t.campaign.settings.activityMinimum(3))).toHaveValue(String(SCHOOL.campaign.activityMinimums[WEDNESDAY]))
   await form.getByLabel(t.campaign.settings.opens, { exact: true }).fill('2034-03-06T08:00')
   await form.getByLabel(t.campaign.settings.closes, { exact: true }).fill('2034-03-12T20:00')
   await form.getByLabel(t.campaign.settings.lateUntil).fill('2034-03-19T20:00')

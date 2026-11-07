@@ -60,11 +60,13 @@ async function campaignTakingProposals(s: Ready): Promise<Campaign> {
 
 test('a campaign is visible by role and state; its settings change only while it is set up; the later states are not available yet', DB, async (t) => {
   const s = await school(t)
-  const created = await send<Campaign>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'Projektwoche 2027', schoolYear: '2026/27', projectDays: DAYS, frames: { '2027-06-23': { from: 2, to: 6 } } })
+  const created = await send<Campaign>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'Projektwoche 2027', schoolYear: '2026/27', projectDays: DAYS, frames: { '2027-06-23': { from: 2, to: 6 } }, activityMinimums: { '2027-06-22': 240 } })
   assert.equal(created.status, 201)
   const id = created.body.id
-  assert.deepEqual(created.body.days, [{ date: '2027-06-21', frame: null }, { date: '2027-06-22', frame: null }, { date: '2027-06-23', frame: { from: 2, to: 6 } }], 'a day has its frame or none')
+  assert.deepEqual(created.body.days, [{ date: '2027-06-21', frame: null, minimumMinutes: null }, { date: '2027-06-22', frame: null, minimumMinutes: 240 }, { date: '2027-06-23', frame: { from: 2, to: 6 }, minimumMinutes: null }], 'a day has its frame and its minimum length, or none')
   assert.equal((await send<{ error: string }>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'x', schoolYear: '2026/27', projectDays: DAYS, frames: { '2027-06-24': { from: 2, to: 6 } } })).body.error, 'frame_invalid', 'a frame on a day the registration does not have')
+  assert.equal((await send<{ error: string }>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'x', schoolYear: '2026/27', projectDays: DAYS, activityMinimums: { '2027-06-24': 100 } })).body.error, 'minimum_invalid', 'a minimum on a day the registration does not have')
+  assert.equal((await send(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'x', schoolYear: '2026/27', projectDays: DAYS, activityMinimums: { '2027-06-22': 0 } })).status, 400, 'the shape holds it to 1 … 1440')
   assert.equal((await send(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'x', schoolYear: '2026/27', projectDays: ['2027-06-21', '2027-06-21'] })).status, 422)
   // A day the calendar does not have passes the shape and is refused here, not by the database.
   assert.equal((await send<{ error: string }>(s, s.anna, 'POST', '/api/admin/campaigns', { kind: 'project_week', name: 'x', schoolYear: '2026/27', projectDays: ['2027-02-31'] })).body.error, 'invalid_date')
@@ -80,6 +82,7 @@ test('a campaign is visible by role and state; its settings change only while it
   const shortened = await send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id.toUpperCase()}`, { name: 'Projektwoche Juni 2027', schoolYear: '2026/27', projectDays: DAYS.slice(0, 2) })
   assert.equal(shortened.status, 200)
   assert.deepEqual(shortened.body.days.map((d) => d.frame), [null, null], 'the frame went with its day')
+  assert.deepEqual(shortened.body.days.map((d) => d.minimumMinutes), [null, 240], 'a change without minimums keeps those of the days that stay')
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'published' })).status, 409, 'published does not follow draft')
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'allocating' })).status, 400, 'not a transition this release offers')
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'catalogue' })).status, 200)
@@ -97,10 +100,16 @@ test('a campaign is visible by role and state; its settings change only while it
   const framed = await send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: published.body.campaign.name, schoolYear: '2026/27', projectDays: published.body.campaign.projectDays, frames: { '2027-06-21': { from: 1, to: 4 } } })
   assert.equal(framed.status, 200, JSON.stringify(framed.body))
   assert.deepEqual(framed.body.days[0]?.frame, { from: 1, to: 4 })
+  // So does the minimum length of an activity: a rule of the catalogue, set until the window opens.
+  const minimums = await send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: published.body.campaign.name, schoolYear: '2026/27', projectDays: published.body.campaign.projectDays, activityMinimums: { '2027-06-21': 200 } })
+  assert.equal(minimums.status, 200, JSON.stringify(minimums.body))
+  assert.deepEqual(minimums.body.days.map((d) => d.minimumMinutes), [200, null], 'replaced as sent: Tuesday\'s is gone')
   await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: published.body.campaign.name, schoolYear: '2026/27', projectDays: published.body.campaign.projectDays, opensAt: '2027-03-01T08:00:00+01:00', closesAt: '2027-03-08T20:00:00+01:00' })
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'open' })).status, 200)
   assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: published.body.campaign.name, schoolYear: '2026/27', projectDays: published.body.campaign.projectDays, frames: {} })).body.error, 'campaign_state', 'open, the frames are what the students chose by')
   assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: published.body.campaign.name, schoolYear: '2026/27', projectDays: published.body.campaign.projectDays, frames: { '2027-06-21': { from: 1, to: 4 } } })).status, 200, 'the same frames again change nothing')
+  assert.equal((await send<{ error: string }>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: published.body.campaign.name, schoolYear: '2026/27', projectDays: published.body.campaign.projectDays, activityMinimums: {} })).body.error, 'campaign_state', 'open, the minimum lengths are fixed too')
+  assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: published.body.campaign.name, schoolYear: '2026/27', projectDays: published.body.campaign.projectDays, activityMinimums: { '2027-06-21': 200 } })).status, 200, 'the same minimums again are no change')
   const sara = await get<{ campaign: Campaign, may: { propose: boolean } }>(s, s.sara, `/api/campaigns/${id}`)
   assert.equal(sara.status, 200)
   assert.equal(sara.body.may.propose, false)
@@ -109,8 +118,8 @@ test('a campaign is visible by role and state; its settings change only while it
   const db = createDatabase(s.ownerUrl, () => {})
   t.after(() => db.close())
   const events = await readAudit(db, id)
-  assert.deepEqual(events.map((e) => e.action), ['campaign.changed', 'campaign.transitioned', 'campaign.transitioned', 'campaign.changed', 'campaign.changed', 'campaign.transitioned', 'campaign.changed'])
-  assert.deepEqual(events.filter((e) => e.action === 'campaign.changed').map((e) => e.metadata.frames), [false, true, false, false], 'a frame goes with its day as a change of the set-up, one is set, the window alone, the same frames again')
+  assert.deepEqual(events.map((e) => e.action), ['campaign.changed', 'campaign.transitioned', 'campaign.transitioned', 'campaign.changed', 'campaign.changed', 'campaign.changed', 'campaign.transitioned', 'campaign.changed', 'campaign.changed'])
+  assert.deepEqual(events.filter((e) => e.action === 'campaign.changed').map((e) => [e.metadata.frames, e.metadata.minimums]), [[false, false], [true, false], [false, true], [false, false], [false, false], [false, false]], 'a frame goes with its day as a change of the set-up, one is set, the minimums replaced, the window alone, the same frames again, the same minimums again')
   assert.equal(verifyAuditChain(events).valid, true)
 })
 
@@ -327,4 +336,53 @@ test('what a session credits is derived from the periods it covers and never sen
 
   const changes = (await readAudit(owner, SCHOOL_SCOPE)).filter((e) => e.action === 'settings.periods-changed').map((e) => e.metadata.sessions)
   assert.deepEqual(changes, [4, 0], 'four sessions followed the first change, none the second')
+})
+
+test('an activity reaches the minimum length of each day it touches or is refused with the day; a raised minimum checks nothing already accepted', DB, async (t) => {
+  const s = await school(t)
+  const campaign = await campaignTakingProposals(s)
+  const id = campaign.id
+  const url = `/api/campaigns/${id}/items`
+  // Monday 09:00–13:00 credits 210 minutes of the grid (20 + 50 + 50 + 50 + 40); Monday asks for 240, Wednesday for 300.
+  const set = (minimums: Record<string, number>) => send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: campaign.name, schoolYear: campaign.schoolYear, projectDays: campaign.projectDays, activityMinimums: minimums })
+  assert.equal((await set({ '2027-06-21': 240, '2027-06-23': 300 })).status, 200)
+  type Invalid = { error: string, problems: { code: string, session?: number, date?: string }[] }
+  const short = await send<Invalid>(s, s.bernd, 'POST', url, { title: 'Klettern', places: 12, teachers: [], sessions: [MONDAY] })
+  assert.equal(short.status, 422, JSON.stringify(short.body))
+  assert.deepEqual(short.body.problems, [{ code: 'below_minimum_length', date: '2027-06-21' }])
+  // The check says so before any save, with the numbers; one period more and it is met.
+  type Check = { length: { date: string, minimum: number, credited: number, met: boolean }[] }
+  const checked = await send<Check>(s, s.bernd, 'POST', `${url}/check`, { item: { title: 'Klettern', places: 12, teachers: [], sessions: [MONDAY] } })
+  assert.deepEqual(checked.body.length, [{ date: '2027-06-21', minimum: 240, credited: 210, met: false }])
+  const longer = { startsAt: '2027-06-21T08:30:00+02:00', endsAt: '2027-06-21T13:00:00+02:00' }
+  assert.deepEqual((await send<Check>(s, s.bernd, 'POST', `${url}/check`, { item: { title: 'Klettern', places: 12, teachers: [], sessions: [longer] } })).body.length, [{ date: '2027-06-21', minimum: 240, credited: 240, met: true }])
+  // Two sessions of the day count together: the morning and an hour after lunch.
+  const afternoon = { startsAt: '2027-06-21T13:15:00+02:00', endsAt: '2027-06-21T14:05:00+02:00' }
+  const split = await send<Item>(s, s.bernd, 'POST', url, { title: 'Klettern', places: 12, teachers: [], sessions: [MONDAY, afternoon] })
+  assert.equal(split.status, 201, JSON.stringify(split.body))
+  // The trip returns on Wednesday at one: a night away meets the day. One of its teachers alone is exempt; a class activity is not.
+  assert.equal((await send(s, s.carla, 'POST', url, { title: 'Wien', places: 8, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [], sessions: [VIENNA] })).status, 201)
+  assert.equal((await send(s, s.carla, 'POST', url, { title: 'Aufsicht', places: 0, minParticipants: 0, cancellableBelowMin: false, teachers: [], sessions: [MONDAY] })).status, 201)
+  const classShort = await send<Invalid>(s, s.carla, 'POST', url, { title: 'Klassenstunde', places: 0, fixedClasses: ['5A'], minParticipants: 0, cancellableBelowMin: false, teachers: [], sessions: [MONDAY] })
+  assert.deepEqual([classShort.status, classShort.body.problems], [422, [{ code: 'below_minimum_length', date: '2027-06-21' }]])
+  // An edit is held to it like a save: the afternoon taken off again is refused; the words alone pass.
+  const edit = (body: Record<string, unknown>) => send<Invalid>(s, s.bernd, 'PATCH', `/api/items/${split.body.id}`, { title: 'Klettern', places: 12, teachers: [s.berndPerson], ...body })
+  assert.deepEqual((await edit({ sessions: [MONDAY] })).body.problems, [{ code: 'below_minimum_length', date: '2027-06-21' }])
+  assert.equal((await edit({ description: 'Kletterhalle Linz', sessions: [MONDAY, afternoon] })).status, 200)
+  // The minimum raised to 300 checks nothing accepted: the split activity stands, its next change of times does not.
+  assert.equal((await set({ '2027-06-21': 300 })).status, 200)
+  assert.equal((await edit({ description: 'Kletterhalle Linz, Halle 2', sessions: [MONDAY, afternoon] })).status, 200, 'the words again, with the times unchanged: not held to the new minimum')
+  assert.deepEqual((await edit({ sessions: [longer, afternoon] })).body.problems, [{ code: 'below_minimum_length', date: '2027-06-21' }], '290 of 300')
+  assert.deepEqual((await send<Check>(s, s.bernd, 'POST', `${url}/check`, { itemId: split.body.id })).body.length, [{ date: '2027-06-21', minimum: 300, credited: 260, met: false }], 'the review sees the shortfall')
+  // A supervision (exempt) that gets places becomes an activity for students and is held to the minimum then, its times unchanged.
+  const duty = await send<Item>(s, s.carla, 'POST', url, { title: 'Aufsicht', places: 0, minParticipants: 0, cancellableBelowMin: false, teachers: [], sessions: [MONDAY] })
+  const opened = await send<Invalid>(s, s.carla, 'PATCH', `/api/items/${duty.body.id}`, { title: 'Aufsicht', places: 5, minParticipants: 0, cancellableBelowMin: false, teachers: [s.carlaPerson], sessions: [MONDAY] })
+  assert.deepEqual([opened.status, opened.body.problems], [422, [{ code: 'below_minimum_length', date: '2027-06-21' }]])
+  // The check of an edit keeps the stored credits of unchanged times, as a save does (the registrations open keep theirs through a change of the grid):
+  // the morning's stored credit set to what an earlier grid gave, the preview reads it, not the grid's 210.
+  const owner = createDatabase(s.ownerUrl, () => {})
+  t.after(() => owner.close())
+  await owner.query('update item_session set credits = $2 where item_id = $1 and starts_at = $3', [split.body.id, JSON.stringify([{ date: '2027-06-21', minutes: 250 }]), MONDAY.startsAt])
+  const preview = await send<Check>(s, s.bernd, 'POST', `${url}/check`, { itemId: split.body.id, item: { title: 'Klettern', description: 'x', places: 12, teachers: [s.berndPerson], sessions: [MONDAY, afternoon] } })
+  assert.deepEqual(preview.body.length, [{ date: '2027-06-21', minimum: 300, credited: 300, met: true }], 'the stored 250 and the afternoon\'s 50')
 })

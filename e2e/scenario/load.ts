@@ -196,7 +196,7 @@ export function scenarioLoader(world: ScenarioWorld, s: Scenario, log: (message:
   async function createRegistration(categoryIds: ReadonlyMap<string, string>): Promise<string> {
     const organizer = await signIn(s.organizer)
     const c = s.campaign
-    const created = await createCampaign(db, { kind: 'project_week', name: c.name, schoolYear: s.schoolYear, projectDays: [...s.projectDays], frames: c.frames }, actorOf(organizer))
+    const created = await createCampaign(db, { kind: 'project_week', name: c.name, schoolYear: s.schoolYear, projectDays: [...s.projectDays], frames: c.frames, activityMinimums: c.activityMinimums }, actorOf(organizer))
     await updateCampaign(db, created.id, {
       name: c.name,
       schoolYear: s.schoolYear,

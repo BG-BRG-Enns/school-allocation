@@ -10,6 +10,8 @@ export interface CampaignRow {
   project_days: string[]
   /** The frames by day, the days without one left out. */
   frames: Record<string, Frame>
+  /** Date → the minimum length of an activity on the day, in credited minutes; a day without one is absent. */
+  minimums: Record<string, number>
   opens_at: Date | null
   closes_at: Date | null
   late_until: Date | null

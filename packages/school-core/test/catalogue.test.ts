@@ -1,12 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { acceptsProposals, checkItem, creditedMinutesByDate, creditsOf, isEligible, isPreAssigned, isStaffOnly, ITEM_STATES, itemTransition, overlaps, type CreditDay, type ItemInput, type ItemRules, type SessionInput } from '../src/catalogue.ts'
+import { acceptsProposals, checkItem, creditedMinutesByDate, creditsOf, isEligible, isPreAssigned, isStaffOnly, ITEM_STATES, itemTransition, lengthStandings, overlaps, type CreditDay, type ItemInput, type ItemRules, type SessionInput } from '../src/catalogue.ts'
 import { DEFAULT_PERIODS, type Period } from '../src/periods.ts'
 
 const DAY = 24 * 60 * 60 * 1000
 // Monday 2027-06-21 08:00 Europe/Vienna = 06:00Z; the dates are what the API computes for the span.
 const MON = Date.UTC(2027, 5, 21, 6)
-const context = { projectDays: ['2027-06-21', '2027-06-22', '2027-06-23'], classes: ['5A', '5B', '6A'] }
+const context = { projectDays: ['2027-06-21', '2027-06-22', '2027-06-23'], classes: ['5A', '5B', '6A'], activityMinimum: {} }
 
 function session(startMs: number, hours: number, dates: string[], credits: { date: string, minutes: number }[]): SessionInput {
   return { startMs, endMs: startMs + hours * 60 * 60 * 1000, dates, credits }
@@ -33,6 +33,31 @@ test('an activity without places and without classes is its teachers\' alone: it
   assert.equal(isStaffOnly({ ...duty, fixedClasses: ['5A'] }), false)
   // A minimum above no places is refused like any minimum above the places.
   assert.deepEqual(checkItem({ ...item, rules: { ...duty, minParticipants: 3 } }, context).map((p) => p.code), ['min_above_places'])
+})
+
+test('an activity reaches the minimum length of each day it touches, summed over its sessions; its teachers alone and a night away are exempt', () => {
+  const minimum = { ...context, activityMinimum: { '2027-06-21': 200, '2027-06-23': 300 } }
+  const dates = (input: ItemInput) => checkItem(input, minimum).map((p) => `${p.code}@${p.date}`)
+  // Monday credits 180 of 200.
+  assert.deepEqual(dates(item), ['below_minimum_length@2027-06-21'])
+  assert.deepEqual(lengthStandings(item, minimum.activityMinimum, minimum.projectDays), [{ date: '2027-06-21', minimum: 200, credited: 180, met: false }])
+  // Two sessions on the day (an interruption) count together: 180 + 50.
+  const later = session(MON + 5 * 60 * 60 * 1000, 1, ['2027-06-21'], [{ date: '2027-06-21', minutes: 50 }])
+  assert.deepEqual(dates({ ...item, sessions: [monday, later] }), [])
+  assert.deepEqual(lengthStandings({ ...item, sessions: [monday, later] }, minimum.activityMinimum, minimum.projectDays), [{ date: '2027-06-21', minimum: 200, credited: 230, met: true }])
+  // A day without a minimum asks for nothing; Tuesday has none.
+  const tuesday = session(MON + DAY, 2, ['2027-06-22'], [{ date: '2027-06-22', minutes: 100 }])
+  assert.deepEqual(dates({ ...item, sessions: [tuesday] }), [])
+  assert.deepEqual(lengthStandings({ ...item, sessions: [tuesday] }, minimum.activityMinimum, minimum.projectDays), [])
+  // The trip returns on Wednesday morning with 240 of 300: a night away meets the day.
+  assert.deepEqual(dates({ ...item, sessions: [vienna] }), [])
+  assert.deepEqual(lengthStandings({ ...item, sessions: [vienna] }, minimum.activityMinimum, minimum.projectDays), [{ date: '2027-06-23', minimum: 300, credited: 240, met: true }])
+  // A class activity is held to it like any other; one of its teachers alone is not.
+  assert.deepEqual(dates({ ...item, rules: { ...choosable, fixedClasses: ['5A'], places: 0, minParticipants: 0, cancellableBelowMin: false } }), ['below_minimum_length@2027-06-21'])
+  assert.deepEqual(dates({ ...item, rules: { ...choosable, places: 0, minParticipants: 0, cancellableBelowMin: false } }), [])
+  // In the days' order, one problem per day short.
+  const wednesday = session(MON + 2 * DAY, 2, ['2027-06-23'], [{ date: '2027-06-23', minutes: 100 }])
+  assert.deepEqual(dates({ ...item, sessions: [monday, wednesday] }), ['below_minimum_length@2027-06-21', 'below_minimum_length@2027-06-23'])
 })
 
 test('sessions must lie on project days, not overlap each other, and credit only the dates they touch', () => {

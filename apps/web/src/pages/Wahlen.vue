@@ -27,6 +27,8 @@ const schoolYear = ref('')
 const days = ref<string[]>([''])
 /** The attendance frame per project day, beside `days` by index; none unless chosen. */
 const frames = ref<(Frame | null)[]>([null])
+/** The minimum length of an activity per project day in minutes, beside `days` by index; '' for none. */
+const minimums = ref<string[]>([''])
 const grid = ref<Period[]>([])
 /** The classes of the class lists in force, for the picker; every one preselected. */
 const classOptions = ref<{ className: string, grade: number }[]>([])
@@ -48,18 +50,21 @@ onMounted(() => loading.run(async () => {
 function addDay(): void {
   days.value.push(nextDay(days.value.at(-1) ?? ''))
   frames.value.push(null)
+  minimums.value.push('')
 }
 
 function removeDay(index: number): void {
   days.value.splice(index, 1)
   frames.value.splice(index, 1)
+  minimums.value.splice(index, 1)
 }
 
 async function onCreate(): Promise<void> {
   let created: Campaign | undefined
   const ok = await creating.run(async () => {
     const frameByDay = Object.fromEntries(days.value.flatMap((day, index) => (day && frames.value[index] ? [[day, frames.value[index]]] : [])))
-    created = await createCampaign({ kind: 'project_week', name: name.value.trim(), schoolYear: schoolYear.value.trim(), projectDays: days.value.filter(Boolean), classes: classes.value, frames: frameByDay })
+    const minimumByDay = Object.fromEntries(days.value.flatMap((day, index) => (day && String(minimums.value[index] ?? '').trim() !== '' ? [[day, Number(minimums.value[index])]] : [])))
+    created = await createCampaign({ kind: 'project_week', name: name.value.trim(), schoolYear: schoolYear.value.trim(), projectDays: days.value.filter(Boolean), classes: classes.value, frames: frameByDay, activityMinimums: minimumByDay })
   })
   if (ok && created) await router.push(`/wahlen/${created.id}`)
 }
@@ -145,6 +150,9 @@ async function onCreate(): Promise<void> {
         <p class="muted">
           {{ t.campaign.settings.frameHint }}
         </p>
+        <p class="muted">
+          {{ t.campaign.settings.activityMinimumHint }}
+        </p>
         <p
           v-for="(_, index) in days"
           :key="index"
@@ -166,6 +174,18 @@ async function onCreate(): Promise<void> {
             :day="index + 1"
             @update:model-value="frames[index] = $event"
           />
+          <label>
+            <input
+              v-model="minimums[index]"
+              :aria-label="t.campaign.settings.activityMinimum(index + 1)"
+              type="number"
+              min="1"
+              max="1440"
+              step="1"
+              size="5"
+            >
+            {{ t.campaign.settings.activityMinimumUnit }}
+          </label>
           <button
             v-if="days.length > 1"
             type="button"
