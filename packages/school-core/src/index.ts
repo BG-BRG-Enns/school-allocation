@@ -89,6 +89,7 @@ export {
   checkItem,
   creditedMinutesByDate,
   creditsOf,
+  isExtra,
   isOvernight,
   isStaffOnly,
   lengthStandings,
@@ -124,7 +125,7 @@ export {
   type PeriodProblemCode,
 } from './periods.ts'
 
-export { checkFrame, DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, demandCells, FRAME_PROBLEM_CODES, framePeriods, itemShares, placeTarget, type CellDemand, type ClassSize, type DayDemand, type DemandCell, type DemandDay, type Frame, type FrameProblemCode, type GradeDemand, type ItemShare, type AwayOf, type OfferedItem, type PlacedOf } from './demand.ts'
+export { checkFrame, DEFAULT_PLACE_HEADROOM_PERCENT, dayWindow, demandByDay, demandCells, FRAME_PROBLEM_CODES, framePeriods, itemShares, placeTarget, type CellDemand, type ClassSize, type DayDemand, type DemandCell, type DemandDay, type Frame, type FrameProblemCode, type GradeDemand, type ItemShare, type AwayOf, type OfferedItem, type PlacedOf } from './demand.ts'
 
 export { addedCells, demandAround, describeCells, gateCells, gateRefused, gradesOpenTo, servedCells, type DescribedCells, type GateCell, type GateShape, type ServedCell } from './offer-gate.ts'
 

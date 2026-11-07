@@ -51,18 +51,17 @@ export interface Span {
   dates: string[]
 }
 
-/** The minutes a session earns on one project day: derived from the school's periods it covers (creditsOf), so breaks and what lies outside the timetable do not count. */
+/** The minutes a session earns on one project day: its clock minutes inside the day's window (creditsOf), breaks included, the night and what lies outside the window not. */
 export interface Credit {
   date: string
   minutes: number
 }
 
-/** A local date a session touches, as the caller computed it in the school's zone: the day's own span and the spans of the grid's periods on it. */
+/** A local date a session touches, as the caller computed it in the school's zone: the span of the day's window (demand.ts dayWindow) on that date. */
 export interface CreditDay {
   date: string
   startMs: number
   endMs: number
-  periods: readonly Pick<Span, 'startMs' | 'endMs'>[]
 }
 
 const MINUTE_MS = 60_000
@@ -73,20 +72,26 @@ function sharedMinutes(a: Pick<Span, 'startMs' | 'endMs'>, b: Pick<Span, 'startM
 }
 
 /**
- * What a session credits on each date it touches: the minutes it shares
- * with the periods of the school's grid on that date. A session of two
- * periods credits their two lengths, the break between them not; a trip
- * by the clock credits the periods it covers, so the minimum a day asks
- * for means the same however the day is cut into activities. A session
- * that shares nothing with the grid on any of its dates (a school without
- * a grid, an evening) credits its clock minutes on each date instead, so
- * every session credits something. One entry per date, in the days'
- * order; never more than a day has minutes.
+ * What a session credits on each date it touches: its clock minutes inside
+ * the day's window (the attendance frame, else the grid's day). Nobody
+ * knows whether a teacher uses a break or works through it, so a break
+ * inside the window counts like any other minute; the night and the time
+ * outside the window count nothing. A session wholly outside the window,
+ * an evening, credits nothing at all (isExtra). One entry per date, in the
+ * days' order; never more than a day has minutes.
  */
 export function creditsOf(span: Pick<Span, 'startMs' | 'endMs'>, days: readonly CreditDay[]): Credit[] {
-  const onGrid = days.map((day) => day.periods.reduce((sum, period) => sum + sharedMinutes(span, period), 0))
-  const minutes = onGrid.some((m) => m > 0) ? onGrid : days.map((day) => sharedMinutes(span, day))
-  return days.map((day, index) => ({ date: day.date, minutes: Math.min(MINUTES_PER_DAY, minutes[index] ?? 0) }))
+  return days.map((day) => ({ date: day.date, minutes: Math.min(MINUTES_PER_DAY, sharedMinutes(span, day)) }))
+}
+
+/**
+ * Whether an activity is an extra: none of its sessions credits a minute
+ * on any date, as it lies wholly outside the windows (a theatre visit in
+ * the evening). Students do not rank an extra and the run never assigns
+ * one; its teachers place students into it directly.
+ */
+export function isExtra(sessions: readonly { credits: readonly Credit[] }[]): boolean {
+  return sessions.length > 0 && sessions.every((session) => session.credits.every((credit) => credit.minutes <= 0))
 }
 
 export interface SessionInput extends Span {
@@ -134,7 +139,6 @@ export const CATALOGUE_PROBLEM_CODES = [
   'credit_date_outside_session',
   'credit_date_twice',
   'credit_minutes_invalid',
-  'no_credit',
   'below_minimum_length',
   'min_above_places',
   'fixed_item_cancellable',
@@ -164,31 +168,31 @@ export interface LengthStanding {
   /** What the activity credits that day over all its sessions. */
   credited: number
   met: boolean
+  /** What it lacks, minimum − credited; 0 when met. */
+  missing: number
+  /** The day's window as clock times (demand.ts dayWindow), where the minutes are counted; null when the caller gave none. */
+  window: { starts: string, ends: string } | null
 }
 
 /**
- * The activity against the minimum length of each project day it touches
- * that has one: what its sessions credit on the day together (an
- * interruption is two sessions of one activity) must reach the minimum.
- * Exempt: an activity of its teachers alone, which offers nothing; and the
- * days of a session over a night, which a trip returning in the morning
- * meets by the night away. In the days' order.
+ * The activity against the minimum length of each project day that has one
+ * and where it takes up part of the day's window: what its sessions credit
+ * on the day together (an interruption is two sessions of one activity)
+ * must reach the minimum. A day it only touches outside the window (a trip
+ * back by the window's start, an evening) is not held to it; a day it
+ * reaches into is, however little, also the morning a trip comes back on.
+ * Exempt: an activity of its teachers alone, which offers nothing. In the
+ * days' order, with the day's window from `windows` for the message.
  */
-export function lengthStandings(item: { sessions: readonly Pick<SessionInput, 'dates' | 'credits'>[], rules: { fixedClasses: readonly string[], places: number } }, activityMinimum: Readonly<Record<string, number>>, projectDays: readonly string[]): LengthStanding[] {
+export function lengthStandings(item: { sessions: readonly Pick<SessionInput, 'credits'>[], rules: { fixedClasses: readonly string[], places: number } }, activityMinimum: Readonly<Record<string, number>>, projectDays: readonly string[], windows: Readonly<Record<string, { starts: string, ends: string }>> = {}): LengthStanding[] {
   if (isStaffOnly(item.rules)) return []
-  const credited = new Map<string, number>()
-  const overnight = new Set<string>()
-  for (const session of item.sessions) {
-    for (const credit of session.credits) credited.set(credit.date, (credited.get(credit.date) ?? 0) + credit.minutes)
-    if (session.dates.length > 1) for (const date of session.dates) overnight.add(date)
-  }
-  const touched = new Set(item.sessions.flatMap((session) => session.dates))
+  const credited = creditedMinutesByDate(item.sessions)
   return projectDays
-    .filter((date) => touched.has(date) && (activityMinimum[date] ?? 0) > 0)
+    .filter((date) => (credited.get(date) ?? 0) > 0 && (activityMinimum[date] ?? 0) > 0)
     .map((date) => {
       const minimum = activityMinimum[date] as number
       const minutes = credited.get(date) ?? 0
-      return { date, minimum, credited: minutes, met: overnight.has(date) || minutes >= minimum }
+      return { date, minimum, credited: minutes, met: minutes >= minimum, missing: Math.max(0, minimum - minutes), window: windows[date] ?? null }
     })
 }
 
@@ -213,8 +217,6 @@ export function checkItem(item: ItemInput, context: ItemContext): CatalogueProbl
       seen.add(credit.date)
       if (!Number.isInteger(credit.minutes) || credit.minutes < 0 || credit.minutes > MINUTES_PER_DAY) problems.push({ code: 'credit_minutes_invalid', session: index })
     }
-    // A span that is none has its own problem and no credit to speak of.
-    if (session.endMs > session.startMs && session.credits.every((credit) => credit.minutes <= 0)) problems.push({ code: 'no_credit', session: index })
   })
   for (let i = 0; i < item.sessions.length; i++) {
     for (let j = i + 1; j < item.sessions.length; j++) {

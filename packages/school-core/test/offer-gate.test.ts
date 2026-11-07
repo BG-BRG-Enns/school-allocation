@@ -41,6 +41,20 @@ test('an activity of its teachers alone (no places, no class) serves no cell, so
   assert.deepEqual(servedCells(open(0, [session('08:30', '09:20')], { fixedClasses: ['5A'], eligibleGrades: [9] }), days, classes), [{ date: MONDAY, period: 2, grade: 9 }])
 })
 
+test('without a frame the day counts its window: evening places reach no daytime target, and an evening activity serves no cell', () => {
+  // The review's case: thirty students, thirty-six places in the evening, a target of 36 with 20 %. Counted over the calendar day
+  // the evening reached the target and refused a daytime activity; counted over the grid's day it offers nothing.
+  const unframed: DemandDay = { date: MONDAY, frame: null, cells: demandCells(null, DEFAULT_PERIODS, at, { startMs: 0, endMs: DAY }) }
+  const thirty: ClassSize[] = [{ className: '5A', grade: 9, students: 30 }]
+  const evening = open(36, [session('19:00', '22:00')])
+  const demand = demandByDay([unframed], thirty, [evening])
+  assert.deepEqual(demand[0]?.grades[0]?.cells.map((c) => c.offered), [0])
+  const daytime = servedCells(open(20, [session('08:30', '10:15')]), [unframed], thirty)
+  assert.equal(gateRefused(gateCells(daytime, demand, 20)), false)
+  assert.deepEqual(servedCells(evening, [unframed], thirty), [])
+  assert.equal(gateRefused(gateCells(servedCells(evening, [unframed], thirty), demand, 20)), false)
+})
+
 test('the document\'s examples: refused only when every served cell has reached its target; longer, or another grade, lets it through', () => {
   const days = [framed(2, 6)]
   // The finale for all in the 6th; the lower school's target reached in the 2nd and 3rd period, short in the 4th and 5th; the 8th and 9th short everywhere but the 6th.

@@ -11,7 +11,7 @@
 // classes away for two days), with generic names and places: nothing in
 // it points at a real school, venue or person.
 
-import { creditsOf, DEFAULT_PERIODS, demandByDay, minutesOf, placeTarget, type ClassSize, type DayDemand, type DemandDay, type Frame, type OfferedItem } from '@school-allocation/school-core'
+import { creditsOf, dayWindow, DEFAULT_PERIODS, demandByDay, minutesOf, placeTarget, type ClassSize, type DayDemand, type DemandDay, type Frame, type OfferedItem } from '@school-allocation/school-core'
 import { CLASS_5A_GROUP, TEACHERS_GROUP } from '../../apps/api/test/helpers/fake-graph.ts'
 import { ANNA, BERND, CARLA, SARA, TIM, type Person } from '../../apps/api/test/helpers/personas.ts'
 import { FAMILY_NAMES, STUDENT_FIRST_NAMES, TEACHER_FIRST_NAMES } from './names.ts'
@@ -192,14 +192,19 @@ const PERIODS: Record<number, readonly [string, string]> = {
   1: ['07:35', '08:25'], 2: ['08:30', '09:20'], 3: ['09:25', '10:15'], 4: ['10:30', '11:20'], 5: ['11:25', '12:15'], 6: ['12:20', '13:10'],
 }
 
+/** The registration's attendance frames (SCHOOL.campaign.frames): Monday's sports day is at school from the 2nd to the 6th period. */
+const FRAMES: Record<string, Frame> = { [MONDAY]: { from: 2, to: 6 } }
+
 /**
- * A session of `date` by the clock, with what it credits: the minutes it
- * shares with the periods of the seeded grid, as the server derives them
- * (school-core creditsOf). The scenario's sessions lie within one day.
+ * A session of `date` by the clock, with what it credits: its minutes inside
+ * the day's window, the frame or else the seeded grid's first period to its
+ * last, as the server derives them (school-core creditsOf, dayWindow). The
+ * scenario's sessions lie within one day.
  */
 function clock(date: string, from: string, to: string): ScenarioSession {
   const ms = (time: string) => minutesOf(time) * 60_000
-  const day = { date, startMs: 0, endMs: 24 * 60 * 60_000, periods: DEFAULT_PERIODS.map((period) => ({ startMs: ms(period.starts), endMs: ms(period.ends) })) }
+  const window = dayWindow(FRAMES[date] ?? null, DEFAULT_PERIODS)
+  const day = window === null ? { date, startMs: 0, endMs: 24 * 60 * 60_000 } : { date, startMs: ms(window.starts), endMs: ms(window.ends) }
   return { date, from, to, minutes: creditsOf({ startMs: ms(from), endMs: ms(to) }, [day])[0]?.minutes ?? 0 }
 }
 
@@ -353,7 +358,7 @@ export function scenario(seed = SCENARIO_SEED): Scenario {
       showTeachers: true,
       reminderDays: 2,
       placeHeadroomPercent: 20,
-      frames: { [MONDAY]: { from: 2, to: 6 } },
+      frames: FRAMES,
       activityMinimums: { [TUESDAY]: 180, [WEDNESDAY]: 100 },
       lockNewOffers: true,
       rules: [
@@ -531,10 +536,10 @@ export function scenarioOffer(items: readonly ScenarioItem[]): OfferedItem[] {
   }))
 }
 
-/** A project day counted whole, as the demand counts a day without a frame. */
+/** A project day counted whole, as the demand counts a day without a frame: one cell over the seeded grid's day (school-core dayWindow). */
 export function wholeDay(date: string): DemandDay {
-  const startMs = scenarioInstant(date, '00:00')
-  return { date, frame: null, cells: [{ period: null, startMs, endMs: startMs + 24 * 60 * 60 * 1000 }] }
+  const window = dayWindow(null, DEFAULT_PERIODS) ?? { starts: '00:00', ends: '24:00' }
+  return { date, frame: null, cells: [{ period: null, startMs: scenarioInstant(date, window.starts), endMs: scenarioInstant(date, window.ends) }] }
 }
 
 /** The demand as the app computes it per day and grade, every day counted whole: what the places were drawn to. */

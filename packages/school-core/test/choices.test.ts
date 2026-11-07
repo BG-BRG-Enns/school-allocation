@@ -8,7 +8,7 @@ const H = 60 * 60 * 1000
 const MON = Date.UTC(2027, 5, 21, 6, 30)
 const span = (fromH: number, hours: number) => ({ startMs: MON + fromH * H, endMs: MON + (fromH + hours) * H })
 const open: ItemRules = { fixedClasses: [], eligibleGrades: [], eligibleClasses: [], places: 20, minParticipants: 0, cancellableBelowMin: true }
-const item = (id: string, sessions: { startMs: number, endMs: number }[], rules: Partial<ItemRules> = {}): OfferableItem => ({ id, sessions, rules: { ...open, ...rules } })
+const item = (id: string, sessions: { startMs: number, endMs: number }[], rules: Partial<ItemRules> = {}, extra = false): OfferableItem => ({ id, sessions, rules: { ...open, ...rules }, extra })
 
 const minigolf = item('minigolf', [span(0, 2)])
 const dance = item('dance', [span(0, 2)])
@@ -27,7 +27,7 @@ test('items with the same spans form one group; groups follow their start; a mul
   assert.deepEqual(timeGroupsOf([item('none', [])]), [])
 })
 
-test('a student is offered what they may rank and what does not overlap their fixed items', () => {
+test('a student is offered what they may rank, no extra, and what does not overlap their fixed items', () => {
   const student = { className: '5A', grade: 9 }
   const items = [minigolf, dance, tabletennis, trip, item('other', [span(0, 2)], { eligibleGrades: [10] }), item('own', [span(0, 2)], { fixedClasses: ['5A'], places: 5 })]
   assert.deepEqual(offeredTo(student, items, []).map((i) => i.id), ['minigolf', 'dance', 'tabletennis', 'trip'])
@@ -35,6 +35,8 @@ test('a student is offered what they may rank and what does not overlap their fi
   assert.deepEqual(offeredTo(student, items, [span(0, 4)]).map((i) => i.id), ['trip'])
   // Touching end points do not overlap.
   assert.deepEqual(offeredTo(student, items, [span(2, 2)]).map((i) => i.id), ['minigolf', 'dance', 'trip'])
+  // An extra (wholly outside the windows, its teachers place students into it) is never offered to rank.
+  assert.deepEqual(offeredTo(student, [minigolf, item('theatre', [span(11, 3)], {}, true)], []).map((i) => i.id), ['minigolf'])
 })
 
 test('a ranking names offered groups and their items, each once, up to the cap; completeness asks every group for its wishes', () => {

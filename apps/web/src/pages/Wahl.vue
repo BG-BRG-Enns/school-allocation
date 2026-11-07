@@ -4,7 +4,7 @@
 // organizers review, move the campaign on, set its rules and export the
 // catalogue.
 
-import { classConflicts, isStaffOnly, ITEM_STATES, MAX_RULES, RULE_LIMITS, RULE_UNITS, type Frame, type Period } from '@school-allocation/school-core'
+import { classConflicts, isExtra, isStaffOnly, ITEM_STATES, MAX_RULES, RULE_LIMITS, RULE_UNITS, type Frame, type Period } from '@school-allocation/school-core'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ClassPicker from '../components/ClassPicker.vue'
@@ -1264,7 +1264,7 @@ function onSubmitPending(): void {
         :heading="t.campaign.demand.heading"
       >
         <p class="muted">
-          {{ t.campaign.demand.intro(campaign.placeHeadroomPercent) }}
+          {{ t.campaign.demand.intro }}
         </p>
         <DemandTable
           :demand="demand"
@@ -1471,6 +1471,10 @@ function onSubmitPending(): void {
                   v-if="includesNight(item.sessions)"
                   class="muted"
                 > · {{ t.campaign.items.overnight }}</span>
+                <span
+                  v-if="isExtra(item.sessions)"
+                  class="muted"
+                > · {{ t.campaign.items.extra }}</span>
                 <span
                   v-if="item.feeCents > 0"
                   class="muted"

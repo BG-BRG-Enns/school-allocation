@@ -277,7 +277,7 @@ test('a draft is deleted by its teacher, anything later is withdrawn by an organ
 
 export type { Harness }
 
-test('what a session credits is derived from the periods it covers and never sent; the migration brings stored sessions to the rule; a changed grid derives it again until the registration opens', DB, async (t) => {
+test('what a session credits is its clock time inside the day\'s window, never sent; a changed frame or grid derives it again until the registration opens; the migration brings stored sessions to the rule', DB, async (t) => {
   const s = await school(t)
   const campaign = await campaignTakingProposals(s)
   const url = `/api/campaigns/${campaign.id}/items`
@@ -291,25 +291,32 @@ test('what a session credits is derived from the periods it covers and never sen
   // A credit a client sends is no part of the body any more.
   assert.equal((await send(s, s.bernd, 'POST', url, { title: 'x', places: 5, teachers: [], sessions: [{ ...MONDAY, credits: [{ date: '2027-06-21', minutes: 999 }] }] })).status, 400)
 
-  // On the school's grid: 09:00–13:00 is 20 minutes of the 2nd period, the 3rd to the 5th, and 40 of the 6th; two periods are 100, the break between them not.
+  // Without a frame the window is the grid's day, 07:35 to 16:50: 09:00–13:00 is 240 minutes, breaks included; the 2nd and 3rd period are 105.
   const climbing = await make('Klettern', MONDAY)
-  assert.deepEqual(climbing.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 210 }]])
+  assert.deepEqual(climbing.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 240 }]])
   const chess = await make('Schach', { startsAt: '2027-06-21T08:30:00+02:00', endsAt: '2027-06-21T10:15:00+02:00' })
-  assert.deepEqual(chess.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 100 }]])
-  // Over two days, each date by its own periods: Tuesday from 08:00 to the grid's end, Wednesday until 13:00.
+  assert.deepEqual(chess.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 105 }]])
+  // Over two days, each date in its own window, the night not: Tuesday from 08:00 to the grid's end, Wednesday from its start until 13:00.
   const vienna = await make('Wien', VIENNA)
-  assert.deepEqual(vienna.sessions.map((x) => x.credits), [[{ date: '2027-06-22', minutes: 475 }, { date: '2027-06-23', minutes: 290 }]])
-  // An evening shares nothing with the grid: by the clock.
+  assert.deepEqual(vienna.sessions.map((x) => x.credits), [[{ date: '2027-06-22', minutes: 530 }, { date: '2027-06-23', minutes: 325 }]])
+  // An evening lies outside every window: it credits nothing, an extra.
   const theatre = await make('Theater', { startsAt: '2027-06-21T19:00:00+02:00', endsAt: '2027-06-21T21:00:00+02:00' })
-  assert.deepEqual(theatre.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 120 }]])
-  const expected = new Map([[climbing.id, climbing.sessions.map((x) => x.credits)], [chess.id, chess.sessions.map((x) => x.credits)], [vienna.id, vienna.sessions.map((x) => x.credits)], [theatre.id, theatre.sessions.map((x) => x.credits)]])
+  assert.deepEqual(theatre.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 0 }]])
 
-  // The migration's statement, on sessions as they were typed before it: the same numbers as the server's arithmetic.
+  // Monday's frame set to the 2nd to the 5th period, 08:30 to 12:15: Monday's sessions follow, the other days not.
+  const framed = await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${campaign.id}`, { name: campaign.name, schoolYear: campaign.schoolYear, projectDays: campaign.projectDays, frames: { '2027-06-21': { from: 2, to: 5 } } })
+  assert.equal(framed.status, 200, JSON.stringify(framed.body))
+  assert.deepEqual(await creditsOf(climbing.id), [[{ date: '2027-06-21', minutes: 195 }]])
+  assert.deepEqual(await creditsOf(chess.id), [[{ date: '2027-06-21', minutes: 105 }]])
+  assert.deepEqual(await creditsOf(vienna.id), [[{ date: '2027-06-22', minutes: 530 }, { date: '2027-06-23', minutes: 325 }]])
+  const expected = new Map([[climbing.id, await creditsOf(climbing.id)], [chess.id, await creditsOf(chess.id)], [vienna.id, await creditsOf(vienna.id)], [theatre.id, await creditsOf(theatre.id)]])
+
+  // The migration's statement, on sessions as an earlier rule left them: the same numbers as the server's arithmetic, the frame included.
   const owner = createDatabase(s.ownerUrl, () => {})
   t.after(() => owner.close())
   await owner.query('update item_session set credits = \'[{"date": "2027-06-21", "minutes": 1}]\'')
   assert.deepEqual(await creditsOf(climbing.id), [[{ date: '2027-06-21', minutes: 1 }]])
-  await owner.query(await readFile(new URL('../migrations/0009_derived_credits.sql', import.meta.url), 'utf8'))
+  await owner.query(await readFile(new URL('../migrations/0013_credits_in_window.sql', import.meta.url), 'utf8'))
   for (const [id, credits] of expected) assert.deepEqual(await creditsOf(id), credits)
 
   // Another grid, six periods of 45 minutes from 08:00 with five minutes between: the registration is not open, so its sessions follow.
@@ -318,9 +325,9 @@ test('what a session credits is derived from the periods it covers and never sen
     return { period: n + 1, starts: at(480 + n * 50), ends: at(480 + n * 50 + 45) }
   })
   assert.equal((await send(s, s.anna, 'PUT', '/api/admin/settings/periods', { periods: short })).status, 200)
-  // 09:00–13:00 now: 35 minutes of the 2nd period (08:50–09:35) and the 3rd to the 6th whole.
-  assert.deepEqual(await creditsOf(climbing.id), [[{ date: '2027-06-21', minutes: 215 }]])
-  assert.deepEqual(await creditsOf(theatre.id), [[{ date: '2027-06-21', minutes: 120 }]])
+  // Monday's frame is now 08:50 to 12:05: 09:00–13:00 credits 185.
+  assert.deepEqual(await creditsOf(climbing.id), [[{ date: '2027-06-21', minutes: 185 }]])
+  assert.deepEqual(await creditsOf(theatre.id), [[{ date: '2027-06-21', minutes: 0 }]])
 
   // Opened, the registration keeps what its choices compute with, whatever the grid becomes; an edit of the words keeps it too.
   assert.equal((await send(s, s.bernd, 'POST', `/api/items/${climbing.id}/propose`)).status, 200)
@@ -329,39 +336,43 @@ test('what a session credits is derived from the periods it covers and never sen
   assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${campaign.id}`, { name: campaign.name, schoolYear: '2026/27', projectDays: DAYS, opensAt: '2027-03-01T08:00:00+01:00', closesAt: '2027-03-08T20:00:00+01:00' })).status, 200)
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${campaign.id}/transition`, { to: 'open' })).status, 200)
   assert.equal((await send(s, s.anna, 'PUT', '/api/admin/settings/periods', { periods: DEFAULT_PERIODS })).status, 200)
-  assert.deepEqual(await creditsOf(climbing.id), [[{ date: '2027-06-21', minutes: 215 }]])
+  assert.deepEqual(await creditsOf(climbing.id), [[{ date: '2027-06-21', minutes: 185 }]])
   const renamed = await send<Item>(s, s.anna, 'PATCH', `/api/items/${climbing.id}`, { title: 'Klettern in der Halle', places: 12, teachers: [s.berndPerson], sessions: [MONDAY] })
   assert.equal(renamed.status, 200, JSON.stringify(renamed.body))
-  assert.deepEqual(renamed.body.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 215 }]])
+  assert.deepEqual(renamed.body.sessions.map((x) => x.credits), [[{ date: '2027-06-21', minutes: 185 }]])
 
   const changes = (await readAudit(owner, SCHOOL_SCOPE)).filter((e) => e.action === 'settings.periods-changed').map((e) => e.metadata.sessions)
   assert.deepEqual(changes, [4, 0], 'four sessions followed the first change, none the second')
 })
 
-test('an activity reaches the minimum length of each day it touches or is refused with the day; a raised minimum checks nothing already accepted', DB, async (t) => {
+test('an activity reaches the minimum length of each day it takes up part of the window on, or is refused with the day; a raised minimum checks nothing already accepted', DB, async (t) => {
   const s = await school(t)
   const campaign = await campaignTakingProposals(s)
   const id = campaign.id
   const url = `/api/campaigns/${id}/items`
-  // Monday 09:00–13:00 credits 210 minutes of the grid (20 + 50 + 50 + 50 + 40); Monday asks for 240, Wednesday for 300.
+  // Without a frame the window is the grid's day, 07:35 to 16:50: Monday 09:00–13:00 credits 240 minutes. Monday asks for 270, Wednesday for 300.
   const set = (minimums: Record<string, number>) => send<Campaign>(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { name: campaign.name, schoolYear: campaign.schoolYear, projectDays: campaign.projectDays, activityMinimums: minimums })
-  assert.equal((await set({ '2027-06-21': 240, '2027-06-23': 300 })).status, 200)
+  assert.equal((await set({ '2027-06-21': 270, '2027-06-23': 300 })).status, 200)
   type Invalid = { error: string, problems: { code: string, session?: number, date?: string }[] }
   const short = await send<Invalid>(s, s.bernd, 'POST', url, { title: 'Klettern', places: 12, teachers: [], sessions: [MONDAY] })
   assert.equal(short.status, 422, JSON.stringify(short.body))
   assert.deepEqual(short.body.problems, [{ code: 'below_minimum_length', date: '2027-06-21' }])
-  // The check says so before any save, with the numbers; one period more and it is met.
-  type Check = { length: { date: string, minimum: number, credited: number, met: boolean }[] }
+  // The check says so before any save, with what is missing and the window it is counted in; half an hour earlier and it is met.
+  type Check = { length: { date: string, minimum: number, credited: number, met: boolean, missing: number, window: { starts: string, ends: string } | null }[] }
+  const window = { starts: '07:35', ends: '16:50' }
   const checked = await send<Check>(s, s.bernd, 'POST', `${url}/check`, { item: { title: 'Klettern', places: 12, teachers: [], sessions: [MONDAY] } })
-  assert.deepEqual(checked.body.length, [{ date: '2027-06-21', minimum: 240, credited: 210, met: false }])
+  assert.deepEqual(checked.body.length, [{ date: '2027-06-21', minimum: 270, credited: 240, met: false, missing: 30, window }])
   const longer = { startsAt: '2027-06-21T08:30:00+02:00', endsAt: '2027-06-21T13:00:00+02:00' }
-  assert.deepEqual((await send<Check>(s, s.bernd, 'POST', `${url}/check`, { item: { title: 'Klettern', places: 12, teachers: [], sessions: [longer] } })).body.length, [{ date: '2027-06-21', minimum: 240, credited: 240, met: true }])
+  assert.deepEqual((await send<Check>(s, s.bernd, 'POST', `${url}/check`, { item: { title: 'Klettern', places: 12, teachers: [], sessions: [longer] } })).body.length, [{ date: '2027-06-21', minimum: 270, credited: 270, met: true, missing: 0, window }])
   // Two sessions of the day count together: the morning and an hour after lunch.
   const afternoon = { startsAt: '2027-06-21T13:15:00+02:00', endsAt: '2027-06-21T14:05:00+02:00' }
   const split = await send<Item>(s, s.bernd, 'POST', url, { title: 'Klettern', places: 12, teachers: [], sessions: [MONDAY, afternoon] })
   assert.equal(split.status, 201, JSON.stringify(split.body))
-  // The trip returns on Wednesday at one: a night away meets the day. One of its teachers alone is exempt; a class activity is not.
+  // The trip returns on Wednesday at one: 325 minutes of Wednesday's window meet its 300. Back at ten it has 145, and no night away
+  // makes up for the rest of the day. One of its teachers alone is exempt; a class activity is not.
   assert.equal((await send(s, s.carla, 'POST', url, { title: 'Wien', places: 8, fixedClasses: ['5A'], cancellableBelowMin: false, teachers: [], sessions: [VIENNA] })).status, 201)
+  const earlyBack = await send<Invalid>(s, s.carla, 'POST', url, { title: 'Wien früh', places: 8, minParticipants: 0, teachers: [], sessions: [{ ...VIENNA, endsAt: '2027-06-23T10:00:00+02:00' }] })
+  assert.deepEqual([earlyBack.status, earlyBack.body.problems], [422, [{ code: 'below_minimum_length', date: '2027-06-23' }]])
   assert.equal((await send(s, s.carla, 'POST', url, { title: 'Aufsicht', places: 0, minParticipants: 0, cancellableBelowMin: false, teachers: [], sessions: [MONDAY] })).status, 201)
   const classShort = await send<Invalid>(s, s.carla, 'POST', url, { title: 'Klassenstunde', places: 0, fixedClasses: ['5A'], minParticipants: 0, cancellableBelowMin: false, teachers: [], sessions: [MONDAY] })
   assert.deepEqual([classShort.status, classShort.body.problems], [422, [{ code: 'below_minimum_length', date: '2027-06-21' }]])
@@ -369,20 +380,20 @@ test('an activity reaches the minimum length of each day it touches or is refuse
   const edit = (body: Record<string, unknown>) => send<Invalid>(s, s.bernd, 'PATCH', `/api/items/${split.body.id}`, { title: 'Klettern', places: 12, teachers: [s.berndPerson], ...body })
   assert.deepEqual((await edit({ sessions: [MONDAY] })).body.problems, [{ code: 'below_minimum_length', date: '2027-06-21' }])
   assert.equal((await edit({ description: 'Kletterhalle Linz', sessions: [MONDAY, afternoon] })).status, 200)
-  // The minimum raised to 300 checks nothing accepted: the split activity stands, its next change of times does not.
-  assert.equal((await set({ '2027-06-21': 300 })).status, 200)
+  // The minimum raised to 330 checks nothing accepted: the split activity stands, its next change of times does not.
+  assert.equal((await set({ '2027-06-21': 330 })).status, 200)
   assert.equal((await edit({ description: 'Kletterhalle Linz, Halle 2', sessions: [MONDAY, afternoon] })).status, 200, 'the words again, with the times unchanged: not held to the new minimum')
-  assert.deepEqual((await edit({ sessions: [longer, afternoon] })).body.problems, [{ code: 'below_minimum_length', date: '2027-06-21' }], '290 of 300')
-  assert.deepEqual((await send<Check>(s, s.bernd, 'POST', `${url}/check`, { itemId: split.body.id })).body.length, [{ date: '2027-06-21', minimum: 300, credited: 260, met: false }], 'the review sees the shortfall')
+  assert.deepEqual((await edit({ sessions: [longer, afternoon] })).body.problems, [{ code: 'below_minimum_length', date: '2027-06-21' }], '320 of 330')
+  assert.deepEqual((await send<Check>(s, s.bernd, 'POST', `${url}/check`, { itemId: split.body.id })).body.length, [{ date: '2027-06-21', minimum: 330, credited: 290, met: false, missing: 40, window }], 'the review sees the shortfall')
   // A supervision (exempt) that gets places becomes an activity for students and is held to the minimum then, its times unchanged.
   const duty = await send<Item>(s, s.carla, 'POST', url, { title: 'Aufsicht', places: 0, minParticipants: 0, cancellableBelowMin: false, teachers: [], sessions: [MONDAY] })
   const opened = await send<Invalid>(s, s.carla, 'PATCH', `/api/items/${duty.body.id}`, { title: 'Aufsicht', places: 5, minParticipants: 0, cancellableBelowMin: false, teachers: [s.carlaPerson], sessions: [MONDAY] })
   assert.deepEqual([opened.status, opened.body.problems], [422, [{ code: 'below_minimum_length', date: '2027-06-21' }]])
   // The check of an edit keeps the stored credits of unchanged times, as a save does (the registrations open keep theirs through a change of the grid):
-  // the morning's stored credit set to what an earlier grid gave, the preview reads it, not the grid's 210.
+  // the morning's stored credit set to what an earlier grid gave, the preview reads it, not the window's 240.
   const owner = createDatabase(s.ownerUrl, () => {})
   t.after(() => owner.close())
-  await owner.query('update item_session set credits = $2 where item_id = $1 and starts_at = $3', [split.body.id, JSON.stringify([{ date: '2027-06-21', minutes: 250 }]), MONDAY.startsAt])
+  await owner.query('update item_session set credits = $2 where item_id = $1 and starts_at = $3', [split.body.id, JSON.stringify([{ date: '2027-06-21', minutes: 280 }]), MONDAY.startsAt])
   const preview = await send<Check>(s, s.bernd, 'POST', `${url}/check`, { itemId: split.body.id, item: { title: 'Klettern', description: 'x', places: 12, teachers: [s.berndPerson], sessions: [MONDAY, afternoon] } })
-  assert.deepEqual(preview.body.length, [{ date: '2027-06-21', minimum: 300, credited: 300, met: true }], 'the stored 250 and the afternoon\'s 50')
+  assert.deepEqual(preview.body.length, [{ date: '2027-06-21', minimum: 330, credited: 330, met: true, missing: 0, window }], 'the stored 280 and the afternoon\'s 50')
 })

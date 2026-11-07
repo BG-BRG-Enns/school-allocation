@@ -9,28 +9,13 @@ import type { Locale } from '@school-allocation/messages'
 import { checkPeriods, type Period } from '@school-allocation/school-core'
 import { type Actor } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
-import { sessionCredits } from '../lib/credits.ts'
-import { listCampaignsBeforeOpening, listSessionsBeforeOpening, updateSessionCredits } from '../lib/dao/items.ts'
+import { listCampaignsBeforeOpening } from '../lib/dao/items.ts'
 import * as store from '../lib/dao/settings.ts'
 import { readPeriods } from '../lib/dao/settings.ts'
-import type { Database, Queryable } from '../lib/db.ts'
+import type { Database } from '../lib/db.ts'
 import { PeriodsInvalid } from '../lib/errors.ts'
 import { schoolLocale } from '../lib/i18n.ts'
-
-/**
- * What the sessions credit follows the grid (lib/credits.ts): every
- * session of a registration not yet open is derived again from `periods`.
- * Each such registration under its lock, its state read again there, so an
- * opening in flight and this never cross: one that has opened keeps what
- * its choices compute with. Returns how many sessions were written.
- */
-async function recomputeCredits(client: Queryable, periods: readonly Period[]): Promise<number> {
-  const campaigns = await listCampaignsBeforeOpening(client)
-  for (const campaign of campaigns) await lockScope(client, campaign.id)
-  const sessions = await listSessionsBeforeOpening(client, campaigns.map((campaign) => campaign.id))
-  for (const session of sessions) await updateSessionCredits(client, session.id, sessionCredits(periods, session.startsAt, session.endsAt))
-  return sessions.length
-}
+import { recomputeAllCredits } from './credits.ts'
 
 /** Replaces the grid with `periods`, which must pass school-core's check, and derives the credits of the registrations not yet open from it; audited. */
 export async function replacePeriods(db: Database, periods: readonly Period[], actor: Actor): Promise<Period[]> {
@@ -42,7 +27,7 @@ export async function replacePeriods(db: Database, periods: readonly Period[], a
     for (const period of periods) {
       await store.insertPeriod(client, period)
     }
-    const sessions = await recomputeCredits(client, periods)
+    const sessions = await recomputeAllCredits(client, (await listCampaignsBeforeOpening(client)).map((campaign) => campaign.id), periods)
     await appendAudit(client, {
       scopeId: SCHOOL_SCOPE,
       actor: { tid: actor.tid, oid: actor.oid, name: actor.name },

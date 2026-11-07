@@ -175,7 +175,7 @@ test('a failed run cannot be published, and a student short of minutes is named 
   t.after(() => owner.close())
   const id = s.campaign.id
   const settings = { name: s.campaign.name, schoolYear: s.campaign.schoolYear, projectDays: s.campaign.projectDays }
-  // A minimum nobody's Monday can meet: Klettern and Tanz credit 200 (four periods), Schwimmen 100, and they overlap.
+  // A minimum nobody's Monday can meet: Klettern and Tanz credit 225 (08:30 to 12:15, the breaks included), Schwimmen 105, and they overlap.
   assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/campaigns/${id}`, { ...settings, dailyMinimum: { 9: 250 } })).status, 200)
   await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'open' })
   await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'closed' })
@@ -202,7 +202,7 @@ test('a failed run cannot be published, and a student short of minutes is named 
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/runs/${short.run.id}/publish`, { cancelledItemIds: [] })).status, 200)
   const mails = await owner.query<{ kind: string, to_address: string, body: string }>('select kind, to_address, body from outbox_mail where campaign_id = $1 and kind = \'class_unplaced\'', [id])
   assert.deepEqual(mails.rows.map((m) => m.to_address), [CARLA.email], 'the class teacher of 5A, by the CSV')
-  assert.match(mails.rows[0]?.body ?? '', new RegExp(`${SARA.name}: .*50 min`))
+  assert.match(mails.rows[0]?.body ?? '', new RegExp(`${SARA.name}: .*25 min`))
   const result = await get<MyResultResponse>(s, s.sara, `/api/campaigns/${id}/my-result`)
-  assert.equal(result.body.explanation.days[0]?.deficit, 50)
+  assert.equal(result.body.explanation.days[0]?.deficit, 25)
 })

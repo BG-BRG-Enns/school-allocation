@@ -178,6 +178,12 @@ async function remove(personId: string): Promise<void> {
       {{ t.placements.none }}
     </p>
     <p
+      v-if="placed.length > 0"
+      class="muted"
+    >
+      {{ t.placements.leavesClassHint }}
+    </p>
+    <p
       v-if="!stored && placed.length > 0"
       class="muted"
     >

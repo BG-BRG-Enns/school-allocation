@@ -7,7 +7,7 @@
 
 import { requireCampaign } from './campaigns.ts'
 
-import { acceptsChoices, checkRanking, effectivePlacements, isComplete, offeredTo, rankablePlaces, ruleReaches, timeGroupsOf, wishesRequired, type Ranking } from '@school-allocation/school-core'
+import { acceptsChoices, checkRanking, effectivePlacements, isComplete, isExtra, offeredTo, rankablePlaces, ruleReaches, timeGroupsOf, wishesRequired, type Ranking } from '@school-allocation/school-core'
 import { type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope } from '../lib/audit.ts'
 import * as store from '../lib/dao/choices.ts'
@@ -46,7 +46,8 @@ export async function choiceView(db: Queryable, campaign: Campaign, student: Cam
   const fixedSpans = fixed.flatMap(spansOf)
   // A direct placement takes one of an activity's places: what is left is what others may rank.
   const placed = await directCounts(db, campaign)
-  const offerable = items.filter((item) => !fixedIds.has(item.id)).map((item) => ({ id: item.id, sessions: spansOf(item), rules: { ...item, places: rankablePlaces(item.places, placed.get(item.id) ?? 0) } }))
+  // An extra (wholly outside the days' windows) is placed into by its teachers, never ranked.
+  const offerable = items.filter((item) => !fixedIds.has(item.id)).map((item) => ({ id: item.id, sessions: spansOf(item), rules: { ...item, places: rankablePlaces(item.places, placed.get(item.id) ?? 0) }, extra: isExtra(item.sessions) }))
   const offered = offeredTo({ className: student.className, grade: student.grade }, offerable, fixedSpans)
   const byId = new Map(items.map((item) => [item.id, item]))
   const groups = timeGroupsOf(offered).map((group) => ({

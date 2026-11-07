@@ -196,7 +196,7 @@ async function leave(item: CompanionsItemView): Promise<void> {
                 v-else-if="item.join.problem"
                 class="muted"
               >
-                {{ COMPANION_PROBLEM_LABELS[item.join.problem] ?? item.join.problem }}
+                {{ item.join.problem === 'campaign_state' ? t.companions.closed(campaign.name) : COMPANION_PROBLEM_LABELS[item.join.problem] ?? item.join.problem }}
               </span>
             </td>
           </tr>

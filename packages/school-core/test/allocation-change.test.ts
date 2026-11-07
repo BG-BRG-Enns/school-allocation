@@ -146,3 +146,14 @@ test('a teacher\'s change after publication: out of a class activity, into their
   // And a later placement beside the class activity he is back in reads it as his class's.
   assert.deepEqual(codes(checkMove(INPUT, back.filter((r) => !(r.personId === 'tim' && r.itemId === 'darts')), { personId: 'tim', toItemId: 'darts', leaves: [] }, { byTeacher: true, besideClass: true })), [])
 })
+
+test('an extra is no swap and no class teacher\'s gap filler; its teachers place students into it, and the organizer through its list', () => {
+  // A theatre visit on Monday evening, crediting nothing: Lena may not swap into it, and nobody fills a gap with it.
+  const input: AllocationInput = { ...INPUT, items: [...INPUT.items, item('theatre', [session(0, 19, 22, 0)])] }
+  assert.deepEqual(codes(checkMove(input, ROWS, { personId: 'lena', toItemId: 'theatre', leaves: [] }, {})), ['not_offered'])
+  assert.deepEqual(codes(checkMove(input, ROWS, { personId: 'lena', toItemId: 'theatre', leaves: [] }, { force: true })), ['not_offered'])
+  assert.equal(moveOffers(input, ROWS, 'lena', 'swap').some((o) => o.itemId === 'theatre'), false)
+  assert.equal(moveOffers(input, ROWS, 'lena', 'place').some((o) => o.itemId === 'theatre'), false)
+  // A teacher of the theatre places her directly.
+  assert.deepEqual(codes(checkMove(input, ROWS, { personId: 'lena', toItemId: 'theatre', leaves: [] }, { byTeacher: true })), [])
+})

@@ -20,7 +20,15 @@ export const CatalogueProblemSchema = StrictObject({
   date: Type.Optional(Type.String()),
 })
 /** An activity against a day's minimum length (school-core LengthStanding, pinned in domain-checks.ts). */
-export const LengthStandingSchema = StrictObject({ date: Type.String(), minimum: Type.Integer(), credited: Type.Integer(), met: Type.Boolean() })
+export const LengthStandingSchema = StrictObject({
+  date: Type.String(),
+  minimum: Type.Integer(),
+  credited: Type.Integer(),
+  met: Type.Boolean(),
+  missing: Type.Integer(),
+  /** The day's window as clock times, where the minutes are counted; null when there is none. */
+  window: Type.Union([StrictObject({ starts: Type.String(), ends: Type.String() }), Type.Null()]),
+})
 
 /** What a registration asks of whom per category (school-core CampaignRule). */
 export const RuleSchema = StrictObject({

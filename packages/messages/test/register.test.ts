@@ -17,7 +17,7 @@ function leaves(node: unknown, path: string[] = []): [string, string][] {
 }
 
 /** du, its pronouns, and the imperatives in du the catalogue uses; a word is bounded by letters, umlauts included. */
-const DU = new RegExp(String.raw`(?<!\p{L})(?:du|Du|dich|dir|dein|deine|deinem|deinen|deiner|deines|Dein|Deine|Lade|lade|Trage|trage|Sieh|sieh|Gib|gib|Behebe|Lies|lies|Logge|logge|Sichere|Ändere|prüfe|berechne|klick|versuch|warte|wende|erinnere|teile|nimm|speichere|Suche die|Übersetze|setze)(?!\p{L})`, 'u')
+const DU = new RegExp(String.raw`(?<!\p{L})(?:du|Du|dich|dir|dein|deine|deinem|deinen|deiner|deines|Dein|Deine|Lade|lade|Trage|trage|Sieh|sieh|Gib|gib|Behebe|Lies|lies|Logge|logge|Sichere|Ändere|prüfe|berechne|klick|versuch|warte|wende|erinnere|teile|nimm|speichere|Suche die|Übersetze|setze|verlängere|füge|Wähle|biete)(?!\p{L})`, 'u')
 const SIE = /(?<!\p{L})(?:Ihnen|Ihr|Ihre|Ihrem|Ihren|Ihrer|Ihres)(?!\p{L})/u
 
 /** What only students read: they are du in both German variants. */

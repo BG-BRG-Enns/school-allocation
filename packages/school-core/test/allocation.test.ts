@@ -311,3 +311,16 @@ test('two placements of a student may overlap only where one is a direct placeme
   // Two activities that are nobody's class activity never both hold, whatever is said of them.
   assert.deepEqual(fixedOverlaps(INPUT, { className: '5B', fixedItemIds: ['dance', 'minigolf'], besideClassItemIds: ['dance'] }), [['dance', 'minigolf']])
 })
+
+test('an extra (wholly outside the windows, crediting nothing) is no option: never a wish, never a fallback; its teachers place students into it', () => {
+  // A theatre visit on Monday evening, free and open to all: ida, who saved no list, gets fallbacks, not the theatre.
+  const theatre = item('theatre', [session(0, 19, 22, 0)])
+  const input: AllocationInput = { ...INPUT, items: [...INPUT.items, theatre] }
+  const items = solverItems(input, new Set())
+  const ida = prepareStudent(input, input.students[5] as AllocationStudent, items)
+  assert.equal(ida.options.some((o) => o.itemId === 'theatre'), false)
+  assert.equal(ida.options.some((o) => o.kind === 'fallback'), true)
+  // A stored ranking that names it is no wish either: the theatre is in no group the student is offered.
+  const keen: AllocationStudent = { ...(input.students[5] as AllocationStudent), ranking: { [groupKeyOf(theatre)]: ['theatre'] }, savedIn: 'first' }
+  assert.equal(prepareStudent(input, keen, items).options.some((o) => o.itemId === 'theatre'), false)
+})

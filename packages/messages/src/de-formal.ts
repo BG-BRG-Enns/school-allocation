@@ -66,13 +66,31 @@ export const deFormal = {
     unbound: 'Das Konto ist noch niemandem aus den Klassenlisten zugeordnet. Falls die Teilnahme an einer Anmeldung vorgesehen ist, bitte an die Administration wenden.',
   },
   item: {
+    length: {
+      short: (day: string, missing: number, minimum: number, from: string | null, to: string | null) => from === null || to === null
+        ? `Bitte verlängern Sie die Aktivität am ${day} um ${missing} Minuten: Sie muss mindestens ${minimum} Minuten dauern.`
+        : `Bitte verlängern Sie die Aktivität am ${day} um ${missing} Minuten: Zwischen ${from} und ${to} muss sie mindestens ${minimum} Minuten dauern.`,
+    },
+    teachers: {
+      handOverHint: 'Soll jemand anderer die Leitung bekommen, fügen Sie die Person zuerst als Begleitung hinzu.',
+      handOverConfirm: (name: string) => `Die Leitung an ${name} übergeben? Sie bleiben als Begleitung eingetragen.`,
+    },
+    sessions: {
+      intro: 'Meist genügt ein Termin, auch über mehrere Tage, etwa ein Ausflug von Dienstag 8:00 bis Mittwoch 13:00. Einen weiteren Termin legen Sie nur an, wenn die Aktivität unterbrochen ist. Wer teilnimmt, kommt zu allen Terminen. Findet sie noch einmal für andere Schüler*innen statt, legen Sie eine neue Aktivität an.',
+    },
     gate: {
-      advice: 'Wählen Sie eine Zeit, in der noch Plätze fehlen, oder nehmen Sie eine Schulstufe dazu, der noch Plätze fehlen.',
+      servesNothing: 'Diese Aktivität liegt außerhalb der Anwesenheitszeit und ist ein Zusatzangebot. Schüler*innen wählen sie nicht; Sie teilen sie unter „Direkt eingeteilt“ ein.',
+      advice: 'Wählen Sie eine andere Zeit oder bieten Sie die Aktivität auch einer Schulstufe an, für die noch Plätze fehlen.',
       organizerAnyway: 'Als Organisation können Sie sie trotzdem einreichen und genehmigen.',
     },
     companions: {
-      intro: 'Hier ändern Sie nur die Begleitung und wie viele gesucht werden; alles andere bleibt, wie die Aktivität eingereicht ist.',
+      intro: 'Die Aktivität ist eingereicht. Ändern können Sie hier nur noch die Begleitung.',
     },
+  },
+  placements: {
+    leavesClassHint: 'Mit Häkchen nimmt die Person an den betroffenen Klassenaktivitäten überhaupt nicht teil, auch nicht an deren anderen Tagen. Ohne Häkchen fehlt sie dort nur während Ihrer Aktivität, etwa für eine Probe.',
+    absentIntro: 'Wer aus den Klassen nicht mitkommt. Einen Grund geben Sie nicht an.',
+    readOnly: 'Die Aktivität ist eingereicht. Änderungen macht jetzt die Organisation. Schüler*innen direkt einteilen können Sie weiterhin.',
   },
   wishes: {
     onBehalf: (name: string, className: string) => `Für ${name} (${className}). Was Sie eintragen, wird mit Begründung protokolliert.`,
@@ -82,7 +100,7 @@ export const deFormal = {
       note: 'Teilen Sie hier Schüler*innen ein, deren Tagesprogramm noch zu kurz ist oder die eine Regel noch nicht erfüllen. Sie werden benachrichtigt; die Organisation sieht Ihre Änderung und Begründung.',
     },
     attendance: {
-      recordable: 'Eintragen und speichern; korrigieren können Sie bis zum Abschluss der Anmeldung.',
+      recordable: 'Korrigieren können Sie, bis die Organisation die Projektwoche abschließt.',
     },
   },
   allocation: {
@@ -125,11 +143,11 @@ export const deFormal = {
     },
   },
   availability: {
-    intro: 'Tragen Sie ein, an welchen Projekttagen Sie für eine Aktivität da sind. Ohne Eintrag gelten Sie als verfügbar. Einen Grund geben Sie nicht an.',
-    none: 'Ihre Verfügbarkeit tragen Sie hier ein, solange Lehrkräfte Aktivitäten einreichen können. Zurzeit ist keine Anmeldung in dieser Phase. Für spätere Änderungen wenden Sie sich an die Organisation.',
+    intro: 'Tragen Sie ein, an welchen Projekttagen Sie für eine Aktivität da sind. Ohne Eintrag gelten Sie als verfügbar.',
+    none: 'Zurzeit werden keine Aktivitäten gesammelt. Änderungen Ihrer Verfügbarkeit melden Sie der Organisation.',
   },
   companions: {
-    intro: 'Je Projekttag die Aktivitäten, die noch eine Begleitung suchen, und die, die Sie begleiten. Tragen Sie sich ein, wo Sie mitkommen; bis die Anmeldung öffnet, tragen Sie sich hier auch wieder aus, danach sagen Sie es der Leitung oder der Organisation.',
+    intro: 'Je Projekttag die Aktivitäten, die noch Begleitung suchen. Tragen Sie sich ein, wo Sie mitkommen. Austragen können Sie sich hier, bis die Schüler*innen zu wählen beginnen; danach wenden Sie sich an die Leitung.',
     myStatus: (status: string) => `Ihre Verfügbarkeit: ${status}`,
     leading: 'Sie leiten diese Aktivität.',
     accompanying: 'Sie begleiten diese Aktivität.',

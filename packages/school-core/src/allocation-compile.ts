@@ -10,7 +10,7 @@
 // deterministic down to the order of every list, so the same input gives
 // the same request.
 
-import { creditedMinutesByDate, isOvernight, overlaps, type ItemRules, type Span } from './catalogue.ts'
+import { creditedMinutesByDate, isExtra, isOvernight, overlaps, type ItemRules, type Span } from './catalogue.ts'
 import { offeredTo, timeGroupsOf, type OfferableItem } from './choices.ts'
 import { ruleAmount, ruleApplies, ruleProgress, type CampaignRule } from './rules.ts'
 import {
@@ -125,7 +125,7 @@ export function prepareStudent(input: AllocationInput, student: AllocationStuden
     .map((rule) => ({ rule, need: Math.max(0, rule.minimum - ruleProgress(rule, fixed, input.projectDays)) }))
     .filter((r) => r.need > 0)
   const fixedIds = new Set(student.fixedItemIds)
-  const offerable: OfferableItem[] = items.filter((item) => !fixedIds.has(item.id)).map((item) => ({ id: item.id, sessions: item.sessions, rules: item.rules }))
+  const offerable: OfferableItem[] = items.filter((item) => !fixedIds.has(item.id)).map((item) => ({ id: item.id, sessions: item.sessions, rules: item.rules, extra: isExtra(item.sessions) }))
   const offered = offeredTo({ className: student.className, grade: student.grade }, offerable, fixedSpans)
   const offeredById = new Map(items.map((item) => [item.id, item]))
   const cap = input.wishesPerGroup

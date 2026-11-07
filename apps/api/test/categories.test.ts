@@ -123,7 +123,7 @@ test('an activity\'s categories, a registration\'s rules: checked, audited, fixe
   assert.equal((await send(s, s.anna, 'PATCH', `/api/admin/categories/${sport}`, { name: 'Bewegung' })).status, 200)
 
   // The demand per rule: both students need two sport activities, Klettern's 12 and Schwimmen's 20 places bring one each;
-  // the trip to Vienna (the whole class, 475 minutes: from 08:00 to the end of the grid) meets the careers rule before anyone ranks.
+  // the trip to Vienna (the whole class, 530 minutes: from 08:00 to the end of the grid's day, breaks included) meets the careers rule before anyone ranks.
   const demand = await get<DemandResponse>(s, s.anna, `/api/campaigns/${id}/demand`)
   assert.equal(demand.status, 200, JSON.stringify(demand.body))
   assert.deepEqual(demand.body.rules.map(({ ruleId: _, ...rest }) => rest), [{ grade: 9, students: 2, needed: 4, offered: 32 }, { grade: 9, students: 2, needed: 0, offered: 0 }])
@@ -136,7 +136,7 @@ test('an activity\'s categories, a registration\'s rules: checked, audited, fixe
   const save = (ranking: Record<string, string[]>) => send<View>(s, s.sara, 'PUT', `/api/campaigns/${id}/my-choice`, { ranking })
   const tanz = await save({ [monday]: [s.items.tanz], [swim]: [s.items.schwimmen] })
   assert.equal(tanz.status, 200, JSON.stringify(tanz.body))
-  assert.deepEqual(tanz.body.rules.map((r) => [r.unit, r.fixed, r.ranked, r.offered, r.done]), [['items', 0, 1, 2, false], ['minutes', 475, 0, 0, true]])
+  assert.deepEqual(tanz.body.rules.map((r) => [r.unit, r.fixed, r.ranked, r.offered, r.done]), [['items', 0, 1, 2, false], ['minutes', 530, 0, 0, true]])
   assert.equal(tanz.body.complete, false, 'every block has its wish, but sport falls short of what the offer allows')
   const klettern = await save({ [monday]: [s.items.klettern], [swim]: [s.items.schwimmen] })
   assert.deepEqual(klettern.body.rules.map((r) => r.done), [true, true])

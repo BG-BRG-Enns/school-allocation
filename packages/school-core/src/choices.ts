@@ -47,15 +47,17 @@ export function timeGroupsOf(items: readonly GroupableItem[]): TimeGroup[] {
 
 export interface OfferableItem extends GroupableItem {
   rules: ItemRules
+  /** An extra (catalogue.ts isExtra): wholly outside the days' windows, its teachers place students into it directly. */
+  extra: boolean
 }
 
 /**
  * The items a student may rank: eligible for them (D-24: not fixed for
- * their class, places to rank, grade and class within the rules) and not
- * overlapping any session of the items they are fixed into.
+ * their class, places to rank, grade and class within the rules), not an
+ * extra, and not overlapping any session of the items they are fixed into.
  */
 export function offeredTo(student: StudentOf, items: readonly OfferableItem[], fixedSessions: readonly Pick<Span, 'startMs' | 'endMs'>[]): OfferableItem[] {
-  return items.filter((item) => isEligible(student, item.rules) && !item.sessions.some((s) => fixedSessions.some((f) => overlaps(s, f))))
+  return items.filter((item) => !item.extra && isEligible(student, item.rules) && !item.sessions.some((s) => fixedSessions.some((f) => overlaps(s, f))))
 }
 
 /** Group key → the ranked item ids, first wish first. */
