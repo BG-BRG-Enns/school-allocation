@@ -24,11 +24,11 @@ Die Tabelle zeigt jede Aktivität mit Schulstufen, Lehrkräften (Leitung und Beg
 
 Ist es das einzige Angebot ihrer Leitung in dieser Anmeldung, steht beim Bestätigen nur ein Hinweis: „StC leitet dann in dieser Anmeldung nichts.“ Keine Sperre, keine weitere Folge; du entscheidest frei. Für eine Lehrkraft ohne Leitungspflicht ([Lehrkräfte je Tag](#lehrkräfte-je-tag)) entfällt der Hinweis.
 
-### Eingereichte durchgehen
+### Eingereichte Aktivitäten prüfen
 
 ![Eingereichte durchgehen: die erste von zwölf Aktivitäten mit allen Angaben, wohin ihre Plätze gehen, die Knöpfe Genehmigen, Zurückgeben, Zurückziehen und Überspringen, darunter Plätze und Bedarf ohne und mit der Aktivität](/bilder/de/eingereichte-durchgehen.png)
 
-Gibt es eingereichte Aktivitäten, führt **Eingereichte durchgehen** über der Tabelle zu einer Seite, die sie eine nach der anderen zeigt, nach dem Datum der Einreichung, die früheste zuerst, oder mit **Reihenfolge** nach Tag und Beginn; oben steht, wo du bist („3 von 12“). Je Aktivität stehen alle Angaben, wohin ihre Plätze gehen, ihre Konflikte und die Verfügbarkeit der Leitung, darunter **Plätze und Bedarf** ohne und mit dieser Aktivität, ihre Felder markiert. **Genehmigen**, **Zurückgeben** (mit Rückmeldung) und **Zurückziehen** (mit Begründung) wirken wie in der Tabelle; danach kommt die nächste Aktivität, und die Tabelle zählt die eben genehmigte schon mit. **Überspringen** geht zur nächsten weiter, und die übersprungene kommt nach der letzten wieder; **Zurück zum Überblick** führt jederzeit zur Anmeldung.
+Gibt es eingereichte Aktivitäten, führt **Eingereichte Aktivitäten prüfen** über der Tabelle zu einer Seite, die sie eine nach der anderen zeigt, nach dem Datum der Einreichung, die früheste zuerst, oder mit **Reihenfolge** nach Tag und Beginn; oben steht, wo du bist („3 von 12“). Je Aktivität stehen alle Angaben, wohin ihre Plätze gehen, ihre Konflikte und die Verfügbarkeit der Leitung, darunter **Plätze und Bedarf** ohne und mit dieser Aktivität, ihre Felder markiert. **Genehmigen**, **Zurückgeben** (mit Rückmeldung) und **Zurückziehen** (mit Begründung) wirken wie in der Tabelle; danach kommt die nächste Aktivität, und die Tabelle zählt die eben genehmigte schon mit. **Überspringen** geht zur nächsten weiter, und die übersprungene kommt nach der letzten wieder; **Zurück zum Überblick** führt jederzeit zur Anmeldung.
 
 **Bearbeiten** öffnet jede Aktivität. Was du an der Aktivität einer Lehrkraft änderst, wird protokolliert.
 

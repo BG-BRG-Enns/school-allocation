@@ -314,7 +314,7 @@ export const de = {
     runFailure: {
       solver_unreachable: 'Das Rechenmodul war nicht erreichbar',
       solver_answer_invalid: 'Das Rechenmodul hat keine gültige Antwort geliefert',
-      solver_infeasible: 'Keine Einteilung möglich, meist wegen der Mindestzahl einer Aktivität, die nicht ausfallen darf',
+      solver_infeasible: 'Mit den aktuellen Vorgaben ist keine gültige Einteilung möglich. Zuerst zu prüfen: die Mindestzahlen der Aktivitäten, die nicht ausfallen dürfen.',
       solver_unknown: 'Mit dem Suchaufwand wurde keine Einteilung gefunden',
       model_invalid: 'Fehler in den Daten für die Berechnung',
       validation_failed: 'Die Prüfung hat einen Fehler in der berechneten Einteilung gefunden; sie wurde verworfen',
@@ -332,7 +332,7 @@ export const de = {
     level: {
       students_with_deficit: 'Schüler*innen, denen Minuten fehlen',
       deficit_minutes: 'Fehlende Minuten insgesamt',
-      total_cost: 'Wünsche insgesamt (gewichtet, weniger ist besser)',
+      total_cost: 'Bewertung nach Wunschreihenfolge, nach Dauer gewichtet (kleiner ist besser)',
       tiebreak: 'Los',
       over: (threshold: number) => `Schüler*innen mit durchschnittlichem Wunsch über ${threshold}`,
       students_missing_rule: 'Schüler*innen, die nicht alle Regeln erfüllen',
@@ -633,7 +633,7 @@ export const de = {
       /** On the registration's page, for the organization: the classes of the lists in force that are not in. */
       notTakingPart: (classes: string) => `Klassen der Klassenlisten, die nicht teilnehmen: ${classes}`,
       /** Why the list was refused: an activity or a rule still names these classes. */
-      inUse: (classes: string) => `Diese Klassen nennt noch eine Aktivität oder eine Regel: ${classes}. Erst ohne sie dort lassen sie sich herausnehmen.`,
+      inUse: (classes: string) => `Diese Klassen werden noch in Aktivitäten oder Regeln verwendet: ${classes}. Entferne sie zuerst dort; danach kannst du sie aus dieser Anmeldung herausnehmen.`,
     },
   },
 
@@ -680,7 +680,7 @@ export const de = {
       consequences: {
         catalogue: ['Lehrkräfte sehen die Anmeldung und reichen ihre Aktivitäten ein.', 'Rückweg: zur Vorbereitung, solange der Katalog nicht veröffentlicht ist.'],
         published: ['Keine neuen Vorschläge mehr; Bezeichnung, Schuljahr und Projekttage stehen fest.', 'Die genehmigten Aktivitäten bekommen Nummern, die bleiben.', 'Alle sehen den Katalog, auch die Schüler*innen; zum Beginn aus den Einstellungen öffnet die Anmeldung von selbst.', 'Rückweg: zum Sammeln; die Nummern bleiben.'],
-        open: ['Jede Schüler*in der Klassenlisten bekommt die Einladung per E-Mail.', 'Klassenaktivitäten nehmen ihre Klassen mit.', 'Kein Rückweg.'],
+        open: ['Die Schüler*innen der teilnehmenden Klassen werden per E-Mail eingeladen, sofern eine E-Mail-Adresse hinterlegt ist.', 'Klassenaktivitäten nehmen ihre Klassen mit.', 'Kein Rückweg.'],
         closed: ['Die Anmeldung endet jetzt; eine Nachfrist gibt es dann nicht.', 'Die Klassenlisten dieser Anmeldung werden festgehalten; wer keine vollständigen Wünsche hat, bekommt eine E-Mail, die Klassenvorstände ihre Liste.', 'Kein Rückweg.'],
         archived: ['Danach ändert sich nichts mehr: kein Tausch, keine Einteilung, keine Anwesenheit.', 'Alles bleibt lesbar.', 'Kein Rückweg.'],
         draft: ['Lehrkräfte sehen die Anmeldung nicht mehr; ihre Entwürfe bleiben.', 'Rückweg: Angebote sammeln.'],
@@ -692,7 +692,7 @@ export const de = {
         noApproved: 'Keine Aktivität ist genehmigt: Der Katalog wäre leer.',
         noClasses: 'Keine Klasse nimmt teil: Niemand sieht die Anmeldung, niemand wird eingeladen.',
         opensAtPast: (when: string) => `Der Beginn ${when} liegt in der Vergangenheit: Die Anmeldung öffnet gleich nach der Veröffentlichung von selbst.`,
-        noEnd: 'Die Anmeldung hat kein Ende: Sie läuft, bis sie von Hand beendet wird.',
+        noEnd: 'Kein Ende festgelegt: Die Anmeldung bleibt offen, bis du sie von Hand beendest.',
         noEndAck: 'Ich öffne die Anmeldung ohne Ende und beende sie von Hand.',
         mailOff: 'Der E-Mail-Versand ist auf diesem Server nicht eingerichtet: Die Einladungen warten im Postausgang, bis er es ist.',
         /** Class activities that put a class into two at once, as "5A: Wanderung, Finale". */
@@ -733,6 +733,7 @@ export const de = {
       dailyMinimumHint: 'Gezählt wird die Unterrichtszeit der Einheiten, die die Termine belegen, ohne Pausen: Bei Einheiten zu 50 Minuten sind fünf Einheiten 250 Minuten.',
       showTeachers: 'Der Katalog nennt die Lehrkräfte der Aktivitäten',
       placeHeadroomPercent: 'Plätze über dem Bedarf, in Prozent',
+      placeHeadroomHint: 'Mit 20 % werden für je 100 Schüler*innen, die einen Platz brauchen, 120 Plätze geplant.',
       /** The attendance frame of a project day, two selects beside its date. */
       frameFrom: (day: number) => `Anwesenheitsrahmen ab Einheit, Projekttag ${day}`,
       frameTo: (day: number) => `bis Einheit, Projekttag ${day}`,
@@ -770,7 +771,7 @@ export const de = {
       served: '(diese Aktivität)',
       cell: (needing: number, target: number, offered: number) => `${needing} ohne Platz · Ziel ${target} · ${offered} angeboten`,
       short: (missing: number) => `${missing} unter dem Ziel`,
-      rulesIntro: 'Je Regel und Schulstufe: was den Schüler*innen nach ihren Klassenaktivitäten noch fehlt, und höchstens was die Plätze der Aktivitäten der Kategorie bringen, die sie wählen können. Eine Regel, für die das nicht reicht, ist markiert.',
+      rulesIntro: 'Je Regel und Schulstufe stehen die Aktivitäten oder Minuten, die den Schüler*innen über ihre Klassenaktivitäten hinaus noch fehlen, neben dem Höchsten, was die wählbaren Aktivitäten der Kategorie mit ihren Plätzen bringen. Reicht das nicht, ist die Regel markiert.',
       needed: 'Bedarf',
       offered: 'Bieten höchstens',
       ruleShort: 'reicht nicht',
@@ -830,9 +831,9 @@ export const de = {
 
   /** Eingereichte.vue: the organizer goes through the submitted activities one after the other. */
   review: {
-    heading: 'Eingereichte durchgehen',
+    heading: 'Eingereichte Aktivitäten prüfen',
     organizersOnly: 'Diese Seite ist für die Organisation.',
-    link: 'Eingereichte durchgehen',
+    link: 'Eingereichte Aktivitäten prüfen',
     back: 'Zurück zum Überblick',
     /** The order of the queue: by the first submission, or under the day an activity starts on. */
     order: 'Reihenfolge',
@@ -1225,7 +1226,7 @@ export const de = {
 
   /** Zuteilung.vue: the organizer's runs, their review and the changes after publication. */
   allocation: {
-    published: 'Die Einteilung ist veröffentlicht; die E-Mails sind unterwegs.',
+    published: 'Die Einteilung ist veröffentlicht. Die Benachrichtigungen sind zum Versand vorgemerkt; den Versandstatus findest du unter „E-Mails“.',
     changed: 'Die Einteilung ist geändert. Die Person bekommt Bescheid.',
     started: 'Die Zuteilung wird berechnet.',
     /** A student's place on a day in the review, in brackets after the item. */
@@ -1260,7 +1261,8 @@ export const de = {
       free: (count: number) => `${count} frei`,
       /** An item with more students than places, after a forced change: how many too many. */
       over: (count: number) => `${count} zu viel`,
-      force: 'Auch wenn die Aktivität voll ist, dann zu wenige bleiben oder eine Regel nicht mehr erfüllt ist (wird vermerkt)',
+      force: 'Ausnahme von Platzbegrenzung, Mindestzahl oder Regeln zulassen',
+      forceHint: 'Die Ausnahme wird zusammen mit deiner Begründung protokolliert.',
       submit: 'Ändern',
     },
     start: {

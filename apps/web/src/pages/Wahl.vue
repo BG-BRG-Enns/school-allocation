@@ -966,6 +966,7 @@ function onSubmitPending(): void {
                 max="100"
                 required
               >
+              <span class="muted">{{ t.campaign.settings.placeHeadroomHint }}</span>
             </p>
           </div>
           <p class="field">

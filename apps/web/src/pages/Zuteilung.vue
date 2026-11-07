@@ -428,6 +428,7 @@ const levelDelta = (name: string): number | null => {
             >
             {{ t.allocation.change.force }}
           </label>
+          <span class="muted">{{ t.allocation.change.forceHint }}</span>
         </p>
         <p class="actions">
           <button

@@ -310,7 +310,7 @@ export const en: Messages = {
     runFailure: {
       solver_unreachable: 'The calculation service could not be reached',
       solver_answer_invalid: 'The calculation service returned an unusable answer',
-      solver_infeasible: 'No allocation possible, usually because of the minimum for an activity that cannot be cancelled',
+      solver_infeasible: 'No valid allocation is possible with the current settings. First to check: the minimums of the activities that cannot be cancelled.',
       solver_unknown: 'No allocation found within the search effort',
       model_invalid: 'Error in the data for the calculation',
       validation_failed: 'Validation found an error in the calculated allocation; it was discarded',
@@ -328,7 +328,7 @@ export const en: Messages = {
     level: {
       students_with_deficit: 'Students with missing minutes',
       deficit_minutes: 'Total missing minutes',
-      total_cost: 'Total choices (weighted, fewer is better)',
+      total_cost: 'Ranking score, weighted by duration (lower is better)',
       tiebreak: 'Draw',
       over: (threshold: number) => `Students with an average choice above ${threshold}`,
       students_missing_rule: 'Students who do not meet all the rules',
@@ -628,7 +628,7 @@ export const en: Messages = {
       /** On the registration's page, for the organization: the classes of the lists in force that are not in. */
       notTakingPart: (classes: string) => `Classes of the class lists not taking part: ${classes}`,
       /** Why the list was refused: an activity or a rule still names these classes. */
-      inUse: (classes: string) => `An activity or a rule still names these classes: ${classes}. Change those first.`,
+      inUse: (classes: string) => `These classes are still used in activities or rules: ${classes}. Remove them there first; then you can take them out of this registration.`,
     },
   },
 
@@ -674,7 +674,7 @@ export const en: Messages = {
       consequences: {
         catalogue: ['Teachers see the registration and submit their activities.', 'Way back: to preparation, as long as the catalogue is not published.'],
         published: ['No new proposals; the name, school year and project days are fixed.', 'The approved activities get numbers, which stay.', 'Everyone sees the catalogue, students included; at the start set in the settings, registration opens by itself.', 'Way back: to collecting; the numbers stay.'],
-        open: ['Every student of the class lists gets the invitation email.', 'Class activities take their classes with them.', 'No way back.'],
+        open: ['The students of the participating classes are invited by email, where an email address is on file.', 'Class activities take their classes with them.', 'No way back.'],
         closed: ['Registration ends now; there is no late registration then.', 'The class lists of this registration are frozen; anyone without complete choices gets an email, class teachers their list.', 'No way back.'],
         archived: ['Nothing changes afterwards: no swaps, placements or attendance.', 'Everything stays readable.', 'No way back.'],
         draft: ['Teachers no longer see the registration; their drafts stay.', 'Way back: collect activities.'],
@@ -686,7 +686,7 @@ export const en: Messages = {
         noApproved: 'No activity is approved: the catalogue would be empty.',
         noClasses: 'No class takes part: nobody sees the registration, nobody is invited.',
         opensAtPast: (when: string) => `The start ${when} is in the past: registration opens by itself right after publication.`,
-        noEnd: 'Registration has no end: it runs until it is ended by hand.',
+        noEnd: 'No closing date is set: registration stays open until you end it by hand.',
         noEndAck: 'I open the registration without an end and will end it by hand.',
         mailOff: 'Sending email is not configured on this server: the invitations wait in the outbox until it is.',
         classConflicts: (list: string) => `A class is in two class activities at the same time: ${list}. The allocation cannot be calculated like this; take the class out of one of them.`,
@@ -723,7 +723,8 @@ export const en: Messages = {
       dailyMinimum: (grade: number) => `Minimum minutes per day, Year ${grade}`,
       dailyMinimumHint: 'What counts is the lesson time of the periods the sessions cover, without breaks: with periods of 50 minutes, five periods are 250 minutes.',
       showTeachers: 'The catalogue names the teachers of the activities',
-      placeHeadroomPercent: 'Places above the need, in percent',
+      placeHeadroomPercent: 'Extra places to offer (%)',
+      placeHeadroomHint: 'With 20%, 120 places are planned for every 100 students who need one.',
       frameFrom: (day: number) => `Attendance frame from period, project day ${day}`,
       frameTo: (day: number) => `to period, project day ${day}`,
       noFrame: 'no frame',
@@ -758,7 +759,7 @@ export const en: Messages = {
       served: '(this activity)',
       cell: (needing: number, target: number, offered: number) => `${needing} needed · target ${target} · ${offered} offered`,
       short: (missing: number) => `${missing} short of the target`,
-      rulesIntro: 'For each rule and year: what students still need after their class activities, and at most what the places of the category\'s activities they can choose bring. A rule that cannot be met is marked.',
+      rulesIntro: 'For each rule and year, the activities or minutes students still need beyond their class activities stand beside the most that the category\'s choosable activities bring with their places. A shortfall marks the rule.',
       needed: 'Need',
       offered: 'Offered at most',
       ruleShort: 'not enough',
@@ -1179,7 +1180,7 @@ export const en: Messages = {
 
   /** Zuteilung.vue: the organizer's runs, their review and the changes after publication. */
   allocation: {
-    published: 'The allocation is published; the emails are on their way.',
+    published: 'The allocation is published. The notifications are queued for sending; see their status under "Emails".',
     changed: 'The allocation has changed. The person will be notified.',
     started: 'The allocation is being calculated.',
     /** A student's place on a day in the review, in brackets after the item. */
@@ -1214,7 +1215,8 @@ export const en: Messages = {
       free: (count: number) => `${count} open`,
       /** An item with more students than places, after a forced change: how many too many. */
       over: (count: number) => `${count} over`,
-      force: 'Even if the activity is full, too few would remain or a rule would no longer be met (recorded)',
+      force: 'Allow an exception from the places, the minimum or the rules',
+      forceHint: 'The exception is recorded together with your reason.',
       submit: 'Change',
     },
     start: {

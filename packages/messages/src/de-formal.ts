@@ -43,9 +43,15 @@ export const deFormal = {
     category_unknown: 'Eine der Kategorien gibt es nicht mehr. Bitte die Seite neu laden.',
     class_conflict: 'Eine Klasse ist zur selben Zeit schon in einer anderen Klassenaktivität. Bitte den Hinweis ansehen.',
   },
+  campaigns: {
+    classes: {
+      inUse: (classes: string) => `Diese Klassen werden noch in Aktivitäten oder Regeln verwendet: ${classes}. Entfernen Sie sie zuerst dort; danach können Sie sie aus dieser Anmeldung herausnehmen.`,
+    },
+  },
   campaign: {
     transitions: {
       warnings: {
+        noEnd: 'Kein Ende festgelegt: Die Anmeldung bleibt offen, bis Sie sie von Hand beenden.',
         classConflicts: (list: string) => `Eine Klasse ist zur selben Zeit in zwei Klassenaktivitäten: ${list}. So lässt sich die Zuteilung nicht berechnen; nehmen Sie die Klasse aus einer der beiden heraus.`,
       },
     },
@@ -80,7 +86,9 @@ export const deFormal = {
     },
   },
   allocation: {
+    published: 'Die Einteilung ist veröffentlicht. Die Benachrichtigungen sind zum Versand vorgemerkt; den Versandstatus finden Sie unter „E-Mails“.',
     change: {
+      forceHint: 'Die Ausnahme wird zusammen mit Ihrer Begründung protokolliert.',
       rules: 'Es gilt dasselbe wie beim Tausch: in eine Aktivität mit freien Plätzen, die zur Schulstufe passt und sich mit nichts überschneidet, das bleibt; eine Klassenaktivität bleibt immer. Eine volle Aktivität, die Mindestzahl oder eine Regel der Anmeldung dürfen Sie übergehen; das Häkchen dafür wird vermerkt.',
     },
     review: {
