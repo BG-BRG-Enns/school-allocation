@@ -733,7 +733,7 @@ export const de = {
       dailyMinimumHint: 'Gezählt wird die Unterrichtszeit der Einheiten, die die Termine belegen, ohne Pausen: Bei Einheiten zu 50 Minuten sind fünf Einheiten 250 Minuten.',
       showTeachers: 'Der Katalog nennt die Lehrkräfte der Aktivitäten',
       placeHeadroomPercent: 'Plätze über dem Bedarf, in Prozent',
-      placeHeadroomHint: 'Mit 20 % werden für je 100 Schüler*innen, die einen Platz brauchen, 120 Plätze geplant.',
+      placeHeadroomHint: 'Mit 20 % werden für je 100 Schüler*innen, die einen Platz bekommen sollen, 120 Plätze geplant.',
       /** The attendance frame of a project day, two selects beside its date. */
       frameFrom: (day: number) => `Anwesenheitsrahmen ab Einheit, Projekttag ${day}`,
       frameTo: (day: number) => `bis Einheit, Projekttag ${day}`,
