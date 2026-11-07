@@ -38,7 +38,7 @@ export const reclaimStudent = (id: string, personId: string) => apiRequest(endpo
 export const takeOutOfClassActivity = (id: string, personId: string) => apiRequest(endpoints.putItemsByIdAbsencesByPersonId, { params: { id, personId } })
 export const bringBackToClassActivity = (id: string, personId: string) => apiRequest(endpoints.deleteItemsByIdAbsencesByPersonId, { params: { id, personId } })
 
-export const createCampaign = (input: { kind: 'project_week', name: string, schoolYear: string, projectDays: string[], classes?: string[], frames?: Record<string, { from: number, to: number }> }) => apiRequest(endpoints.postAdminCampaigns, { body: input })
+export const createCampaign = (input: { kind: 'project_week', name: string, schoolYear: string, projectDays: string[], classes?: string[], frames?: Record<string, { from: number, to: number }>, activityMinimums?: Record<string, number> }) => apiRequest(endpoints.postAdminCampaigns, { body: input })
 
 export const loadMyChoice = (id: string) => apiRequest(endpoints.getCampaignsByIdMyChoice, { params: { id: id } })
 export const saveMyChoice = (id: string, ranking: Record<string, string[]>) => apiRequest(endpoints.putCampaignsByIdMyChoice, { params: { id: id }, body: { ranking } })

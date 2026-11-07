@@ -8,6 +8,10 @@
 
 Beside each project day is its **attendance frame**: the periods of the [timetable](/en/verwaltung/stundenraster) everyone is at school in that day, say **periods 2 to 6** on a sports day with short courses. With a frame, [Places and demand](./anlegen#places-and-demand) counts the day period by period; without one (**no frame**, the default) it counts the whole day, which suits days of full-day activities. The frame can be changed until registration opens.
 
+## Minimum length of an activity per project day
+
+Beside the attendance frame each project day has a **minimum length of an activity** in minutes, for example 180 on Tuesday and 100 on Wednesday; empty means none. An activity must credit at least that many minutes on the day, all its sessions together, counted as for the [minimum minutes per day](#minimum-minutes-per-day); the form does not accept a shorter one, and it tells teachers while they enter it where the activity stands. Exempt are activities for teachers only and the days of a session over a night; class activities are not. A minimum raised later changes nothing about activities already submitted or approved; only the next change of their sessions must reach it. [Reviewing submissions](./anlegen#review-submissions) shows where each activity stands. The minimum length can be changed until the registration opens.
+
 ## Registration period and late registration
 
 - **Start**: Registration opens automatically at this time if the catalogue is published. **Open registration** opens it earlier.
@@ -49,6 +53,6 @@ A rule asks the students of a year (or only some of its classes) for at least so
 | Setting | Can be changed until |
 | ------- | -------------------- |
 | Name, school year, project days | the catalogue is published |
-| Attendance frame, registration period, late registration, choices per time block, places above the need, lock new offers, rules, teachers in the catalogue | registration opens |
+| Attendance frame, minimum length of an activity, registration period, late registration, choices per time block, places above the need, lock new offers, rules, teachers in the catalogue | registration opens |
 | Minimum minutes per day | the allocation is published |
 | Swap period | the swap period starts |

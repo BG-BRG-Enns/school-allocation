@@ -8,7 +8,7 @@
 import { requireFound } from '../lib/errors.ts'
 
 import type { ItemCheckBody, ItemCheckResponse, ClassConflictView } from '@school-allocation/api-contracts/catalogue'
-import { acceptsProposals, addedCells, checkItem, classConflicts, demandByDay, gateCells, gateRefused, isStaffOnly, itemTransition, servedCells, type CampaignState, type ClassActivity, type GateCell, type ItemState, type OfferedItem } from '@school-allocation/school-core'
+import { acceptsProposals, addedCells, checkItem, classConflicts, demandByDay, gateCells, gateRefused, isStaffOnly, itemTransition, lengthStandings, servedCells, type CampaignState, type ClassActivity, type GateCell, type ItemState, type OfferedItem } from '@school-allocation/school-core'
 import { actorOf, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
 import { sessionCredits } from '../lib/credits.ts'
@@ -31,22 +31,35 @@ import { takenFrom } from './placements.ts'
 import { reconcilePreAssignments } from './pre-assignments.ts'
 import { mayView } from './visibility.ts'
 
+/** The sessions as the rules read them: instants, the local dates each touches, what it credits. */
+function sessionInputs(sessions: readonly { startsAt: string, endsAt: string, credits: Item['sessions'][number]['credits'] }[]) {
+  return sessions.map((session) => {
+    const startMs = instantOf(session.startsAt) ?? Number.NaN
+    const endMs = instantOf(session.endsAt) ?? Number.NaN
+    return { startMs, endMs, dates: Number.isFinite(startMs) && Number.isFinite(endMs) ? datesOfSpan(startMs, endMs) : [], credits: session.credits }
+  })
+}
+
+/** The minimum length of an activity per project day as the campaign has it, by date. */
+function minimumsIn(campaign: Pick<Campaign, 'days'>): Record<string, number> {
+  return Object.fromEntries(campaign.days.flatMap((day) => (day.minimumMinutes === null ? [] : [[day.date, day.minimumMinutes] as const])))
+}
+
 /**
  * Checks an activity against its campaign's project days and classes and
  * the roster's teachers, inside the caller's transaction; throws ItemInvalid.
+ * The minimum length of a day holds a new activity and a change of times;
+ * one accepted before the minimum was raised keeps its words editable
+ * (`holdToMinimum` false), as a change of the grid re-derives nothing.
  */
-async function validate(client: Queryable, campaignId: string, input: ItemInput): Promise<void> {
+async function validate(client: Queryable, campaignId: string, input: ItemInput, holdToMinimum = true): Promise<void> {
   const campaign = await store.findProjectDays(client, campaignId)
   const classes = await store.listCampaignClasses(client, campaignId)
   const teachers = await store.findItemTeachers(client, input)
   const known = new Set(teachers.map((row) => row.personId))
   const unknownTeachers = input.teachers.filter((id) => !known.has(id))
-  const sessions = input.sessions.map((session) => {
-    const startMs = instantOf(session.startsAt) ?? Number.NaN
-    const endMs = instantOf(session.endsAt) ?? Number.NaN
-    return { startMs, endMs, dates: Number.isFinite(startMs) && Number.isFinite(endMs) ? datesOfSpan(startMs, endMs) : [], credits: session.credits }
-  })
-  const problems = checkItem({ sessions, rules: input, teachers: input.teachers, lead: input.lead }, { projectDays: campaign?.projectDays ?? [], classes: classes.map((row) => row.className) })
+  const sessions = sessionInputs(input.sessions)
+  const problems = checkItem({ sessions, rules: input, teachers: input.teachers, lead: input.lead }, { projectDays: campaign?.projectDays ?? [], classes: classes.map((row) => row.className), activityMinimum: holdToMinimum ? campaign?.activityMinimum ?? {} : {} })
   if (problems.length > 0 || unknownTeachers.length > 0) throw new ItemInvalid(problems, unknownTeachers)
   const categories = input.categories ?? []
   const categoriesKnown = await knownCategories(client, categories)
@@ -149,7 +162,7 @@ export async function updateItem(db: Database, id: string, sent: ItemInput, call
     // them); the words may still change.
     if (campaign?.state === 'archived') throw new ApplicationError('campaign_state')
     if (campaign?.state === 'results' && current.state === 'approved' && allocationRelevantChange(current, input)) throw new ApplicationError('campaign_state')
-    await validate(client, current.campaignId, input)
+    await validate(client, current.campaignId, input, timesKey(current.sessions) !== timesKey(input.sessions))
     // A class is in one class activity at a time: an organizer's change of classes or times to an activity already
     // submitted or approved must not make two (a teacher's draft is checked when it is submitted).
     const byName = (a: string, b: string) => a.localeCompare(b, 'de')
@@ -398,14 +411,20 @@ export async function checkItemOffer(db: Database, campaign: Campaign, body: Ite
   let shape: StoredShape | null = null
   let previous: StoredShape | null = null
   let itemId: string | null = null
+  // The sessions with what they credit: the stored ones as stored, the form's derived from the grid as it stands (as a save would).
+  let sessions: { startsAt: string, endsAt: string, credits: Item['sessions'][number]['credits'] }[] = []
   if (body.itemId !== undefined) {
     const item = await readItem(db, body.itemId.toLowerCase())
     if (!item || item.campaignId !== campaign.id || !(isOrganizer(caller) || isOwn(caller, item))) throw new ApplicationError('not_found')
     shape = shapeOf(item)
     previous = await readProposedShape(db, item.id)
     itemId = item.id
+    sessions = item.sessions
   }
-  if (body.item !== undefined) shape = shapeOf(itemInput(body.item, caller, true))
+  if (body.item !== undefined) {
+    shape = shapeOf(itemInput(body.item, caller, true))
+    sessions = (await credited(db, itemInput(body.item, caller, true))).sessions
+  }
   if (shape === null) throw new ApplicationError('validation_failed')
   const { before, after, served, cells, refused } = await gateFor(db, campaign, itemId, shape, previous)
   const classActivity = shape.fixedClasses.length > 0
@@ -419,6 +438,8 @@ export async function checkItemOffer(db: Database, campaign: Campaign, body: Ite
     conflicts: await classConflictsOf(db, campaign.id, { id: itemId ?? '', ...shape }),
     // For a class activity: who of its classes a direct placement elsewhere takes out of it, so its teachers see it while they fill the form.
     taken: await takenFrom(db, campaign, shape, itemId),
+    // The activity against the minimum length of each day it touches, as a save would check it.
+    length: lengthStandings({ sessions: sessionInputs(sessions), rules: shape }, minimumsIn(campaign), campaign.projectDays),
   }
 }
 

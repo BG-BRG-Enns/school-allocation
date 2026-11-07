@@ -17,7 +17,10 @@ export const CatalogueProblemCodeSchema = Literals(CATALOGUE_PROBLEM_CODES)
 export const CatalogueProblemSchema = StrictObject({
   code: CatalogueProblemCodeSchema,
   session: Type.Optional(Type.Number()),
+  date: Type.Optional(Type.String()),
 })
+/** An activity against a day's minimum length (school-core LengthStanding, pinned in domain-checks.ts). */
+export const LengthStandingSchema = StrictObject({ date: Type.String(), minimum: Type.Integer(), credited: Type.Integer(), met: Type.Boolean() })
 
 /** What a registration asks of whom per category (school-core CampaignRule). */
 export const RuleSchema = StrictObject({
@@ -53,7 +56,12 @@ export const FrameSchema = StrictObject({ from: Type.Number(), to: Type.Number()
 export type Frame = Static<typeof FrameSchema>
 
 /** A project day with its settings: the date and its frame, if any. */
-export const CampaignDaySchema = StrictObject({ date: Type.String(), frame: Type.Union([FrameSchema, Type.Null()]) })
+export const CampaignDaySchema = StrictObject({
+  date: Type.String(),
+  frame: Type.Union([FrameSchema, Type.Null()]),
+  /** The minimum length of an activity on the day, in credited minutes; null for none. */
+  minimumMinutes: Type.Union([Type.Integer(), Type.Null()]),
+})
 export type CampaignDay = Static<typeof CampaignDaySchema>
 
 export const CampaignSchema = StrictObject({

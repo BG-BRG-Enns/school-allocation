@@ -260,6 +260,7 @@ export const de = {
       credit_date_twice: 'Ein Tag ist bei einem Termin zweimal angerechnet',
       credit_minutes_invalid: 'Angerechnete Minuten müssen eine ganze Zahl zwischen 0 und 1440 sein',
       no_credit: 'Ein Termin rechnet keine Minuten an',
+      below_minimum_length: 'Die Aktivität ist an diesem Tag kürzer als die Mindestlänge',
       min_above_places: 'Die Mindestzahl ist größer als die Zahl der Plätze',
       fixed_item_cancellable: 'Eine Klassenaktivität findet immer statt und kann nicht ausfallen',
       fixed_class_unknown: 'Eine der ganzen Klassen gibt es in den Klassenlisten nicht',
@@ -497,6 +498,7 @@ export const de = {
     transition_not_available: 'Diesen Schritt gibt es in dieser Version noch nicht.',
     project_day_twice: 'Ein Projekttag ist zweimal eingetragen.',
     invalid_date: 'Ein Datum gibt es im Kalender nicht.',
+    minimum_invalid: 'Eine Mindestlänge passt nicht: Sie muss eine ganze Zahl von 1 bis 1440 Minuten sein und zu einem Projekttag gehören.',
     frame_invalid: 'Ein Anwesenheitsrahmen passt nicht: Er endet vor seinem Beginn, nennt eine Einheit, die das Stundenraster nicht hat, oder einen Tag, der kein Projekttag ist.',
     class_conflict: 'Eine Klasse ist zur selben Zeit schon in einer anderen Klassenaktivität. Sieh dir bitte den Hinweis an.',
     target_reached: 'In jedem Feld, in das diese Aktivität Plätze brächte, ist das Ziel schon erreicht. Sieh dir bitte den Hinweis an.',
@@ -736,6 +738,10 @@ export const de = {
       frameTo: (day: number) => `bis Einheit, Projekttag ${day}`,
       noFrame: 'kein Rahmen',
       frameHint: 'Der Anwesenheitsrahmen eines Projekttags sind die Einheiten, in denen alle in der Schule sind, etwa 2. bis 6. Einheit. Mit Rahmen zählt Plätze und Bedarf jede Einheit einzeln; ohne Rahmen zählt der ganze Tag.',
+      /** The minimum length of an activity on a project day, a minutes input beside its date. */
+      activityMinimum: (day: number) => `Mindestlänge einer Aktivität in Minuten, Projekttag ${day}`,
+      activityMinimumUnit: 'Minuten',
+      activityMinimumHint: 'Die Mindestlänge ist, was eine Aktivität an diesem Tag mindestens anrechnen muss, über alle ihre Termine zusammen; gezählt wird wie bei den Mindestminuten je Tag. Eine kürzere wird nicht angenommen. Ausgenommen sind Aktivitäten nur für Lehrkräfte und die Tage eines Termins über Nacht. Leer heißt: keine Mindestlänge.',
       lockNewOffers: 'Neue Angebote sperren, sobald das Ziel erreicht ist',
       lockHint: 'Mit der Sperre kann eine Lehrkraft eine Aktivität nur einreichen, wenn mindestens ein Feld, in das ihre Plätze gehen, noch unter dem Ziel liegt. Klassenaktivitäten sind ausgenommen; die Organisation darf immer anlegen und genehmigen.',
     },
@@ -870,6 +876,12 @@ export const de = {
     editTitle: 'Aktivität bearbeiten',
     /** A refusal that names a session, counted from 1: "… (Termin 2)". */
     inSession: (problem: string, session: number) => `${problem} (Termin ${session})`,
+    onDate: (problem: string, day: string) => `${problem} (${day})`,
+    /** The activity against a day's minimum length, under the sessions. */
+    length: {
+      met: (day: string, minimum: number, credited: number) => `${day}: Mindestlänge ${minimum} Minuten, angerechnet ${credited} ✓`,
+      short: (day: string, minimum: number, credited: number) => `${day}: Mindestlänge ${minimum} Minuten, angerechnet nur ${credited} – so wird die Aktivität nicht angenommen`,
+    },
     unknownTeachers: 'Eine Lehrkraft steht nicht in den Klassenlisten',
     reviewNote: (note: string) => `Rückmeldung der Organisation: ${note}`,
     title: 'Titel',

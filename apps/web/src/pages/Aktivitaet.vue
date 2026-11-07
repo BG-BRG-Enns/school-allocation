@@ -227,6 +227,11 @@ const gateHints = computed<{ text: string, alert: boolean }[]>(() => {
   return lines
 })
 const conflictHints = computed(() => (check.value?.conflicts ?? []).map(conflictText))
+/** The activity against the minimum length of each day it touches that has one, from the check: what a save would hold it to. */
+const lengthHints = computed<{ text: string, alert: boolean }[]>(() => (check.value?.length ?? []).map((l) => ({
+  text: l.met ? t.item.length.met(formatDay(l.date), l.minimum, l.credited) : t.item.length.short(formatDay(l.date), l.minimum, l.credited),
+  alert: !l.met,
+})))
 
 function conflictText(c: ClassConflictView): string {
   return t.item.conflict(c.className, formatDay(localDateOf(c.startsAt)), localTimeOf(c.startsAt), localTimeOf(c.endsAt), c.title, c.lead.shortName ?? c.lead.displayName)
@@ -468,6 +473,7 @@ async function save(propose: boolean): Promise<void> {
         problems.value = [
           ...body.problems.map((p) => {
             const label = CATALOGUE_PROBLEM_LABELS[p.code] ?? p.code
+            if (p.date !== undefined) return t.item.onDate(label, formatDay(p.date))
             return p.session === undefined ? label : t.item.inSession(label, p.session + 1)
           }),
           ...(body.unknownTeachers.length > 0 ? [t.item.unknownTeachers] : []),
@@ -869,6 +875,13 @@ async function save(propose: boolean): Promise<void> {
       >
         {{ t.item.sessions.add }}
       </button>
+    </p>
+    <p
+      v-for="line in lengthHints"
+      :key="line.text"
+      :class="line.alert ? 'alert' : 'notice'"
+    >
+      {{ line.text }}
     </p>
     <p
       v-for="hint in conflictHints"

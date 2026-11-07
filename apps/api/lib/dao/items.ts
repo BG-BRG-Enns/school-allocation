@@ -106,8 +106,13 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
 }
 
 export async function findProjectDays(db: Queryable, campaignId: string) {
-  const { rows: [row] } = await db.query<{ project_days: string[] }>('select project_days::text[] as project_days from campaign where id = $1', [campaignId])
-  return row === undefined ? undefined : ({ projectDays: row.project_days })
+  const { rows: [row] } = await db.query<{ project_days: string[], minimums: Record<string, number> }>(
+    `select c.project_days::text[] as project_days,
+            coalesce((select json_object_agg(d.day::text, d.min_activity_minutes) from campaign_day d where d.campaign_id = c.id and d.min_activity_minutes is not null), '{}') as minimums
+       from campaign c where c.id = $1`,
+    [campaignId],
+  )
+  return row === undefined ? undefined : ({ projectDays: row.project_days, activityMinimum: row.minimums })
 }
 
 /** The classes taking part in the campaign, by name: what an activity may name as fixed or eligible. */

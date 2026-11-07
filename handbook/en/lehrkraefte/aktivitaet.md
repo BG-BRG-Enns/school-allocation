@@ -34,6 +34,12 @@ An activity usually has **one** session: one continuous span. It fits into the s
 
 You do not enter how many minutes a session credits to students on each project day: SchulWahl counts the lesson time of the periods the session covers. Two periods of 50 minutes are 100 minutes, the break between them does not count; a trip from 8:00 to 13:00 counts the periods within that time, a period it cuts into by its minutes. What lies outside the timetable does not count; only a session wholly outside it, in the evening for example, counts by the clock. The credited minutes are shown in the catalogue and fill the minimum minutes students need each day.
 
+### How long an activity must be
+
+The organisation can set a **minimum length** for each project day: an activity must credit at least this many minutes on that day, all its sessions on the day together. Below the sessions the form says where your activity stands: "Tuesday: minimum length 180 minutes, 200 credited ✓" – or, with a warning, that it is too short. An activity that is too short cannot be saved, not even as a draft. No minimum applies to an activity for teachers only, nor to the days of a session over a night: a trip that returns in the morning is not too short on the day it returns.
+
+![Below the sessions: the activity is shorter than the minimum length on this day](/bilder/en/mindestlaenge.png)
+
 **Further session (only for an interruption)** is for an activity that does not take place in one piece, such as two periods each on Monday and on Wednesday. Whoever is assigned attends every session. If the same activity is held again for other students, create it as an activity of its own.
 
 ## Participation

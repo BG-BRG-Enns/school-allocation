@@ -122,6 +122,8 @@ export interface ItemContext {
   projectDays: string[]
   /** The class names of the roster in force. */
   classes: string[]
+  /** The minimum length of an activity per project day, in credited minutes; a day left out asks for none. */
+  activityMinimum: Record<string, number>
 }
 
 export const CATALOGUE_PROBLEM_CODES = [
@@ -133,6 +135,7 @@ export const CATALOGUE_PROBLEM_CODES = [
   'credit_date_twice',
   'credit_minutes_invalid',
   'no_credit',
+  'below_minimum_length',
   'min_above_places',
   'fixed_item_cancellable',
   'fixed_class_unknown',
@@ -149,6 +152,44 @@ export interface CatalogueProblem {
   code: CatalogueProblemCode
   /** The session the problem is about, counted from 0. */
   session?: number
+  /** The project day the problem is about (below_minimum_length). */
+  date?: string
+}
+
+/** How an activity stands against a day's minimum length. */
+export interface LengthStanding {
+  date: string
+  /** The day's minimum, in credited minutes. */
+  minimum: number
+  /** What the activity credits that day over all its sessions. */
+  credited: number
+  met: boolean
+}
+
+/**
+ * The activity against the minimum length of each project day it touches
+ * that has one: what its sessions credit on the day together (an
+ * interruption is two sessions of one activity) must reach the minimum.
+ * Exempt: an activity of its teachers alone, which offers nothing; and the
+ * days of a session over a night, which a trip returning in the morning
+ * meets by the night away. In the days' order.
+ */
+export function lengthStandings(item: { sessions: readonly Pick<SessionInput, 'dates' | 'credits'>[], rules: { fixedClasses: readonly string[], places: number } }, activityMinimum: Readonly<Record<string, number>>, projectDays: readonly string[]): LengthStanding[] {
+  if (isStaffOnly(item.rules)) return []
+  const credited = new Map<string, number>()
+  const overnight = new Set<string>()
+  for (const session of item.sessions) {
+    for (const credit of session.credits) credited.set(credit.date, (credited.get(credit.date) ?? 0) + credit.minutes)
+    if (session.dates.length > 1) for (const date of session.dates) overnight.add(date)
+  }
+  const touched = new Set(item.sessions.flatMap((session) => session.dates))
+  return projectDays
+    .filter((date) => touched.has(date) && (activityMinimum[date] ?? 0) > 0)
+    .map((date) => {
+      const minimum = activityMinimum[date] as number
+      const minutes = credited.get(date) ?? 0
+      return { date, minimum, credited: minutes, met: overnight.has(date) || minutes >= minimum }
+    })
 }
 
 /**
@@ -179,6 +220,9 @@ export function checkItem(item: ItemInput, context: ItemContext): CatalogueProbl
     for (let j = i + 1; j < item.sessions.length; j++) {
       if (overlaps(item.sessions[i] as Span, item.sessions[j] as Span)) problems.push({ code: 'sessions_overlap', session: j })
     }
+  }
+  for (const standing of lengthStandings(item, context.activityMinimum, context.projectDays)) {
+    if (!standing.met) problems.push({ code: 'below_minimum_length', date: standing.date })
   }
   const { rules } = item
   if (rules.minParticipants > rules.places) problems.push({ code: 'min_above_places' })

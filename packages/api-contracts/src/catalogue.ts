@@ -4,7 +4,7 @@
 
 import { CLASS_NAME, GRADES, MAX_RULES, RULE_LIMITS, RULE_PROBLEM_CODES, RULE_UNITS } from '@school-allocation/school-core'
 import { Type, type Static } from 'typebox'
-import { CatalogueProblemSchema, DayDemandSchema } from './campaigns.ts'
+import { CatalogueProblemSchema, DayDemandSchema, LengthStandingSchema } from './campaigns.ts'
 import { Literals, MultiLineText, SingleLineText, StrictObject, Uuid } from './common.ts'
 import { AbsentStudentSchema } from './placements.ts'
 
@@ -21,6 +21,8 @@ const ClassList = Type.Array(ClassName, { maxItems: 100 })
 export const FrameBody = StrictObject({ from: Type.Integer({ minimum: 1, maximum: 20 }), to: Type.Integer({ minimum: 1, maximum: 20 }) })
 /** The frames by project day (YYYY-MM-DD); a day named here must be one of the registration's. */
 const Frames = Type.Record(Type.String({ pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' }), FrameBody, { maxProperties: 10, additionalProperties: false })
+/** The minimum length of an activity by project day (YYYY-MM-DD), in credited minutes; a day named here must be one of the registration's. */
+const ActivityMinimums = Type.Record(Type.String({ pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' }), Type.Integer({ minimum: 1, maximum: 1440 }), { maxProperties: 10, additionalProperties: false })
 
 export const CampaignBody = StrictObject({
   kind: Type.Literal('project_week'),
@@ -31,6 +33,8 @@ export const CampaignBody = StrictObject({
   classes: Type.Optional(ClassList),
   /** The attendance frame per project day; a day left out has none. */
   frames: Type.Optional(Frames),
+  /** The minimum length of an activity per project day; a day left out has none. */
+  activityMinimums: Type.Optional(ActivityMinimums),
 })
 
 /** Why a class was not taken out of a registration: an activity or a rule of it still names these classes. */
@@ -60,6 +64,8 @@ export const CampaignChangesBody = StrictObject({
   classes: Type.Optional(ClassList),
   /** The attendance frames by project day, replacing them; left out, the days that stay keep theirs. Changed until the window opens. */
   frames: Type.Optional(Frames),
+  /** The minimum length of an activity by project day, replacing them; left out, the days that stay keep theirs. Changed until the window opens. */
+  activityMinimums: Type.Optional(ActivityMinimums),
   // The window and what it asks (D-05, D-06, D-13); left out, a setting stays.
   opensAt: Type.Optional(InstantOrNull),
   closesAt: Type.Optional(InstantOrNull),
@@ -161,6 +167,8 @@ export const ItemCheckResponse = StrictObject({
   conflicts: Type.Array(ClassConflictSchema),
   /** For a class activity as it stands in the form: the students of its classes a direct placement elsewhere takes out of it. */
   taken: Type.Array(AbsentStudentSchema),
+  /** The activity against the minimum length of each project day it touches that has one (school-core lengthStandings). */
+  length: Type.Array(LengthStandingSchema),
 })
 export type ItemCheckResponse = Static<typeof ItemCheckResponse>
 

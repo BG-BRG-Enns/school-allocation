@@ -34,6 +34,12 @@ Eine Aktivität hat meist **einen** Termin: einen zusammenhängenden Zeitraum. E
 
 Wie viele Minuten ein Termin den Schüler\*innen je Projekttag anrechnet, trägst du nicht ein: SchulWahl zählt die Unterrichtszeit der Einheiten, die der Termin belegt. Zwei Einheiten zu 50 Minuten sind 100 Minuten, die Pause dazwischen zählt nicht; ein Ausflug von 8:00 bis 13:00 zählt die Einheiten, die in dieser Zeit liegen, eine angeschnittene mit ihren Minuten. Was außerhalb des Stundenrasters liegt, zählt nicht; nur ein Termin, der ganz außerhalb liegt, etwa am Abend, zählt nach der Uhr. Die angerechneten Minuten stehen im Katalog und füllen die Mindestminuten, die für Schüler\*innen je Tag gelten.
 
+### Wie lang eine Aktivität sein muss
+
+Die Organisation kann für jeden Projekttag eine **Mindestlänge** festlegen: so viele Minuten muss eine Aktivität an diesem Tag mindestens anrechnen, alle ihre Termine an dem Tag zusammen. Das Formular sagt dir unter den Terminen, wie deine Aktivität dasteht: „Dienstag: Mindestlänge 180 Minuten, angerechnet 200 ✓“ – oder, mit Warnung, dass sie zu kurz ist. Eine zu kurze Aktivität lässt sich nicht speichern, auch nicht als Entwurf. Keine Mindestlänge gilt für eine Aktivität nur für Lehrkräfte und für die Tage eines Termins über Nacht: Ein Ausflug, der am Vormittag zurückkommt, ist am Rückreisetag nicht zu kurz.
+
+![Unter den Terminen: die Aktivität ist an diesem Tag kürzer als die Mindestlänge](/bilder/de/mindestlaenge.png)
+
 **Weiterer Termin (nur bei Unterbrechung)** ist für eine Aktivität, die nicht in einem Stück stattfindet, etwa je zwei Einheiten am Montag und am Mittwoch. Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler\*innen statt, lege sie als eigene Aktivität an.
 
 ## Teilnahme
