@@ -374,4 +374,15 @@ test('an activity reaches the minimum length of each day it touches or is refuse
   assert.equal((await edit({ description: 'Kletterhalle Linz, Halle 2', sessions: [MONDAY, afternoon] })).status, 200, 'the words again, with the times unchanged: not held to the new minimum')
   assert.deepEqual((await edit({ sessions: [longer, afternoon] })).body.problems, [{ code: 'below_minimum_length', date: '2027-06-21' }], '290 of 300')
   assert.deepEqual((await send<Check>(s, s.bernd, 'POST', `${url}/check`, { itemId: split.body.id })).body.length, [{ date: '2027-06-21', minimum: 300, credited: 260, met: false }], 'the review sees the shortfall')
+  // A supervision (exempt) that gets places becomes an activity for students and is held to the minimum then, its times unchanged.
+  const duty = await send<Item>(s, s.carla, 'POST', url, { title: 'Aufsicht', places: 0, minParticipants: 0, cancellableBelowMin: false, teachers: [], sessions: [MONDAY] })
+  const opened = await send<Invalid>(s, s.carla, 'PATCH', `/api/items/${duty.body.id}`, { title: 'Aufsicht', places: 5, minParticipants: 0, cancellableBelowMin: false, teachers: [s.carlaPerson], sessions: [MONDAY] })
+  assert.deepEqual([opened.status, opened.body.problems], [422, [{ code: 'below_minimum_length', date: '2027-06-21' }]])
+  // The check of an edit keeps the stored credits of unchanged times, as a save does (the registrations open keep theirs through a change of the grid):
+  // the morning's stored credit set to what an earlier grid gave, the preview reads it, not the grid's 210.
+  const owner = createDatabase(s.ownerUrl, () => {})
+  t.after(() => owner.close())
+  await owner.query('update item_session set credits = $2 where item_id = $1 and starts_at = $3', [split.body.id, JSON.stringify([{ date: '2027-06-21', minutes: 250 }]), MONDAY.startsAt])
+  const preview = await send<Check>(s, s.bernd, 'POST', `${url}/check`, { itemId: split.body.id, item: { title: 'Klettern', description: 'x', places: 12, teachers: [s.berndPerson], sessions: [MONDAY, afternoon] } })
+  assert.deepEqual(preview.body.length, [{ date: '2027-06-21', minimum: 300, credited: 300, met: true }], 'the stored 250 and the afternoon\'s 50')
 })

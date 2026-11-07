@@ -162,7 +162,8 @@ export async function updateItem(db: Database, id: string, sent: ItemInput, call
     // them); the words may still change.
     if (campaign?.state === 'archived') throw new ApplicationError('campaign_state')
     if (campaign?.state === 'results' && current.state === 'approved' && allocationRelevantChange(current, input)) throw new ApplicationError('campaign_state')
-    await validate(client, current.campaignId, input, timesKey(current.sessions) !== timesKey(input.sessions))
+    // Held to the day's minimum length when the times change, and when an activity of its teachers alone (exempt) becomes one for students.
+    await validate(client, current.campaignId, input, timesKey(current.sessions) !== timesKey(input.sessions) || (isStaffOnly(current) && !isStaffOnly(input)))
     // A class is in one class activity at a time: an organizer's change of classes or times to an activity already
     // submitted or approved must not make two (a teacher's draft is checked when it is submitted).
     const byName = (a: string, b: string) => a.localeCompare(b, 'de')
@@ -422,8 +423,10 @@ export async function checkItemOffer(db: Database, campaign: Campaign, body: Ite
     sessions = item.sessions
   }
   if (body.item !== undefined) {
-    shape = shapeOf(itemInput(body.item, caller, true))
-    sessions = (await credited(db, itemInput(body.item, caller, true))).sessions
+    const input = itemInput(body.item, caller, true)
+    shape = shapeOf(input)
+    // As a save would credit them: a stored session whose times are unchanged keeps its credit, whatever the grid has become.
+    sessions = (await credited(db, input, sessions)).sessions
   }
   if (shape === null) throw new ApplicationError('validation_failed')
   const { before, after, served, cells, refused } = await gateFor(db, campaign, itemId, shape, previous)
