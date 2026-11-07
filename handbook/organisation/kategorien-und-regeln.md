@@ -20,7 +20,7 @@ Die Regeln trägst du unter **Einstellungen ändern** ein ([Einstellungen](./ein
 
 - eine **Kategorie**;
 - die **Schulstufen**, für die sie gilt, und wenn nötig **nur diese Klassen**, etwa „7A, 7B“; leer gilt sie für alle Klassen der Schulstufen;
-- was sie **zählt**: Aktivitäten oder Minuten, und zwar die angerechneten Minuten der Aktivitäten;
+- was sie **zählt**: Aktivitäten oder Minuten, und zwar die Minuten der Aktivitäten im [Anwesenheitsrahmen](./einstellungen#anwesenheitsrahmen-je-projekttag); ein Zusatzangebot, in das jemand direkt eingeteilt ist, zählt als Aktivität, aber ohne Minuten;
 - **mindestens**: 1 bis 20 Aktivitäten oder 1 bis 10000 Minuten.
 
 Eine Anmeldung hat höchstens 20 Regeln. Klassenaktivitäten zählen mit: Fährt die ganze Klasse auf eine Exkursion der Kategorie, ist die Regel damit vielleicht schon erfüllt.

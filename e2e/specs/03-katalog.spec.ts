@@ -98,17 +98,19 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(page.getByRole('heading', { name: t.common.page.newItem })).toBeVisible()
   await page.getByLabel(t.item.title).fill(sample.climbing)
   await page.getByLabel(t.item.description).fill(sample.climbingDescription)
-  // One period on Wednesday would fall short of the day's minimum length: the form says so under the sessions, before any save.
+  // One period on Wednesday would fall short of the day's minimum length: the form says so under the sessions, before any save, with the minutes to add inside the day's window (no frame on Wednesday: the grid's first period to its last).
+  const wednesdayMinimum = SCHOOL.campaign.activityMinimums['2034-07-05'] ?? 0
+  const wednesdayShort = t.item.length.short(day('2034-07-05'), wednesdayMinimum - 50, wednesdayMinimum, '07:35', '16:50')
   await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-05')
   await page.getByLabel(t.item.sessions.count, { exact: true }).fill('1')
-  await expect(page.getByText(t.item.length.short(day('2034-07-05'), SCHOOL.campaign.activityMinimums['2034-07-05'] ?? 0, 50))).toBeVisible()
-  await picture(page, 'mindestlaenge', page.getByText(t.item.length.short(day('2034-07-05'), SCHOOL.campaign.activityMinimums['2034-07-05'] ?? 0, 50)))
+  await expect(page.getByText(wednesdayShort)).toBeVisible()
+  await picture(page, 'mindestlaenge', page.getByText(wednesdayShort))
   // In the school's periods: Monday from the 2nd period, four periods long (08:30 – 12:15). Monday asks for no minimum.
   await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-03')
   await page.getByLabel(t.item.sessions.fromPeriod).selectOption('2')
   await page.getByLabel(t.item.sessions.count, { exact: true }).fill('4')
   await expect(page.getByText('08:30 – 12:15')).toBeVisible()
-  await expect(page.getByText(t.item.length.short(day('2034-07-05'), SCHOOL.campaign.activityMinimums['2034-07-05'] ?? 0, 50))).toHaveCount(0)
+  await expect(page.getByText(wednesdayShort)).toHaveCount(0)
   await page.getByLabel(t.common.field.places, { exact: true }).fill(String(CLIMBING.places))
   await page.getByLabel(t.item.participation.minParticipants, { exact: true }).fill('6')
   // For the upper school, whose Monday morning it fits.
@@ -238,9 +240,12 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   // On a day Bernd is not there, the form says so and still lets him save.
   await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-04')
   await expect(page.getByText(t.item.teachers.unavailableOn(BERND.name, day('2034-07-04')))).toBeVisible()
-  // A class activity is held to the day's minimum length like any other: four periods reach Tuesday's 180 minutes, and the form says so.
+  // A class activity is held to the day's minimum length like any other: two periods (08:30 – 10:15) fall short of Tuesday's 180 minutes, four reach them and the line goes.
+  const tuesdayMinimum = SCHOOL.campaign.activityMinimums['2034-07-04'] ?? 0
+  const tuesdayShort = t.item.length.short(day('2034-07-04'), tuesdayMinimum - 105, tuesdayMinimum, '07:35', '16:50')
+  await expect(page.getByText(tuesdayShort)).toBeVisible()
   await page.getByLabel(t.item.sessions.count, { exact: true }).fill('4')
-  await expect(page.getByText(t.item.length.met(day('2034-07-04'), SCHOOL.campaign.activityMinimums['2034-07-04'] ?? 0, 200))).toBeVisible()
+  await expect(page.getByText(tuesdayShort)).toHaveCount(0)
   await picture(page, 'klassenaktivitaet', [page.getByRole('heading', { name: t.item.participation.heading }), page.getByRole('group', { name: t.item.participation.eligibleClasses })])
   // Saved as a draft, the class activity has its list of who does not take part: Tim stays at home, no reason asked, and comes along after all.
   await page.getByRole('button', { name: t.common.save, exact: true }).click()

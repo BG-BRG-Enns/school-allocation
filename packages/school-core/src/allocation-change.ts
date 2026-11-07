@@ -5,7 +5,7 @@
 // and its current rows; who may ask for what, the window and the lock are
 // the API's. Data only: the German sentences are the pages'.
 
-import { creditedMinutesByDate, isEligible, overlaps } from './catalogue.ts'
+import { creditedMinutesByDate, isEligible, isExtra, overlaps } from './catalogue.ts'
 import type { AllocationInput, AllocationItem, AllocationStudent, Assignment, AssignmentSource } from './allocation-model.ts'
 import { ruleStandings, type RuleStanding } from './rules.ts'
 
@@ -129,13 +129,14 @@ function standings(input: AllocationInput, student: AllocationStudent, itemIds: 
 
 /**
  * Whether the student may enter the item at all: approved and not
- * cancelled, eligible for them, no class activity of theirs and overlapping
+ * cancelled, not an extra (its teachers place students into it, catalogue.ts
+ * isExtra), eligible for them, no class activity of theirs and overlapping
  * none of theirs that still takes place. A class activity cancelled by the
  * run or withdrawn since (`unavailable`) holds no time of theirs any more:
  * the frozen input still names it, the replacement for its day may overlap it.
  */
 function offered(input: AllocationInput, student: AllocationStudent, item: AllocationItem | undefined, unavailable: ReadonlySet<string>, held: ReadonlySet<string>): item is AllocationItem {
-  if (item === undefined || unavailable.has(item.id) || !isEligible(student, { ...item.rules, places: placesOf(input, item) })) return false
+  if (item === undefined || unavailable.has(item.id) || isExtra(item.sessions) || !isEligible(student, { ...item.rules, places: placesOf(input, item) })) return false
   const items = new Map(input.items.map((i) => [i.id, i]))
   return !student.fixedItemIds.some((id) => held.has(id) && !unavailable.has(id) && itemsOverlap(item, items.get(id)))
 }

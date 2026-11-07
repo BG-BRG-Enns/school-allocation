@@ -255,8 +255,7 @@ export const en: Messages = {
       credit_date_outside_session: 'Minutes credited to a day on which the session does not take place',
       credit_date_twice: 'A day is credited twice for a session',
       credit_minutes_invalid: 'Credited minutes must be a whole number between 0 and 1440',
-      no_credit: 'A session credits no minutes',
-      below_minimum_length: 'The activity is shorter than the minimum length on this day',
+      below_minimum_length: 'The activity is too short on this day',
       min_above_places: 'The minimum is greater than the number of places',
       fixed_item_cancellable: 'A class activity always takes place and cannot be cancelled',
       fixed_class_unknown: 'One of the whole classes is not in the class lists',
@@ -721,20 +720,20 @@ export const en: Messages = {
       swapUntil: 'Swap period until',
       wishesPerGroup: 'Choices per time block',
       dailyMinimum: (grade: number) => `Minimum minutes per day, Year ${grade}`,
-      dailyMinimumHint: 'What counts is the lesson time of the periods the sessions cover, without breaks: with periods of 50 minutes, five periods are 250 minutes.',
+      dailyMinimumHint: 'What counts is the time of the activities inside the attendance frame, breaks included.',
       showTeachers: 'The catalogue names the teachers of the activities',
       placeHeadroomPercent: 'Extra places to offer (%)',
       placeHeadroomHint: 'With 20%, 120 places are planned for every 100 students who need one.',
       frameFrom: (day: number) => `Attendance frame from period, project day ${day}`,
       frameTo: (day: number) => `to period, project day ${day}`,
       noFrame: 'no frame',
-      frameHint: 'The attendance frame of a project day is the periods everyone is at school in, say periods 2 to 6. With a frame, Places and demand counts each period on its own; without one it counts the whole day.',
+      frameHint: 'The periods in which every student takes part in an activity or is at school, say periods 2 to 5. The minimum minutes and the minimum length count only the time inside it. Places and demand counts per period. Without a frame, the time from the first period to the last applies.',
       /** The minimum length of an activity on a project day, a minutes input beside its date. */
       activityMinimum: (day: number) => `Minimum length of an activity in minutes, project day ${day}`,
       activityMinimumUnit: 'minutes',
-      activityMinimumHint: 'The minimum length is what an activity must credit on this day at least, over all its sessions together; counted as for the minimum minutes per day. A shorter one is not accepted. Exempt are activities for teachers only and the days of a session over a night. Empty means no minimum.',
+      activityMinimumHint: 'How long an activity must last at least on this day inside the attendance frame. A shorter one cannot be saved. Activities for teachers only are exempt. Empty: no minimum length.',
       lockNewOffers: 'Lock new offers once the target is reached',
-      lockHint: 'With the lock, a teacher can submit an activity only if at least one cell its places go to is still short of the target. Class activities are exempt; the organisation may always create and approve.',
+      lockHint: 'With the lock, a teacher can submit an activity only if it offers places where some are still missing. Class activities are exempt. The organisation may always create and approve.',
     },
     student: {
       viewResult: 'View my allocation',
@@ -750,7 +749,7 @@ export const en: Messages = {
     },
     demand: {
       heading: 'Places and demand',
-      intro: (percent: number) => `For each project day and year: how many students need a place (excluding those in a class activity), the target of ${percent}% more so the choices have room, and how many places the submitted and approved activities offer them. A day with an attendance frame is counted per period: an activity counts in every period it touches, even in part. A cell short of the target is marked.`,
+      intro: 'For each project day and year: how many students are still looking for a place and how many places are offered. The target lies a little above, so the choices have room. Marked is where places are still missing: a new activity helps most there.',
       table: (day: string) => `Places and demand on ${day}`,
       day: 'Day',
       framed: (periods: string) => `attendance frame ${periods}, counted per period`,
@@ -778,11 +777,13 @@ export const en: Messages = {
       savedHidden: 'The activity you saved is hidden by the filter.',
       staffOnly: 'teachers only',
       overnight: 'with an overnight stay',
+      /** An activity wholly outside the attendance time: students do not rank it, its teachers place them. */
+      extra: 'extra',
       directlyPlaced: (count: number) => `${count} of them placed directly`,
       grades: 'Years',
       allGrades: 'all',
-      brings: (cells: string) => `brings places to: ${cells}`,
-      bringsNothing: 'only where the target is reached',
+      brings: (cells: string) => `helps with: ${cells}`,
+      bringsNothing: 'enough places',
       leadLimited: (days: string) => `Lead not available, or only if needed, on ${days}`,
       /** The companions named against the number the lead wants: "Companions 1 of 2". */
       companionsOf: (named: number, wanted: number) => `Companions ${named} of ${wanted}`,
@@ -846,6 +847,8 @@ export const en: Messages = {
     fee: (amount: string) => `Cost: ${amount}`,
     categoryFilter: 'Category',
     allCategories: 'all',
+    /** An activity wholly outside the attendance time. */
+    extra: 'Extra: sign up with the teacher',
   },
 
   /** Aktivitaet.vue: proposing or editing an activity. */
@@ -856,8 +859,9 @@ export const en: Messages = {
     onDate: (problem: string, day: string) => `${problem} (${day})`,
     /** The activity against a day's minimum length, under the sessions. */
     length: {
-      met: (day: string, minimum: number, credited: number) => `${day}: minimum length ${minimum} minutes, ${credited} credited ✓`,
-      short: (day: string, minimum: number, credited: number) => `${day}: minimum length ${minimum} minutes, only ${credited} credited – the activity is not accepted like this`,
+      short: (day: string, missing: number, minimum: number, from: string | null, to: string | null) => from === null || to === null
+        ? `Please lengthen the activity on ${day} by ${missing} minutes: it must last at least ${minimum} minutes.`
+        : `Please lengthen the activity on ${day} by ${missing} minutes: between ${from} and ${to} it must last at least ${minimum} minutes.`,
     },
     unknownTeachers: 'A teacher is not in the class lists',
     reviewNote: (note: string) => `Feedback from the organisation: ${note}`,
@@ -871,23 +875,22 @@ export const en: Messages = {
       add: (name: string) => `Add ${name}`,
       lead: 'Lead',
       noLead: 'Nobody leads yet: please choose who leads the activity.',
-      leadRule: 'Whoever is added or signs up as a companion accompanies. The lead changes only when the lead hands it over or the organisation names another.',
       handOver: 'Hand the lead over to',
       handOverSubmit: 'Hand over the lead',
-      handOverHint: 'The lead goes to a companion; add another teacher as a companion first and save.',
-      handOverConfirm: (name: string) => `Hand the lead over to ${name}? The lead until now stays as an accompanying teacher; from then on the new lead manages the accompanying teachers.`,
+      handOverHint: 'If someone else is to lead, add them as a companion first.',
+      handOverConfirm: (name: string) => `Hand the lead over to ${name}? You stay on as a companion.`,
       /** A teacher not plainly available on some of the activity's days, the days as format.ts formatDay writes them. */
       unavailableOn: (name: string, days: string) => `${name} is unavailable on ${days}.`,
       ifNeededOn: (name: string, days: string) => `${name} is available on ${days} only if needed.`,
       /** How many companions the lead wants beside them (the school's wish 6). */
-      wanted: 'Accompanying teachers in all (0–8, without the lead)',
-      wantedHint: 'How many teachers should come along beside the lead; those already named count. What is still missing is listed under "Companions sought", where teachers sign up themselves.',
+      wanted: 'Accompanying teachers wanted (without the lead)',
+      wantedHint: 'Those already named count. If someone is still missing, the activity appears under "Companions sought", where other teachers sign up themselves.',
       /** "1 still sought" */
       sought: (count: number) => `${count} still sought`,
       complete: 'Companions complete',
     },
     sessions: {
-      intro: 'An activity usually has one session: one continuous span, also over several days, such as a trip from Tuesday 8:00 to Wednesday 13:00. It is given in school periods or by clock time. A further session is only for an activity that is interrupted, such as two periods each on Monday and on Wednesday: whoever is assigned attends every session. The same activity held again for other students is an activity of its own. What is credited are the lesson minutes of the periods a session covers, without breaks. If a whole session lies outside the timetable, its actual duration counts instead.',
+      intro: 'One session is usually enough, also over several days, such as a trip from Tuesday 8:00 to Wednesday 13:00. Add a further session only if the activity is interrupted. Whoever takes part comes to every session. If it takes place again for other students, create a new activity.',
       single: 'Session',
       session: (number: number) => `Session ${number}`,
       /** Whether the session is placed in the period grid or by the clock. */
@@ -911,7 +914,7 @@ export const en: Messages = {
       extraPlaces: 'Extra places for other students',
       minParticipants: 'Minimum',
       cancellable: 'May be cancelled if the allocation does not reach the minimum',
-      staffOnly: 'Without places and without whole classes the activity is for teachers only: students do not see it in the catalogue, and nobody can choose it.',
+      staffOnly: 'Without places and without whole classes the activity is for teachers only, such as a supervision. Students do not see it.',
       eligibleGrades: 'Offered to years (none selected: all)',
       eligibleClasses: 'Offered to classes (none selected: all)',
     },
@@ -926,11 +929,11 @@ export const en: Messages = {
     },
     saveAndPropose: 'Save and submit',
     gate: {
-      brings: (cells: string) => `This activity brings places where some are still missing: ${cells}.`,
-      bringsNothing: 'This activity brings places only where the target is already reached.',
-      servesNothing: 'This activity takes place outside the times places are planned for, so Places and demand does not count it.',
-      refused: (day: string, periods: string | null) => periods === null ? `On ${day} every year of this activity has reached its target.` : `On ${day} every year of this activity has reached its target in ${periods}.`,
-      advice: 'Choose a time where places are still missing, or add a year that still lacks places.',
+      brings: (cells: string) => `This activity helps where places are still missing: ${cells}.`,
+      bringsNothing: 'At this time there are already enough places for these years.',
+      servesNothing: 'This activity lies outside the attendance time and is an extra. Students do not choose it; you place them under "Placed directly".',
+      refused: (day: string, periods: string | null) => periods === null ? `On ${day} there are already enough places for every year of this activity.` : `On ${day} there are already enough places in ${periods} for every year of this activity.`,
+      advice: 'Choose another time or offer the activity to a year that still lacks places as well.',
       organizerAnyway: 'As the organisation you may submit and approve it anyway.',
     },
     conflict: (className: string, day: string, from: string, to: string, title: string, lead: string) => `${className} is already in ‘${title}’ (lead: ${lead}) on ${day} from ${from} to ${to}. A class can be in one class activity at a time.`,
@@ -944,7 +947,7 @@ export const en: Messages = {
     /** The companions alone, for the lead of a submitted or approved activity and for the organizer: the rest of the form is not changed there. */
     companions: {
       heading: 'Companions',
-      intro: 'Here you change only the companions and how many are sought; everything else stays as the activity was submitted.',
+      intro: 'The activity is submitted. Here you can only change the companions.',
       save: 'Save companions',
       saved: 'Companions saved.',
     },
@@ -952,8 +955,8 @@ export const en: Messages = {
 
   /** Verfuegbarkeit.vue: a teacher's own availability on the project days of the registrations collecting activities. */
   availability: {
-    intro: 'Enter the project days on which you are there for an activity. Without an entry you count as available. You need not give a reason.',
-    none: 'You enter your availability here while teachers can submit activities. At the moment no registration is in that phase. For later changes, turn to the organisation.',
+    intro: 'Enter the project days on which you are there for an activity. Without an entry you count as available.',
+    none: 'No activities are being collected at the moment. Tell the organisation about changes to your availability.',
     teachersOnly: 'Teachers enter their availability.',
     /** The label of a day's choice for a screen reader, the day as format.ts formatDay writes it. */
     statusOn: (day: string) => `Availability on ${day}`,
@@ -963,19 +966,20 @@ export const en: Messages = {
 
   placements: {
     heading: 'Placed directly',
-    intro: 'Students who come into this activity without choosing it. Each one placed directly takes a place of the activity. With the box ticked, the student takes no part in any class activity of their class that overlaps this activity in time. That applies to the whole class activity, all its further sessions and days included; the teachers of the class activity see that and can reclaim the student. Without the tick, the student stays in the class activity and is only away during this activity.',
+    intro: 'Students who come into this activity without choosing it, such as for a performance. Each one takes a place.',
     search: 'Find a student (name or class)',
     place: (name: string, className: string) => `Place ${name} (${className})`,
     none: 'Nobody is placed directly.',
     pending: 'Entered when the activity is saved.',
-    leavesClass: 'takes no part in class activities that overlap this one',
-    leavesClassOf: (name: string) => `${name} takes no part in class activities that overlap this one`,
+    leavesClass: 'takes no part at all in overlapping class activities',
+    leavesClassHint: 'With the tick, the student takes no part at all in the class activities concerned, not on their other days either. Without it, they are only away there during your activity, such as for a rehearsal.',
+    leavesClassOf: (name: string) => `${name} takes no part at all in overlapping class activities`,
     leaves: (activities: string) => `not with ${activities}`,
     other: (title: string, lead: string | null) => lead === null ? `"${title}"` : `"${title}" (lead: ${lead})`,
     remove: (name: string) => `Remove ${name}`,
     tell: (title: string, lead: string | null) => lead === null ? `Please tell the lead of "${title}": the student is no longer placed there.` : `Please tell ${lead}: the student is no longer placed in "${title}".`,
     absentHeading: 'Not taking part',
-    absentIntro: 'Students of this activity\'s classes who are not in it: entered here, or placed directly into another activity during this time. Nobody entered here gives a reason.',
+    absentIntro: 'Who from the classes does not come along. You do not give a reason.',
     absentNone: 'Every student of the classes takes part.',
     takeOut: (name: string, className: string) => `${name} (${className}) does not take part`,
     onList: 'entered',
@@ -984,13 +988,13 @@ export const en: Messages = {
     reclaim: (name: string) => `Return ${name} to this class activity`,
     overnight: 'This activity includes a night: please enter here who does not come along.',
     taken: (names: string) => `Placed directly into another activity during this time and so not in it: ${names}. Once saved, they can be reclaimed here.`,
-    readOnly: 'The activity is submitted. The organisation can change its details; the lead manages the accompanying teachers. Every teacher of the activity can still place students directly.',
+    readOnly: 'The activity is submitted. Changes are now made by the organisation. You can still place students directly.',
   },
   /** Begleitung.vue: the list a teacher joins an activity from (the school's wish 6). */
   companions: {
     heading: 'Companions sought',
     link: 'Companions sought',
-    intro: 'Per project day, the activities that still seek a companion and the ones you accompany. Sign up where you come along; until registration opens you also take yourself off here, after that tell the lead or the organisation.',
+    intro: 'Per project day, the activities that still seek companions. Sign up where you come along. You can take yourself off here until the students start choosing; after that, turn to the lead.',
     teachersOnly: 'The list is for teachers.',
     none: 'No activity seeks a companion at the moment.',
     noneOnDay: 'No activity seeks a companion on this day.',
@@ -1008,9 +1012,10 @@ export const en: Messages = {
       none_sought: 'The companions have been found.',
       overlap: 'You already lead or accompany another activity at the same time.',
       unavailable: 'You are entered as unavailable on this day.',
-      campaign_state: 'The registration is closed.',
+      campaign_state: 'Closed.',
       item_state: 'This activity no longer takes place.',
     },
+    closed: (name: string) => `${name} is closed.`,
   },
 
   /** Lehrkraefte.vue: the organizer's overview of the teachers per project day. */
@@ -1138,7 +1143,7 @@ export const en: Messages = {
     attendance: {
       heading: 'Attendance',
       intro: 'For each project day and session, for the students in the class; separate from the allocation.',
-      recordable: 'Enter and save; you can make corrections until the registration is closed.',
+      recordable: 'You can make corrections until the organisation closes the project week.',
       readOnly: 'Read-only.',
       noSession: 'No one in the class has a session on this day.',
       /** The day's form, for a screen reader. */

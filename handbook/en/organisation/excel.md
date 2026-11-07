@@ -4,7 +4,7 @@ Every list SchulWahl shows is also available as an Excel file, in the school's l
 
 | File | Where | What it contains |
 | ---- | ----- | ---------------- |
-| **Catalogue as Excel** (`catalogue-2026-27.xlsx`) | Registration page, Organisation section | **Activities** sheet: each activity's number, title, teachers, description, location, places, minimum, whether it can be cancelled, whole classes, years, classes and cost; **Sessions** sheet: every session with start, end and credited minutes |
+| **Catalogue as Excel** (`catalogue-2026-27.xlsx`) | Registration page, Organisation section | **Activities** sheet: each activity's number, title, teachers, description, location, places, minimum, whether it can be cancelled, whole classes, years, classes and cost; **Sessions** sheet: every session with start, end and credited minutes per day, its time in the [attendance frame](./einstellungen#attendance-frame-per-project-day) |
 | **Teachers by day as Excel** (`teachers-2026-27.xlsx`) | Teachers by day page | Each teacher on each project day with their availability and the activities they lead and accompany |
 | **Registration status as Excel** (`registration-status-2026-27.xlsx`) | Registration page, from opening | Each person with class, choices' status, period, when they last saved, and the emails they received |
 | **Calculation as Excel** (`allocation-calculation-1.xlsx`) | Allocation page, for each calculation | **Students** sheet: each person with their activity and minutes per day, missing minutes and cost; **Participants** sheet: who joined each activity and how; **Activities** sheet: places, students placed, minimum, cancellation and cost; **Missing minutes** sheet |

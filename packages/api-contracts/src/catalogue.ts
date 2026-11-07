@@ -169,6 +169,8 @@ export const ItemCheckResponse = StrictObject({
   taken: Type.Array(AbsentStudentSchema),
   /** The activity against the minimum length of each project day it touches that has one (school-core lengthStandings). */
   length: Type.Array(LengthStandingSchema),
+  /** Whether the activity credits nothing on any day, wholly outside the window (school-core isExtra): students do not rank it, its teachers place them. */
+  extra: Type.Boolean(),
 })
 export type ItemCheckResponse = Static<typeof ItemCheckResponse>
 

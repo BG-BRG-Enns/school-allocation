@@ -8,10 +8,10 @@
 import { requireFound } from '../lib/errors.ts'
 
 import type { ItemCheckBody, ItemCheckResponse, ClassConflictView } from '@school-allocation/api-contracts/catalogue'
-import { acceptsProposals, addedCells, checkItem, classConflicts, demandByDay, gateCells, gateRefused, isStaffOnly, itemTransition, lengthStandings, servedCells, type CampaignState, type ClassActivity, type GateCell, type ItemState, type OfferedItem } from '@school-allocation/school-core'
+import { acceptsProposals, addedCells, checkItem, classConflicts, demandByDay, gateCells, gateRefused, isExtra, isStaffOnly, itemTransition, lengthStandings, servedCells, type CampaignState, type ClassActivity, type Frame, type GateCell, type ItemState, type OfferedItem } from '@school-allocation/school-core'
 import { actorOf, type Caller } from '../lib/actor.ts'
 import { appendAudit, lockScope, SCHOOL_SCOPE } from '../lib/audit.ts'
-import { sessionCredits } from '../lib/credits.ts'
+import { sessionCredits, windowsOf } from '../lib/credits.ts'
 import { lockedCampaign, readCampaign } from '../lib/dao/campaigns.ts'
 import { knownCategories } from '../lib/dao/categories.ts'
 import * as store from '../lib/dao/items.ts'
@@ -45,6 +45,11 @@ function minimumsIn(campaign: Pick<Campaign, 'days'>): Record<string, number> {
   return Object.fromEntries(campaign.days.flatMap((day) => (day.minimumMinutes === null ? [] : [[day.date, day.minimumMinutes] as const])))
 }
 
+/** The attendance frames of the campaign's days that have one, by date. */
+function framesIn(campaign: Pick<Campaign, 'days'>): Record<string, Frame> {
+  return Object.fromEntries(campaign.days.flatMap((day) => (day.frame === null ? [] : [[day.date, day.frame] as const])))
+}
+
 /**
  * Checks an activity against its campaign's project days and classes and
  * the roster's teachers, inside the caller's transaction; throws ItemInvalid.
@@ -70,15 +75,18 @@ const spanKey = (session: { startsAt: string, endsAt: string }) => `${Date.parse
 
 /**
  * The activity with what each of its sessions credits, derived from the
- * school's grid as it stands (lib/credits.ts). A session of a stored
- * activity whose times are unchanged keeps the credit it has: that is
- * what the choice and a run computed with, and an edit of the words must
- * not change it because the grid changed since.
+ * days' windows of its registration as they stand: the frames and the
+ * school's grid (lib/credits.ts). A session of a stored activity whose
+ * times are unchanged keeps the credit it has: that is what the choice and
+ * a run computed with, and an edit of the words must not change it because
+ * the grid or a frame changed since (until the opening that change derives
+ * every session's credit again).
  */
-async function credited(client: Queryable, input: ItemInput, stored: readonly { startsAt: string, endsAt: string, credits: Item['sessions'][number]['credits'] }[] = []): Promise<ItemInput> {
+async function credited(client: Queryable, campaignId: string, input: ItemInput, stored: readonly { startsAt: string, endsAt: string, credits: Item['sessions'][number]['credits'] }[] = []): Promise<ItemInput> {
   const grid = await readPeriods(client)
+  const frames = (await store.findProjectDays(client, campaignId))?.frames ?? {}
   const kept = new Map(stored.map((session) => [spanKey(session), session.credits]))
-  return { ...input, sessions: input.sessions.map((session) => ({ ...session, credits: kept.get(spanKey(session)) ?? sessionCredits(grid, session.startsAt, session.endsAt) })) }
+  return { ...input, sessions: input.sessions.map((session) => ({ ...session, credits: kept.get(spanKey(session)) ?? sessionCredits(grid, frames, session.startsAt, session.endsAt) })) }
 }
 
 /**
@@ -92,7 +100,7 @@ export async function createItem(db: Database, campaignId: string, sent: ItemInp
     const campaign = await store.lockCampaignForCreate(client, campaignId)
     if (!campaign) throw new ApplicationError('not_found')
     if (!acceptsProposals(campaign.state)) throw new ApplicationError('campaign_state')
-    const input = await credited(client, sent)
+    const input = await credited(client, campaignId, sent)
     await validate(client, campaignId, input)
     const row = await store.insertItem(client, campaignId, input, caller)
     if (!row) throw new Error('catalog_item insert returned no row')
@@ -144,7 +152,7 @@ export async function updateItem(db: Database, id: string, sent: ItemInput, call
     // Categories left out are the ones it has: a client that knows none keeps them. So is the lead, as long as they stay
     // among the teachers: a body that names none and takes the lead out is refused (no_lead), never led by whoever is first.
     const kept = current.teachers.find((teacher) => teacher.lead && sent.teachers.includes(teacher.personId))?.personId ?? null
-    const input = { ...await credited(client, sent, current.sessions), lead: sent.lead ?? kept, categories: sent.categories ?? current.categoryIds }
+    const input = { ...await credited(client, current.campaignId, sent, current.sessions), lead: sent.lead ?? kept, categories: sent.categories ?? current.categoryIds }
     const campaign = await store.lockCampaignForUpdate(client, current)
     // What a teacher may do without organizer rights: tend their own draft
     // while the catalogue takes proposals. Everything else is an
@@ -426,7 +434,7 @@ export async function checkItemOffer(db: Database, campaign: Campaign, body: Ite
     const input = itemInput(body.item, caller, true)
     shape = shapeOf(input)
     // As a save would credit them: a stored session whose times are unchanged keeps its credit, whatever the grid has become.
-    sessions = (await credited(db, input, sessions)).sessions
+    sessions = (await credited(db, campaign.id, input, sessions)).sessions
   }
   if (shape === null) throw new ApplicationError('validation_failed')
   const { before, after, served, cells, refused } = await gateFor(db, campaign, itemId, shape, previous)
@@ -441,8 +449,11 @@ export async function checkItemOffer(db: Database, campaign: Campaign, body: Ite
     conflicts: await classConflictsOf(db, campaign.id, { id: itemId ?? '', ...shape }),
     // For a class activity: who of its classes a direct placement elsewhere takes out of it, so its teachers see it while they fill the form.
     taken: await takenFrom(db, campaign, shape, itemId),
-    // The activity against the minimum length of each day it touches, as a save would check it.
-    length: lengthStandings({ sessions: sessionInputs(sessions), rules: shape }, minimumsIn(campaign), campaign.projectDays),
+    // The activity against the minimum length of each day it takes up part of the window on, as a save would check it, with
+    // the window the message names.
+    length: lengthStandings({ sessions: sessionInputs(sessions), rules: shape }, minimumsIn(campaign), campaign.projectDays, windowsOf(campaign.projectDays, framesIn(campaign), await readPeriods(db))),
+    // Serving no cell is not being an extra: a session wholly in a break inside the frame credits its minutes and is ranked.
+    extra: isExtra(sessionInputs(sessions)),
   }
 }
 

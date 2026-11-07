@@ -22,6 +22,7 @@ import type { Campaign, CampaignChanges, CampaignWindow, NewCampaign, RuleInput 
 import type { WindowContext } from '../lib/models/window.ts'
 import { datesOfSpan, dayBounds, instantInSchoolZone } from '../lib/time.ts'
 import { uniqueSorted } from './catalogue-input.ts'
+import { recomputeCredits } from './credits.ts'
 import { visibleAmong } from './visibility.ts'
 import { windowEffects } from './window.ts'
 
@@ -226,6 +227,8 @@ export async function updateCampaign(db: Database, rawId: string, changes: Campa
     if (inUse.length > 0) throw new ClassInUse(inUse)
     await store.updateSettings(client, id, changes, window)
     await store.replaceDays(client, id, changes.projectDays, frames, minimums)
+    // What the sessions credit is counted in the days' windows: a changed frame derives it again, before the opening (services/credits.ts).
+    if (framesChanged) await recomputeCredits(client, [id], await readPeriods(client))
     await appendAudit(client, {
       scopeId: id, actor: auditActor(actor), action: 'campaign.changed',
       metadata: { campaignId: id, projectDays: changes.projectDays.length, setUp: setUpChanged, window: windowChanged, frames: framesChanged, minimums: minimumsChanged },

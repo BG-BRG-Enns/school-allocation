@@ -6,7 +6,7 @@
 // around it when printing.
 
 import { computed, onMounted, ref, watch } from 'vue'
-import type { Period } from '@school-allocation/school-core'
+import { isExtra, type Period } from '@school-allocation/school-core'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { loadCatalogue, loadCategories, type Campaign, type Category, type Item } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
@@ -127,6 +127,12 @@ function who(item: Item): string {
         class="muted"
       >
         {{ t.campaign.items.overnight }}
+      </p>
+      <p
+        v-if="isExtra(item.sessions)"
+        class="muted"
+      >
+        {{ t.catalogue.extra }}
       </p>
       <p v-if="item.categoryIds.length > 0">
         <span

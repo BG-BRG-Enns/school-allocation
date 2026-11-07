@@ -32,7 +32,7 @@ interface Ready extends Harness {
 
 type GateCell = { date: string, period: number | null, grade: number, needing: number, target: number, offered: number, reached: boolean }
 type Conflict = { className: string, itemId: string, title: string, lead: { displayName: string, shortName: string | null }, startsAt: string, endsAt: string }
-type Check = { before: unknown[], after: unknown[], served: GateCell[], cells: GateCell[], refused: boolean, locked: boolean, conflicts: Conflict[] }
+type Check = { before: unknown[], after: unknown[], served: GateCell[], cells: GateCell[], refused: boolean, locked: boolean, conflicts: Conflict[], extra: boolean }
 
 /** Sara and Tim in 5A (grade 9, so the target of a cell is 3 places), three teachers; a registration taking proposals, Monday framed 2–6. */
 async function school(t: Parameters<typeof harness>[0]): Promise<Ready> {
@@ -218,4 +218,17 @@ test('an activity of its teachers alone (no places, no class) is never gated and
   assert.deepEqual(await titles(sara, url), ['Klettern'])
   assert.deepEqual(await titles(sara, `/api/campaigns/${id}/catalogue`), ['Klettern'])
   assert.deepEqual(await titles(s.anna, `/api/campaigns/${id}/catalogue`), ['Klettern'])
+})
+
+test('the check says whether the activity is an extra: wholly outside the window, not merely serving no cell', DB, async (t) => {
+  const s = await school(t)
+  const url = `/api/campaigns/${s.campaign.id}/items/check`
+  const check = async (from: string, to: string) => (await send<Check>(s, s.bernd, 'POST', url, { item: { title: 'Theater', places: 5, teachers: [s.berndPerson], sessions: [session(MONDAY, from, to)] } })).body
+  // An evening on Monday, framed 2–6 (08:30 – 13:10): it credits nothing, serves nothing, and students come in by placement.
+  const evening = await check('19:00', '21:00')
+  assert.deepEqual([evening.extra, evening.served], [true, []])
+  // The break between the 3rd and the 4th period: no cell, but 15 minutes inside the frame, so students rank it.
+  const inBreak = await check('10:15', '10:30')
+  assert.deepEqual([inBreak.extra, inBreak.served], [false, []])
+  assert.equal((await check('08:30', '10:15')).extra, false)
 })

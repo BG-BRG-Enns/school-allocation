@@ -6,7 +6,7 @@
 // before the wishes, and reports who misses it. A class activity counts
 // toward a rule like any other. Pure.
 
-import { creditedMinutesByDate, type Credit, type StudentOf } from './catalogue.ts'
+import { creditedMinutesByDate, isExtra, type Credit, type StudentOf } from './catalogue.ts'
 import type { Ranking, TimeGroup } from './choices.ts'
 import type { ClassSize } from './demand.ts'
 
@@ -211,7 +211,8 @@ export function ruleDemand(rules: readonly CampaignRule[], classes: readonly Cla
         const fixed = ruleProgress(rule, items.filter((item) => item.fixedClasses.includes(c.className)), projectDays)
         return sum + c.students * Math.max(0, rule.minimum - fixed)
       }, 0)
-      const open = items.filter((item) => item.places > 0 && own.some((c) => !item.fixedClasses.includes(c.className)
+      // An extra is nobody's to rank (catalogue.ts isExtra): its teachers place students into it, so it is no offer here.
+      const open = items.filter((item) => item.places > 0 && !isExtra(item.sessions) && own.some((c) => !item.fixedClasses.includes(c.className)
         && (item.eligibleGrades.length === 0 || item.eligibleGrades.includes(grade))
         && (item.eligibleClasses.length === 0 || item.eligibleClasses.includes(c.className))))
       const offered = open.reduce((sum, item) => sum + item.places * ruleAmount(rule, item, projectDays), 0)

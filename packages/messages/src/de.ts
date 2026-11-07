@@ -259,8 +259,7 @@ export const de = {
       credit_date_outside_session: 'Angerechnete Minuten für einen Tag, an dem der Termin nicht stattfindet',
       credit_date_twice: 'Ein Tag ist bei einem Termin zweimal angerechnet',
       credit_minutes_invalid: 'Angerechnete Minuten müssen eine ganze Zahl zwischen 0 und 1440 sein',
-      no_credit: 'Ein Termin rechnet keine Minuten an',
-      below_minimum_length: 'Die Aktivität ist an diesem Tag kürzer als die Mindestlänge',
+      below_minimum_length: 'Die Aktivität ist an diesem Tag zu kurz',
       min_above_places: 'Die Mindestzahl ist größer als die Zahl der Plätze',
       fixed_item_cancellable: 'Eine Klassenaktivität findet immer statt und kann nicht ausfallen',
       fixed_class_unknown: 'Eine der ganzen Klassen gibt es in den Klassenlisten nicht',
@@ -729,8 +728,8 @@ export const de = {
       swapUntil: 'Tauschzeit bis',
       wishesPerGroup: 'Wünsche je Zeitblock',
       dailyMinimum: (grade: number) => `Mindestminuten je Tag, ${grade}. Schulstufe`,
-      /** What the minutes are counted in: the periods a session covers. */
-      dailyMinimumHint: 'Gezählt wird die Unterrichtszeit der Einheiten, die die Termine belegen, ohne Pausen: Bei Einheiten zu 50 Minuten sind fünf Einheiten 250 Minuten.',
+      /** What the minutes are counted in: the time inside the attendance frame. */
+      dailyMinimumHint: 'Gezählt wird die Zeit der Aktivitäten im Anwesenheitsrahmen, Pausen eingeschlossen.',
       showTeachers: 'Der Katalog nennt die Lehrkräfte der Aktivitäten',
       placeHeadroomPercent: 'Plätze über dem Bedarf, in Prozent',
       placeHeadroomHint: 'Mit 20 % werden für je 100 Schüler*innen, die einen Platz bekommen sollen, 120 Plätze geplant.',
@@ -738,13 +737,13 @@ export const de = {
       frameFrom: (day: number) => `Anwesenheitsrahmen ab Einheit, Projekttag ${day}`,
       frameTo: (day: number) => `bis Einheit, Projekttag ${day}`,
       noFrame: 'kein Rahmen',
-      frameHint: 'Der Anwesenheitsrahmen eines Projekttags sind die Einheiten, in denen alle in der Schule sind, etwa 2. bis 6. Einheit. Mit Rahmen zählt Plätze und Bedarf jede Einheit einzeln; ohne Rahmen zählt der ganze Tag.',
+      frameHint: 'Die Einheiten, in denen alle Schüler*innen an einer Aktivität teilnehmen oder in der Schule sind, etwa 2. bis 5. Einheit. Mindestminuten und Mindestlänge zählen nur die Zeit darin. Plätze und Bedarf zählen je Einheit. Ohne Rahmen gilt die Zeit von der ersten bis zur letzten Einheit.',
       /** The minimum length of an activity on a project day, a minutes input beside its date. */
       activityMinimum: (day: number) => `Mindestlänge einer Aktivität in Minuten, Projekttag ${day}`,
       activityMinimumUnit: 'Minuten',
-      activityMinimumHint: 'Die Mindestlänge ist, was eine Aktivität an diesem Tag mindestens anrechnen muss, über alle ihre Termine zusammen; gezählt wird wie bei den Mindestminuten je Tag. Eine kürzere wird nicht angenommen. Ausgenommen sind Aktivitäten nur für Lehrkräfte und die Tage eines Termins über Nacht. Leer heißt: keine Mindestlänge.',
+      activityMinimumHint: 'So lange muss eine Aktivität an diesem Tag im Anwesenheitsrahmen mindestens dauern. Eine kürzere lässt sich nicht speichern. Aktivitäten nur für Lehrkräfte sind ausgenommen. Leer: keine Mindestlänge.',
       lockNewOffers: 'Neue Angebote sperren, sobald das Ziel erreicht ist',
-      lockHint: 'Mit der Sperre kann eine Lehrkraft eine Aktivität nur einreichen, wenn mindestens ein Feld, in das ihre Plätze gehen, noch unter dem Ziel liegt. Klassenaktivitäten sind ausgenommen; die Organisation darf immer anlegen und genehmigen.',
+      lockHint: 'Mit der Sperre kann eine Lehrkraft eine Aktivität nur einreichen, wenn sie Plätze anbietet, wo noch welche fehlen. Klassenaktivitäten sind ausgenommen. Die Organisation darf immer anlegen und genehmigen.',
     },
     student: {
       viewResult: 'Meine Einteilung ansehen',
@@ -760,7 +759,7 @@ export const de = {
     },
     demand: {
       heading: 'Plätze und Bedarf',
-      intro: (percent: number) => `Je Projekttag und Schulstufe: wie viele Schüler*innen noch einen Platz suchen (ohne die in einer Klassenaktivität), das Ziel mit ${percent} % darüber, damit die Wünsche Platz haben, und wie viele Plätze die eingereichten und genehmigten Aktivitäten ihnen anbieten. Ein Tag mit Anwesenheitsrahmen wird je Einheit gezählt: Eine Aktivität zählt in jeder Einheit, die sie berührt, auch zum Teil. Ein Feld unter dem Ziel ist markiert.`,
+      intro: 'Je Projekttag und Schulstufe: wie viele Schüler*innen noch einen Platz suchen und wie viele Plätze angeboten werden. Das Ziel liegt etwas darüber, damit die Wünsche Platz haben. Markiert ist, wo noch Plätze fehlen: Dort hilft eine neue Aktivität am meisten.',
       /** One day's table, for a screen reader. */
       table: (day: string) => `Plätze und Bedarf am ${day}`,
       /** The one column of a day counted whole. */
@@ -795,13 +794,15 @@ export const de = {
       staffOnly: 'nur Lehrkräfte',
       /** An activity with a session over a night. */
       overnight: 'mit Übernachtung',
+      /** An activity wholly outside the attendance time: students do not rank it, its teachers place them. */
+      extra: 'Zusatzangebot',
       /** Below an activity's places: how many of them its teachers filled directly. */
       directlyPlaced: (count: number) => `davon ${count} direkt eingeteilt`,
       grades: 'Schulstufen',
       allGrades: 'alle',
       /** Where a submitted activity's places go, the cells still short of the target: "5. Schulstufe, 4.–5. EH". */
-      brings: (cells: string) => `bringt Plätze in: ${cells}`,
-      bringsNothing: 'nur, wo das Ziel erreicht ist',
+      brings: (cells: string) => `hilft bei: ${cells}`,
+      bringsNothing: 'genug Plätze',
       /** The lead is not plainly available on a day of the activity; the days as format.ts formatDay writes them. */
       leadLimited: (days: string) => `Leitung am ${days} nicht oder nur wenn nötig verfügbar`,
       /** The companions named against the number the lead wants: "Begleitung 1 von 2". */
@@ -870,6 +871,8 @@ export const de = {
     /** The filter by category, above the activities. */
     categoryFilter: 'Kategorie',
     allCategories: 'alle',
+    /** An activity wholly outside the attendance time. */
+    extra: 'Zusatzangebot: Anmeldung bei der Lehrkraft',
   },
 
   /** Aktivitaet.vue: proposing or editing an activity. */
@@ -878,10 +881,11 @@ export const de = {
     /** A refusal that names a session, counted from 1: "… (Termin 2)". */
     inSession: (problem: string, session: number) => `${problem} (Termin ${session})`,
     onDate: (problem: string, day: string) => `${problem} (${day})`,
-    /** The activity against a day's minimum length, under the sessions. */
+    /** A day the activity falls short of its minimum length, under the sessions: by how much to lengthen it, inside the day's window (from, to; null without a grid). */
     length: {
-      met: (day: string, minimum: number, credited: number) => `${day}: Mindestlänge ${minimum} Minuten, angerechnet ${credited} ✓`,
-      short: (day: string, minimum: number, credited: number) => `${day}: Mindestlänge ${minimum} Minuten, angerechnet nur ${credited} – so wird die Aktivität nicht angenommen`,
+      short: (day: string, missing: number, minimum: number, from: string | null, to: string | null) => from === null || to === null
+        ? `Bitte verlängere die Aktivität am ${day} um ${missing} Minuten: Sie muss mindestens ${minimum} Minuten dauern.`
+        : `Bitte verlängere die Aktivität am ${day} um ${missing} Minuten: Zwischen ${from} und ${to} muss sie mindestens ${minimum} Minuten dauern.`,
     },
     unknownTeachers: 'Eine Lehrkraft steht nicht in den Klassenlisten',
     reviewNote: (note: string) => `Rückmeldung der Organisation: ${note}`,
@@ -896,24 +900,23 @@ export const de = {
       /** The select naming which teacher leads, and the lines around it. */
       lead: 'Leitung',
       noLead: 'Noch leitet niemand: Bitte wählen, wer die Aktivität leitet.',
-      leadRule: 'Wer hinzugefügt wird oder sich als Begleitung einträgt, begleitet. Die Leitung wechselt nur, wenn die Leitung sie übergibt oder die Organisation sie neu festlegt.',
       /** The lead of a submitted or approved activity hands it to one of its companions. */
       handOver: 'Leitung übergeben an',
       handOverSubmit: 'Leitung übergeben',
-      handOverHint: 'Übergeben geht an eine Begleitung; eine andere Lehrkraft zuerst als Begleitung hinzufügen und speichern.',
-      handOverConfirm: (name: string) => `Die Leitung an ${name} übergeben? Die bisherige Leitung bleibt als Begleitlehrkraft eingetragen; die Begleitlehrkräfte verwaltet danach die neue Leitung.`,
+      handOverHint: 'Soll jemand anderer die Leitung bekommen, füge die Person zuerst als Begleitung hinzu.',
+      handOverConfirm: (name: string) => `Die Leitung an ${name} übergeben? Du bleibst als Begleitung eingetragen.`,
       /** A teacher not plainly available on some of the activity's days, the days as format.ts formatDay writes them. */
       unavailableOn: (name: string, days: string) => `${name} ist am ${days} nicht verfügbar.`,
       ifNeededOn: (name: string, days: string) => `${name} ist am ${days} nur verfügbar, wenn es nötig ist.`,
       /** How many companions the lead wants beside them (the school's wish 6). */
-      wanted: 'Begleitlehrkräfte insgesamt (0–8, ohne Leitung)',
-      wantedHint: 'Wie viele Lehrkräfte neben der Leitung mitkommen sollen; bereits eingetragene Begleitlehrkräfte zählen mit. Was noch fehlt, steht unter „Begleitung gesucht“, und Lehrkräfte tragen sich dort selbst ein.',
+      wanted: 'Gewünschte Begleitlehrkräfte (ohne Leitung)',
+      wantedHint: 'Bereits eingetragene zählen mit. Fehlt noch jemand, erscheint die Aktivität unter „Begleitung gesucht“, wo sich andere Lehrkräfte selbst eintragen.',
       /** "noch 1 gesucht" */
       sought: (count: number) => `noch ${count} gesucht`,
       complete: 'Begleitung vollständig',
     },
     sessions: {
-      intro: 'Eine Aktivität hat meist einen Termin: einen zusammenhängenden Zeitraum, auch über mehrere Tage, etwa ein Ausflug von Dienstag 8:00 bis Mittwoch 13:00. Er liegt in den Einheiten der Schule oder nach der Uhrzeit. Einen weiteren Termin gibt es nur, wenn die Aktivität unterbrochen ist, etwa je zwei Einheiten am Montag und am Mittwoch: Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler*innen statt, ist das eine eigene Aktivität. Angerechnet werden die Unterrichtsminuten der Einheiten, die ein Termin belegt, ohne Pausen. Liegt der gesamte Termin außerhalb des Stundenrasters, zählt stattdessen seine tatsächliche Dauer.',
+      intro: 'Meist genügt ein Termin, auch über mehrere Tage, etwa ein Ausflug von Dienstag 8:00 bis Mittwoch 13:00. Einen weiteren Termin legst du nur an, wenn die Aktivität unterbrochen ist. Wer teilnimmt, kommt zu allen Terminen. Findet sie noch einmal für andere Schüler*innen statt, lege eine neue Aktivität an.',
       /** The heading of the only session. */
       single: 'Termin',
       session: (number: number) => `Termin ${number}`,
@@ -939,7 +942,7 @@ export const de = {
       minParticipants: 'Mindestzahl',
       cancellable: 'Darf ausfallen, wenn die Mindestzahl bei der Zuteilung nicht erreicht wird',
       /** No places and no classes: nobody ranks it and nobody is placed into it. */
-      staffOnly: 'Ohne Plätze und ohne ganze Klassen ist die Aktivität nur für Lehrkräfte: Schüler*innen sehen sie nicht im Katalog, und niemand kann sie wählen.',
+      staffOnly: 'Ohne Plätze und ohne ganze Klassen ist die Aktivität nur für Lehrkräfte, etwa eine Aufsicht. Schüler*innen sehen sie nicht.',
       eligibleGrades: 'Angeboten für Schulstufen (keine Auswahl: alle)',
       eligibleClasses: 'Angeboten für Klassen (keine Auswahl: alle)',
     },
@@ -955,12 +958,12 @@ export const de = {
     saveAndPropose: 'Speichern und einreichen',
     /** The gate on new offers (the registration's lock) and what the activity brings, below the sessions. */
     gate: {
-      brings: (cells: string) => `Diese Aktivität bringt Plätze dorthin, wo noch welche fehlen: ${cells}.`,
-      bringsNothing: 'Diese Aktivität bringt Plätze nur dorthin, wo das Ziel schon erreicht ist.',
-      servesNothing: 'Diese Aktivität findet außerhalb der Zeiten statt, für die Plätze geplant werden. Deshalb wird sie in „Plätze und Bedarf“ nicht mitgezählt.',
+      brings: (cells: string) => `Diese Aktivität hilft, wo noch Plätze fehlen: ${cells}.`,
+      bringsNothing: 'Zu dieser Zeit gibt es für diese Schulstufen schon genug Plätze.',
+      servesNothing: 'Diese Aktivität liegt außerhalb der Anwesenheitszeit und ist ein Zusatzangebot. Schüler*innen wählen sie nicht; du teilst sie unter „Direkt eingeteilt“ ein.',
       /** The refusal, a sentence per day; `periods` null for a day counted whole. */
-      refused: (day: string, periods: string | null) => periods === null ? `Am ${day} hat jede Schulstufe dieser Aktivität ihr Ziel erreicht.` : `Am ${day} hat jede Schulstufe dieser Aktivität in der ${periods} ihr Ziel erreicht.`,
-      advice: 'Wähle eine Zeit, in der noch Plätze fehlen, oder nimm eine Schulstufe dazu, der noch Plätze fehlen.',
+      refused: (day: string, periods: string | null) => periods === null ? `Am ${day} gibt es für alle Schulstufen dieser Aktivität schon genug Plätze.` : `Am ${day} gibt es in der ${periods} für alle Schulstufen dieser Aktivität schon genug Plätze.`,
+      advice: 'Wähle eine andere Zeit oder biete die Aktivität auch einer Schulstufe an, für die noch Plätze fehlen.',
       organizerAnyway: 'Als Organisation kannst du sie trotzdem einreichen und genehmigen.',
     },
     /** A class in two class activities at once: the other one, with its lead and the time they share. */
@@ -975,7 +978,7 @@ export const de = {
     /** The companions alone, for the lead of a submitted or approved activity and for the organizer: the rest of the form is not changed there. */
     companions: {
       heading: 'Begleitung',
-      intro: 'Hier änderst du nur die Begleitung und wie viele gesucht werden; alles andere bleibt, wie die Aktivität eingereicht ist.',
+      intro: 'Die Aktivität ist eingereicht. Ändern kannst du hier nur noch die Begleitung.',
       save: 'Begleitung speichern',
       saved: 'Begleitung gespeichert.',
     },
@@ -983,8 +986,8 @@ export const de = {
 
   /** Verfuegbarkeit.vue: a teacher's own availability on the project days of the registrations collecting activities. */
   availability: {
-    intro: 'Trag ein, an welchen Projekttagen du für eine Aktivität da bist. Ohne Eintrag giltst du als verfügbar. Einen Grund gibst du nicht an.',
-    none: 'Deine Verfügbarkeit trägst du hier ein, solange Lehrkräfte Aktivitäten einreichen können. Zurzeit ist keine Anmeldung in dieser Phase. Für spätere Änderungen wende dich an die Organisation.',
+    intro: 'Trag ein, an welchen Projekttagen du für eine Aktivität da bist. Ohne Eintrag giltst du als verfügbar.',
+    none: 'Zurzeit werden keine Aktivitäten gesammelt. Änderungen deiner Verfügbarkeit meldest du der Organisation.',
     teachersOnly: 'Die Verfügbarkeit tragen die Lehrkräfte ein.',
     /** The label of a day's choice for a screen reader, the day as format.ts formatDay writes it. */
     statusOn: (day: string) => `Verfügbarkeit am ${day}`,
@@ -995,14 +998,16 @@ export const de = {
   /** Placements.vue: the students a teacher placed into an activity, and a class activity's list of who does not take part. */
   placements: {
     heading: 'Direkt eingeteilt',
-    intro: 'Schüler*innen, die ohne Wahl in diese Aktivität kommen. Jede direkt eingeteilte Person belegt einen Platz der Aktivität. Mit Häkchen nimmt die Person an keiner Klassenaktivität ihrer Klasse teil, die sich zeitlich mit dieser Aktivität überschneidet. Das gilt jeweils für die gesamte Klassenaktivität, einschließlich aller weiteren Termine und Tage; die Lehrkräfte der Klassenaktivität sehen das und können die Person zurückholen. Ohne Häkchen bleibt sie in der Klassenaktivität und fehlt dort nur während dieser Aktivität.',
+    intro: 'Schüler*innen, die ohne Wahl in diese Aktivität kommen, etwa für eine Aufführung. Jede Person belegt einen Platz.',
     search: 'Schüler*in suchen (Name oder Klasse)',
     place: (name: string, className: string) => `${name} (${className}) einteilen`,
     none: 'Niemand ist direkt eingeteilt.',
     pending: 'Wird mit dem Speichern der Aktivität eingetragen.',
-    leavesClass: 'nimmt an Klassenaktivitäten, die sich damit überschneiden, gar nicht teil',
+    leavesClass: 'nimmt an überschneidenden Klassenaktivitäten gar nicht teil',
+    /** Below the list: what the box decides. */
+    leavesClassHint: 'Mit Häkchen nimmt die Person an den betroffenen Klassenaktivitäten überhaupt nicht teil, auch nicht an deren anderen Tagen. Ohne Häkchen fehlt sie dort nur während deiner Aktivität, etwa für eine Probe.',
     /** The box's name for one student. */
-    leavesClassOf: (name: string) => `${name} nimmt an Klassenaktivitäten, die sich damit überschneiden, gar nicht teil`,
+    leavesClassOf: (name: string) => `${name} nimmt an überschneidenden Klassenaktivitäten gar nicht teil`,
     /** The class activities a placement takes the student out of. */
     leaves: (activities: string) => `nicht bei ${activities}`,
     other: (title: string, lead: string | null) => lead === null ? `„${title}“` : `„${title}“ (Leitung: ${lead})`,
@@ -1010,7 +1015,7 @@ export const de = {
     /** After an act that took a student out of another activity: whom to tell. */
     tell: (title: string, lead: string | null) => lead === null ? `Bitte der Leitung von „${title}“ Bescheid sagen: Die Person ist dort nicht mehr eingeteilt.` : `Bitte ${lead} Bescheid sagen: Die Person ist bei „${title}“ nicht mehr eingeteilt.`,
     absentHeading: 'Nimmt nicht teil',
-    absentIntro: 'Schüler*innen der Klassen dieser Aktivität, die nicht dabei sind: hier eingetragen, oder in dieser Zeit direkt in eine andere Aktivität eingeteilt. Wer hier eingetragen wird, nennt keinen Grund.',
+    absentIntro: 'Wer aus den Klassen nicht mitkommt. Einen Grund gibst du nicht an.',
     absentNone: 'Alle Schüler*innen der Klassen nehmen teil.',
     takeOut: (name: string, className: string) => `${name} (${className}) nimmt nicht teil`,
     onList: 'eingetragen',
@@ -1021,13 +1026,13 @@ export const de = {
     /** In the form of a class activity not saved yet. */
     taken: (names: string) => `In dieser Zeit direkt in eine andere Aktivität eingeteilt und daher nicht dabei: ${names}. Nach dem Speichern lassen sie sich hier zurückholen.`,
     /** A teacher of the activity who may not change it: submitted, it is the organization's. */
-    readOnly: 'Die Aktivität ist eingereicht. Die Organisation kann ihre Angaben ändern; die Leitung verwaltet die Begleitlehrkräfte. Alle Lehrkräfte dieser Aktivität können weiterhin Schüler*innen direkt einteilen.',
+    readOnly: 'Die Aktivität ist eingereicht. Änderungen macht jetzt die Organisation. Schüler*innen direkt einteilen kannst du weiterhin.',
   },
   /** Begleitung.vue: the list a teacher joins an activity from (the school's wish 6). */
   companions: {
     heading: 'Begleitung gesucht',
     link: 'Begleitung gesucht',
-    intro: 'Je Projekttag die Aktivitäten, die noch eine Begleitung suchen, und die, die du begleitest. Trag dich ein, wo du mitkommst; bis die Anmeldung öffnet, trägst du dich hier auch wieder aus, danach sag es der Leitung oder der Organisation.',
+    intro: 'Je Projekttag die Aktivitäten, die noch Begleitung suchen. Trag dich ein, wo du mitkommst. Austragen kannst du dich hier, bis die Schüler*innen zu wählen beginnen; danach wende dich an die Leitung.',
     teachersOnly: 'Die Liste ist für Lehrkräfte.',
     none: 'Zurzeit sucht keine Aktivität eine Begleitung.',
     noneOnDay: 'An diesem Tag sucht keine Aktivität eine Begleitung.',
@@ -1045,9 +1050,11 @@ export const de = {
       none_sought: 'Die Begleitung ist vergeben.',
       overlap: 'Zur selben Zeit leitest oder begleitest du schon eine andere Aktivität.',
       unavailable: 'Du bist an diesem Tag als nicht verfügbar eingetragen.',
-      campaign_state: 'Die Anmeldung ist abgeschlossen.',
+      campaign_state: 'Abgeschlossen.',
       item_state: 'Diese Aktivität findet nicht mehr statt.',
     },
+    /** campaign_state with the registration's name. */
+    closed: (name: string) => `${name} ist abgeschlossen.`,
   },
 
   /** Lehrkraefte.vue: the organizer's overview of the teachers per project day. */
@@ -1184,7 +1191,7 @@ export const de = {
     attendance: {
       heading: 'Anwesenheit',
       intro: 'Je Projekttag und Termin, für die Schüler*innen der Klasse; getrennt von der Einteilung.',
-      recordable: 'Eintragen und speichern; korrigieren kannst du bis zum Abschluss der Anmeldung.',
+      recordable: 'Korrigieren kannst du, bis die Organisation die Projektwoche abschließt.',
       readOnly: 'Nur lesen.',
       noSession: 'An diesem Tag hat niemand aus der Klasse einen Termin.',
       /** The day's form, for a screen reader. */

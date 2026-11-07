@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { checkFrame, DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, demandCells, framePeriods, placeTarget, type ClassSize, type DemandCell, type DemandDay, type OfferedItem } from '../src/demand.ts'
+import { checkFrame, dayWindow, DEFAULT_PLACE_HEADROOM_PERCENT, demandByDay, demandCells, framePeriods, placeTarget, type ClassSize, type DemandCell, type DemandDay, type OfferedItem } from '../src/demand.ts'
 import { DEFAULT_PERIODS } from '../src/periods.ts'
 
 const MINUTE = 60_000
@@ -116,13 +116,21 @@ test('a multi-grade item splits per cell by the need left there; a session over 
   assert.deepEqual(tuesday?.grades[0]?.cells.map((c) => c.offered), [6, 0, 0, 0, 0], 'Tuesday\'s 2nd period is touched until nine')
 })
 
-test('the cells of a day follow the grid; a frame the grid lost counts the day whole; a frame is checked against the grid', () => {
+test('the cells of a day follow the grid; without a frame, or with one the grid lost, the day counts its window whole; a frame is checked against the grid', () => {
   const toMs = (time: string) => at(MONDAY, time)
   const day = { startMs: 0, endMs: DAY }
-  assert.deepEqual(demandCells(null, DEFAULT_PERIODS, toMs, day), [{ period: null, startMs: 0, endMs: DAY }])
+  // The window of a day without a frame: the grid's first period to its last, 07:35 to 16:50, not the calendar day.
+  assert.deepEqual(demandCells(null, DEFAULT_PERIODS, toMs, day), [{ period: null, startMs: at(MONDAY, '07:35'), endMs: at(MONDAY, '16:50') }])
   assert.deepEqual(demandCells({ from: 2, to: 3 }, DEFAULT_PERIODS, toMs, day) satisfies DemandCell[], [{ period: 2, startMs: at(MONDAY, '08:30'), endMs: at(MONDAY, '09:20') }, { period: 3, startMs: at(MONDAY, '09:25'), endMs: at(MONDAY, '10:15') }])
-  assert.deepEqual(demandCells({ from: 12, to: 14 }, DEFAULT_PERIODS, toMs, day), [{ period: null, startMs: 0, endMs: DAY }])
+  assert.deepEqual(demandCells({ from: 12, to: 14 }, DEFAULT_PERIODS, toMs, day), [{ period: null, startMs: at(MONDAY, '07:35'), endMs: at(MONDAY, '16:50') }])
+  // Only a grid without periods, which its own check refuses, leaves the calendar day.
+  assert.deepEqual(demandCells(null, [], toMs, day), [{ period: null, startMs: 0, endMs: DAY }])
   assert.deepEqual(framePeriods({ from: 9, to: 12 }, DEFAULT_PERIODS).map((p) => p.period), [9, 10])
+  // The window: the frame's first period to its last, else the grid's day.
+  assert.deepEqual(dayWindow({ from: 2, to: 5 }, DEFAULT_PERIODS), { starts: '08:30', ends: '12:15' })
+  assert.deepEqual(dayWindow(null, DEFAULT_PERIODS), { starts: '07:35', ends: '16:50' })
+  assert.deepEqual(dayWindow({ from: 12, to: 14 }, DEFAULT_PERIODS), { starts: '07:35', ends: '16:50' })
+  assert.equal(dayWindow(null, []), null)
   assert.equal(checkFrame({ from: 2, to: 6 }, DEFAULT_PERIODS), undefined)
   assert.equal(checkFrame({ from: 6, to: 2 }, DEFAULT_PERIODS), 'frame_order')
   assert.equal(checkFrame({ from: 2, to: 11 }, DEFAULT_PERIODS), 'frame_period_unknown')

@@ -145,15 +145,16 @@ const brings = computed(() => {
   if (!c || !item) return ''
   if (item.fixedClasses.length > 0 && item.places === 0) return ''
   if (isStaffOnly(item)) return t.item.participation.staffOnly
-  if (c.served.length === 0) return t.item.gate.servesNothing
+  if (c.extra) return t.item.gate.servesNothing
+  if (c.served.length === 0) return ''
   const under = cellsAddedBy(c.served, c.before, c.after).filter((cell) => !cell.reached)
   return under.length > 0 ? t.campaign.items.brings(cellsText(describeCells(under, c.before))) : t.campaign.items.bringsNothing
 })
 const conflicts = computed(() => (check.value?.conflicts ?? []).map((c: ClassConflictView) => t.item.conflict(c.className, formatDay(localDateOf(c.startsAt)), localTimeOf(c.startsAt), localTimeOf(c.endsAt), c.title, c.lead.shortName ?? c.lead.displayName)))
-/** The activity against the minimum length of each day it touches that has one: a shortfall shows when the minimum was raised after the submission. */
-const lengthLines = computed(() => (check.value?.length ?? []).map((l) => ({
-  text: l.met ? t.item.length.met(formatDay(l.date), l.minimum, l.credited) : t.item.length.short(formatDay(l.date), l.minimum, l.credited),
-  alert: !l.met,
+/** The days the activity falls short of their minimum length: a shortfall shows when the minimum was raised after the submission. */
+const lengthLines = computed(() => (check.value?.length ?? []).filter((l) => !l.met).map((l) => ({
+  text: t.item.length.short(formatDay(l.date), l.missing, l.minimum, l.window?.starts ?? null, l.window?.ends ?? null),
+  alert: true,
 })))
 
 /** The lead's only activity that may still take place, and a duty to lead: a note on the return and withdrawal forms, no bar. */

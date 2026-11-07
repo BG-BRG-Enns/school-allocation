@@ -2,7 +2,8 @@
 // what the organizer watches while proposals come in, and what a teacher
 // sees before proposing. A day is counted in cells: one per period of its
 // attendance frame, when the organizer set one (everyone is at school from
-// the 2nd to the 6th period, say), else the whole day. A class activity
+// the 2nd to the 6th period, say), else the day's window: from the grid's
+// first period to its last, so an evening activity offers no daytime place. A class activity
 // takes its classes out of every cell it touches, so a class back from a
 // trip at eleven needs places again from the 5th period; an activity open
 // to several classes counts its places for each of them in proportion to
@@ -107,15 +108,35 @@ export function framePeriods(frame: Frame, grid: readonly Period[]): Period[] {
 }
 
 /**
+ * The window of a project day, as clock times: from the start of the first
+ * period of its attendance frame to the end of its last; without a frame,
+ * or with one none of whose periods the grid still has, from the start of
+ * the grid's first period to the end of its last. What a session credits on
+ * the day is the time it shares with the window (catalogue.ts creditsOf),
+ * and the demand counts nothing outside it. Null only for a grid without
+ * periods, which the grid's own check refuses.
+ */
+export function dayWindow(frame: Frame | null, grid: readonly Period[]): { starts: string, ends: string } | null {
+  const framed = frame === null ? [] : framePeriods(frame, grid)
+  const periods = framed.length > 0 ? framed : [...grid].sort((a, b) => a.period - b.period)
+  const first = periods[0]
+  const last = periods.at(-1)
+  return first === undefined || last === undefined ? null : { starts: first.starts, ends: last.ends }
+}
+
+/**
  * The cells of a project day: with a frame one per period of it, spanned
  * by the period's clock times on that date (`toMs` turns a time of the day
- * into an instant), else one for the whole day. A frame none of whose
- * periods the grid has counts the day whole, so a changed grid loses no day.
+ * into an instant), else one for the day's window (dayWindow), so an
+ * evening activity offers no place for the day. A frame none of whose
+ * periods the grid has counts the window whole, so a changed grid loses no
+ * day; `day` stands in only for a grid without periods.
  */
 export function demandCells(frame: Frame | null, grid: readonly Period[], toMs: (time: string) => number, day: { startMs: number, endMs: number }): DemandCell[] {
   const periods = frame === null ? [] : framePeriods(frame, grid)
-  if (periods.length === 0) return [{ period: null, startMs: day.startMs, endMs: day.endMs }]
-  return periods.map((p) => ({ period: p.period, startMs: toMs(p.starts), endMs: toMs(p.ends) }))
+  if (periods.length > 0) return periods.map((p) => ({ period: p.period, startMs: toMs(p.starts), endMs: toMs(p.ends) }))
+  const window = dayWindow(null, grid)
+  return [window === null ? { period: null, startMs: day.startMs, endMs: day.endMs } : { period: null, startMs: toMs(window.starts), endMs: toMs(window.ends) }]
 }
 
 export const FRAME_PROBLEM_CODES = ['frame_order', 'frame_period_unknown'] as const

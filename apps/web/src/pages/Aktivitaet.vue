@@ -215,8 +215,9 @@ const gateHints = computed<{ text: string, alert: boolean }[]>(() => {
   const c = check.value
   if (!c || isFixed.value || staffOnly.value) return []
   const lines: { text: string, alert: boolean }[] = []
-  if (c.served.length === 0 && sessions.value.length > 0) lines.push({ text: t.item.gate.servesNothing, alert: false })
-  else {
+  // An extra says how its students come in; an activity serving no cell otherwise (one in a break) has nothing to act on.
+  if (c.extra) lines.push({ text: t.item.gate.servesNothing, alert: false })
+  else if (c.served.length > 0) {
     const under = cellsAddedBy(c.served, c.before, c.after).filter((cell) => !cell.reached)
     lines.push(under.length > 0 ? { text: t.item.gate.brings(cellsText(describeCells(under, c.before))), alert: false } : { text: t.item.gate.bringsNothing, alert: c.locked })
   }
@@ -227,10 +228,10 @@ const gateHints = computed<{ text: string, alert: boolean }[]>(() => {
   return lines
 })
 const conflictHints = computed(() => (check.value?.conflicts ?? []).map(conflictText))
-/** The activity against the minimum length of each day it touches that has one, from the check: what a save would hold it to. */
-const lengthHints = computed<{ text: string, alert: boolean }[]>(() => (check.value?.length ?? []).map((l) => ({
-  text: l.met ? t.item.length.met(formatDay(l.date), l.minimum, l.credited) : t.item.length.short(formatDay(l.date), l.minimum, l.credited),
-  alert: !l.met,
+/** The days the activity falls short of their minimum length, from the check: what a save would refuse, and by how much to lengthen it. A day it meets says nothing. */
+const lengthHints = computed<{ text: string, alert: boolean }[]>(() => (check.value?.length ?? []).filter((l) => !l.met).map((l) => ({
+  text: t.item.length.short(formatDay(l.date), l.missing, l.minimum, l.window?.starts ?? null, l.window?.ends ?? null),
+  alert: true,
 })))
 
 function conflictText(c: ClassConflictView): string {
@@ -576,7 +577,6 @@ async function save(propose: boolean): Promise<void> {
       </template><template v-if="soughtText">
         · {{ soughtText }}
       </template>
-      <br>{{ t.item.teachers.leadRule }}
     </p>
     <p
       v-else-if="teachers.length > 0"
@@ -904,7 +904,7 @@ async function save(propose: boolean): Promise<void> {
       :heading="t.campaign.demand.heading"
     >
       <p class="muted">
-        {{ t.campaign.demand.intro(campaign.placeHeadroomPercent) }}
+        {{ t.campaign.demand.intro }}
       </p>
       <DemandTable
         :demand="check?.before ?? demand"

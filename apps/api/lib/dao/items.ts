@@ -106,13 +106,14 @@ async function readItems(db: Queryable, where: string, values: unknown[]): Promi
 }
 
 export async function findProjectDays(db: Queryable, campaignId: string) {
-  const { rows: [row] } = await db.query<{ project_days: string[], minimums: Record<string, number> }>(
+  const { rows: [row] } = await db.query<{ project_days: string[], minimums: Record<string, number>, frames: Record<string, { from: number, to: number }> }>(
     `select c.project_days::text[] as project_days,
-            coalesce((select json_object_agg(d.day::text, d.min_activity_minutes) from campaign_day d where d.campaign_id = c.id and d.min_activity_minutes is not null), '{}') as minimums
+            coalesce((select json_object_agg(d.day::text, d.min_activity_minutes) from campaign_day d where d.campaign_id = c.id and d.min_activity_minutes is not null), '{}') as minimums,
+            coalesce((select json_object_agg(d.day::text, json_build_object('from', d.frame_from, 'to', d.frame_to)) from campaign_day d where d.campaign_id = c.id and d.frame_from is not null), '{}') as frames
        from campaign c where c.id = $1`,
     [campaignId],
   )
-  return row === undefined ? undefined : ({ projectDays: row.project_days, activityMinimum: row.minimums })
+  return row === undefined ? undefined : ({ projectDays: row.project_days, activityMinimum: row.minimums, frames: row.frames })
 }
 
 /** The classes taking part in the campaign, by name: what an activity may name as fixed or eligible. */
@@ -262,8 +263,8 @@ export async function listCampaignsBeforeOpening(db: Queryable) {
 
 /** The sessions of those of `campaignIds` that are still not open, read under their locks. */
 export async function listSessionsBeforeOpening(db: Queryable, campaignIds: readonly string[]) {
-  const { rows } = await db.query<{ id: string, starts_at: Date, ends_at: Date }>(
-    `select s.id, s.starts_at, s.ends_at
+  const { rows } = await db.query<{ id: string, campaign_id: string, starts_at: Date, ends_at: Date }>(
+    `select s.id, i.campaign_id, s.starts_at, s.ends_at
        from item_session s
        join catalog_item i on i.id = s.item_id
        join campaign c on c.id = i.campaign_id
@@ -271,7 +272,7 @@ export async function listSessionsBeforeOpening(db: Queryable, campaignIds: read
       order by s.id`,
     [campaignIds],
   )
-  return rows.map((row) => ({ id: row.id, startsAt: row.starts_at.toISOString(), endsAt: row.ends_at.toISOString() }))
+  return rows.map((row) => ({ id: row.id, campaignId: row.campaign_id, startsAt: row.starts_at.toISOString(), endsAt: row.ends_at.toISOString() }))
 }
 
 /** What a session credits written in place: the session keeps its id. */

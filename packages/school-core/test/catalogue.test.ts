@@ -1,7 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { acceptsProposals, checkItem, creditedMinutesByDate, creditsOf, isEligible, isPreAssigned, isStaffOnly, ITEM_STATES, itemTransition, lengthStandings, overlaps, type CreditDay, type ItemInput, type ItemRules, type SessionInput } from '../src/catalogue.ts'
-import { DEFAULT_PERIODS, type Period } from '../src/periods.ts'
+import { acceptsProposals, checkItem, creditedMinutesByDate, creditsOf, isEligible, isExtra, isPreAssigned, isStaffOnly, ITEM_STATES, itemTransition, lengthStandings, overlaps, type CreditDay, type ItemInput, type ItemRules, type SessionInput } from '../src/catalogue.ts'
 
 const DAY = 24 * 60 * 60 * 1000
 // Monday 2027-06-21 08:00 Europe/Vienna = 06:00Z; the dates are what the API computes for the span.
@@ -35,23 +34,29 @@ test('an activity without places and without classes is its teachers\' alone: it
   assert.deepEqual(checkItem({ ...item, rules: { ...duty, minParticipants: 3 } }, context).map((p) => p.code), ['min_above_places'])
 })
 
-test('an activity reaches the minimum length of each day it touches, summed over its sessions; its teachers alone and a night away are exempt', () => {
+test('an activity reaches the minimum length of each day it takes up part of the window, summed over its sessions; strictly, also the morning a trip comes back on', () => {
   const minimum = { ...context, activityMinimum: { '2027-06-21': 200, '2027-06-23': 300 } }
   const dates = (input: ItemInput) => checkItem(input, minimum).map((p) => `${p.code}@${p.date}`)
-  // Monday credits 180 of 200.
+  // Monday credits 180 of 200: 20 short, counted in the day's window, which the message names.
+  const windows = { '2027-06-21': { starts: '08:30', ends: '12:15' } }
   assert.deepEqual(dates(item), ['below_minimum_length@2027-06-21'])
-  assert.deepEqual(lengthStandings(item, minimum.activityMinimum, minimum.projectDays), [{ date: '2027-06-21', minimum: 200, credited: 180, met: false }])
+  assert.deepEqual(lengthStandings(item, minimum.activityMinimum, minimum.projectDays, windows), [{ date: '2027-06-21', minimum: 200, credited: 180, met: false, missing: 20, window: { starts: '08:30', ends: '12:15' } }])
   // Two sessions on the day (an interruption) count together: 180 + 50.
   const later = session(MON + 5 * 60 * 60 * 1000, 1, ['2027-06-21'], [{ date: '2027-06-21', minutes: 50 }])
   assert.deepEqual(dates({ ...item, sessions: [monday, later] }), [])
-  assert.deepEqual(lengthStandings({ ...item, sessions: [monday, later] }, minimum.activityMinimum, minimum.projectDays), [{ date: '2027-06-21', minimum: 200, credited: 230, met: true }])
+  assert.deepEqual(lengthStandings({ ...item, sessions: [monday, later] }, minimum.activityMinimum, minimum.projectDays), [{ date: '2027-06-21', minimum: 200, credited: 230, met: true, missing: 0, window: null }])
   // A day without a minimum asks for nothing; Tuesday has none.
   const tuesday = session(MON + DAY, 2, ['2027-06-22'], [{ date: '2027-06-22', minutes: 100 }])
   assert.deepEqual(dates({ ...item, sessions: [tuesday] }), [])
   assert.deepEqual(lengthStandings({ ...item, sessions: [tuesday] }, minimum.activityMinimum, minimum.projectDays), [])
-  // The trip returns on Wednesday morning with 240 of 300: a night away meets the day.
-  assert.deepEqual(dates({ ...item, sessions: [vienna] }), [])
-  assert.deepEqual(lengthStandings({ ...item, sessions: [vienna] }, minimum.activityMinimum, minimum.projectDays), [{ date: '2027-06-23', minimum: 300, credited: 240, met: true }])
+  // The trip comes back on Wednesday with 240 of 300 inside the window: the night away does not make up for the rest of the day.
+  assert.deepEqual(dates({ ...item, sessions: [vienna] }), ['below_minimum_length@2027-06-23'])
+  // Back by the window's start, it credits Wednesday nothing and is not held to Wednesday's minimum.
+  const backByStart = session(MON + DAY, 24, ['2027-06-22', '2027-06-23'], [{ date: '2027-06-22', minutes: 360 }, { date: '2027-06-23', minutes: 0 }])
+  assert.deepEqual(dates({ ...item, sessions: [backByStart] }), [])
+  // An extra in the evening credits nothing: no minimum holds it.
+  const evening = session(MON + 11 * 60 * 60 * 1000, 3, ['2027-06-21'], [{ date: '2027-06-21', minutes: 0 }])
+  assert.deepEqual(dates({ ...item, sessions: [evening] }), [])
   // A class activity is held to it like any other; one of its teachers alone is not.
   assert.deepEqual(dates({ ...item, rules: { ...choosable, fixedClasses: ['5A'], places: 0, minParticipants: 0, cancellableBelowMin: false } }), ['below_minimum_length@2027-06-21'])
   assert.deepEqual(dates({ ...item, rules: { ...choosable, places: 0, minParticipants: 0, cancellableBelowMin: false } }), [])
@@ -72,7 +77,8 @@ test('sessions must lie on project days, not overlap each other, and credit only
   assert.deepEqual(codes({ ...item, sessions: [{ ...monday, credits: [{ date: '2027-06-21', minutes: 60 }, { date: '2027-06-21', minutes: 60 }] }] }), ['credit_date_twice@0'])
   assert.deepEqual(codes({ ...item, sessions: [{ ...monday, credits: [{ date: '2027-06-21', minutes: 1500 }] }] }), ['credit_minutes_invalid@0'])
   assert.deepEqual(codes({ ...item, sessions: [{ ...monday, credits: [{ date: '2027-06-21', minutes: 0.5 }] }] }), ['credit_minutes_invalid@0'])
-  assert.deepEqual(codes({ ...item, sessions: [{ ...monday, credits: [] }] }), ['no_credit@0'])
+  // A session that credits nothing is an extra, not a problem.
+  assert.deepEqual(codes({ ...item, sessions: [{ ...monday, credits: [{ date: '2027-06-21', minutes: 0 }] }] }), [])
 })
 
 test('places, minimum, fixed classes and eligibility must agree with each other and with the roster', () => {
@@ -121,54 +127,48 @@ test('an item goes draft → proposed → approved, back to draft when returned,
   assert.equal(acceptsProposals('draft'), false)
 })
 
-// The credit a session earns, derived from the grid: the day's periods as spans on a zone-free clock, a day 24 hours long.
+// The credit a session earns: its clock minutes inside the day's window, on a zone-free clock, a day 24 hours long. The window of
+// the frame 2.–5. EH on the default grid: 08:30 to 12:15.
 const HOUR = 60 * 60 * 1000
 const clock = (time: string, dayIndex = 0): number => dayIndex * DAY + (Number(time.slice(0, 2)) * 60 + Number(time.slice(3))) * 60_000
-const gridDay = (date: string, dayIndex: number, periods: readonly Period[] = DEFAULT_PERIODS): CreditDay => ({
-  date,
-  startMs: dayIndex * DAY,
-  endMs: (dayIndex + 1) * DAY,
-  periods: periods.map((p) => ({ startMs: clock(p.starts, dayIndex), endMs: clock(p.ends, dayIndex) })),
-})
-const mondayGrid = gridDay('2027-06-21', 0)
-const tuesdayGrid = gridDay('2027-06-22', 1)
+const windowDay = (date: string, dayIndex: number, starts = '08:30', ends = '12:15'): CreditDay => ({ date, startMs: clock(starts, dayIndex), endMs: clock(ends, dayIndex) })
+const mondayWindow = windowDay('2027-06-21', 0)
+const tuesdayWindow = windowDay('2027-06-22', 1)
 
-test('a session in periods credits their lengths, the breaks between them not; however a day is cut, the periods add up alike', () => {
-  // The 2nd and 3rd period: 08:30–10:15 by the clock is 105 minutes, two periods are 100.
-  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('10:15') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 100 }])
-  // The 4th to the 6th, after the long break: 150. Together with the first the five periods of the frame: 250, as one session over them credits.
-  assert.deepEqual(creditsOf({ startMs: clock('10:30'), endMs: clock('13:10') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 150 }])
-  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('13:10') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 250 }])
+test('a session credits its clock minutes inside the window, breaks included: a trip from 08:45 counts what it lasts', () => {
+  // 08:45–10:30: 105 minutes, whatever breaks lie inside.
+  assert.deepEqual(creditsOf({ startMs: clock('08:45'), endMs: clock('10:30') }, [mondayWindow]), [{ date: '2027-06-21', minutes: 105 }])
+  // The 2nd and 3rd period, 08:30–10:15: 105 as well.
+  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('10:15') }, [mondayWindow]), [{ date: '2027-06-21', minutes: 105 }])
+  // 09:00–13:00: 195, the time after the window not.
+  assert.deepEqual(creditsOf({ startMs: clock('09:00'), endMs: clock('13:00') }, [mondayWindow]), [{ date: '2027-06-21', minutes: 195 }])
+  // From before the window until the evening: the window, 225.
+  assert.deepEqual(creditsOf({ startMs: clock('07:00'), endMs: clock('21:00') }, [mondayWindow]), [{ date: '2027-06-21', minutes: 225 }])
 })
 
-test('a trip by the clock credits the periods it covers, a part of one by its minutes, nothing outside the timetable', () => {
-  // 08:00–13:00: 25 minutes of the 1st period, the 2nd to the 5th whole, 40 of the 6th.
-  assert.deepEqual(creditsOf({ startMs: clock('08:00'), endMs: clock('13:00') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 265 }])
-  // From before the first period until the evening: the whole grid, ten periods, and not the evening.
-  assert.deepEqual(creditsOf({ startMs: clock('07:00'), endMs: clock('21:00') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 500 }])
+test('a session over several days credits each date by its own window; a return by the window\'s start credits that day nothing', () => {
+  // Monday 08:30 to Tuesday 10:30: Monday the whole window, Tuesday until 10:30.
+  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('10:30', 1) }, [mondayWindow, tuesdayWindow]), [{ date: '2027-06-21', minutes: 225 }, { date: '2027-06-22', minutes: 120 }])
+  // Back at 08:30, as the window opens: Tuesday is touched and credits nothing; so is a return in the night.
+  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('08:30', 1) }, [mondayWindow, tuesdayWindow]), [{ date: '2027-06-21', minutes: 225 }, { date: '2027-06-22', minutes: 0 }])
+  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('02:00', 1) }, [mondayWindow, tuesdayWindow]), [{ date: '2027-06-21', minutes: 225 }, { date: '2027-06-22', minutes: 0 }])
 })
 
-test('a session over several days credits each date by its own periods; a return in the night credits that day nothing', () => {
-  // Monday 08:30 to Tuesday 13:10: Monday from the 2nd period, Tuesday the first six.
-  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('13:10', 1) }, [mondayGrid, tuesdayGrid]), [{ date: '2027-06-21', minutes: 450 }, { date: '2027-06-22', minutes: 300 }])
-  // Back at two in the night: Tuesday is touched and credits nothing.
-  assert.deepEqual(creditsOf({ startMs: clock('08:30'), endMs: clock('02:00', 1) }, [mondayGrid, tuesdayGrid]), [{ date: '2027-06-21', minutes: 450 }, { date: '2027-06-22', minutes: 0 }])
-})
-
-test('a session that shares nothing with the grid credits its clock minutes, so every session credits something', () => {
-  // An evening at the theatre.
-  assert.deepEqual(creditsOf({ startMs: clock('19:00'), endMs: clock('22:00') }, [mondayGrid]), [{ date: '2027-06-21', minutes: 180 }])
-  // A school without a grid: the clock, per date, an end at midnight included.
-  const bare = [gridDay('2027-06-21', 0, []), gridDay('2027-06-22', 1, [])]
-  assert.deepEqual(creditsOf({ startMs: clock('08:00'), endMs: clock('13:00') }, [bare[0] as CreditDay]), [{ date: '2027-06-21', minutes: 300 }])
-  assert.deepEqual(creditsOf({ startMs: clock('20:00'), endMs: clock('12:00', 1) }, bare), [{ date: '2027-06-21', minutes: 240 }, { date: '2027-06-22', minutes: 720 }])
+test('a session wholly outside the window credits nothing: an activity of such sessions is an extra', () => {
+  const evening = creditsOf({ startMs: clock('19:00'), endMs: clock('22:00') }, [mondayWindow])
+  assert.deepEqual(evening, [{ date: '2027-06-21', minutes: 0 }])
+  assert.equal(isExtra([{ credits: evening }]), true)
+  // One minute in a window makes an activity none, and so does a session of it on another day.
+  assert.equal(isExtra([{ credits: [{ date: '2027-06-21', minutes: 1 }] }]), false)
+  assert.equal(isExtra([{ credits: evening }, { credits: [{ date: '2027-06-22', minutes: 100 }] }]), false)
+  assert.equal(isExtra([]), false)
   // The day summer time ends has 25 hours: no credit is above a day's minutes.
-  assert.deepEqual(creditsOf({ startMs: 0, endMs: 25 * HOUR }, [{ date: '2027-10-31', startMs: 0, endMs: 25 * HOUR, periods: [] }]), [{ date: '2027-10-31', minutes: 1440 }])
+  assert.deepEqual(creditsOf({ startMs: 0, endMs: 25 * HOUR }, [{ date: '2027-10-31', startMs: 0, endMs: 25 * HOUR }]), [{ date: '2027-10-31', minutes: 1440 }])
 })
 
 test('what the derivation gives passes the rules of an activity', () => {
   const span = { startMs: MON, endMs: MON + 4 * HOUR }
-  const day: CreditDay = { date: '2027-06-21', startMs: MON - 8 * HOUR, endMs: MON + 16 * HOUR, periods: [{ startMs: MON, endMs: MON + 50 * 60_000 }] }
+  const day: CreditDay = { date: '2027-06-21', startMs: MON, endMs: MON + 50 * 60_000 }
   const credits = creditsOf(span, [day])
   assert.deepEqual(credits, [{ date: '2027-06-21', minutes: 50 }])
   assert.deepEqual(checkItem({ ...item, sessions: [{ ...span, dates: ['2027-06-21'], credits }] }, context), [])
