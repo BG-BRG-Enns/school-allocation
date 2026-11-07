@@ -17,7 +17,7 @@ Before the first calculation, every year in the registration needs its minimum m
 
 ## Calculating
 
-![New calculation with draw number and computing time, followed by calculations with status, draw number, computing time and missing minutes](/bilder/en/zuteilung-berechnen.png)
+![New calculation with draw number and search effort, followed by calculations with status, draw number, search effort and missing minutes](/bilder/en/zuteilung-berechnen.png)
 
 **Allocation** on the registration page opens the calculations page.
 
@@ -30,7 +30,7 @@ If the page says that allocation calculation is not configured on this server or
 
 ## Reviewing a calculation
 
-![The review of a calculation: Publish at the top, followed by draw number and computing time, the calculation's figures and the goals with their values for each round](/bilder/en/zuteilung-pruefen.png)
+![The review of a calculation: Publish at the top, followed by draw number and search effort, the calculation's figures and the goals with their values for each round](/bilder/en/zuteilung-pruefen.png)
 
 A finished calculation first shows its figures: how many students are placed for every day, how many have missing minutes, how many have a remaining place, how many miss a rule, and how many activities are cancelled. Below are the **Goals (in this order)** with their value for each round. “✓ optimal” means there is no better allocation; “≈ perhaps not optimal” means the search effort was not enough to prove this. More search effort often helps then.
 

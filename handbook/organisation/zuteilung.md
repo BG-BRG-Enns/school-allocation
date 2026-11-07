@@ -17,7 +17,7 @@ Vor der ersten Berechnung müssen für alle Schulstufen der Anmeldung die Mindes
 
 ## Berechnen
 
-![Neue Berechnung mit Losnummer und Rechenzeit, darunter die Berechnungen mit Stand, Losnummer, Rechenzeit und fehlenden Minuten](/bilder/de/zuteilung-berechnen.png)
+![Neue Berechnung mit Losnummer und Suchaufwand, darunter die Berechnungen mit Stand, Losnummer, Suchaufwand und fehlenden Minuten](/bilder/de/zuteilung-berechnen.png)
 
 **Zuteilung** auf der Seite der Anmeldung öffnet die Seite der Berechnungen.
 
@@ -30,7 +30,7 @@ Sagt die Seite, dass die Berechnung auf diesem Server nicht eingerichtet ist ode
 
 ## Eine Berechnung prüfen
 
-![Die Prüfung einer Berechnung: oben Veröffentlichen, darunter Losnummer und Rechenzeit, die Zahlen der Berechnung und die Ziele mit ihren Werten je Runde](/bilder/de/zuteilung-pruefen.png)
+![Die Prüfung einer Berechnung: oben Veröffentlichen, darunter Losnummer und Suchaufwand, die Zahlen der Berechnung und die Ziele mit ihren Werten je Runde](/bilder/de/zuteilung-pruefen.png)
 
 Eine fertige Berechnung zeigt zuerst ihre Zahlen: wie viele Schüler\*innen an allen Tagen eingeteilt sind, wie vielen Minuten fehlen, wie viele einen Restplatz haben, wie vielen eine Regel fehlt, wie viele Aktivitäten ausfallen. Darunter die **Ziele** mit ihrem Wert je Runde. „✓ bestmöglich“ heißt, dass es keine bessere Einteilung gibt; „≈ vielleicht nicht bestmöglich“, dass der Suchaufwand nicht gereicht hat, das zu beweisen. Mehr Suchaufwand hilft dann oft.
 

@@ -321,7 +321,7 @@ export const en: Messages = {
       OPTIMAL: 'optimal',
       FEASIBLE: 'valid, maybe not the best',
       INFEASIBLE: 'no allocation possible',
-      UNKNOWN: 'none found in time',
+      UNKNOWN: 'none found within the search effort',
       MODEL_INVALID: 'data error',
     },
     /** The levels of the lexicographic objective (school-core levelNames); a threshold level is named by its number. */
@@ -1751,7 +1751,7 @@ export const en: Messages = {
       description: 'Description',
       location: 'Location',
       minParticipants: 'Minimum',
-      cancellableBelowMinimum: 'Cancelled if too few',
+      cancellableBelowMinimum: 'May be cancelled if the minimum is not reached',
       fixedClasses: 'Whole classes',
       grades: 'Years',
       classes: 'Classes',

@@ -2,7 +2,7 @@
 
 **Change settings** on the registration page opens the form. What you can change depends on the status; the button later becomes **Change minimum minutes and swap period** and finally **Change swap period**.
 
-![The Registration settings form: name, school year, project days with their attendance frame, registration period with start, end and late registration, swap period, choices per time block and places above the need](/bilder/en/einstellungen.png)
+![The Registration settings form: name, school year, project days with their attendance frame, registration period with start, end and late registration, swap period, choices per time block and extra places to offer](/bilder/en/einstellungen.png)
 
 ## Attendance frame per project day
 

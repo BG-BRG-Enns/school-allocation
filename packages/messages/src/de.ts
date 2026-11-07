@@ -1805,7 +1805,7 @@ export const de = {
       description: 'Beschreibung',
       location: 'Ort',
       minParticipants: 'Mindestzahl',
-      cancellableBelowMinimum: 'Fällt aus, wenn zu wenige kommen',
+      cancellableBelowMinimum: 'Darf ausfallen, wenn die Mindestzahl nicht erreicht wird',
       fixedClasses: 'Ganze Klassen',
       grades: 'Schulstufen',
       classes: 'Klassen',

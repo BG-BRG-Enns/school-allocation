@@ -76,7 +76,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | availability | Verfügbarkeit; verfügbar · nicht verfügbar · nur wenn nötig | availability; available · unavailable · if needed | no reason is ever asked |
 | lead, companions | Leitung, leitet; Begleitung, begleitet | lead, leads; companions, accompanies | stored: the creator of a new activity when among its teachers; whoever is added accompanies |
 | hand over the lead | "Leitung übergeben an"; "Leitung übergeben" | "Hand the lead over to"; "Hand over the lead" | to a companion; the lead until then stays as a companion |
-| companions sought (`catalog_item.companions_wanted`) | Begleitlehrkräfte insgesamt (0–8, ohne Leitung); "noch 1 gesucht"; "Begleitung vollständig"; "Begleitung 1 von 2"; Begleitung gesucht; Ich begleite; Austragen | Companions (0 to 8); "1 still sought"; "Companions complete"; "Companions 1 of 2"; Companions sought; I accompany; Take me off | how many the lead wants beside them; sought = wanted − companions named; the list per project day a teacher joins from |
+| companions sought (`catalog_item.companions_wanted`) | Begleitlehrkräfte insgesamt (0–8, ohne Leitung); "noch 1 gesucht"; "Begleitung vollständig"; "Begleitung 1 von 2"; Begleitung gesucht; Ich begleite; Austragen | Accompanying teachers in all (0–8, without the lead); "1 still sought"; "Companions complete"; "Companions 1 of 2"; Companions sought; Join as an accompanying teacher; Take me off | how many the lead wants beside them; sought = wanted − companions named; the list per project day a teacher joins from |
 | planning overview | Lehrkräfte je Tag; "leitet an keinem Tag etwas" | teachers by day; "leads nothing on any day" | |
 | duty to lead (`teacher_detail.lead_duty`) | Leitungspflicht; "keine Leitungspflicht"; "Ohne Leitungspflicht: …" | duty to lead; "no duty to lead" | a mark for the overview alone; from the availability sheet's Leitung column (N: none) or set beside the Kürzel |
 | progress during the window | Stand der Anmeldung; "wer sich schon angemeldet hat" | registration status | |
@@ -90,7 +90,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | time limit | Suchaufwand | search effort | a deterministic budget per goal, not elapsed seconds; how long it takes depends on the registration and the server |
 | levels L1–L5 | Ziele (in dieser Reihenfolge) | goals (in this order) | each line says what it protects |
 | average rank | durchschnittlicher Wunsch | average choice | |
-| run status | gültig, vielleicht nicht die beste · keine Einteilung möglich · mit dem Suchaufwand keine gefunden · Fehler in den Daten | valid, maybe not the best · no allocation possible · none found in time · data error | |
+| run status | gültig, vielleicht nicht die beste · keine Einteilung möglich · mit dem Suchaufwand keine gefunden · Fehler in den Daten | valid, maybe not the best · no allocation possible · none found within the search effort · data error | |
 | pass (D-20) | Runde ("1. Runde: Anmeldezeitraum, 2. Runde: Nachfrist") | round | |
 | fallback place (D-06) | Restplatz | remaining place | "auf einen Restplatz ohne Kosten" |
 | deficit | fehlende Minuten | missing minutes | |
