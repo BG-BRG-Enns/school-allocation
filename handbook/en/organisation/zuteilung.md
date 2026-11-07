@@ -11,7 +11,7 @@ Within these conditions, the calculation pursues its goals in this order:
 5. The overall result is as good as possible: choices as high as possible for everyone.
 6. Where two allocations are equally good, a draw decides.
 
-If a person's choices are not enough, for the minutes or for a rule, they get a **remaining place**: an open place in an activity with no cost. An activity marked “Cancelled if too few” can be cancelled if too few students can be found to meet its minimum. Late registration choices are considered in a second **round**, after everyone else.
+If a person's choices are not enough, for the minutes or for a rule, they get a **remaining place**: an open place in an activity with no cost. An activity marked “May be cancelled if the allocation does not reach the minimum” can be cancelled if the allocation does not reach its minimum. Late registration choices are considered in a second **round**, after everyone else.
 
 Before the first calculation, every year in the registration needs its minimum minutes per day ([Settings](./einstellungen)).
 

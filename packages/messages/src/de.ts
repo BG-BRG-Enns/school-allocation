@@ -900,13 +900,13 @@ export const de = {
       handOver: 'Leitung übergeben an',
       handOverSubmit: 'Leitung übergeben',
       handOverHint: 'Übergeben geht an eine Begleitung; eine andere Lehrkraft zuerst als Begleitung hinzufügen und speichern.',
-      handOverConfirm: (name: string) => `Die Leitung an ${name} übergeben? Die bisherige Leitung bleibt als Begleitung eingetragen und ändert die Begleitung dann nicht mehr.`,
+      handOverConfirm: (name: string) => `Die Leitung an ${name} übergeben? Die bisherige Leitung bleibt als Begleitlehrkraft eingetragen; die Begleitlehrkräfte verwaltet danach die neue Leitung.`,
       /** A teacher not plainly available on some of the activity's days, the days as format.ts formatDay writes them. */
       unavailableOn: (name: string, days: string) => `${name} ist am ${days} nicht verfügbar.`,
       ifNeededOn: (name: string, days: string) => `${name} ist am ${days} nur verfügbar, wenn es nötig ist.`,
       /** How many companions the lead wants beside them (the school's wish 6). */
-      wanted: 'Begleitungen (0 bis 8)',
-      wantedHint: 'Wie viele Lehrkräfte neben der Leitung mitkommen sollen. Was noch fehlt, steht unter „Begleitung gesucht“, und Lehrkräfte tragen sich dort selbst ein.',
+      wanted: 'Begleitlehrkräfte insgesamt (0–8, ohne Leitung)',
+      wantedHint: 'Wie viele Lehrkräfte neben der Leitung mitkommen sollen; bereits eingetragene Begleitlehrkräfte zählen mit. Was noch fehlt, steht unter „Begleitung gesucht“, und Lehrkräfte tragen sich dort selbst ein.',
       /** "noch 1 gesucht" */
       sought: (count: number) => `noch ${count} gesucht`,
       complete: 'Begleitung vollständig',
@@ -928,7 +928,7 @@ export const de = {
       at: 'um',
       endsOn: 'Ende am',
       remove: 'Termin entfernen',
-      add: 'Weiterer Termin (nur bei Unterbrechung)',
+      add: 'Weiterer Termin für dieselbe Gruppe (nur bei Unterbrechung)',
     },
     participation: {
       heading: 'Teilnahme',
@@ -936,7 +936,7 @@ export const de = {
       /** The places of an activity for fixed classes: those other students may rank. */
       extraPlaces: 'Zusätzliche Plätze für andere Schüler*innen',
       minParticipants: 'Mindestzahl',
-      cancellable: 'Fällt aus, wenn zu wenige kommen',
+      cancellable: 'Darf ausfallen, wenn die Mindestzahl bei der Zuteilung nicht erreicht wird',
       /** No places and no classes: nobody ranks it and nobody is placed into it. */
       staffOnly: 'Ohne Plätze und ohne ganze Klassen ist die Aktivität nur für Lehrkräfte: Schüler*innen sehen sie nicht im Katalog, und niemand kann sie wählen.',
       eligibleGrades: 'Angeboten für Schulstufen (keine Auswahl: alle)',
@@ -956,7 +956,7 @@ export const de = {
     gate: {
       brings: (cells: string) => `Diese Aktivität bringt Plätze dorthin, wo noch welche fehlen: ${cells}.`,
       bringsNothing: 'Diese Aktivität bringt Plätze nur dorthin, wo das Ziel schon erreicht ist.',
-      servesNothing: 'Diese Aktivität liegt außerhalb der Anwesenheitsrahmen: Plätze und Bedarf zählen sie nirgends.',
+      servesNothing: 'Diese Aktivität findet außerhalb der Zeiten statt, für die Plätze geplant werden. Deshalb wird sie in „Plätze und Bedarf“ nicht mitgezählt.',
       /** The refusal, a sentence per day; `periods` null for a day counted whole. */
       refused: (day: string, periods: string | null) => periods === null ? `Am ${day} hat jede Schulstufe dieser Aktivität ihr Ziel erreicht.` : `Am ${day} hat jede Schulstufe dieser Aktivität in der ${periods} ihr Ziel erreicht.`,
       advice: 'Wähle eine Zeit, in der noch Plätze fehlen, oder nimm eine Schulstufe dazu, der noch Plätze fehlen.',
@@ -983,7 +983,7 @@ export const de = {
   /** Verfuegbarkeit.vue: a teacher's own availability on the project days of the registrations collecting activities. */
   availability: {
     intro: 'Trag ein, an welchen Projekttagen du für eine Aktivität da bist. Ohne Eintrag giltst du als verfügbar. Einen Grund gibst du nicht an.',
-    none: 'Zurzeit sammelt keine Anmeldung Angebote. Solange eine sammelt, trägst du hier ein, an welchen ihrer Projekttage du da bist; danach ändert das die Organisation.',
+    none: 'Deine Verfügbarkeit trägst du hier ein, solange Lehrkräfte Aktivitäten einreichen können. Zurzeit ist keine Anmeldung in dieser Phase. Für spätere Änderungen wende dich an die Organisation.',
     teachersOnly: 'Die Verfügbarkeit tragen die Lehrkräfte ein.',
     /** The label of a day's choice for a screen reader, the day as format.ts formatDay writes it. */
     statusOn: (day: string) => `Verfügbarkeit am ${day}`,
@@ -1020,7 +1020,7 @@ export const de = {
     /** In the form of a class activity not saved yet. */
     taken: (names: string) => `In dieser Zeit direkt in eine andere Aktivität eingeteilt und daher nicht dabei: ${names}. Nach dem Speichern lassen sie sich hier zurückholen.`,
     /** A teacher of the activity who may not change it: submitted, it is the organization's. */
-    readOnly: 'Die Aktivität ist eingereicht: Ändern kann sie die Organisation, die Begleitung die Leitung. Direkt einteilen können alle Lehrkräfte der Aktivität.',
+    readOnly: 'Die Aktivität ist eingereicht. Die Organisation kann ihre Angaben ändern; die Leitung verwaltet die Begleitlehrkräfte. Alle Lehrkräfte dieser Aktivität können weiterhin Schüler*innen direkt einteilen.',
   },
   /** Begleitung.vue: the list a teacher joins an activity from (the school's wish 6). */
   companions: {
@@ -1178,7 +1178,7 @@ export const de = {
       itemFor: (name: string) => `Aktivität für ${name}`,
       reasonFor: (name: string) => `Begründung für ${name}`,
       place: 'Einteilen',
-      note: 'Als Klassenvorstand teilst du hier ein, wem noch Zeit oder eine Regel fehlt. Wer eingeteilt wird, bekommt Bescheid; die Organisation sieht jede Änderung mit deiner Begründung.',
+      note: 'Teile hier Schüler*innen ein, deren Tagesprogramm noch zu kurz ist oder die eine Regel noch nicht erfüllen. Sie werden benachrichtigt; die Organisation sieht deine Änderung und Begründung.',
     },
     attendance: {
       heading: 'Anwesenheit',

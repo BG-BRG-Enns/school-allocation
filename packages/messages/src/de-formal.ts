@@ -73,7 +73,7 @@ export const deFormal = {
   },
   schoolClass: {
     unplaced: {
-      note: 'Als Klassenvorstand teilen Sie hier ein, wem noch Zeit oder eine Regel fehlt. Wer eingeteilt wird, bekommt Bescheid; die Organisation sieht jede Änderung mit Ihrer Begründung.',
+      note: 'Teilen Sie hier Schüler*innen ein, deren Tagesprogramm noch zu kurz ist oder die eine Regel noch nicht erfüllen. Sie werden benachrichtigt; die Organisation sieht Ihre Änderung und Begründung.',
     },
     attendance: {
       recordable: 'Eintragen und speichern; korrigieren können Sie bis zum Abschluss der Anmeldung.',
@@ -118,7 +118,7 @@ export const deFormal = {
   },
   availability: {
     intro: 'Tragen Sie ein, an welchen Projekttagen Sie für eine Aktivität da sind. Ohne Eintrag gelten Sie als verfügbar. Einen Grund geben Sie nicht an.',
-    none: 'Zurzeit sammelt keine Anmeldung Angebote. Solange eine sammelt, tragen Sie hier ein, an welchen ihrer Projekttage Sie da sind; danach ändert das die Organisation.',
+    none: 'Ihre Verfügbarkeit tragen Sie hier ein, solange Lehrkräfte Aktivitäten einreichen können. Zurzeit ist keine Anmeldung in dieser Phase. Für spätere Änderungen wenden Sie sich an die Organisation.',
   },
   companions: {
     intro: 'Je Projekttag die Aktivitäten, die noch eine Begleitung suchen, und die, die Sie begleiten. Tragen Sie sich ein, wo Sie mitkommen; bis die Anmeldung öffnet, tragen Sie sich hier auch wieder aus, danach sagen Sie es der Leitung oder der Organisation.',

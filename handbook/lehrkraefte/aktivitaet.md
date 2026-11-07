@@ -18,7 +18,7 @@ Ist die Aktivität eingereicht oder genehmigt, gibst du die Leitung mit **Leitun
 
 Ist eine der Lehrkräfte an einem Tag der Termine nicht verfügbar oder nur, wenn es nötig ist ([Verfügbarkeit](./verfuegbarkeit)), steht das dort ebenfalls. Speichern und einreichen kannst du trotzdem; die Organisation entscheidet.
 
-Unter **Begleitungen (0 bis 8)** sagst du, wie viele Lehrkräfte neben der Leitung mitkommen sollen. Wen du schon kennst, fügst du über die Suche hinzu; was dann noch fehlt, steht unter der Leitung („noch 1 gesucht“) und auf der Liste **Begleitung gesucht**, wo sich Lehrkräfte selbst eintragen. Bei einer eingereichten oder genehmigten Aktivität änderst du als Leitung nur noch die Begleitung und diese Zahl, mit **Begleitung speichern**; alles andere bleibt, wie die Aktivität eingereicht ist, und sie bleibt genehmigt.
+Unter **Begleitlehrkräfte insgesamt (0–8, ohne Leitung)** sagst du, wie viele Lehrkräfte neben der Leitung mitkommen sollen; die schon eingetragenen zählen mit. Wen du schon kennst, fügst du über die Suche hinzu; was dann noch fehlt, steht unter der Leitung („noch 1 gesucht“) und auf der Liste **Begleitung gesucht**, wo sich Lehrkräfte selbst eintragen. Bei einer eingereichten oder genehmigten Aktivität änderst du als Leitung nur noch die Begleitung und diese Zahl, mit **Begleitung speichern**; alles andere bleibt, wie die Aktivität eingereicht ist, und sie bleibt genehmigt.
 
 ### Begleitung gesucht
 
@@ -40,7 +40,7 @@ Die Organisation kann für jeden Projekttag eine **Mindestlänge** festlegen: so
 
 ![Unter den Terminen: die Aktivität ist an diesem Tag kürzer als die Mindestlänge](/bilder/de/mindestlaenge.png)
 
-**Weiterer Termin (nur bei Unterbrechung)** ist für eine Aktivität, die nicht in einem Stück stattfindet, etwa je zwei Einheiten am Montag und am Mittwoch. Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler\*innen statt, lege sie als eigene Aktivität an.
+**Weiterer Termin für dieselbe Gruppe (nur bei Unterbrechung)** ist für eine Aktivität, die nicht in einem Stück stattfindet, etwa je zwei Einheiten am Montag und am Mittwoch. Wer eingeteilt ist, nimmt an allen Terminen teil. Findet dieselbe Aktivität noch einmal für andere Schüler\*innen statt, lege sie als eigene Aktivität an.
 
 ## Teilnahme
 
@@ -48,7 +48,7 @@ Die Organisation kann für jeden Projekttag eine **Mindestlänge** festlegen: so
 
 - **Plätze**: wie viele Schüler\*innen höchstens teilnehmen.
 - **Mindestzahl**: so viele Teilnehmer\*innen soll die Aktivität mindestens haben.
-- **Fällt aus, wenn zu wenige kommen**: Mit diesem Häkchen darf die Aktivität ausfallen, wenn sich zu wenige für die Mindestzahl finden. Ohne das Häkchen findet sie statt, und die Zuteilung muss die Mindestzahl erreichen.
+- **Darf ausfallen, wenn die Mindestzahl bei der Zuteilung nicht erreicht wird**: Mit diesem Häkchen darf die Aktivität bei der Zuteilung ausfallen, wenn sie die Mindestzahl nicht erreicht. Ohne das Häkchen findet sie statt, und die Zuteilung muss die Mindestzahl erreichen.
 - **Angeboten für Schulstufen** und **für Klassen**: Ohne Auswahl ist die Aktivität für alle.
 
 ### Eine Klassenaktivität
@@ -67,7 +67,7 @@ Mit **0 Plätzen** und ohne ganze Klassen ist die Aktivität nur für ihre Lehrk
 
 ![Direkt eingeteilt: Sara Pfnäxthuber aus der 5A mit dem Häkchen, dass sie an Klassenaktivitäten, die sich damit überschneiden, gar nicht teilnimmt, darunter die Suche nach Schüler\*innen](/bilder/de/direkt-eingeteilt.png)
 
-Unter **Direkt eingeteilt** trägst du Schüler\*innen ein, die ohne Wahl in die Aktivität kommen: Suche nach dem Namen oder der Klasse und klicke **einteilen**. Das können alle Lehrkräfte der Aktivität, vom ersten Speichern an und auch, wenn sie eingereicht oder genehmigt ist; bei einer neuen Aktivität wird die Liste mit dem Speichern eingetragen. Wer direkt eingeteilt ist, belegt einen Platz der Aktivität; eine Aktivität mit 0 Plätzen kann so nur aus eingeteilten Schüler\*innen bestehen. Eine Aktivität, in die jemand direkt eingeteilt ist, findet statt: Mindestzahl und **Fällt aus, wenn zu wenige kommen** gelten für sie nicht mehr. In der Tabelle der Aktivitäten steht bei den Plätzen, wie viele direkt eingeteilt sind.
+Unter **Direkt eingeteilt** trägst du Schüler\*innen ein, die ohne Wahl in die Aktivität kommen: Suche nach dem Namen oder der Klasse und klicke **einteilen**. Das können alle Lehrkräfte der Aktivität, vom ersten Speichern an und auch, wenn sie eingereicht oder genehmigt ist; bei einer neuen Aktivität wird die Liste mit dem Speichern eingetragen. Wer direkt eingeteilt ist, belegt einen Platz der Aktivität; eine Aktivität mit 0 Plätzen kann so nur aus eingeteilten Schüler\*innen bestehen. Eine Aktivität, in die jemand direkt eingeteilt ist, findet statt: Mindestzahl und **Darf ausfallen, wenn die Mindestzahl bei der Zuteilung nicht erreicht wird** gelten für sie nicht mehr. In der Tabelle der Aktivitäten steht bei den Plätzen, wie viele direkt eingeteilt sind.
 
 Eine direkte Einteilung geht einer Klassenaktivität vor. Mit dem Häkchen **nimmt an Klassenaktivitäten, die sich damit überschneiden, gar nicht teil**, das gesetzt ist, nimmt die Person an keiner Klassenaktivität ihrer Klasse teil, die sich mit deiner Aktivität überschneidet, und zwar an der ganzen nicht, auch an deren anderen Tagen nicht: Wer nicht mit auf die Klassenfahrt fährt, ist für alle ihre Tage frei und kann weitere Aktivitäten wählen oder eingeteilt werden. Neben der Person steht, welche Klassenaktivität das betrifft und wer sie leitet. Ohne das Häkchen bleibt die Person in ihrer Klassenaktivität und fehlt dort nur während deiner, etwa für eine Probe. SchulWahl fragt nicht nach und benachrichtigt niemanden: Sprich mit der Leitung der Klassenaktivität.
 

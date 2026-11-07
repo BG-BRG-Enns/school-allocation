@@ -52,7 +52,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | places | Plätze | places | |
 | activity of its teachers alone (no places, no class) | "nur Lehrkräfte"; "nur für Lehrkräfte" | "teachers only"; "for teachers only" | a supervision, a duty; not in the catalogue |
 | minimum | Mindestzahl | minimum | one word for minimum participants everywhere |
-| cancellable below minimum | "Fällt aus, wenn zu wenige kommen" | "Cancelled if too few" | |
+| cancellable below minimum | "Darf ausfallen, wenn die Mindestzahl bei der Zuteilung nicht erreicht wird" | "May be cancelled if the allocation does not reach the minimum" | |
 | fee | Kosten | cost | Q6 |
 | session | Termin | session | |
 | period | Einheit, "2. EH" | period, "P2" | Q5 |
@@ -76,7 +76,7 @@ mail defaults and the handbooks. A new string uses these words; a new concept ge
 | availability | Verfügbarkeit; verfügbar · nicht verfügbar · nur wenn nötig | availability; available · unavailable · if needed | no reason is ever asked |
 | lead, companions | Leitung, leitet; Begleitung, begleitet | lead, leads; companions, accompanies | stored: the creator of a new activity when among its teachers; whoever is added accompanies |
 | hand over the lead | "Leitung übergeben an"; "Leitung übergeben" | "Hand the lead over to"; "Hand over the lead" | to a companion; the lead until then stays as a companion |
-| companions sought (`catalog_item.companions_wanted`) | Begleitungen (0 bis 8); "noch 1 gesucht"; "Begleitung vollständig"; "Begleitung 1 von 2"; Begleitung gesucht; Ich begleite; Austragen | Companions (0 to 8); "1 still sought"; "Companions complete"; "Companions 1 of 2"; Companions sought; I accompany; Take me off | how many the lead wants beside them; sought = wanted − companions named; the list per project day a teacher joins from |
+| companions sought (`catalog_item.companions_wanted`) | Begleitlehrkräfte insgesamt (0–8, ohne Leitung); "noch 1 gesucht"; "Begleitung vollständig"; "Begleitung 1 von 2"; Begleitung gesucht; Ich begleite; Austragen | Companions (0 to 8); "1 still sought"; "Companions complete"; "Companions 1 of 2"; Companions sought; I accompany; Take me off | how many the lead wants beside them; sought = wanted − companions named; the list per project day a teacher joins from |
 | planning overview | Lehrkräfte je Tag; "leitet an keinem Tag etwas" | teachers by day; "leads nothing on any day" | |
 | duty to lead (`teacher_detail.lead_duty`) | Leitungspflicht; "keine Leitungspflicht"; "Ohne Leitungspflicht: …" | duty to lead; "no duty to lead" | a mark for the overview alone; from the availability sheet's Leitung column (N: none) or set beside the Kürzel |
 | progress during the window | Stand der Anmeldung; "wer sich schon angemeldet hat" | registration status | |

@@ -18,7 +18,7 @@ Once the activity is submitted or approved, you pass the lead on with **Hand the
 
 If one of the teachers is unavailable on a day of the sessions, or available only if needed ([Availability](./verfuegbarkeit)), it says so there too. You can still save and submit; the organisation decides.
 
-Under **Companions (0 to 8)** you say how many teachers should come along beside the lead. Add the ones you already know through the search; what is still missing then stands below the lead ("1 still sought") and on the list **Companions sought**, where teachers sign up themselves. For a submitted or approved activity you, as its lead, change only the companions and this number, with **Save companions**; everything else stays as the activity was submitted, and it stays approved.
+Under **Accompanying teachers in all (0–8, without the lead)** you say how many teachers should come along beside the lead; those already named count. Add the ones you already know through the search; what is still missing then stands below the lead ("1 still sought") and on the list **Companions sought**, where teachers sign up themselves. For a submitted or approved activity you, as its lead, change only the companions and this number, with **Save companions**; everything else stays as the activity was submitted, and it stays approved.
 
 ### Companions sought
 
@@ -40,7 +40,7 @@ The organisation can set a **minimum length** for each project day: an activity 
 
 ![Below the sessions: the activity is shorter than the minimum length on this day](/bilder/en/mindestlaenge.png)
 
-**Further session (only for an interruption)** is for an activity that does not take place in one piece, such as two periods each on Monday and on Wednesday. Whoever is assigned attends every session. If the same activity is held again for other students, create it as an activity of its own.
+**Another session for the same group (only for an interruption)** is for an activity that does not take place in one piece, such as two periods each on Monday and on Wednesday. Whoever is assigned attends every session. If the same activity is held again for other students, create it as an activity of its own.
 
 ## Participation
 
@@ -48,7 +48,7 @@ The organisation can set a **minimum length** for each project day: an activity 
 
 - **Places**: the maximum number of students who can take part.
 - **Minimum**: the minimum number needed.
-- **Cancelled if too few**: With this ticked, the activity may be cancelled if too few students can be found to meet its minimum. Without the tick, it takes place, and the allocation must meet the minimum.
+- **May be cancelled if the allocation does not reach the minimum**: With this ticked, the activity may be cancelled during allocation if it does not reach its minimum. Without the tick, it takes place, and the allocation must meet the minimum.
 - **Offered to years (none selected: all)** and **Offered to classes (none selected: all)**: Without a selection, the activity is for everyone.
 
 ### A class activity
@@ -67,7 +67,7 @@ With **0 places** and without whole classes the activity is for its teachers onl
 
 ![Placed directly: Sara Pfnäxthuber of 5A with the box ticked that she takes no part in class activities that overlap this one, below it the search for students](/bilder/en/direkt-eingeteilt.png)
 
-Under **Placed directly** you enter students who come into the activity without choosing it: search by name or class and click **Place**. Every teacher of the activity can do this, from its first save and also once it is submitted or approved; for a new activity the list is entered when you save. Whoever is placed directly takes a place of the activity; an activity with 0 places can thus consist of placed students alone. An activity someone is placed into directly takes place: its minimum and **Cancelled if too few** no longer apply to it. In the activities table the places say how many are placed directly.
+Under **Placed directly** you enter students who come into the activity without choosing it: search by name or class and click **Place**. Every teacher of the activity can do this, from its first save and also once it is submitted or approved; for a new activity the list is entered when you save. Whoever is placed directly takes a place of the activity; an activity with 0 places can thus consist of placed students alone. An activity someone is placed into directly takes place: its minimum and **May be cancelled if the allocation does not reach the minimum** no longer apply to it. In the activities table the places say how many are placed directly.
 
 A direct placement comes before a class activity. With the box **takes no part in class activities that overlap this one**, which is ticked, the student takes part in no class activity of their class that overlaps your activity, and in none of it, its other days included: whoever does not go on the class trip is free for all its days and can choose or be placed into further activities. Beside the student it says which class activity that concerns and who leads it. Without the tick the student stays in their class activity and is only away during yours, for a rehearsal for example. SchulWahl asks nothing and notifies nobody: talk to the lead of the class activity.
 
@@ -79,7 +79,7 @@ If the student is already placed directly into another activity during this time
 
 For a class activity, **Not taking part** lists who of its classes is not in it. You enter someone through the search (**does not take part**) and take them off again with **takes part after all**; nobody gives a reason. You can do this as soon as the activity is saved and until registration closes; the class teacher and the organisation can too. Whoever is entered chooses for that time themselves or is placed directly, and Places and demand counts them as someone who needs a place.
 
-If someone is listed there as **placed directly in** another activity, a teacher has taken them for that time. **Reclaim** takes that placement back, and the student is with you again; the page tells you whom to tell. The form of a new class activity already shows who of its classes is placed directly during that time.
+If someone is listed there as **placed directly in** another activity, a teacher has taken them for that time. **Return … to this class activity** takes that placement back, and the student is with you again; the page tells you whom to tell. The form of a new class activity already shows who of its classes is placed directly during that time.
 
 If a class activity includes a night, the lists mark it "with an overnight stay", and the form reminds you to enter here who does not come along. The allocation never gives an activity with an overnight stay as a fallback.
 
