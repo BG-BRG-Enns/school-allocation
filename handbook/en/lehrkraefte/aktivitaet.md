@@ -14,7 +14,7 @@ Whoever creates the activity is its **lead**; all the others are **companions**.
 
 ![Handing over the lead: the choice of the companion the lead goes to, and the button Hand over the lead](/bilder/en/leitung-uebergeben.png)
 
-Under **Accompanying teachers wanted** you enter how many teachers should come along. If someone is still missing, the activity appears under **Companions sought**. If a teacher is not [available](./verfuegbarkeit) on a day, the form shows it. You can submit all the same; the organisation decides.
+Under **Number of accompanying teachers wanted** you enter how many teachers should come along. If someone is still missing, the activity appears under **Companions sought**. If a teacher is not [available](./verfuegbarkeit) on a day, the form shows it. You can submit all the same; the organisation decides.
 
 ### Companions sought
 
@@ -36,22 +36,22 @@ If your activity is shorter than the minimum length the organisation has set, th
 
 ## Participation
 
-![Participation: whole classes, places, minimum, whether the activity may be cancelled, the years and classes it is offered to, followed by the cost](/bilder/en/aktivitaet-teilnahme.png)
+![Participation: whole classes, the maximum and minimum number of participants, whether the activity may be cancelled, the years and classes it is offered to, followed by the cost](/bilder/en/aktivitaet-teilnahme.png)
 
-- **Places**: the maximum number of students who take part.
-- **Minimum**: the minimum number there should be.
-- **May be cancelled …**: With this ticked, the activity is cancelled if the allocation does not reach the minimum. Without the tick, it takes place for certain.
+- **Maximum number of participants**: the most students who can take part.
+- **Minimum number of participants**: the fewest there should be.
+- **May be cancelled …**: With this ticked, the activity is cancelled if the allocation does not reach the minimum number. So tick it only if no cancellation fees or similar would apply. Without the tick, it takes place for certain.
 - **Offered to years** and **Offered to classes**: without a selection, for everyone.
 
 **With the whole class**: If you choose **Whole classes taking part**, these classes come along as a whole, and the activity takes place for certain. Under **Extra places for other students** you offer free places to others, free seats on the coach, say.
 
-![An activity with the whole class: 5A takes part, the places are now called Extra places for other students, and the minimum is gone](/bilder/en/klassenaktivitaet.png)
+![An activity with the whole class: 5A takes part, Extra places for other students replaces the maximum number of participants, and the minimum number is gone](/bilder/en/klassenaktivitaet.png)
 
 **Extra**: If the activity lies wholly outside the attendance time, such as a theatre visit in the evening, it is an extra. Students do not choose it; you place them under **Placed directly**.
 
-**Teachers only**: With 0 places and without whole classes, the activity is for teachers only, such as a supervision. Students do not see it.
+**Teachers only**: With 0 under **Maximum number of participants** and without whole classes, the activity is for teachers only, such as a supervision. Students do not see it.
 
-![An activity for teachers only: 0 places, no whole class, below it the note that students do not see it](/bilder/en/nur-lehrkraefte.png)
+![An activity for teachers only: a maximum of 0 participants, no whole class, below it the note that students do not see it](/bilder/en/nur-lehrkraefte.png)
 
 ## Placing students directly
 

@@ -1,6 +1,6 @@
 # Availability
 
-While a registration is **Collecting activities**, you enter on which of its project days you are there for an activity. On the registration page, **Enter my availability** takes you there.
+While the registration is **Collecting activities**, you enter on which project days you are there for an activity. To do so, click the **Enter my availability** button.
 
 For each project day you choose:
 

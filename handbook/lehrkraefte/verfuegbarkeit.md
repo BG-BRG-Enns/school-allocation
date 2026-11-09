@@ -1,6 +1,6 @@
 # Verfügbarkeit
 
-Solange bei einer Anmeldung **Angebote gesammelt** werden, trägst du ein, an welchen ihrer Projekttage du für eine Aktivität da bist. Auf der Seite der Anmeldung führt **Meine Verfügbarkeit eintragen** dorthin.
+Solange **Angebote gesammelt** werden, trägst du ein, an welchen Projekttagen du für eine Aktivität da bist. Klicke dazu auf den Button **Meine Verfügbarkeit eintragen**.
 
 Für jeden Projekttag wählst du:
 

@@ -9,7 +9,7 @@ SchulWahl schickt an festen Stellen einer Anmeldung E-Mails. Ihre Texte kommen a
 | Einladung zur Nachfrist | am Ende des Anmeldezeitraums, wenn eine Nachfrist folgt | wer noch keine vollständigen Wünsche hat |
 | Erinnerung vor dem Ende der Nachfrist | einen Tag vor dem Ende der Nachfrist | wer noch keine vollständigen Wünsche hat |
 | Frist versäumt | am Ende der Anmeldung | wer keine vollständigen Wünsche abgegeben hat |
-| Fehlende Wünsche, an den Klassenvorstand | am Ende des Anmeldezeitraums und am Ende der Anmeldung | die Klassenvorstände, mit der Liste ihrer Klasse |
+| Fehlende Wünsche, an den Klassenvorstand | am Ende des Anmeldezeitraums und, wenn es eine gibt, am Ende der Nachfrist | die Klassenvorstände, mit der Liste ihrer Klasse |
 | Einteilung veröffentlicht | bei der Veröffentlichung | alle Schüler\*innen, mit ihrem Programm |
 | Noch nicht ganz eingeteilt, an den Klassenvorstand | bei der Veröffentlichung | die Klassenvorstände, mit der Liste ihrer Klasse |
 | Aktivität fällt aus, an die Lehrkräfte | bei der Veröffentlichung | die Lehrkräfte einer ausgefallenen Aktivität |
@@ -18,7 +18,7 @@ SchulWahl schickt an festen Stellen einer Anmeldung E-Mails. Ihre Texte kommen a
 
 ## Der Versand
 
-Was wartet, was gesendet ist und was fehlschlug, das Tempo und der Knopf zum Anhalten stehen unter **Verwaltung** → **E-Mails** ([E-Mails](./e-mails)). Eine E-Mail bekommt ihren Text, wenn sie zu warten beginnt: Eine geänderte Vorlage gilt erst für die E-Mails danach, und was schon wartet, geht so hinaus, wie es ist.
+Was wartet, was gesendet ist und was fehlschlug, das Tempo und der Button zum Anhalten stehen unter **Verwaltung** → **E-Mails** ([E-Mails](./e-mails)). Eine E-Mail bekommt ihren Text, wenn sie zu warten beginnt: Eine geänderte Vorlage gilt erst für die E-Mails danach, und was schon wartet, geht so hinaus, wie es ist.
 
 ## Eine Vorlage bearbeiten
 

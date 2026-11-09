@@ -25,7 +25,7 @@ Nennt die CSV-Datei der Klassenlisten in der Spalte `class_teacher_email` einen 
 
 ## Aus einer CSV-Datei
 
-![Der Abschnitt Aus einer CSV-Datei: die eingefügte Liste, darunter die Prüfung mit den Kürzeln je Lehrkraft und dem Knopf Übernehmen](/bilder/de/klassenvorstaende-csv.png)
+![Der Abschnitt Aus einer CSV-Datei: die eingefügte Liste, darunter die Prüfung mit den Kürzeln je Lehrkraft und dem Button Übernehmen](/bilder/de/klassenvorstaende-csv.png)
 
 Die Kürzel der Lehrkräfte und die Klassenvorstände kommen auch aus einer Datei, eine Zeile je Lehrkraft:
 

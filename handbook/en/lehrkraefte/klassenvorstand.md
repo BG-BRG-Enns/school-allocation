@@ -1,6 +1,6 @@
 # As class teacher
 
-If you are a class teacher, a registration's page has the **My class** button with your class's name, such as **My class 5A**. If the button is missing although you are a class teacher, contact the organisation.
+If you are a class teacher, you will find the **My class** button with your class's name, such as **My class 5A**. If the button is missing although you are a class teacher, contact the organisation.
 
 ## Before registration
 
@@ -12,7 +12,7 @@ The page shows your class's students and the class activities taking the whole c
 
 ![The class's students during registration, each with the status of their choices](/bilder/en/klasse-anmeldestand.png)
 
-Once registration is open, each person's progress is shown: no choices, incomplete or complete. At the end of the registration period, you receive an email listing everyone in your class whose choices are still missing, and another at the end of registration. Speak to them about it; the organisation can also enter choices for someone.
+Once registration is open, each person's progress is shown: no choices, incomplete or complete. When the registration period ends, you receive an email listing everyone in your class whose choices are missing or incomplete. If there is late registration, in which they can still catch up, you receive another email when it ends, listing those still missing something. Speak to them about it; the organisation can also enter choices for someone.
 
 ## After publication: placing those short of time or of a rule
 

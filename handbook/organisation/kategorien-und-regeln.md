@@ -4,7 +4,7 @@ Mit Kategorien und Regeln legst du Ziele fest, etwa „mindestens eine Sport-Akt
 
 ## Kategorien
 
-Die Kategorien gelten für alle Anmeldungen der Schule. Du findest sie unter **Verwaltung → Kategorien** oder über den Knopf **Kategorien** auf der Seite der Anmeldung; die Administration und die Organisation pflegen sie.
+Die Kategorien gelten für alle Anmeldungen der Schule. Du findest sie unter **Verwaltung → Kategorien** oder über den Button **Kategorien** auf der Seite der Anmeldung; die Administration und die Organisation pflegen sie.
 
 - **Kategorie hinzufügen** legt eine an. Ein Name kommt nur einmal vor, gleich ob groß oder klein geschrieben.
 - **Umbenennen** ändert den Namen überall, in jeder Anmeldung.

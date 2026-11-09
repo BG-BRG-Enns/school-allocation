@@ -41,7 +41,7 @@ test('der Klassenvorstand trägt die Anwesenheit seiner Klasse ein und lädt die
   await signOut(page)
 })
 
-test('die Organisation schließt die Anmeldung ab; danach ist alles nur noch zu lesen', async ({ page }) => {
+test('die Organisation schließt die Anmeldung ab; danach lässt sich nichts mehr ändern', async ({ page }) => {
   await setClock(page, '2034-06-30T10:00:00+02:00')
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: NAME }).click()

@@ -4,9 +4,9 @@ Eine **Anmeldung** führt die Schule von den ersten Aktivitäten bis zur fertige
 
 ## Der Ablauf
 
-Jede Anmeldung geht durch dieselben Stände. Den nächsten Schritt machst du mit einem Knopf auf der Seite der Anmeldung; jeder Schritt wird noch einmal bestätigt, und dabei steht, was er bewirkt und ob es einen Weg zurück gibt. Beginn und Ende der Anmeldung kommen auch von selbst, zu den Zeiten aus den [Einstellungen](./einstellungen).
+Jede Anmeldung geht durch dieselben Stände. Den nächsten Schritt machst du mit einem Button auf der Seite der Anmeldung; jeder Schritt wird noch einmal bestätigt, und dabei steht, was er bewirkt und ob es einen Weg zurück gibt. Beginn und Ende der Anmeldung kommen auch von selbst, zu den Zeiten aus den [Einstellungen](./einstellungen).
 
-![Ein Schritt wird bestätigt: der Knopf Angebote sammeln, darunter, was der Schritt bewirkt und der Rückweg, und der Knopf Ja](/bilder/de/schritt-bestaetigen.png)
+![Ein Schritt wird bestätigt: der Button Angebote sammeln, darunter, was der Schritt bewirkt und der Rückweg, und der Button Ja](/bilder/de/schritt-bestaetigen.png)
 
 | Stand | Was geschieht | Weiter mit | Zurück |
 | ----- | ------------- | ---------- | ------ |
@@ -35,9 +35,9 @@ Dazu die [Excel-Dateien](./excel), die jeder Schritt liefert, und die [E-Mail-Vo
 
 ## Die Seite einer Anmeldung
 
-![Die Seite einer Anmeldung in Vorbereitung: Name, Schuljahr und Projekttage, darunter der Abschnitt Organisation mit dem Stand und den Knöpfen](/bilder/de/anmeldung-in-vorbereitung.png)
+![Die Seite einer Anmeldung in Vorbereitung: Name, Schuljahr und Projekttage, darunter der Abschnitt Organisation mit dem Stand und den Buttons](/bilder/de/anmeldung-in-vorbereitung.png)
 
-Unter **Anmeldungen** öffnest du jede Anmeldung. Oben stehen das Schuljahr, die Projekttage und, sobald sie eingestellt sind, Anmeldezeitraum, Nachfrist, Tauschzeit und die Zahl der Wünsche je Zeitblock. Der Abschnitt **Organisation** zeigt den Stand und den Knopf für den nächsten Schritt, dazu die Einstellungen, den Katalog als Excel-Datei und die Links zu den Lehrkräften je Tag, den Klassenvorständen und den E-Mail-Vorlagen. Darunter folgen, je nach Stand, der Stand der Anmeldung, Plätze und Bedarf und die Aktivitäten.
+Unter **Anmeldungen** öffnest du jede Anmeldung. Oben stehen das Schuljahr, die Projekttage und, sobald sie eingestellt sind, Anmeldezeitraum, Nachfrist, Tauschzeit und die Zahl der Wünsche je Zeitblock. Der Abschnitt **Organisation** zeigt den Stand und den Button für den nächsten Schritt, dazu die Einstellungen, den Katalog als Excel-Datei und die Links zu den Lehrkräften je Tag, den Klassenvorständen und den E-Mail-Vorlagen. Darunter folgen, je nach Stand, der Stand der Anmeldung, Plätze und Bedarf und die Aktivitäten.
 
 Lange Listen lassen sich eingrenzen und einklappen: Über dem Stand der Anmeldung, den Aktivitäten, den Lehrkräften je Tag, der Zuteilung und dem Import stehen Filter (eine Klasse, ein Stand, ein Suchwort), und eine Überschrift mit Pfeil klappt ihren Abschnitt zu. Beides merkt sich der Browser: Ein Filter bleibt, während du zwischen Anmeldung, Klasse und Zuteilung wechselst, und ein zugeklappter Abschnitt bleibt zu, bis du ihn wieder öffnest. Was gezählt wird (etwa „12 von 700“), zählt immer die ganze Liste.
 

@@ -931,7 +931,7 @@ async function save(propose: boolean): Promise<void> {
       </div>
     </fieldset>
     <p class="field">
-      <label for="places">{{ isFixed ? t.item.participation.extraPlaces : t.common.field.places }}</label>
+      <label for="places">{{ isFixed ? t.item.participation.extraPlaces : t.item.participation.maxParticipants }}</label>
       <input
         id="places"
         v-model.number="places"

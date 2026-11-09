@@ -8,7 +8,7 @@ Unter **Meine Einteilung ansehen** sehen Schüler\*innen je Projekttag ihre Akti
 
 ## Die Tauschzeit
 
-![Tauschen: die Aktivitäten mit freien Plätzen, eine volle, und bei jeder, was man dafür verlässt, mit dem Knopf Wechseln](/bilder/de/tauschen.png)
+![Tauschen: die Aktivitäten mit freien Plätzen, eine volle, und bei jeder, was man dafür verlässt, mit dem Button Wechseln](/bilder/de/tauschen.png)
 
 Während der [Tauschzeit](./einstellungen#tauschzeit) können Schüler\*innen in eine Aktivität mit freien Plätzen wechseln. Wer zuerst kommt, bekommt den Platz. Eine Aktivität der ganzen Klasse bleibt, nach dem Tausch darf niemandem mehr Zeit fehlen als vorher, und eine [Regel](./kategorien-und-regeln) der Anmeldung darf danach nicht weniger erfüllt sein. Die Seite zeigt bei jeder Aktivität, was man dafür verlässt, oder warum es nicht geht, etwa „voll“. Ein Tausch gilt sofort und wird per E-Mail bestätigt.
 

@@ -56,9 +56,9 @@ Unter **Vergleich** wählst du **Mit Berechnung** eine andere. Die Seite zeigt d
 
 ## Veröffentlichen
 
-![Veröffentlichen: die Aktivitäten, die ausfallen, das Häkchen zur Bestätigung und der Knopf Jetzt veröffentlichen](/bilder/de/veroeffentlichen.png)
+![Veröffentlichen: die Aktivitäten, die ausfallen, das Häkchen zur Bestätigung und der Button Jetzt veröffentlichen](/bilder/de/veroeffentlichen.png)
 
-Der Knopf **Berechnung … veröffentlichen …** über einer Berechnung, mit ihrer Nummer, öffnet die Bestätigung. Fallen Aktivitäten aus, stehen sie dort, und du bestätigst sie mit dem Häkchen. **Jetzt veröffentlichen** macht die Berechnung zur Einteilung der Anmeldung:
+Der Button **Berechnung … veröffentlichen …** über einer Berechnung, mit ihrer Nummer, öffnet die Bestätigung. Fallen Aktivitäten aus, stehen sie dort, und du bestätigst sie mit dem Häkchen. **Jetzt veröffentlichen** macht die Berechnung zur Einteilung der Anmeldung:
 
 - Die Schüler\*innen bekommen ihr Programm per E-Mail und sehen es in SchulWahl.
 - Die Klassenvorstände bekommen die Liste derer, die noch nicht für alle Tage eingeteilt sind.
