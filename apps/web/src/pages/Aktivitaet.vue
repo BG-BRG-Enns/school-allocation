@@ -26,7 +26,7 @@ import { ASSIGNMENT_SOURCE_LABELS, CATALOGUE_PROBLEM_LABELS } from '../lib/label
 import { usePageTitle } from '../lib/page-title.ts'
 import type { PendingAbsence, PendingPlacement } from '../lib/placements.ts'
 import { session } from '../lib/session.ts'
-import { mayLeave, watchUnsaved } from '../lib/unsaved.ts'
+import { hasUnsaved, mayLeave, watchUnsaved } from '../lib/unsaved.ts'
 
 const props = defineProps<{ id: string, itemId?: string }>()
 const router = useRouter()
@@ -127,20 +127,21 @@ interface FormState {
   leadId: string
   companionsWanted: number
 }
+/** A plain copy of the form's values, no reactive array of the form among them. */
 function formState(): FormState {
-  return {
+  return JSON.parse(JSON.stringify({
     title: title.value, description: description.value, location: location.value, feeEuro: feeEuro.value, feeNote: feeNote.value,
     places: places.value, minParticipants: minParticipants.value, cancellableBelowMin: cancellableBelowMin.value,
     fixedClasses: fixedClasses.value, eligibleGrades: eligibleGrades.value, eligibleClasses: eligibleClasses.value, categoryIds: categoryIds.value,
     teachers: teachers.value.map((teacher) => teacher.personId), leadId: leadId.value, companionsWanted: Number(companionsWanted.value),
     sessions: sessions.value, pendingPlacements: pendingPlacements.value, pendingAbsent: pendingAbsent.value,
-  }
+  })) as FormState
 }
 const unsaved = (): boolean => baseline !== null && JSON.stringify(formState()) !== JSON.stringify(baseline)
 onBeforeRouteLeave(mayLeave)
 const stopWatching = watchUnsaved(unsaved)
 function warnBeforeUnload(event: BeforeUnloadEvent): void {
-  if (unsaved()) event.preventDefault()
+  if (hasUnsaved()) event.preventDefault()
 }
 onMounted(() => window.addEventListener('beforeunload', warnBeforeUnload))
 onBeforeUnmount(() => {
