@@ -152,8 +152,9 @@ const groupedByDay = computed(() => itemOrder.value !== 'number' && itemOrder.va
 const route = useRoute()
 const savedItemId = computed(() => (typeof route.query.item === 'string' ? route.query.item : ''))
 const savedItemHidden = computed(() => savedItemId.value !== '' && items.value.some((item) => item.id === savedItemId.value) && !itemsShown.value.some((item) => item.id === savedItemId.value))
+/** The notice's button shows the saved activity whatever became of it: every state, a withdrawn one included, not the list's start. */
 function resetItemFilter(): void {
-  itemFilter.value = { ...ITEM_FILTER_INITIAL }
+  itemFilter.value = { ...ITEM_FILTER_INITIAL, state: '' }
 }
 /** The saved activity the page has scrolled to: once per visit, not again with every letter typed into the filter. */
 let scrolledTo = ''
