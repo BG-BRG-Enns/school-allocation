@@ -1,11 +1,11 @@
 <script setup lang="ts">
 // The controls of a filter over a list: texts, choices and boxes in one
-// row, how many rows pass, and a button that clears them. The values are
-// the page's (lib/list-filter.ts useListFilter), so the page filters and
-// the browser remembers.
+// row, how many rows pass, and a button that sets them back to what the
+// page starts from. The values are the page's (lib/list-filter.ts
+// useListFilter), so the page filters and the browser remembers.
 
 import { computed, watch } from 'vue'
-import { isFiltering, type FilterField, type FilterValues } from '../lib/list-filter.ts'
+import { differsFrom, restored, type FilterField, type FilterValues } from '../lib/list-filter.ts'
 import { t } from '../lib/i18n.ts'
 
 const props = defineProps<{
@@ -16,10 +16,13 @@ const props = defineProps<{
   /** How many rows pass, of how many. */
   shown: number
   total: number
+  /** The values the list starts from, where that is not "nothing filtered": the button goes back to them. */
+  initial?: FilterValues
 }>()
 const emit = defineEmits<{ 'update:modelValue': [value: FilterValues] }>()
 
-const active = computed(() => isFiltering(props.modelValue))
+/** Whether the person has set something: a value is not the one the list starts from. */
+const changed = computed(() => differsFrom(props.modelValue, props.initial ?? {}))
 
 function set(key: string, value: string | boolean): void {
   emit('update:modelValue', { ...props.modelValue, [key]: value })
@@ -33,10 +36,9 @@ watch([() => props.fields, () => props.modelValue], ([fields, values]) => {
   if (stale.length > 0) emit('update:modelValue', { ...values, ...Object.fromEntries(stale.map((field) => [field.key, ''])) })
 }, { immediate: true, deep: true })
 
-/** Every value back to "not filtered": the fields shown, and a value kept for a field the page does not show right now (a category control a teacher has no categories for). */
+/** Every value back to what the list starts from: the fields shown, and a value kept for a field the page does not show right now. */
 function clear(): void {
-  const kept = Object.fromEntries(Object.entries(props.modelValue).map(([key, value]) => [key, typeof value === 'boolean' ? false : '']))
-  emit('update:modelValue', { ...kept, ...Object.fromEntries(props.fields.map((field) => [field.key, field.kind === 'check' ? false : ''])) })
+  emit('update:modelValue', restored(props.modelValue, props.fields, props.initial ?? {}))
 }
 </script>
 
@@ -93,9 +95,9 @@ function clear(): void {
       </p>
     </template>
     <p class="muted filter-count">
-      {{ active ? t.filters.shown(shown, total) : t.filters.count(total) }}
+      {{ changed || shown < total ? t.filters.shown(shown, total) : t.filters.count(total) }}
       <button
-        v-if="active"
+        v-if="changed"
         type="button"
         class="ghost small"
         @click="clear"

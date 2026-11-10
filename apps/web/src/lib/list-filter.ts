@@ -32,7 +32,35 @@ export function matchesOneOf(values: readonly string[], chosen: string | boolean
 
 /** Whether any value filters. */
 export function isFiltering(values: FilterValues): boolean {
-  return Object.values(values).some((value) => value !== '' && value !== false)
+  return differsFrom(values, {})
+}
+
+/** What a value rests at: the page's default for its key, else "not filtered" for its kind. */
+function restOf(initial: FilterValues, key: string, box: boolean): string | boolean {
+  return initial[key] ?? (box ? false : '')
+}
+
+/** Whether any value is not the one the page starts from (`initial`; a key it lacks starts at "not filtered"). */
+export function differsFrom(values: FilterValues, initial: FilterValues): boolean {
+  return Object.entries(values).some(([key, value]) => value !== restOf(initial, key, typeof value === 'boolean'))
+}
+
+/**
+ * The values as the page starts from them: every field shown at its
+ * default, and so a value kept for a field the page does not show right
+ * now (a category control a teacher has no categories for).
+ */
+export function restored(values: FilterValues, fields: readonly FilterField[], initial: FilterValues): FilterValues {
+  const kept = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, restOf(initial, key, typeof value === 'boolean')]))
+  return { ...kept, ...Object.fromEntries(fields.map((field) => [field.key, restOf(initial, field.key, field.kind === 'check')])) }
+}
+
+/** The choice of state an activity list starts from: every activity but the withdrawn ones. Not a state of an activity (school-core ITEM_STATES). */
+export const ACTIVE_ITEMS = 'active'
+
+/** Whether an activity in `state` passes the chosen state: the active ones are all but the withdrawn; else as any option. */
+export function matchesItemState(state: string, chosen: string | boolean | undefined): boolean {
+  return chosen === ACTIVE_ITEMS ? state !== 'withdrawn' : matchesOption(state, chosen)
 }
 
 /** Whether one of `texts` contains `needle`, case-insensitively; an empty needle matches everything. */

@@ -8,7 +8,7 @@ For each project day you choose:
 - **unavailable**: on a day off, say, or when you are needed elsewhere that day.
 - **if needed**: You are there when it cannot be done without you.
 
-SchulWahl saves your choice at once. You give no reason.
+SchulWahl saves your choice at once.
 
 ![My availability: a choice for each project day, here unavailable on Tuesday](/bilder/en/verfuegbarkeit.png)
 

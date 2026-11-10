@@ -89,7 +89,6 @@ export const deFormal = {
   },
   placements: {
     leavesClassHint: 'Mit Häkchen nimmt die Person an den betroffenen Klassenaktivitäten überhaupt nicht teil, auch nicht an deren anderen Tagen. Ohne Häkchen fehlt sie dort nur während Ihrer Aktivität, etwa für eine Probe.',
-    absentIntro: 'Wer aus den Klassen nicht mitkommt. Einen Grund geben Sie nicht an.',
     readOnly: 'Die Aktivität ist eingereicht. Änderungen macht jetzt die Organisation. Schüler*innen direkt einteilen können Sie weiterhin.',
   },
   wishes: {

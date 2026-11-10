@@ -597,6 +597,8 @@ export const de = {
     text: 'Suche',
     className: 'Klasse',
     state: 'Stand',
+    /** The activity list's default choice of state: every activity but the withdrawn ones. */
+    activeItems: 'Aktive (ohne zurückgezogene)',
     category: 'Kategorie',
     kind: 'Art',
     onlyIncomplete: 'Nur ohne vollständige Wünsche',
@@ -1018,7 +1020,7 @@ export const de = {
     /** After an act that took a student out of another activity: whom to tell. */
     tell: (title: string, lead: string | null) => lead === null ? `Bitte der Leitung von „${title}“ Bescheid sagen: Die Person ist dort nicht mehr eingeteilt.` : `Bitte ${lead} Bescheid sagen: Die Person ist bei „${title}“ nicht mehr eingeteilt.`,
     absentHeading: 'Nimmt nicht teil',
-    absentIntro: 'Wer aus den Klassen nicht mitkommt. Einen Grund gibst du nicht an.',
+    absentIntro: 'Wer aus den Klassen nicht mitkommt.',
     /** The search of the list's own: students of the activity's classes alone. */
     absentSearch: 'Schüler*in aus den Klassen suchen (Name)',
     absentNone: 'Alle Schüler*innen der Klassen nehmen teil.',

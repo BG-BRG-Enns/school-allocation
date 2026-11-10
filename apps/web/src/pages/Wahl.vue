@@ -23,7 +23,7 @@ import { bringsText, daysOf, offerOf } from '../lib/offer-cells.ts'
 import { useUiState } from '../lib/ui-state.ts'
 import { t } from '../lib/i18n.ts'
 import { CAMPAIGN_STATE_LABELS, CHOICE_STATE_LABELS, ITEM_STATE_LABELS, MAIL_KIND_LABELS, MAIL_STATE_LABELS, RULE_PROBLEM_LABELS, RULE_UNIT_LABELS, WINDOW_LABELS } from '../lib/labels.ts'
-import { filtered, matchesOneOf, matchesOption, matchesText, useListFilter, type FilterField } from '../lib/list-filter.ts'
+import { ACTIVE_ITEMS, filtered, matchesItemState, matchesOneOf, matchesOption, matchesText, useListFilter, type FilterField, type FilterValues } from '../lib/list-filter.ts'
 import { usePageTitle } from '../lib/page-title.ts'
 import { session } from '../lib/session.ts'
 
@@ -115,10 +115,13 @@ const statusFields = computed<FilterField[]>(() => [
   { key: 'text', kind: 'text', label: t.filters.text },
 ])
 const missingShown = filtered(missing, statusFilter, (s, f) => matchesOption(s.className, f.className) && (f.incomplete !== true || s.state !== 'complete') && matchesText([s.displayName], f.text))
-// The activities filtered by state, category and text (title or teacher).
-const itemFilter = useListFilter('wahl:items', { state: '', category: '', companionsMissing: false, mine: false, text: '' })
+// The activities filtered by state, category and text (title or teacher). The list starts without the withdrawn ones:
+// they are out of the catalogue, and whoever looks for one chooses "Alle" or their state. The key is not the earlier
+// `wahl:items`, under which every browser remembers "Alle" from when that was where the list started.
+const ITEM_FILTER_INITIAL: FilterValues = { state: ACTIVE_ITEMS, category: '', companionsMissing: false, mine: false, text: '' }
+const itemFilter = useListFilter('wahl:activities', ITEM_FILTER_INITIAL)
 const itemFields = computed<FilterField[]>(() => [
-  { key: 'state', kind: 'select', label: t.filters.state, options: ITEM_STATES.map((state) => ({ value: state, label: ITEM_STATE_LABELS[state] ?? state })) },
+  { key: 'state', kind: 'select', label: t.filters.state, options: [{ value: ACTIVE_ITEMS, label: t.filters.activeItems }, ...ITEM_STATES.map((state) => ({ value: state, label: ITEM_STATE_LABELS[state] ?? state }))] },
   ...(categories.value.length > 0 ? [{ key: 'category', kind: 'select' as const, label: t.filters.category, options: categories.value.map((c) => ({ value: c.id, label: c.name })) }] : []),
   // The companions are counted from the teachers, which students may not see: staff alone filter by them.
   ...(teaches.value || organizes.value ? [{ key: 'companionsMissing', kind: 'check' as const, label: t.filters.onlyCompanionsMissing }] : []),
@@ -128,7 +131,7 @@ const itemFields = computed<FilterField[]>(() => [
 ])
 /** How many companions an activity still seeks: the number its lead wants less the teachers beside the lead. */
 const soughtOf = (item: Item): number => Math.max(0, item.companionsWanted - item.teachers.filter((teacher) => !teacher.lead).length)
-const itemsShown = filtered(items, itemFilter, (item, f) => matchesOption(item.state, f.state) && matchesOneOf(item.categoryIds, f.category) && (!f.companionsMissing || !(teaches.value || organizes.value) || soughtOf(item) > 0) && (!f.mine || !(teaches.value || organizes.value) || own(item)) && matchesText([item.title, ...item.teachers.map((teacher) => teacher.displayName)], f.text))
+const itemsShown = filtered(items, itemFilter, (item, f) => matchesItemState(item.state, f.state) && matchesOneOf(item.categoryIds, f.category) && (!f.companionsMissing || !(teaches.value || organizes.value) || soughtOf(item) > 0) && (!f.mine || !(teaches.value || organizes.value) || own(item)) && matchesText([item.title, ...item.teachers.map((teacher) => teacher.displayName)], f.text))
 // The order: under the day an activity starts on (the default: what a day has already, and where a new one went), as
 // the catalogue numbers them (the server's), or by the first submission, the earliest first and the never submitted
 // last; the browser remembers a choice.
@@ -150,7 +153,7 @@ const route = useRoute()
 const savedItemId = computed(() => (typeof route.query.item === 'string' ? route.query.item : ''))
 const savedItemHidden = computed(() => savedItemId.value !== '' && items.value.some((item) => item.id === savedItemId.value) && !itemsShown.value.some((item) => item.id === savedItemId.value))
 function resetItemFilter(): void {
-  itemFilter.value = { state: '', category: '', companionsMissing: false, mine: false, text: '' }
+  itemFilter.value = { ...ITEM_FILTER_INITIAL }
 }
 /** The saved activity the page has scrolled to: once per visit, not again with every letter typed into the filter. */
 let scrolledTo = ''
@@ -1365,6 +1368,7 @@ function onSubmitPending(): void {
           v-else
           id="items"
           v-model="itemFilter"
+          :initial="ITEM_FILTER_INITIAL"
           :fields="itemFields"
           :shown="itemsShown.length"
           :total="items.length"

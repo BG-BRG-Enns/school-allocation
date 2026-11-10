@@ -65,7 +65,7 @@ If the student has a class activity at the same time, the tick decides: with the
 
 ![Not taking part: for a class activity the students of its classes who are not in it, here Tim Gnöxwieser, entered, with the button takes part after all, below it the search for students of the classes](/bilder/en/nimmt-nicht-teil.png)
 
-For an activity with the whole class, you enter under **Not taking part** who does not come along: find the name, **does not take part**. You give no reason. This works in a new activity before you save it, and until the organisation calculates the allocation; **takes part after all** brings the student back in. If the activity includes a night, the form reminds you. If someone has taken a student of the class directly into another activity, it says so here, and **Return … to this class activity** brings them back to you.
+For an activity with the whole class, you enter under **Not taking part** who does not come along: find the name, **does not take part**. This works in a new activity before you save it, and until the organisation calculates the allocation; **takes part after all** brings the student back in. If the activity includes a night, the form reminds you. If someone has taken a student of the class directly into another activity, it says so here, and **Return … to this class activity** brings them back to you.
 
 ## Cost and categories
 
@@ -85,7 +85,7 @@ If the organisation returns your activity, its **Feedback from the organisation*
 
 ![The activities table with the filter Only mine: under the day it starts on, one's own activity, submitted and marked "teachers only"](/bilder/en/aktivitaeten-nach-tag.png)
 
-The **Activities** table shows what is already on offer on each day. **Only mine** shows only yours.
+The **Activities** table shows what is already on offer on each day. **Only mine** shows only yours. Withdrawn activities are not in it; you find them by choosing "All" or "Withdrawn" under **State**.
 
 ## Places and demand
 
