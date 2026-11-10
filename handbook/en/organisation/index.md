@@ -49,7 +49,7 @@ Long lists can be narrowed and folded: above the registration status, the activi
 
 ### How teachers see the registration
 
-![The view as a teacher: below the header the bar saying that this tab shows SchulWahl as a teacher, with the button Back to my role; below it the registration without the Organisation section](/bilder/en/ansicht-als-lehrkraft.png)
+![The view as a teacher: below the header the bar saying that this tab shows SchulWahl as a teacher, with the button Back to my role; the header no longer links to Administration](/bilder/en/ansicht-als-lehrkraft.png)
 
 If you are a teacher yourself, **View as a teacher** at the top of the page shows you everything as teachers see it: without the Organisation section, with your own activities and what teachers see of the others. The drafts of others are not part of it.
 

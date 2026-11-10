@@ -163,7 +163,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await expect(page.getByRole('link', { name: t.common.page.admin })).toHaveCount(0)
   await expect(page.getByRole('row', { name: climbing })).toContainText(t.labels.itemState.proposed)
   await expect(page.getByRole('row', { name: climbing }).getByRole('link', { name: t.common.edit })).toHaveCount(0)
-  await picture(page, 'ansicht-als-lehrkraft', [page.getByRole('link', { name: t.common.appName, exact: true }), bar, page.getByRole('row', { name: climbing })])
+  await picture(page, 'ansicht-als-lehrkraft', [page.getByRole('link', { name: t.common.appName, exact: true }), bar, page.getByRole('heading', { name: sample.projectWeek })])
   // A reload of the tab keeps the view; the way back brings the role and the organization's part again.
   await page.reload()
   await expect(bar).toBeVisible()

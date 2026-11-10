@@ -49,7 +49,7 @@ Lange Listen lassen sich eingrenzen und einklappen: Über dem Stand der Anmeldun
 
 ### Wie Lehrkräfte die Anmeldung sehen
 
-![Die Ansicht als Lehrkraft: unter der Kopfzeile der Balken, der sagt, dass dieser Tab SchulWahl als Lehrkraft zeigt, mit dem Button Zurück zu meiner Rolle; darunter die Anmeldung ohne den Abschnitt Organisation](/bilder/de/ansicht-als-lehrkraft.png)
+![Die Ansicht als Lehrkraft: unter der Kopfzeile der Balken, der sagt, dass dieser Tab SchulWahl als Lehrkraft zeigt, mit dem Button Zurück zu meiner Rolle; in der Kopfzeile fehlt die Verwaltung](/bilder/de/ansicht-als-lehrkraft.png)
 
 Bist du selbst Lehrkraft, zeigt dir **Als Lehrkraft ansehen** oben auf der Seite alles so, wie die Lehrkräfte es sehen: ohne den Abschnitt Organisation, mit deinen eigenen Aktivitäten und dem, was Lehrkräfte von den anderen sehen. Die Entwürfe der anderen gehören nicht dazu.
 
