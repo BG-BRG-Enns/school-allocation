@@ -1377,6 +1377,9 @@
         "lockNewOffers": {
           "type": "boolean"
         },
+        "teachersSeeProposed": {
+          "type": "boolean"
+        },
         "rules": {
           "type": "array",
           "items": {

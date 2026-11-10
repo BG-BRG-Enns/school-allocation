@@ -156,6 +156,8 @@ export interface Scenario {
     activityMinimums: Record<string, number>
     /** Whether a teacher's submission is refused once every cell it serves has reached its target. */
     lockNewOffers: boolean
+    /** Whether teachers also see the activities others have submitted. */
+    teachersSeeProposed: boolean
     rules: ScenarioRule[]
   }
   /** The administrator: Anna, whose address is in BOOTSTRAP_ADMINS. */
@@ -361,6 +363,7 @@ export function scenario(seed = SCENARIO_SEED): Scenario {
       frames: FRAMES,
       activityMinimums: { [TUESDAY]: 180, [WEDNESDAY]: 100 },
       lockNewOffers: true,
+      teachersSeeProposed: false,
       rules: [
         { category: sport, grades: [5, 6, 7, 8, 9, 10, 11], classes: [], unit: 'items', minimum: 1 },
         { category: careers, grades: [7], classes: [], unit: 'minutes', minimum: 200 },

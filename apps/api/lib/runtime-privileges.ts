@@ -52,7 +52,7 @@ export const RUNTIME_TABLES: Readonly<Record<string, TableGrant>> = {
     updateColumns: [
       'name', 'school_year', 'project_days', 'config', 'state', 'roster_batch_id', 'updated_at',
       'opens_at', 'closes_at', 'late_until', 'swap_from', 'swap_until', 'wishes_per_group', 'daily_minimum', 'show_teachers', 'reminder_days',
-      'place_headroom_percent', 'lock_new_offers',
+      'place_headroom_percent', 'lock_new_offers', 'teachers_see_proposed',
     ],
   },
   // An activity is edited while it is a draft or by an organizer, reviewed,

@@ -85,7 +85,7 @@ If the organisation returns your activity, its **Feedback from the organisation*
 
 ![The activities table with the filter Only mine: under the day it starts on, one's own activity, submitted and marked "teachers only"](/bilder/en/aktivitaeten-nach-tag.png)
 
-The **Activities** table shows what is already on offer on each day. **Only mine** shows only yours. Withdrawn activities are not in it; you find them by choosing "All" or "Withdrawn" under **State**.
+The **Activities** table shows what is already on offer on each day: your own activities and the approved ones of others, and, if the organisation has set it so, also those others have already submitted. Look before you submit: if your idea is already there for the same year, talk to the teacher named with it. **Only mine** shows only yours. Withdrawn activities are not in it; you find them by choosing "All" or "Withdrawn" under **State**.
 
 ## Places and demand
 

@@ -199,6 +199,10 @@ The project lead's decisions of 2026-11-07, later the same day; they amend "Cred
 - **Credits are derived again** for the registrations not yet open when the grid changes (as before) and when a registration's frames change; migration `0013` brought the stored sessions to the rule once and raises the schema version to 4. **Accepted activities are not checked again** against the minimum length when their credits change: the organization keeps an eye on it (a review finding asking for it is declined by decision).
 - **The teacher texts say what to do**: only a short day shows, with the minutes to add and the window ("Bitte verlängere die Aktivität am … um … Minuten: Zwischen … und … muss sie mindestens … Minuten dauern."); nothing shows when an activity is long enough.
 
+## Teachers see what others have submitted (2026-11-10)
+
+The school's feedback of 2026-11-10: the same activity was submitted twice ("Schach" for one grade), because a teacher saw of the others only what was approved. Decided with the owner the same day: **a switch per registration** (`teachers_see_proposed`), **off unless the organizer turns it on**, for registrations that exist and new ones alike, set until the window opens as the window's other settings are. With it the teachers of the roster get the activities others have submitted in the registration's list, as they get the approved ones: to see, not to change. **A draft (a returned activity included) and a withdrawn activity stay their own people's and the organizers'**, whatever the switch says. Students never get a submitted activity. No check for similar titles: the list shows what is there, and the two teachers talk.
+
 ## Still open
 
 Nothing from the decision list of 2026-10-27 is open any more. Open from the school's concept

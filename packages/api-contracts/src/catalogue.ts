@@ -82,6 +82,8 @@ export const CampaignChangesBody = StrictObject({
   placeHeadroomPercent: Type.Optional(Type.Integer({ minimum: 0, maximum: 100 })),
   /** Whether new offers are locked once their cells have reached the target. */
   lockNewOffers: Type.Optional(Type.Boolean()),
+  /** Whether teachers also see the activities others have submitted. */
+  teachersSeeProposed: Type.Optional(Type.Boolean()),
   /** What the registration asks per category; the list replaces the one before. */
   rules: Type.Optional(Type.Array(RuleBody, { maxItems: MAX_RULES })),
 })

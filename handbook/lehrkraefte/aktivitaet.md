@@ -85,7 +85,7 @@ Gibt die Organisation deine Aktivität zurück, steht ihre **Rückmeldung** oben
 
 ![Die Tabelle der Aktivitäten mit dem Filter Nur meine: unter dem Tag, an dem sie beginnt, die eigene Aktivität, eingereicht und mit „nur Lehrkräfte“ markiert](/bilder/de/aktivitaeten-nach-tag.png)
 
-Die Tabelle **Aktivitäten** zeigt, was es an jedem Tag schon gibt. **Nur meine** zeigt nur deine. Zurückgezogene Aktivitäten stehen nicht dabei; du findest sie, wenn du unter **Stand** „Alle“ oder „Zurückgezogen“ wählst.
+Die Tabelle **Aktivitäten** zeigt, was es an jedem Tag schon gibt: deine eigenen Aktivitäten und die genehmigten der anderen, und wenn die Organisation es so eingestellt hat, auch die, die andere schon eingereicht haben. Schau hinein, bevor du einreichst: Gibt es deine Idee für dieselbe Schulstufe schon, sprich dich mit der Lehrkraft ab, die dabei steht. **Nur meine** zeigt nur deine. Zurückgezogene Aktivitäten stehen nicht dabei; du findest sie, wenn du unter **Stand** „Alle“ oder „Zurückgezogen“ wählst.
 
 ## Plätze und Bedarf
 

@@ -63,6 +63,10 @@ By what percentage the activities should offer more places than students need, 2
 
 **Lock new offers once the target is reached** keeps the offers where places are missing: a teacher can submit an activity only if at least one cell of [Places and demand](./anlegen#places-and-demand) its places go to (every period it touches, times every year it is offered to, on each of its days) is still short of the target. The target is that of the **extra places to offer**; there is no second number. Only an activity all of whose cells have reached the target is refused; one that touches no cell is not checked. Class activities are exempt, extra places or not. The organisation may always create, submit and approve and sees a note only. An activity returned or taken back to draft is checked at its resubmission for the cells that get more places than at its last submission only: a correction locks nobody out. The lock is off until you turn it on, and can be changed until registration opens.
 
+## Submitted activities for all teachers
+
+**Teachers also see the activities others have submitted**: If unticked, a teacher sees of the others only what you have already approved. If two teachers submit the same thing, say chess for the same year, they notice only after your approval. If ticked, the activities others have submitted are in their table already, with the state "Submitted", and the two can talk to each other. Only its own teachers and you can change one, as before. Drafts, returned ones included, and withdrawn activities are only ever seen by their teachers and the organisation.
+
 ## Rules
 
 A rule asks the students of a year (or only some of its classes) for at least so many activities or minutes from a category. How to set up rules and what they do is described under [Categories and rules](./kategorien-und-regeln).
@@ -76,6 +80,6 @@ A rule asks the students of a year (or only some of its classes) for at least so
 | Setting | Can be changed until |
 | ------- | -------------------- |
 | Name, school year, project days | the catalogue is published |
-| Attendance frame, minimum length of an activity, registration period, late registration, choices per time block, extra places to offer, lock new offers, rules, teachers in the catalogue | registration opens |
+| Attendance frame, minimum length of an activity, registration period, late registration, choices per time block, extra places to offer, lock new offers, submitted activities for all teachers, rules, teachers in the catalogue | registration opens |
 | Minimum minutes per day | the allocation is published |
 | Swap period | the swap period starts |
