@@ -137,6 +137,14 @@ export const en: Messages = {
     retry: 'Try again',
   },
 
+  /** App.vue: the view as a teacher, for someone with a role who is a teacher too (apps/web/src/lib/view-as.ts). Students never read it. */
+  viewAs: {
+    enter: 'View as a teacher',
+    bar: 'In this tab you see SchulWahl as a teacher, without your role. What you change here, you change as a teacher.',
+    leave: 'Back to my role',
+    failed: 'The view could not be changed. Please try again.',
+  },
+
   /** The words for the API's codes, one map per list of codes; a test checks that every code has its word. */
   labels: {
     /** The privileged roles (apps/api/lib/roles.ts), as the account page names them. */

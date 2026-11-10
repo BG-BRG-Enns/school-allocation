@@ -25,7 +25,7 @@ import rateLimit from '@fastify/rate-limit'
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { randomBytes } from 'node:crypto'
 import type { Config } from '../config.ts'
-import { currentUser, loadCaller, withinSeconds } from '../lib/auth.ts'
+import { currentUser, inView, loadCaller, viewOf, withinSeconds } from '../lib/auth.ts'
 import type { Database } from '../lib/db.ts'
 import { registerEntra, SIGN_IN_SECONDS, SignInError } from '../lib/entra.ts'
 import { safeReturnTo } from '../lib/return-to.ts'
@@ -125,7 +125,9 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
   // The app's shell asks this on every page. Nobody signed in is an answer
   // (204), not a refusal: a browser logs every error status it gets, and a
   // signed-out visit is not an error. The roles come from the database on
-  // every call, so a grant or a block shows at the next page load.
+  // every call, so a grant or a block shows at the next page load; in a
+  // teacher's view (lib/auth.ts viewOf) the answer has none, as every
+  // guarded route then reads the caller.
   registerEndpoint(app, endpoints.getAuthMe, { }, async (request, reply) => {
     const user = currentUser(request, db.now().getTime())
     const caller = user ? await loadCaller(db, user.id) : undefined
@@ -133,7 +135,9 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
       if (user) request.userSession.delete()
       return reply.code(204).send()
     }
-    return { id: caller.id, displayName: caller.displayName, roles: caller.roles, person: caller.person }
+    const view = viewOf(request)
+    if (view === 'invalid') return reply.code(400).send({ error: 'validation_failed' })
+    return { id: caller.id, displayName: caller.displayName, roles: inView(caller, view).roles, person: caller.person }
   })
 }
 

@@ -5,6 +5,12 @@
 // session, and without one the shell sends the browser to the sign-in
 // page, which brings it back here afterwards. The sign-in page itself is
 // shown once the session is known.
+//
+// Someone with a role who is a teacher too may lay the role down for this
+// tab (lib/view-as.ts): the button in the navigation, and while the view
+// lasts a bar under the header that says so and leads back. The page is
+// built anew on the way in and out, so everything on it is what the server
+// answers in that view.
 
 import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
@@ -12,8 +18,9 @@ import { signInUrl } from './lib/api-rules.ts'
 import { withBase } from './lib/base.ts'
 import { handbookLink } from './lib/handbook.ts'
 import { LOCALE, t } from './lib/i18n.ts'
-import { isSchoolAdmin, loadSession, session, signOut } from './lib/session.ts'
+import { isSchoolAdmin, loadSession, session, setView, signOut } from './lib/session.ts'
 import { mayLeave, stayed } from './lib/unsaved.ts'
+import { mayViewAsTeacher, viewAs, writeView, type View } from './lib/view-as.ts'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,10 +40,31 @@ function load(): void {
 watch([session, () => route.fullPath], ([who, path]) => {
   if (who === undefined) {
     if (!loadFailed.value) load()
-  } else if (who === null && route.path !== '/anmelden') {
-    void router.replace(signInUrl(withBase(path)))
+  } else if (who === null) {
+    // Nobody is signed in: the view was the last person's, and whoever signs in next in this tab starts in their own.
+    if (viewAs.value !== null) writeView(null)
+    if (route.path !== '/anmelden') void router.replace(signInUrl(withBase(path)))
   }
 }, { immediate: true })
+
+/** Whether the view as a teacher is offered to the person signed in. */
+const offersTeacherView = computed(() => mayViewAsTeacher(session.value, viewAs.value))
+/** Counts the changes of view: the page is keyed by it, so each change builds the page anew from what the server answers now. */
+const viewChanges = ref(0)
+const viewFailed = ref(false)
+
+/** Into the view as a teacher, or back out of it. A page with unsaved changes asks first, as before any leaving; a change that failed leaves the tab as it was, and says so. */
+async function onView(view: View): Promise<void> {
+  if (!mayLeave()) return
+  viewFailed.value = false
+  try {
+    await setView(view)
+    viewChanges.value += 1
+  } catch {
+    stayed()
+    viewFailed.value = true
+  }
+}
 
 /** A page with unsaved changes asks first: the sign-out revokes the session before the browser navigates. A sign-out that failed leaves the person on the page, watched as before. */
 function onSignOut(): void {
@@ -75,6 +103,14 @@ function onSignOut(): void {
         >
           {{ t.shell.help }}
         </a>
+        <button
+          v-if="offersTeacherView"
+          type="button"
+          class="ghost"
+          @click="onView('teacher')"
+        >
+          {{ t.viewAs.enter }}
+        </button>
         <RouterLink
           to="/konto"
           class="who"
@@ -90,6 +126,27 @@ function onSignOut(): void {
         </button>
       </nav>
     </header>
+    <p
+      v-if="session && viewAs === 'teacher'"
+      class="view-bar no-print"
+      role="status"
+    >
+      {{ t.viewAs.bar }}
+      <button
+        type="button"
+        class="ghost small"
+        @click="onView(null)"
+      >
+        {{ t.viewAs.leave }}
+      </button>
+    </p>
+    <p
+      v-if="viewFailed"
+      class="alert no-print"
+      role="alert"
+    >
+      {{ t.viewAs.failed }}
+    </p>
     <main class="shell-main">
       <p
         v-if="loadFailed"
@@ -104,7 +161,10 @@ function onSignOut(): void {
           {{ t.shell.retry }}
         </button>
       </p>
-      <RouterView v-else-if="shown" />
+      <RouterView
+        v-else-if="shown"
+        :key="viewChanges"
+      />
     </main>
   </div>
 </template>

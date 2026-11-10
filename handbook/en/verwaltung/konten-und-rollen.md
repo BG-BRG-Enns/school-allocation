@@ -28,6 +28,8 @@ If the person already had another account, this is shown; the old link is remove
 | **Organisation** | Manage registrations: catalogue, registration period, allocation, publication and later changes; assign class teachers and change email templates |
 | **Read-only** | View information, for an audit for example: lists, Excel files and retention; it cannot change anything |
 
+Anyone who has a role and is a teacher as well can lay it down for one tab and see SchulWahl as teachers do: [How teachers see the registration](/en/organisation/#how-teachers-see-the-registration).
+
 ### Granting a role
 
 ![The Grant a role form with the Organisation role and a reason](/bilder/en/rolle-erteilen.png)

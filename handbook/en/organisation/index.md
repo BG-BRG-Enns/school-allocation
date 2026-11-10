@@ -46,3 +46,13 @@ Long lists can be narrowed and folded: above the registration status, the activi
 - The **Organisation** sees every registration, in every state.
 - **Teachers** see a registration once activities are being collected.
 - **Students** see it once the catalogue is published. [During registration](./anmeldung) and [After publication](./nach-der-veroeffentlichung) show what they then see.
+
+### How teachers see the registration
+
+![The view as a teacher: below the header the bar saying that this tab shows SchulWahl as a teacher, with the button Back to my role; below it the registration without the Organisation section](/bilder/en/ansicht-als-lehrkraft.png)
+
+If you are a teacher yourself, **View as a teacher** at the top of the page shows you everything as teachers see it: without the Organisation section, with your own activities and what teachers see of the others. The drafts of others are not part of it.
+
+The view holds for this tab only. In a second tab you still have your role and can keep the two side by side. While it lasts, a bar below the header says so; **Back to my role** ends it, and so does signing out. What you change in this view you really change, as a teacher: an activity you create there is yours.
+
+If your account is not a teacher in the class lists, the button is not there.

@@ -142,6 +142,14 @@ export const de = {
     retry: 'Noch einmal versuchen',
   },
 
+  /** App.vue: the view as a teacher, for someone with a role who is a teacher too (apps/web/src/lib/view-as.ts). Students never read it. */
+  viewAs: {
+    enter: 'Als Lehrkraft ansehen',
+    bar: 'Du siehst SchulWahl in diesem Tab als Lehrkraft, ohne deine Rolle. Was du hier änderst, änderst du als Lehrkraft.',
+    leave: 'Zurück zu meiner Rolle',
+    failed: 'Die Ansicht ließ sich nicht wechseln. Bitte noch einmal versuchen.',
+  },
+
   /** The words for the API's codes, one map per list of codes; a test checks that every code has its word. */
   labels: {
     /** The privileged roles (apps/api/lib/roles.ts), as the account page names them. */

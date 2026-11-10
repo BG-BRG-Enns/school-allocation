@@ -152,6 +152,26 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await settings.getByLabel(t.campaign.settings.teachersSeeProposed).check()
   await settings.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.common.saved)
+  // How the teachers see it: Anna, a teacher herself, lays her role down for this tab. The bar says so, the organization's
+  // part of the page is gone, and the list is a teacher's: Bernd's submitted climbing, since the box is ticked.
+  await page.getByRole('button', { name: t.viewAs.enter }).click()
+  const bar = page.getByText(t.viewAs.bar)
+  await expect(bar).toBeVisible()
+  await expect(page.getByRole('button', { name: t.viewAs.enter })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: sample.projectWeek })).toBeVisible()
+  await expect(page.getByRole('button', { name: t.campaign.organization.editSettings })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: t.common.page.admin })).toHaveCount(0)
+  await expect(page.getByRole('row', { name: climbing })).toContainText(t.labels.itemState.proposed)
+  await expect(page.getByRole('row', { name: climbing }).getByRole('link', { name: t.common.edit })).toHaveCount(0)
+  await picture(page, 'ansicht-als-lehrkraft', [page.getByRole('link', { name: t.common.appName, exact: true }), bar, page.getByRole('row', { name: climbing })])
+  // A reload of the tab keeps the view; the way back brings the role and the organization's part again.
+  await page.reload()
+  await expect(bar).toBeVisible()
+  await expect(page.getByRole('button', { name: t.campaign.organization.editSettings })).toHaveCount(0)
+  await page.getByRole('button', { name: t.viewAs.leave }).click()
+  await expect(bar).toHaveCount(0)
+  await expect(page.getByRole('button', { name: t.campaign.organization.editSettings })).toBeVisible()
+  await expect(page.getByRole('link', { name: t.common.page.admin })).toBeVisible()
   await signOut(page)
 
   // Carla, a teacher and nothing more (Bernd organizes too, and the gate lets an organizer through).
