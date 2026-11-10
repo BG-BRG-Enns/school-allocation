@@ -9,8 +9,9 @@
 // Someone with a role who is a teacher too may lay the role down for this
 // tab (lib/view-as.ts): the button in the navigation, and while the view
 // lasts a bar under the header that says so and leads back. The page is
-// built anew on the way in and out, so everything on it is what the server
-// answers in that view.
+// taken away while the view changes and built anew afterwards, so
+// everything on it is what the server answers in that view, and nothing
+// can be typed into a page that is about to go.
 
 import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
@@ -49,10 +50,8 @@ watch([session, () => route.fullPath], ([who, path]) => {
 
 /** Whether the view as a teacher is offered to the person signed in. */
 const offersTeacherView = computed(() => mayViewAsTeacher(session.value, viewAs.value))
-/** Counts the changes of view: the page is keyed by it, so each change builds the page anew from what the server answers now. */
-const viewChanges = ref(0)
 const viewFailed = ref(false)
-/** A change of view is under way: its buttons wait, so a second click does not start another on top. */
+/** A change of view is under way: the page is not shown, and the buttons wait, so a second click does not start another on top. */
 const viewChanging = ref(false)
 
 /** Into the view as a teacher, or back out of it. A page with unsaved changes asks first, as before any leaving; a change that failed leaves the tab as it was, and says so. */
@@ -62,7 +61,6 @@ async function onView(view: View): Promise<void> {
   viewFailed.value = false
   try {
     await setView(view)
-    viewChanges.value += 1
   } catch {
     stayed()
     viewFailed.value = true
@@ -168,10 +166,7 @@ function onSignOut(): void {
           {{ t.shell.retry }}
         </button>
       </p>
-      <RouterView
-        v-else-if="shown"
-        :key="viewChanges"
-      />
+      <RouterView v-else-if="shown && !viewChanging" />
     </main>
   </div>
 </template>
