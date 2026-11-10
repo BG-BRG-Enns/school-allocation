@@ -65,7 +65,7 @@ If the student has a class activity at the same time, the tick decides: with the
 
 ![Not taking part: for a class activity the students of its classes who are not in it, here Tim Gnöxwieser, entered, with the button takes part after all](/bilder/en/nimmt-nicht-teil.png)
 
-For an activity with the whole class, you enter under **Not taking part** who does not come along. You give no reason. If someone has taken a student of the class directly into another activity, it says so here, and **Return … to this class activity** brings them back to you.
+For an activity with the whole class, you enter under **Not taking part** who does not come along: find the name, **does not take part**. You give no reason. This works in a new activity before you save it, and until the organisation calculates the allocation; **takes part after all** brings the student back in. If the activity includes a night, the form reminds you. If someone has taken a student of the class directly into another activity, it says so here, and **Return … to this class activity** brings them back to you.
 
 ## Cost and categories
 
@@ -75,6 +75,7 @@ For an activity with the whole class, you enter under **Not taking part** who do
 
 - **Save** keeps the activity as a draft. Only its teachers and the organisation see it.
 - **Save and submit** sends it to the organisation.
+- If you leave the page with changes that are not saved, the browser asks first.
 
 ![The lock in the form: at this time there are already enough places for these years, and the advice to choose another time or to offer the activity to another year as well](/bilder/en/sperre.png)
 

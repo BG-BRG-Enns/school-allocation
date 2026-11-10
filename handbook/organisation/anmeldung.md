@@ -26,7 +26,7 @@ Ab dem Öffnen zeigt die Seite der Anmeldung, wie weit alle mit ihren Wünschen 
 
 Nimmt eine Klassenaktivität eine ganze Klasse mit, kannst du eine Person ihrer Klasse davon befreien: Auf ihrer Seite steht unter **Befreiungen** jede Klassenaktivität mit dem Button **Befreien**. Mit einer Begründung befreit, wählt die Person für diese Zeit selbst. Befreien geht hier, solange die Anmeldung läuft.
 
-Dasselbe geht auf der Seite der Klassenaktivität unter **Nimmt nicht teil**, schon bevor die Anmeldung öffnet, ohne Begründung und auch wieder zurück; dort tragen es auch die Lehrkräfte der Aktivität und der Klassenvorstand ein ([Lehrkräfte](/lehrkraefte/aktivitaet#nimmt-nicht-teil)). Lehrkräfte teilen außerdem einzelne Schüler\*innen direkt in ihre Aktivität ein; eine direkte Einteilung geht der Klassenaktivität vor. Du kannst beides bei jeder Aktivität, auch noch, wenn die Anmeldung beendet ist, bis du die Zuteilung berechnest.
+Dasselbe geht auf der Seite der Klassenaktivität unter **Nimmt nicht teil**, schon bevor die Anmeldung öffnet, ohne Begründung und auch wieder zurück; dort tragen es auch die Lehrkräfte der Aktivität und der Klassenvorstand ein ([Lehrkräfte](/lehrkraefte/aktivitaet#nimmt-nicht-teil)). Lehrkräfte teilen außerdem einzelne Schüler\*innen direkt in ihre Aktivität ein; eine direkte Einteilung geht der Klassenaktivität vor. Du und die Lehrkräfte könnt beides bei jeder Aktivität, auch noch, wenn die Anmeldung beendet ist, bis du die Zuteilung berechnest.
 
 ## Die Nachfrist
 

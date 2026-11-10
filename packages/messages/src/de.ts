@@ -61,6 +61,8 @@ export const de = {
       categories: 'Kategorien',
     },
     backToCampaign: 'Zur Anmeldung',
+    /** The browser's question before a form with unsaved changes is left. */
+    leaveUnsaved: 'Die Änderungen sind nicht gespeichert. Seite trotzdem verlassen?',
     backToAdmin: 'Zur Verwaltung',
     /** Field and column names several pages share. */
     field: {
@@ -1004,7 +1006,6 @@ export const de = {
     search: 'Schüler*in suchen (Name oder Klasse)',
     place: (name: string, className: string) => `${name} (${className}) einteilen`,
     none: 'Niemand ist direkt eingeteilt.',
-    pending: 'Wird mit dem Speichern der Aktivität eingetragen.',
     leavesClass: 'nimmt an überschneidenden Klassenaktivitäten gar nicht teil',
     /** Below the list: what the box decides. */
     leavesClassHint: 'Mit Häkchen nimmt die Person an den betroffenen Klassenaktivitäten überhaupt nicht teil, auch nicht an deren anderen Tagen. Ohne Häkchen fehlt sie dort nur während deiner Aktivität, etwa für eine Probe.',
@@ -1018,6 +1019,8 @@ export const de = {
     tell: (title: string, lead: string | null) => lead === null ? `Bitte der Leitung von „${title}“ Bescheid sagen: Die Person ist dort nicht mehr eingeteilt.` : `Bitte ${lead} Bescheid sagen: Die Person ist bei „${title}“ nicht mehr eingeteilt.`,
     absentHeading: 'Nimmt nicht teil',
     absentIntro: 'Wer aus den Klassen nicht mitkommt. Einen Grund gibst du nicht an.',
+    /** The search of the list's own: students of the activity's classes alone. */
+    absentSearch: 'Schüler*in aus den Klassen suchen (Name)',
     absentNone: 'Alle Schüler*innen der Klassen nehmen teil.',
     takeOut: (name: string, className: string) => `${name} (${className}) nimmt nicht teil`,
     onList: 'eingetragen',

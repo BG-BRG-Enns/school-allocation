@@ -63,6 +63,7 @@ export const en: Messages = {
       categories: 'Categories',
     },
     backToCampaign: 'Back to registration',
+    leaveUnsaved: 'The changes are not saved. Leave the page anyway?',
     backToAdmin: 'Back to administration',
     /** Field and column names several pages share. */
     field: {
@@ -971,7 +972,6 @@ export const en: Messages = {
     search: 'Find a student (name or class)',
     place: (name: string, className: string) => `Place ${name} (${className})`,
     none: 'Nobody is placed directly.',
-    pending: 'Entered when the activity is saved.',
     leavesClass: 'takes no part at all in overlapping class activities',
     leavesClassHint: 'With the tick, the student takes no part at all in the class activities concerned, not on their other days either. Without it, they are only away there during your activity, such as for a rehearsal.',
     leavesClassOf: (name: string) => `${name} takes no part at all in overlapping class activities`,
@@ -981,6 +981,7 @@ export const en: Messages = {
     tell: (title: string, lead: string | null) => lead === null ? `Please tell the lead of "${title}": the student is no longer placed there.` : `Please tell ${lead}: the student is no longer placed in "${title}".`,
     absentHeading: 'Not taking part',
     absentIntro: 'Who from the classes does not come along. You do not give a reason.',
+    absentSearch: 'Find a student of the classes (name)',
     absentNone: 'Every student of the classes takes part.',
     takeOut: (name: string, className: string) => `${name} (${className}) does not take part`,
     onList: 'entered',

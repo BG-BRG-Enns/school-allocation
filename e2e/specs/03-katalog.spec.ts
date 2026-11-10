@@ -247,16 +247,28 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.item.sessions.count, { exact: true }).fill('4')
   await expect(page.getByText(tuesdayShort)).toHaveCount(0)
   await picture(page, 'klassenaktivitaet', [page.getByRole('heading', { name: t.item.participation.heading }), page.getByRole('group', { name: t.item.participation.eligibleClasses })])
-  // Saved as a draft, the class activity has its list of who does not take part: Tim stays at home, no reason asked, and comes along after all.
+  // A class activity has its list of who does not take part, before it is even saved: Tim stays at home, no reason asked. The
+  // list goes with the first save; opened again, it is the activity's, and Tim comes along after all.
+  await page.getByLabel(t.placements.absentSearch).fill('Gnöxwieser')
+  await page.getByRole('button', { name: t.placements.takeOut(TIM.name, '5A') }).click()
+  await expect(page.getByRole('button', { name: t.placements.bringBack(TIM.name) })).toBeVisible()
   await page.getByRole('button', { name: t.common.save, exact: true }).click()
   await expect(page.getByRole('heading', { name: sample.projectWeek })).toBeVisible()
   await page.getByRole('row', { name: new RegExp(literally(sample.vienna)) }).getByRole('link', { name: t.common.edit }).click()
-  await page.getByLabel(t.placements.search).fill('Gnöxwieser')
-  await page.getByRole('button', { name: t.placements.takeOut(TIM.name, '5A') }).click()
   await expect(page.getByRole('button', { name: t.placements.bringBack(TIM.name) })).toBeVisible()
-  await picture(page, 'nimmt-nicht-teil', [page.getByRole('heading', { name: t.placements.absentHeading }), page.getByRole('button', { name: t.placements.bringBack(TIM.name) })])
+  await picture(page, 'nimmt-nicht-teil', [page.getByRole('heading', { name: t.placements.absentHeading }), page.getByLabel(t.placements.absentSearch)])
   await page.getByRole('button', { name: t.placements.bringBack(TIM.name) }).click()
   await expect(page.getByText(t.placements.absentNone)).toBeVisible()
+  // A change not saved is not lost unnoticed: the way back asks first. Declined, the form stays as typed; accepted, the change is gone.
+  await page.getByLabel(t.item.title).fill(`${sample.vienna} 2`)
+  page.once('dialog', (dialog) => void dialog.dismiss())
+  await page.getByRole('link', { name: `← ${t.common.backToCampaign}` }).click()
+  await expect(page.getByLabel(t.item.title)).toHaveValue(`${sample.vienna} 2`)
+  page.once('dialog', (dialog) => void dialog.accept())
+  await page.getByRole('link', { name: `← ${t.common.backToCampaign}` }).click()
+  await expect(page.getByRole('heading', { name: sample.projectWeek })).toBeVisible()
+  await page.getByRole('row', { name: new RegExp(literally(sample.vienna)) }).getByRole('link', { name: t.common.edit }).click()
+  await expect(page.getByLabel(t.item.title)).toHaveValue(sample.vienna)
   // With 1A instead, on Tuesday morning: 1A is at the zoo then (the school's trip), so the form says so, and the submission is refused with it.
   const zoo = SCHOOL.items.find((item) => item.key === 'tue-1a-zoo')
   const zooLead = SCHOOL.teachers.find((teacher) => teacher.oid === zoo?.teachers[0])
