@@ -4,10 +4,11 @@
 // session is placed in the school's period grid ("from the 2nd period, 2
 // periods") or, for a trip, by the clock; what it credits per project day
 // the server derives from the school's periods. The rules are the server's
-// (school-core); a refusal names them here.
+// (school-core); a refusal names them here. Changes not saved are not
+// lost unnoticed: leaving the page asks first.
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRouter } from 'vue-router'
 import { spanOfPeriods, type DayDemand, type Period } from '@school-allocation/school-core'
 import Collapsible from '../components/Collapsible.vue'
 import DemandTable from '../components/DemandTable.vue'
@@ -15,7 +16,7 @@ import Placements from '../components/Placements.vue'
 import { loadPeriods } from '../lib/admin-api.ts'
 import { loadParticipants, type ParticipantsResponse } from '../lib/allocation-api.ts'
 import { ApiError } from '../lib/api-rules.ts'
-import { checkItem, createItem, placeStudent, loadCampaign, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, setCompanions, updateItem, type Campaign, type Category, type ClassConflictView, type GateCellView, type Item, type ItemCheckResponse, type ItemInput, type ItemInvalidBody, type OtherActivity } from '../lib/campaigns-api.ts'
+import { checkItem, createItem, placeStudent, loadCampaign, takeOutOfClassActivity, loadCampaignAvailability, loadCategories, loadClasses, loadDemand, loadItems, proposeItem, searchTeachers, setCompanions, updateItem, type Campaign, type Category, type ClassConflictView, type GateCellView, type Item, type ItemCheckResponse, type ItemInput, type ItemInvalidBody, type OtherActivity } from '../lib/campaigns-api.ts'
 import { useFeedback } from '../lib/feedback.ts'
 import { formatDay, instantInSchoolZone, localDateOf, localTimeOf, periodsOnGrid, touchedDates } from '../lib/format.ts'
 import { cellsAddedBy, cellsText, refusalText } from '../lib/offer-cells.ts'
@@ -23,8 +24,9 @@ import { describeCells } from '@school-allocation/school-core'
 import { t } from '../lib/i18n.ts'
 import { ASSIGNMENT_SOURCE_LABELS, CATALOGUE_PROBLEM_LABELS } from '../lib/labels.ts'
 import { usePageTitle } from '../lib/page-title.ts'
-import type { PendingPlacement } from '../lib/placements.ts'
+import type { PendingAbsence, PendingPlacement } from '../lib/placements.ts'
 import { session } from '../lib/session.ts'
+import { hasUnsaved, mayLeave, stayed, watchUnsaved } from '../lib/unsaved.ts'
 
 const props = defineProps<{ id: string, itemId?: string }>()
 const router = useRouter()
@@ -61,6 +63,8 @@ const categoryIds = ref<string[]>([])
 const teachers = ref<{ personId: string, displayName: string }[]>([])
 /** The students placed into a new activity before its first save; entered with it. */
 const pendingPlacements = ref<PendingPlacement[]>([])
+/** For a new class activity: who of its classes does not take part, entered with the first save. */
+const pendingAbsent = ref<PendingAbsence[]>([])
 /** Counts the times the placements section is to load again: after the queue of a new activity was entered. */
 const placementsShown = ref(0)
 /** The activities the first save's placements took students out of: whom to tell, shown before the page is left. */
@@ -108,10 +112,57 @@ watch(isFixed, (fixed) => {
 })
 const lastPeriod = computed(() => grid.value.at(-1)?.period ?? 0)
 
+/**
+ * The form as it was loaded or last saved, so leaving with a change since
+ * asks first (lib/unsaved.ts): a route of the app through the router's
+ * guard, the sign-out through the shell, the tab closed through the
+ * browser's own question. The companions saved apart count as saved, and
+ * the rest of the form as it stands. A page that is leaving by itself
+ * after a save asks nothing.
+ */
+let baseline: FormState | null = null
+interface FormState {
+  [field: string]: unknown
+  teachers: string[]
+  leadId: string
+  companionsWanted: number
+}
+/** A plain copy of the form's values, no reactive array of the form among them. */
+function formState(): FormState {
+  return JSON.parse(JSON.stringify({
+    title: title.value, description: description.value, location: location.value, feeEuro: feeEuro.value, feeNote: feeNote.value,
+    places: places.value, minParticipants: minParticipants.value, cancellableBelowMin: cancellableBelowMin.value,
+    fixedClasses: fixedClasses.value, eligibleGrades: eligibleGrades.value, eligibleClasses: eligibleClasses.value, categoryIds: categoryIds.value,
+    teachers: teachers.value.map((teacher) => teacher.personId), leadId: leadId.value, companionsWanted: Number(companionsWanted.value),
+    sessions: sessions.value, pendingPlacements: pendingPlacements.value, pendingAbsent: pendingAbsent.value,
+  })) as FormState
+}
+const unsaved = (): boolean => baseline !== null && JSON.stringify(formState()) !== JSON.stringify(baseline)
+onBeforeRouteLeave(mayLeave)
+// The same for a route that only names another activity: the page stays, the form would be loaded over.
+onBeforeRouteUpdate(mayLeave)
+/** The companions and the number wanted were saved apart: so much of the form counts as saved, the rest as it stands. */
+function companionsSaved(): void {
+  const { teachers: savedTeachers, leadId: savedLead, companionsWanted: savedWanted } = formState()
+  baseline = { ...(baseline ?? formState()), teachers: savedTeachers, leadId: savedLead, companionsWanted: savedWanted }
+}
+const stopWatching = watchUnsaved(unsaved)
+function warnBeforeUnload(event: BeforeUnloadEvent): void {
+  if (hasUnsaved()) event.preventDefault()
+}
+onMounted(() => window.addEventListener('beforeunload', warnBeforeUnload))
+onBeforeUnmount(() => {
+  stopWatching()
+  window.removeEventListener('beforeunload', warnBeforeUnload)
+})
+
 /** The campaign, the roster's classes, the grid and, when editing, the item; again when the route names another. */
 async function load(): Promise<void> {
   problems.value = []
   sessions.value = []
+  // A route that only names another activity keeps the page: nothing of the form before is to be entered into this one.
+  pendingPlacements.value = []
+  pendingAbsent.value = []
   await loading.run(async () => {
     const [view, found, periods, school] = await Promise.all([loadCampaign(props.id), loadClasses(props.id), loadPeriods(), loadCategories()])
     campaign.value = view.campaign
@@ -145,7 +196,6 @@ async function load(): Promise<void> {
       sessions.value = item.sessions.map(fromStored)
     } else {
       existing.value = null
-      pendingPlacements.value = []
       placementTells.value = []
       places.value = DEFAULT_PLACES
       placesTouched.value = false
@@ -158,6 +208,9 @@ async function load(): Promise<void> {
       addSession()
     }
   })
+  baseline = formState()
+  // The leaving agreed to on the way here, when the page was kept for another activity, is over: this form is watched.
+  stayed()
   await loadParticipantsView()
 }
 onMounted(load)
@@ -355,6 +408,7 @@ async function saveCompanions(): Promise<void> {
     teachers.value = [...saved.teachers]
     leadId.value = saved.teachers.find((teacher) => teacher.lead)?.personId ?? ''
     companionsWanted.value = saved.companionsWanted
+    companionsSaved()
   }, t.item.companions.saved)
 }
 
@@ -370,6 +424,7 @@ async function handOver(): Promise<void> {
   if (!item || !next || !window.confirm(t.item.teachers.handOverConfirm(next.displayName))) return
   const ok = await companionsSaving.run(async () => {
     existing.value = await setCompanions(item.id, { companions: companions.value.map((teacher) => teacher.personId), wanted: Number(companionsWanted.value), lead: next.personId })
+    companionsSaved()
   })
   if (ok) await router.push({ path: `/wahlen/${props.id}`, query: { item: item.id } })
 }
@@ -449,6 +504,10 @@ async function save(propose: boolean): Promise<void> {
       // class it takes as a whole: they are in it. One the server refuses leaves the queue like the others, and is said.
       const queued = pendingPlacements.value.filter((p) => !fixedClasses.value.includes(p.className))
       pendingPlacements.value = []
+      // And who of its classes does not take part; not whoever's class the form no longer takes.
+      const absentQueued = pendingAbsent.value.filter((a) => fixedClasses.value.includes(a.className))
+      pendingAbsent.value = []
+      baseline = formState()
       let refused: Error | undefined
       for (const p of queued) {
         try {
@@ -457,8 +516,15 @@ async function save(propose: boolean): Promise<void> {
           refused ??= err instanceof Error ? err : new Error(String(err))
         }
       }
-      // The section loaded the activity's placements when it got its id, before the queue was through: again now.
-      if (queued.length > 0) placementsShown.value += 1
+      for (const a of absentQueued) {
+        try {
+          await takeOutOfClassActivity(item.id, a.personId)
+        } catch (err) {
+          refused ??= err instanceof Error ? err : new Error(String(err))
+        }
+      }
+      // The section loaded the activity's placements when it got its id, before the queues were through: again now.
+      if (queued.length > 0 || absentQueued.length > 0) placementsShown.value += 1
       if (refused !== undefined) throw refused
       if (propose && item.state === 'draft') await proposeItem(item.id)
     } catch (err) {
@@ -1055,6 +1121,7 @@ async function save(propose: boolean): Promise<void> {
       v-if="(props.itemId === undefined || existing !== null) && existing?.state !== 'withdrawn'"
       :key="placementsShown"
       v-model:pending="pendingPlacements"
+      v-model:pending-absent="pendingAbsent"
       :campaign-id="props.id"
       :item-id="existing?.id ?? null"
       :fixed-classes="fixedClasses"
