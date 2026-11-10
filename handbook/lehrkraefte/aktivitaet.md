@@ -63,7 +63,7 @@ Hat die Person zur selben Zeit eine Klassenaktivität, entscheidet das Häkchen:
 
 ### Nimmt nicht teil
 
-![Nimmt nicht teil: bei einer Klassenaktivität die Schüler\*innen ihrer Klassen, die nicht dabei sind, hier Tim Gnöxwieser, eingetragen, mit dem Button nimmt doch teil](/bilder/de/nimmt-nicht-teil.png)
+![Nimmt nicht teil: bei einer Klassenaktivität die Schüler\*innen ihrer Klassen, die nicht dabei sind, hier Tim Gnöxwieser, eingetragen, mit dem Button nimmt doch teil, darunter die Suche nach Schüler\*innen aus den Klassen](/bilder/de/nimmt-nicht-teil.png)
 
 Bei einer Aktivität mit der ganzen Klasse trägst du unter **Nimmt nicht teil** ein, wer nicht mitkommt: Name suchen, **nimmt nicht teil**. Einen Grund gibst du nicht an. Das geht schon in der neuen Aktivität, bevor du speicherst, und bis die Organisation die Zuteilung berechnet; mit **nimmt doch teil** ist die Person wieder dabei. Geht die Aktivität über Nacht, erinnert dich das Formular daran. Hat jemand eine Person aus der Klasse direkt in eine andere Aktivität geholt, steht das hier, und mit **zurückholen** ist sie wieder bei euch.
 
