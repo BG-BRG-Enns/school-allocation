@@ -26,6 +26,7 @@ import { ASSIGNMENT_SOURCE_LABELS, CATALOGUE_PROBLEM_LABELS } from '../lib/label
 import { usePageTitle } from '../lib/page-title.ts'
 import type { PendingAbsence, PendingPlacement } from '../lib/placements.ts'
 import { session } from '../lib/session.ts'
+import { mayLeave, watchUnsaved } from '../lib/unsaved.ts'
 
 const props = defineProps<{ id: string, itemId?: string }>()
 const router = useRouter()
@@ -113,28 +114,39 @@ const lastPeriod = computed(() => grid.value.at(-1)?.period ?? 0)
 
 /**
  * The form as it was loaded or last saved, so leaving with a change since
- * asks first: a route of the app through the router's guard, a navigation
- * of the browser (the tab closed, signing out) through its own question.
- * The companions a submitted activity's lead saves apart count as saved
- * too. A page that is leaving by itself after a save asks nothing.
+ * asks first (lib/unsaved.ts): a route of the app through the router's
+ * guard, the sign-out through the shell, the tab closed through the
+ * browser's own question. The companions saved apart count as saved, and
+ * the rest of the form as it stands. A page that is leaving by itself
+ * after a save asks nothing.
  */
-let baseline = ''
-function formState(): string {
-  return JSON.stringify({
+let baseline: FormState | null = null
+interface FormState {
+  [field: string]: unknown
+  teachers: string[]
+  leadId: string
+  companionsWanted: number
+}
+function formState(): FormState {
+  return {
     title: title.value, description: description.value, location: location.value, feeEuro: feeEuro.value, feeNote: feeNote.value,
     places: places.value, minParticipants: minParticipants.value, cancellableBelowMin: cancellableBelowMin.value,
     fixedClasses: fixedClasses.value, eligibleGrades: eligibleGrades.value, eligibleClasses: eligibleClasses.value, categoryIds: categoryIds.value,
-    teachers: teachers.value.map((teacher) => teacher.personId), leadId: leadId.value, companionsWanted: companionsWanted.value,
+    teachers: teachers.value.map((teacher) => teacher.personId), leadId: leadId.value, companionsWanted: Number(companionsWanted.value),
     sessions: sessions.value, pendingPlacements: pendingPlacements.value, pendingAbsent: pendingAbsent.value,
-  })
+  }
 }
-const unsaved = (): boolean => baseline !== '' && formState() !== baseline
-onBeforeRouteLeave(() => unsaved() ? window.confirm(t.common.leaveUnsaved) : true)
+const unsaved = (): boolean => baseline !== null && JSON.stringify(formState()) !== JSON.stringify(baseline)
+onBeforeRouteLeave(mayLeave)
+const stopWatching = watchUnsaved(unsaved)
 function warnBeforeUnload(event: BeforeUnloadEvent): void {
   if (unsaved()) event.preventDefault()
 }
 onMounted(() => window.addEventListener('beforeunload', warnBeforeUnload))
-onBeforeUnmount(() => window.removeEventListener('beforeunload', warnBeforeUnload))
+onBeforeUnmount(() => {
+  stopWatching()
+  window.removeEventListener('beforeunload', warnBeforeUnload)
+})
 
 /** The campaign, the roster's classes, the grid and, when editing, the item; again when the route names another. */
 async function load(): Promise<void> {
@@ -385,7 +397,9 @@ async function saveCompanions(): Promise<void> {
     teachers.value = [...saved.teachers]
     leadId.value = saved.teachers.find((teacher) => teacher.lead)?.personId ?? ''
     companionsWanted.value = saved.companionsWanted
-    baseline = formState()
+    // Saved: the companions and the number wanted; whatever else the form changed is still unsaved.
+    const { teachers: savedTeachers, leadId: savedLead, companionsWanted: savedWanted } = formState()
+    baseline = { ...(baseline ?? formState()), teachers: savedTeachers, leadId: savedLead, companionsWanted: savedWanted }
   }, t.item.companions.saved)
 }
 

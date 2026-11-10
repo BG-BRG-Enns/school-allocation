@@ -13,6 +13,7 @@ import { withBase } from './lib/base.ts'
 import { handbookLink } from './lib/handbook.ts'
 import { LOCALE, t } from './lib/i18n.ts'
 import { isSchoolAdmin, loadSession, session, signOut } from './lib/session.ts'
+import { mayLeave } from './lib/unsaved.ts'
 
 const route = useRoute()
 const router = useRouter()
@@ -37,7 +38,9 @@ watch([session, () => route.fullPath], ([who, path]) => {
   }
 }, { immediate: true })
 
+/** A page with unsaved changes asks first: the sign-out revokes the session before the browser navigates. */
 function onSignOut(): void {
+  if (!mayLeave()) return
   void signOut()
 }
 </script>
