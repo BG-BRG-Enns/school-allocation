@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { CAMPAIGN_STATES, CAMPAIGN_TRANSITIONS, acceptsChoices, isCampaignState, transition, type CampaignState } from '../src/lifecycle.ts'
+import { CAMPAIGN_STATES, CAMPAIGN_TRANSITIONS, acceptsChoices, acceptsPlacements, isCampaignState, transition, type CampaignState } from '../src/lifecycle.ts'
 
 test('every state is reachable from draft, and archived is the end', () => {
   const reached = new Set<CampaignState>(['draft'])
@@ -50,6 +50,12 @@ test('choices are accepted while the window is open and in the grace week after 
   }
   // A campaign without a grace week closes straight from open.
   assert.deepEqual(transition('open', 'closed'), { ok: true, state: 'closed' })
+})
+
+test('placements are made by hand from the collecting of activities until a run is computed, the closed week included', () => {
+  for (const state of CAMPAIGN_STATES) {
+    assert.equal(acceptsPlacements(state), state === 'catalogue' || state === 'published' || state === 'open' || state === 'grace' || state === 'closed', state)
+  }
 })
 
 test('isCampaignState tells the states from everything else', () => {

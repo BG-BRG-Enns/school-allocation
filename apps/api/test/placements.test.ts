@@ -259,7 +259,10 @@ test('a class activity\'s teachers keep its list of who does not take part, with
 
   // Closed and computed: Sara's placement is her fixed item, the trip is nobody's; Tim, who saved no list, gets fallbacks, never the night away.
   assert.equal((await send(s, s.anna, 'POST', `/api/admin/campaigns/${id}/transition`, { to: 'closed' })).status, 200)
-  assert.equal((await send(s, s.bernd, 'PUT', `/api/items/${s.items.wien}/absences/${s.saraPerson}`)).status, 409, 'closed: a teacher changes the placements no more')
+  // Closed, the trip's teachers still keep its list until a run is computed: Tim comes along after all, and stays at home again.
+  assert.equal((await absence(s.bernd, 'DELETE', s.timPerson)).status, 200, 'closed: a teacher still brings a student back')
+  assert.equal((await absence(s.bernd, 'PUT', s.timPerson)).status, 200, 'closed: a teacher still takes a student out')
+  assert.deepEqual((await view(s.bernd, s.items.wien)).body.absent.map((a) => [a.displayName, a.by]), [[SARA.name, 'placed'], [TIM.name, 'list']])
   const started = await send<{ run: AllocationRun }>(s, s.anna, 'POST', `/api/admin/campaigns/${id}/runs`, { seed: 3 })
   assert.equal(started.status, 202, JSON.stringify(started.body))
   let review: RunReviewResponse | undefined
@@ -352,6 +355,8 @@ test('a class activity\'s teachers keep its list of who does not take part, with
   const acts = (await readAudit(owner, id)).filter((e) => e.action === 'preassignment.exempted' || e.action === 'preassignment.exemption-lifted').map((e) => [e.action, e.metadata.personId, e.metadata.reason ?? null])
   assert.deepEqual(acts, [
     ['preassignment.exempted', s.timPerson, null], ['preassignment.exemption-lifted', s.timPerson, null], ['preassignment.exempted', s.timPerson, null],
+    ['preassignment.exemption-lifted', s.timPerson, null], ['preassignment.exempted', s.timPerson, null],
+    // The closed week's two acts.
     ['preassignment.exemption-lifted', s.timPerson, null], ['preassignment.exempted', s.timPerson, null],
   ])
 })

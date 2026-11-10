@@ -95,7 +95,7 @@ async function viewOf(client: Queryable, campaign: Campaign, item: Item, caller:
       return [{ personId: student.personId, displayName: student.displayName, className: student.className, by: listed ? 'list' as const : 'placed' as const, elsewhere }]
     })
     .sort(byClassAndName)
-  const open = item.state !== 'withdrawn' && acceptsPlacements(campaign.state, isOrganizer(caller))
+  const open = item.state !== 'withdrawn' && acceptsPlacements(campaign.state)
   return { mayPlace: open && mayPlaceInto(caller, item), mayTakeOut: open && takeOut.length > 0, classActivity: item.fixedClasses.length > 0, placed, absent, tell: [...tell] }
 }
 
@@ -131,8 +131,8 @@ async function found(db: Queryable, id: string): Promise<{ item: Item, campaign:
   return { item, campaign }
 }
 
-/** The activity and its campaign under the campaign's lock, the activity read again after it, open for placements to the caller. */
-async function lockedForChange(client: Queryable, id: string, caller: Caller): Promise<{ item: Item, campaign: Campaign }> {
+/** The activity and its campaign under the campaign's lock, the activity read again after it, open for placements. */
+async function lockedForChange(client: Queryable, id: string): Promise<{ item: Item, campaign: Campaign }> {
   const seen = await readItem(client, id)
   if (!seen) throw new ApplicationError('not_found')
   await lockScope(client, seen.campaignId)
@@ -140,7 +140,7 @@ async function lockedForChange(client: Queryable, id: string, caller: Caller): P
   const campaign = item === undefined ? undefined : await lockedCampaign(client, item.campaignId)
   if (!item || !campaign) throw new ApplicationError('not_found')
   if (item.state === 'withdrawn') throw new ApplicationError('item_state')
-  if (!acceptsPlacements(campaign.state, isOrganizer(caller))) throw new ApplicationError('campaign_state')
+  if (!acceptsPlacements(campaign.state)) throw new ApplicationError('campaign_state')
   return { item, campaign }
 }
 
@@ -183,7 +183,7 @@ export async function placementsOf(db: Database, id: string, caller: Caller): Pr
  */
 export async function placeStudent(db: Database, id: string, personId: string, leavesClass: boolean, caller: Caller): Promise<PlacementsResponse> {
   return db.tx(async (client) => {
-    const { item, campaign } = await lockedForChange(client, id, caller)
+    const { item, campaign } = await lockedForChange(client, id)
     if (!mayPlaceInto(caller, item)) throw new ApplicationError('forbidden')
     const student = await studentOf(client, campaign, personId)
     if (item.fixedClasses.includes(student.className)) throw new ApplicationError('class_member')
@@ -210,7 +210,7 @@ export async function placeStudent(db: Database, id: string, personId: string, l
 /** Removes a student's direct placement from an activity; its own teachers and organizers. */
 export async function removePlacement(db: Database, id: string, personId: string, caller: Caller): Promise<PlacementsResponse> {
   return db.tx(async (client) => {
-    const { item, campaign } = await lockedForChange(client, id, caller)
+    const { item, campaign } = await lockedForChange(client, id)
     if (!mayPlaceInto(caller, item)) throw new ApplicationError('forbidden')
     if (await store.deleteDirectPlacements(client, campaign.id, [item.id], personId.toLowerCase()) === 0) throw new ApplicationError('not_found')
     await restoreClassPlacements(client, campaign)
@@ -236,7 +236,7 @@ export async function classMember(client: Queryable, campaign: Campaign, item: I
  */
 export async function reclaimStudent(db: Database, id: string, personId: string, caller: Caller): Promise<PlacementsResponse> {
   return db.tx(async (client) => {
-    const { item, campaign } = await lockedForChange(client, id, caller)
+    const { item, campaign } = await lockedForChange(client, id)
     const student = await classMember(client, campaign, item, personId, caller)
     const items = new Map((await liveItems(client, campaign.id)).map((i) => [i.id, i]))
     const taken = (await store.listPlacements(client, campaign.id, student.personId))
@@ -259,7 +259,7 @@ export async function reclaimStudent(db: Database, id: string, personId: string,
  */
 export async function takeOut(db: Database, id: string, personId: string, caller: Caller): Promise<PlacementsResponse> {
   return db.tx(async (client) => {
-    const { item, campaign } = await lockedForChange(client, id, caller)
+    const { item, campaign } = await lockedForChange(client, id)
     const student = await classMember(client, campaign, item, personId, caller)
     let row = await store.lockPlacement(client, campaign.id, item.id, student.personId)
     // Placed into it directly before their class became one of its classes: that placement goes, the student is the class's now.
@@ -284,7 +284,7 @@ export async function takeOut(db: Database, id: string, personId: string, caller
  */
 export async function bringBack(db: Database, id: string, personId: string, caller: Caller): Promise<PlacementsResponse> {
   return db.tx(async (client) => {
-    const { item, campaign } = await lockedForChange(client, id, caller)
+    const { item, campaign } = await lockedForChange(client, id)
     const student = await classMember(client, campaign, item, personId, caller)
     const row = await store.lockPlacement(client, campaign.id, item.id, student.personId)
     if (row?.exempted !== true) throw new ApplicationError('not_found')
