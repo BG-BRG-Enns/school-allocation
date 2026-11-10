@@ -26,7 +26,7 @@ import { ASSIGNMENT_SOURCE_LABELS, CATALOGUE_PROBLEM_LABELS } from '../lib/label
 import { usePageTitle } from '../lib/page-title.ts'
 import type { PendingAbsence, PendingPlacement } from '../lib/placements.ts'
 import { session } from '../lib/session.ts'
-import { hasUnsaved, mayLeave, watchUnsaved } from '../lib/unsaved.ts'
+import { hasUnsaved, mayLeave, stayed, watchUnsaved } from '../lib/unsaved.ts'
 
 const props = defineProps<{ id: string, itemId?: string }>()
 const router = useRouter()
@@ -160,6 +160,9 @@ onBeforeUnmount(() => {
 async function load(): Promise<void> {
   problems.value = []
   sessions.value = []
+  // A route that only names another activity keeps the page: nothing of the form before is to be entered into this one.
+  pendingPlacements.value = []
+  pendingAbsent.value = []
   await loading.run(async () => {
     const [view, found, periods, school] = await Promise.all([loadCampaign(props.id), loadClasses(props.id), loadPeriods(), loadCategories()])
     campaign.value = view.campaign
@@ -193,8 +196,6 @@ async function load(): Promise<void> {
       sessions.value = item.sessions.map(fromStored)
     } else {
       existing.value = null
-      pendingPlacements.value = []
-      pendingAbsent.value = []
       placementTells.value = []
       places.value = DEFAULT_PLACES
       placesTouched.value = false
@@ -208,6 +209,8 @@ async function load(): Promise<void> {
     }
   })
   baseline = formState()
+  // The leaving agreed to on the way here, when the page was kept for another activity, is over: this form is watched.
+  stayed()
   await loadParticipantsView()
 }
 onMounted(load)
