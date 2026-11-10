@@ -52,10 +52,13 @@ const offersTeacherView = computed(() => mayViewAsTeacher(session.value, viewAs.
 /** Counts the changes of view: the page is keyed by it, so each change builds the page anew from what the server answers now. */
 const viewChanges = ref(0)
 const viewFailed = ref(false)
+/** A change of view is under way: its buttons wait, so a second click does not start another on top. */
+const viewChanging = ref(false)
 
 /** Into the view as a teacher, or back out of it. A page with unsaved changes asks first, as before any leaving; a change that failed leaves the tab as it was, and says so. */
 async function onView(view: View): Promise<void> {
-  if (!mayLeave()) return
+  if (viewChanging.value || !mayLeave()) return
+  viewChanging.value = true
   viewFailed.value = false
   try {
     await setView(view)
@@ -63,6 +66,8 @@ async function onView(view: View): Promise<void> {
   } catch {
     stayed()
     viewFailed.value = true
+  } finally {
+    viewChanging.value = false
   }
 }
 
@@ -107,6 +112,7 @@ function onSignOut(): void {
           v-if="offersTeacherView"
           type="button"
           class="ghost"
+          :disabled="viewChanging"
           @click="onView('teacher')"
         >
           {{ t.viewAs.enter }}
@@ -135,6 +141,7 @@ function onSignOut(): void {
       <button
         type="button"
         class="ghost small"
+        :disabled="viewChanging"
         @click="onView(null)"
       >
         {{ t.viewAs.leave }}

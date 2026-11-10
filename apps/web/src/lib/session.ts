@@ -24,20 +24,30 @@ export async function loadSession(): Promise<Me | null> {
   return session.value
 }
 
+/** The change of view under way, if any: the next one waits for it. */
+let viewChange: Promise<void> = Promise.resolve()
+
 /**
  * Puts this tab into `view` and reads the session again, as the server
  * answers it from now on. A reading that fails leaves the tab in the view
- * it had.
+ * it had. One change at a time, in the order asked for: two readings under
+ * way together could answer out of order and leave the session of one view
+ * beside the header of the other.
  */
-export async function setView(view: View): Promise<void> {
-  const before = viewAs.value
-  writeView(view)
-  try {
-    await loadSession()
-  } catch (error) {
-    writeView(before)
-    throw error
-  }
+export function setView(view: View): Promise<void> {
+  const change = viewChange.then(async () => {
+    const before = viewAs.value
+    writeView(view)
+    try {
+      await loadSession()
+    } catch (error) {
+      writeView(before)
+      throw error
+    }
+  })
+  // The next change waits for this one whether it worked or not; its failure is its caller's to hear.
+  viewChange = change.catch(() => {})
+  return change
 }
 
 export async function signOut(): Promise<void> {
