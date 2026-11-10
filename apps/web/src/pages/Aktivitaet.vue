@@ -8,7 +8,7 @@
 // lost unnoticed: leaving the page asks first.
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { onBeforeRouteLeave, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRouter } from 'vue-router'
 import { spanOfPeriods, type DayDemand, type Period } from '@school-allocation/school-core'
 import Collapsible from '../components/Collapsible.vue'
 import DemandTable from '../components/DemandTable.vue'
@@ -139,6 +139,13 @@ function formState(): FormState {
 }
 const unsaved = (): boolean => baseline !== null && JSON.stringify(formState()) !== JSON.stringify(baseline)
 onBeforeRouteLeave(mayLeave)
+// The same for a route that only names another activity: the page stays, the form would be loaded over.
+onBeforeRouteUpdate(mayLeave)
+/** The companions and the number wanted were saved apart: so much of the form counts as saved, the rest as it stands. */
+function companionsSaved(): void {
+  const { teachers: savedTeachers, leadId: savedLead, companionsWanted: savedWanted } = formState()
+  baseline = { ...(baseline ?? formState()), teachers: savedTeachers, leadId: savedLead, companionsWanted: savedWanted }
+}
 const stopWatching = watchUnsaved(unsaved)
 function warnBeforeUnload(event: BeforeUnloadEvent): void {
   if (hasUnsaved()) event.preventDefault()
@@ -398,9 +405,7 @@ async function saveCompanions(): Promise<void> {
     teachers.value = [...saved.teachers]
     leadId.value = saved.teachers.find((teacher) => teacher.lead)?.personId ?? ''
     companionsWanted.value = saved.companionsWanted
-    // Saved: the companions and the number wanted; whatever else the form changed is still unsaved.
-    const { teachers: savedTeachers, leadId: savedLead, companionsWanted: savedWanted } = formState()
-    baseline = { ...(baseline ?? formState()), teachers: savedTeachers, leadId: savedLead, companionsWanted: savedWanted }
+    companionsSaved()
   }, t.item.companions.saved)
 }
 
@@ -416,6 +421,7 @@ async function handOver(): Promise<void> {
   if (!item || !next || !window.confirm(t.item.teachers.handOverConfirm(next.displayName))) return
   const ok = await companionsSaving.run(async () => {
     existing.value = await setCompanions(item.id, { companions: companions.value.map((teacher) => teacher.personId), wanted: Number(companionsWanted.value), lead: next.personId })
+    companionsSaved()
   })
   if (ok) await router.push({ path: `/wahlen/${props.id}`, query: { item: item.id } })
 }
