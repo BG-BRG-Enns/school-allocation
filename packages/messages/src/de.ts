@@ -260,7 +260,7 @@ export const de = {
       credit_date_twice: 'Ein Tag ist bei einem Termin zweimal angerechnet',
       credit_minutes_invalid: 'Angerechnete Minuten müssen eine ganze Zahl zwischen 0 und 1440 sein',
       below_minimum_length: 'Die Aktivität ist an diesem Tag zu kurz',
-      min_above_places: 'Die Mindestzahl ist größer als die Zahl der Plätze',
+      min_above_places: 'Die minimale Anzahl an Teilnehmer*innen ist größer als die maximale.',
       fixed_item_cancellable: 'Eine Klassenaktivität findet immer statt und kann nicht ausfallen',
       fixed_class_unknown: 'Eine der ganzen Klassen gibt es in den Klassenlisten nicht',
       eligible_class_unknown: 'Eine Klasse, für die die Aktivität angeboten wird, gibt es in den Klassenlisten nicht',
@@ -909,7 +909,7 @@ export const de = {
       unavailableOn: (name: string, days: string) => `${name} ist am ${days} nicht verfügbar.`,
       ifNeededOn: (name: string, days: string) => `${name} ist am ${days} nur verfügbar, wenn es nötig ist.`,
       /** How many companions the lead wants beside them (the school's wish 6). */
-      wanted: 'Gewünschte Begleitlehrkräfte (ohne Leitung)',
+      wanted: 'Anzahl gewünschter Begleitlehrkräfte (ohne Leitung)',
       wantedHint: 'Bereits eingetragene zählen mit. Fehlt noch jemand, erscheint die Aktivität unter „Begleitung gesucht“, wo sich andere Lehrkräfte selbst eintragen.',
       /** "noch 1 gesucht" */
       sought: (count: number) => `noch ${count} gesucht`,
@@ -937,10 +937,12 @@ export const de = {
     participation: {
       heading: 'Teilnahme',
       fixedClasses: 'Ganze Klassen, die teilnehmen (sie wählen für diese Zeit nichts)',
+      /** The form's label of an activity's places; tables and workbooks keep the short `common.field.places`. */
+      maxParticipants: 'Maximale Anzahl an Teilnehmer*innen',
       /** The places of an activity for fixed classes: those other students may rank. */
       extraPlaces: 'Zusätzliche Plätze für andere Schüler*innen',
-      minParticipants: 'Mindestzahl',
-      cancellable: 'Darf ausfallen, wenn die Mindestzahl bei der Zuteilung nicht erreicht wird',
+      minParticipants: 'Minimale Anzahl an Teilnehmer*innen',
+      cancellable: 'Darf ausfallen, wenn die minimale Anzahl an Teilnehmer*innen bei der Zuteilung nicht erreicht wird (keine Stornogebühren oder Ähnliches)',
       /** No places and no classes: nobody ranks it and nobody is placed into it. */
       staffOnly: 'Ohne Plätze und ohne ganze Klassen ist die Aktivität nur für Lehrkräfte, etwa eine Aufsicht. Schüler*innen sehen sie nicht.',
       eligibleGrades: 'Angeboten für Schulstufen (keine Auswahl: alle)',
@@ -970,7 +972,7 @@ export const de = {
     conflict: (className: string, day: string, from: string, to: string, title: string, lead: string) => `Die ${className} ist am ${day} von ${from} bis ${to} schon in ‚${title}‘ (Leitung: ${lead}). Eine Klasse kann zur selben Zeit nur in einer Klassenaktivität sein.`,
     participants: {
       heading: (count: number) => `Teilnehmer*innen (${count})`,
-      cancelled: 'Diese Aktivität fällt aus: Bei der Zuteilung wurde die Mindestzahl an Teilnehmer*innen nicht erreicht.',
+      cancelled: 'Diese Aktivität fällt aus: Bei der Zuteilung wurde die minimale Anzahl an Teilnehmer*innen nicht erreicht.',
       none: 'In diese Aktivität ist niemand eingeteilt.',
       lead: (name: string) => `Leitung: ${name}`,
       companions: (names: string) => `Begleitung: ${names}`,
@@ -1192,7 +1194,7 @@ export const de = {
       heading: 'Anwesenheit',
       intro: 'Je Projekttag und Termin, für die Schüler*innen der Klasse; getrennt von der Einteilung.',
       recordable: 'Korrigieren kannst du, bis die Organisation die Projektwoche abschließt.',
-      readOnly: 'Nur lesen.',
+      readOnly: 'Hier lässt sich nichts ändern.',
       noSession: 'An diesem Tag hat niemand aus der Klasse einen Termin.',
       /** The day's form, for a screen reader. */
       ofDay: (day: string) => `Anwesenheit ${day}`,

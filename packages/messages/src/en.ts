@@ -256,7 +256,7 @@ export const en: Messages = {
       credit_date_twice: 'A day is credited twice for a session',
       credit_minutes_invalid: 'Credited minutes must be a whole number between 0 and 1440',
       below_minimum_length: 'The activity is too short on this day',
-      min_above_places: 'The minimum is greater than the number of places',
+      min_above_places: 'The minimum number of participants is greater than the maximum.',
       fixed_item_cancellable: 'A class activity always takes place and cannot be cancelled',
       fixed_class_unknown: 'One of the whole classes is not in the class lists',
       eligible_class_unknown: 'A class the activity is offered to is not in the class lists',
@@ -883,7 +883,7 @@ export const en: Messages = {
       unavailableOn: (name: string, days: string) => `${name} is unavailable on ${days}.`,
       ifNeededOn: (name: string, days: string) => `${name} is available on ${days} only if needed.`,
       /** How many companions the lead wants beside them (the school's wish 6). */
-      wanted: 'Accompanying teachers wanted (without the lead)',
+      wanted: 'Number of accompanying teachers wanted (without the lead)',
       wantedHint: 'Those already named count. If someone is still missing, the activity appears under "Companions sought", where other teachers sign up themselves.',
       /** "1 still sought" */
       sought: (count: number) => `${count} still sought`,
@@ -910,10 +910,11 @@ export const en: Messages = {
     participation: {
       heading: 'Participation',
       fixedClasses: 'Whole classes taking part (they make no choices for this time)',
+      maxParticipants: 'Maximum number of participants',
       /** The places of an activity for fixed classes: those other students may rank. */
       extraPlaces: 'Extra places for other students',
-      minParticipants: 'Minimum',
-      cancellable: 'May be cancelled if the allocation does not reach the minimum',
+      minParticipants: 'Minimum number of participants',
+      cancellable: 'May be cancelled if the allocation does not reach the minimum number of participants (no cancellation fees or similar)',
       staffOnly: 'Without places and without whole classes the activity is for teachers only, such as a supervision. Students do not see it.',
       eligibleGrades: 'Offered to years (none selected: all)',
       eligibleClasses: 'Offered to classes (none selected: all)',

@@ -10,7 +10,7 @@ Die Tabelle zeigt jedes Konto mit Name, E-Mail-Adresse, wann es zuletzt eingelog
 
 ## Ein Konto zuordnen
 
-![Ein Konto ohne Zuordnung, darunter das Formular: die gesuchte Person aus den Klassenlisten, eine Begründung und der Knopf Zuordnen](/bilder/de/konto-zuordnen.png)
+![Ein Konto ohne Zuordnung, darunter das Formular: die gesuchte Person aus den Klassenlisten, eine Begründung und der Button Zuordnen](/bilder/de/konto-zuordnen.png)
 
 Ein Konto bleibt ohne Zuordnung, wenn die Klassenlisten es nicht kennen: Die CSV-Datei nennt eine andere Adresse, oder das Microsoft-Konto wurde neu angelegt. Die Person sieht dann auf **Mein Konto**, dass sie sich an die Administration wenden soll.
 

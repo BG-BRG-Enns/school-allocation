@@ -111,7 +111,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.item.sessions.count, { exact: true }).fill('4')
   await expect(page.getByText('08:30 – 12:15')).toBeVisible()
   await expect(page.getByText(wednesdayShort)).toHaveCount(0)
-  await page.getByLabel(t.common.field.places, { exact: true }).fill(String(CLIMBING.places))
+  await page.getByLabel(t.item.participation.maxParticipants, { exact: true }).fill(String(CLIMBING.places))
   await page.getByLabel(t.item.participation.minParticipants, { exact: true }).fill('6')
   // For the upper school, whose Monday morning it fits.
   const grades = page.getByRole('group', { name: t.item.participation.eligibleGrades })
@@ -175,7 +175,7 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await page.getByLabel(t.item.title).fill(sample.supervision)
   await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-03')
   await page.getByLabel(t.item.sessions.count, { exact: true }).fill('1')
-  await page.getByLabel(t.common.field.places, { exact: true }).fill('0')
+  await page.getByLabel(t.item.participation.maxParticipants, { exact: true }).fill('0')
   await expect(page.getByText(t.item.participation.staffOnly)).toBeVisible()
   // Bernd comes along: added by hand he accompanies, Carla leads, and the form says who does.
   await page.getByLabel(t.item.teachers.search).fill('Bernd')

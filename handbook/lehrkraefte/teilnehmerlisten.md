@@ -1,6 +1,6 @@
 # Teilnehmer\*innen
 
-Ist die Einteilung veröffentlicht, steht in der Tabelle **Aktivitäten** bei jeder deiner Aktivitäten der Knopf **Teilnehmer\*innen**. Er öffnet die Aktivität mit der Liste derer, die eingeteilt sind. Über der Liste steht, wer die Aktivität leitet und wer sie begleitet.
+Ist die Einteilung veröffentlicht, steht in der Tabelle **Aktivitäten** bei jeder deiner Aktivitäten der Button **Teilnehmer\*innen**. Er öffnet die Aktivität mit der Liste derer, die eingeteilt sind. Über der Liste steht, wer die Aktivität leitet und wer sie begleitet.
 
 ![Die Teilnehmer\*innen einer Aktivität: jede Person mit ihrer Klasse und wie sie hineinkam, hier von Hand](/bilder/de/teilnehmerinnen.png)
 
@@ -12,7 +12,7 @@ Auch jetzt kannst du Schüler\*innen [direkt einteilen](./aktivitaet#schüler-in
 
 ## Wenn eine Aktivität ausfällt
 
-Darf eine Aktivität ausfallen und erreicht die Zuteilung ihre Mindestzahl nicht, fällt sie dabei aus – auch wenn genug sie gewünscht, aber andere Aktivitäten bekommen haben. Mit der Veröffentlichung bekommst du dann eine E-Mail, und statt der Liste steht: „Diese Aktivität fällt aus: Bei der Zuteilung wurde die Mindestzahl an Teilnehmer\*innen nicht erreicht.“
+Darf eine Aktivität ausfallen und erreicht die Zuteilung ihre minimale Anzahl an Teilnehmer\*innen nicht, fällt sie dabei aus – auch wenn genug sie gewünscht, aber andere Aktivitäten bekommen haben. Mit der Veröffentlichung bekommst du dann eine E-Mail, und statt der Liste steht: „Diese Aktivität fällt aus: Bei der Zuteilung wurde die Mindestzahl an Teilnehmer\*innen nicht erreicht.“
 
 ## Kosten
 

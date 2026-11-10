@@ -12,13 +12,13 @@ Wer die Aktivität anlegt, hat die **Leitung**, alle anderen **begleiten**. Bei 
 
 ![Die Lehrkräfte einer Aktivität: Carla Knoxbrunner und Bernd Pfnöxlhofer, darunter Leitung und Begleitung, die Auswahl der Leitung, die Suche und die Zahl der Begleitlehrkräfte](/bilder/de/leitung.png)
 
-![Leitung übergeben: die Auswahl der Begleitung, an die die Leitung geht, und der Knopf Leitung übergeben](/bilder/de/leitung-uebergeben.png)
+![Leitung übergeben: die Auswahl der Begleitung, an die die Leitung geht, und der Button Leitung übergeben](/bilder/de/leitung-uebergeben.png)
 
-Unter **Gewünschte Begleitlehrkräfte** trägst du ein, wie viele Lehrkräfte mitkommen sollen. Fehlt noch jemand, erscheint die Aktivität unter **Begleitung gesucht**. Ist eine Lehrkraft an einem Tag nicht [verfügbar](./verfuegbarkeit), zeigt das Formular es an. Einreichen kannst du trotzdem; die Organisation entscheidet.
+Unter **Anzahl gewünschter Begleitlehrkräfte** trägst du ein, wie viele Lehrkräfte mitkommen sollen. Fehlt noch jemand, erscheint die Aktivität unter **Begleitung gesucht**. Ist eine Lehrkraft an einem Tag nicht [verfügbar](./verfuegbarkeit), zeigt das Formular es an. Einreichen kannst du trotzdem; die Organisation entscheidet.
 
 ### Begleitung gesucht
 
-![Begleitung gesucht: je Projekttag die Aktivitäten, die noch Begleitung suchen, mit Zeit, Leitung und dem Knopf Ich begleite](/bilder/de/begleitung-gesucht.png)
+![Begleitung gesucht: je Projekttag die Aktivitäten, die noch Begleitung suchen, mit Zeit, Leitung und dem Button Ich begleite](/bilder/de/begleitung-gesucht.png)
 
 **Begleitung gesucht** auf der Seite der Projektwoche listet je Projekttag die Aktivitäten, die noch Begleitung suchen. Mit **Ich begleite** kommst du mit. Austragen kannst du dich dort, bis die Schüler\*innen zu wählen beginnen; danach wende dich an die Leitung.
 
@@ -36,22 +36,22 @@ Ist deine Aktivität kürzer als die Mindestlänge, die die Organisation festgel
 
 ## Teilnahme
 
-![Die Teilnahme: ganze Klassen, Plätze, Mindestzahl, ob die Aktivität ausfallen darf, für welche Schulstufen und Klassen sie angeboten wird, darunter die Kosten](/bilder/de/aktivitaet-teilnahme.png)
+![Die Teilnahme: ganze Klassen, die maximale und die minimale Anzahl an Teilnehmer\*innen, ob die Aktivität ausfallen darf, für welche Schulstufen und Klassen sie angeboten wird, darunter die Kosten](/bilder/de/aktivitaet-teilnahme.png)
 
-- **Plätze**: wie viele Schüler\*innen höchstens teilnehmen.
-- **Mindestzahl**: wie viele es mindestens sein sollen.
-- **Darf ausfallen, …**: Mit Häkchen fällt die Aktivität aus, wenn bei der Einteilung die Mindestzahl nicht erreicht wird. Ohne Häkchen findet sie sicher statt.
+- **Maximale Anzahl an Teilnehmer\*innen**: wie viele Schüler\*innen höchstens teilnehmen.
+- **Minimale Anzahl an Teilnehmer\*innen**: wie viele es mindestens sein sollen.
+- **Darf ausfallen, …**: Mit Häkchen fällt die Aktivität aus, wenn bei der Einteilung die minimale Anzahl nicht erreicht wird. Setze es also nur, wenn dann keine Stornogebühren oder Ähnliches anfallen. Ohne Häkchen findet sie sicher statt.
 - **Angeboten für Schulstufen** und **für Klassen**: ohne Auswahl für alle.
 
 **Mit der ganzen Klasse**: Wählst du **Ganze Klassen, die teilnehmen**, kommen diese Klassen geschlossen mit, und die Aktivität findet sicher statt. Unter **Zusätzliche Plätze** bietest du freie Plätze für andere an, etwa freie Sitze im Bus.
 
-![Eine Aktivität mit der ganzen Klasse: die 5A nimmt teil, die Plätze heißen jetzt zusätzliche Plätze für andere Schüler\*innen, und die Mindestzahl fällt weg](/bilder/de/klassenaktivitaet.png)
+![Eine Aktivität mit der ganzen Klasse: die 5A nimmt teil, statt der maximalen Anzahl an Teilnehmer\*innen stehen dort zusätzliche Plätze für andere Schüler\*innen, und die minimale Anzahl fällt weg](/bilder/de/klassenaktivitaet.png)
 
 **Zusatzangebot**: Liegt die Aktivität ganz außerhalb der Anwesenheitszeit, etwa ein Theaterbesuch am Abend, ist sie ein Zusatzangebot. Schüler\*innen wählen sie nicht; du teilst sie unter **Direkt eingeteilt** ein.
 
-**Nur für Lehrkräfte**: Mit 0 Plätzen und ohne ganze Klassen ist die Aktivität nur für Lehrkräfte, etwa eine Aufsicht. Schüler\*innen sehen sie nicht.
+**Nur für Lehrkräfte**: Mit 0 bei **Maximale Anzahl an Teilnehmer\*innen** und ohne ganze Klassen ist die Aktivität nur für Lehrkräfte, etwa eine Aufsicht. Schüler\*innen sehen sie nicht.
 
-![Eine Aktivität nur für Lehrkräfte: 0 Plätze, keine ganze Klasse, darunter der Hinweis, dass Schüler\*innen sie nicht sehen](/bilder/de/nur-lehrkraefte.png)
+![Eine Aktivität nur für Lehrkräfte: maximal 0 Teilnehmer\*innen, keine ganze Klasse, darunter der Hinweis, dass Schüler\*innen sie nicht sehen](/bilder/de/nur-lehrkraefte.png)
 
 ## Schüler\*innen direkt einteilen
 
@@ -63,7 +63,7 @@ Hat die Person zur selben Zeit eine Klassenaktivität, entscheidet das Häkchen:
 
 ### Nimmt nicht teil
 
-![Nimmt nicht teil: bei einer Klassenaktivität die Schüler\*innen ihrer Klassen, die nicht dabei sind, hier Tim Gnöxwieser, eingetragen, mit dem Knopf nimmt doch teil](/bilder/de/nimmt-nicht-teil.png)
+![Nimmt nicht teil: bei einer Klassenaktivität die Schüler\*innen ihrer Klassen, die nicht dabei sind, hier Tim Gnöxwieser, eingetragen, mit dem Button nimmt doch teil](/bilder/de/nimmt-nicht-teil.png)
 
 Bei einer Aktivität mit der ganzen Klasse trägst du unter **Nimmt nicht teil** ein, wer nicht mitkommt. Einen Grund gibst du nicht an. Hat jemand eine Person aus der Klasse direkt in eine andere Aktivität geholt, steht das hier, und mit **zurückholen** ist sie wieder bei euch.
 

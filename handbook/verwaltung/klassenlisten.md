@@ -8,7 +8,7 @@ Führt die Schule ihre Klassen als Gruppen in Microsoft Entra, ist das der einfa
 
 ### Die Gruppen eintragen
 
-![Der Abschnitt Entra-Gruppen mit der Tabelle der Gruppen, den Knöpfen und dem Einlesen darunter](/bilder/de/entra-gruppen.png)
+![Der Abschnitt Entra-Gruppen mit der Tabelle der Gruppen, den Buttons und dem Einlesen darunter](/bilder/de/entra-gruppen.png)
 
 1. Klicke **Gruppe hinzufügen**.
 2. Trage die **Gruppen-ID** ein. Sie steht in Entra bei der Gruppe, als Objekt-ID. Oder suche die Gruppe bei Microsoft (unten).
@@ -19,7 +19,7 @@ Untergruppen liest SchulWahl mit. Trage eine Klasse deshalb nur einmal ein: entw
 
 ### Gruppen bei Microsoft suchen
 
-![Die Suche nach Gruppen: ein Feld für den Anfang des Namens, die gefundenen Klassengruppen mit Klasse und Schulstufe und je ein Knopf zum Übernehmen](/bilder/de/gruppen-suchen.png)
+![Die Suche nach Gruppen: ein Feld für den Anfang des Namens, die gefundenen Klassengruppen mit Klasse und Schulstufe und je ein Button zum Übernehmen](/bilder/de/gruppen-suchen.png)
 
 **Gruppen bei Microsoft suchen** führt dich einmal zu Microsoft, wo du dich einloggst. Danach suchst du die Gruppen nach dem Anfang ihres Namens. **Alle Klassengruppen suchen** findet jede Gruppe, deren Name eine Klasse ist (5A, 1B und so weiter), und belegt Klasse und Schulstufe aus dem Namen vor: 5A wird zur 9. Schulstufe. Prüfe die Vorbelegung, übernimm die Gruppen einzeln oder alle auf einmal und speichere.
 
@@ -49,7 +49,7 @@ Lade die Datei hoch oder füge ihren Inhalt ein, trag das **Schuljahr** ein und 
 
 ## Einen Import prüfen und übernehmen
 
-![Ein Import aus den Entra-Gruppen: die Änderungen gegenüber den aktuellen Klassenlisten, die Knöpfe Übernehmen und Verwerfen und darunter die neuen Personen](/bilder/de/import-pruefen.png)
+![Ein Import aus den Entra-Gruppen: die Änderungen gegenüber den aktuellen Klassenlisten, die Buttons Übernehmen und Verwerfen und darunter die neuen Personen](/bilder/de/import-pruefen.png)
 
 Der Import zeigt, was sich gegenüber den aktuellen Klassenlisten ändert: wer **neu** ist, wer **entfernt** wird und bei wem sich Klasse, Schulstufe, Name oder Adresse **geändert** hat.
 

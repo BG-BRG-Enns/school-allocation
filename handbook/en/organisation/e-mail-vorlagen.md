@@ -9,7 +9,7 @@ SchulWahl sends emails at set points in a registration. Their texts come from th
 | Late registration invitation | at the end of the registration period, if late registration follows | anyone still without complete choices |
 | Reminder before late registration closes | one day before late registration ends | anyone still without complete choices |
 | Deadline missed | at the end of registration | anyone who has not submitted complete choices |
-| Missing choices, to the class teacher | at the end of the registration period and at the end of registration | class teachers, with their class's list |
+| Missing choices, to the class teacher | at the end of the registration period and, if there is one, at the end of late registration | class teachers, with their class's list |
 | Allocation published | on publication | all students, with their programme |
 | Not fully placed, to the class teacher | on publication | class teachers, with their class's list |
 | Activity cancelled, to the teachers | on publication | teachers of a cancelled activity |
