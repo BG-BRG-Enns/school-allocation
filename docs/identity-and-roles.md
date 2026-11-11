@@ -68,6 +68,7 @@ read-only auditor. "own" = own activity or own record.
 | See open campaign and eligible items | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Submit or change own ranked choices while the window is open | ✓ | – | – | – | – | – |
 | Propose an activity | – | ✓ | ✓ | ✓ | ✓ | – |
+| See activities others have submitted (their drafts and withdrawn ones: O and A alone) | – | if the registration says so | if the registration says so | ✓ | ✓ | – |
 | Edit an activity before publication | – | own | own | ✓ | ✓ | – |
 | Approve or publish the catalogue; open and close a campaign | – | – | – | ✓ | ✓ | – |
 | Change an activity after the window opened (audited, affected students notified) | – | – | – | ✓ | ✓ | – |

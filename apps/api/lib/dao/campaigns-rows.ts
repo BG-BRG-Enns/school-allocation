@@ -23,6 +23,7 @@ export interface CampaignRow {
   reminder_days: number
   place_headroom_percent: number
   lock_new_offers: boolean
+  teachers_see_proposed: boolean
   rules: CampaignRule[]
   classes: string[]
   roster_batch_id: string | null

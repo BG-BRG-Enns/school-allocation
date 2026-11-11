@@ -737,6 +737,9 @@ export const en: Messages = {
       activityMinimumHint: 'How long an activity must last at least on this day inside the attendance frame. A shorter one cannot be saved. Activities for teachers only are exempt. Empty: no minimum length.',
       lockNewOffers: 'Lock new offers once the target is reached',
       lockHint: 'With the lock, a teacher can submit an activity only if it offers places where some are still missing. Class activities are exempt. The organisation may always create and approve.',
+      /** Whether teachers see what others have submitted, so that nobody offers the same thing a second time. */
+      teachersSeeProposed: 'Teachers also see the activities others have submitted',
+      teachersSeeProposedHint: 'Without the tick, teachers see only the approved activities of others. Drafts and withdrawn activities are only ever seen by their teachers and the organisation.',
     },
     student: {
       viewResult: 'View my allocation',

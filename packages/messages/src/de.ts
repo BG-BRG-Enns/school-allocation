@@ -748,6 +748,9 @@ export const de = {
       activityMinimumHint: 'So lange muss eine Aktivität an diesem Tag im Anwesenheitsrahmen mindestens dauern. Eine kürzere lässt sich nicht speichern. Aktivitäten nur für Lehrkräfte sind ausgenommen. Leer: keine Mindestlänge.',
       lockNewOffers: 'Neue Angebote sperren, sobald das Ziel erreicht ist',
       lockHint: 'Mit der Sperre kann eine Lehrkraft eine Aktivität nur einreichen, wenn sie Plätze anbietet, wo noch welche fehlen. Klassenaktivitäten sind ausgenommen. Die Organisation darf immer anlegen und genehmigen.',
+      /** Whether teachers see what others have submitted, so that nobody offers the same thing a second time. */
+      teachersSeeProposed: 'Lehrkräfte sehen auch die eingereichten Aktivitäten der anderen',
+      teachersSeeProposedHint: 'Ohne Häkchen sehen Lehrkräfte von den anderen nur die genehmigten Aktivitäten. Entwürfe und zurückgezogene Aktivitäten sehen immer nur ihre Lehrkräfte und die Organisation.',
     },
     student: {
       viewResult: 'Meine Einteilung ansehen',

@@ -323,6 +323,7 @@ const dailyMinimum = ref<Record<string, string | number>>({})
 const showTeachers = ref(true)
 const placeHeadroomPercent = ref(20)
 const lockNewOffers = ref(false)
+const teachersSeeProposed = ref(false)
 /** The rules as the form holds them: the classes as typed, the minimum as a number input gives it. */
 interface RuleDraft { categoryId: string, grades: number[], classes: string, unit: RuleUnit, minimum: number | string }
 const rules = ref<RuleDraft[]>([])
@@ -355,6 +356,7 @@ function startEditing(): void {
   showTeachers.value = c.showTeachers
   placeHeadroomPercent.value = c.placeHeadroomPercent
   lockNewOffers.value = c.lockNewOffers
+  teachersSeeProposed.value = c.teachersSeeProposed
   rules.value = c.rules.map((rule) => ({ categoryId: rule.categoryId, grades: [...rule.grades], classes: rule.classes.join(', '), unit: rule.unit, minimum: rule.minimum }))
   ruleProblems.value = []
   editing.value = true
@@ -373,6 +375,7 @@ async function onSaveSettings(): Promise<void> {
       changes.showTeachers = showTeachers.value
       changes.placeHeadroomPercent = Number(placeHeadroomPercent.value)
       changes.lockNewOffers = lockNewOffers.value
+      changes.teachersSeeProposed = teachersSeeProposed.value
       changes.frames = Object.fromEntries(days.value.flatMap((day, index) => (day && frames.value[index] ? [[day, frames.value[index]]] : [])))
       changes.activityMinimums = Object.fromEntries(days.value.flatMap((day, index) => (day && String(minimums.value[index] ?? '').trim() !== '' ? [[day, Number(minimums.value[index])]] : [])))
       changes.rules = rules.value.map((rule) => ({
@@ -983,6 +986,17 @@ function onSubmitPending(): void {
               {{ t.campaign.settings.lockNewOffers }}
             </label>
             <span class="muted">{{ t.campaign.settings.lockHint }}</span>
+          </p>
+          <p class="field">
+            <label>
+              <input
+                v-model="teachersSeeProposed"
+                :disabled="!windowEditable"
+                type="checkbox"
+              >
+              {{ t.campaign.settings.teachersSeeProposed }}
+            </label>
+            <span class="muted">{{ t.campaign.settings.teachersSeeProposedHint }}</span>
           </p>
           <p
             v-if="Object.keys(dailyMinimum).length > 0"

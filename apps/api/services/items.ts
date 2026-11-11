@@ -458,16 +458,20 @@ export async function checkItemOffer(db: Database, campaign: Campaign, body: Ite
 }
 
 /**
- * The items of a campaign the caller may see: organizers all of them; teachers their own and the approved ones;
- * everyone else the approved ones once the catalogue is published, without the activities of their teachers alone
- * (no places, no class), which are nothing a student chooses from.
+ * The items of a campaign the caller may see: organizers all of them; teachers their own and the approved ones, and
+ * the ones others have submitted where the registration says so (`teachersSeeProposed`: whoever is about to offer
+ * the same thing sees it is there already); everyone else the approved ones once the catalogue is published, without
+ * the activities of their teachers alone (no places, no class), which are nothing a student chooses from. A draft,
+ * a returned one included, and a withdrawn activity are their own people's and the organizers' alone.
  */
-export async function listItems(db: Queryable, campaign: { id: string, state: CampaignState }, caller: Caller, organizer: boolean): Promise<Item[]> {
+export async function listItems(db: Queryable, campaign: { id: string, state: CampaignState, teachersSeeProposed: boolean }, caller: Caller, organizer: boolean): Promise<Item[]> {
   const items = await store.listCampaignItems(db, campaign.id)
   if (organizer) return items
   const published = campaign.state !== 'draft' && campaign.state !== 'catalogue'
   const teacher = caller.person?.kind === 'teacher'
-  return items.filter((item) => isOwn(caller, item) || (item.state === 'approved' && (teacher || (published && !isStaffOnly(item)))))
+  return items.filter((item) => isOwn(caller, item)
+    || (item.state === 'approved' && (teacher || (published && !isStaffOnly(item))))
+    || (item.state === 'proposed' && teacher && campaign.teachersSeeProposed))
 }
 
 /** The published catalogue: the approved items, numbered, in print order. */

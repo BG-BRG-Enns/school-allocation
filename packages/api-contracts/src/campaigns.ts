@@ -54,6 +54,8 @@ export const CampaignWindowSchema = StrictObject({
   placeHeadroomPercent: Type.Number(),
   /** Whether a teacher's submission is refused once every cell it would serve has reached its target (the offer gate). */
   lockNewOffers: Type.Boolean(),
+  /** Whether the teachers of the roster also see the activities others have submitted; drafts and withdrawn ones stay their own people's. */
+  teachersSeeProposed: Type.Boolean(),
   /** The rules per category, in the order the organizer set them. */
   rules: Type.Array(RuleSchema),
 })

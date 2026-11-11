@@ -212,6 +212,7 @@ export function scenarioLoader(world: ScenarioWorld, s: Scenario, log: (message:
       reminderDays: c.reminderDays,
       placeHeadroomPercent: c.placeHeadroomPercent,
       lockNewOffers: c.lockNewOffers,
+      teachersSeeProposed: c.teachersSeeProposed,
       rules: c.rules.map((r) => ({ categoryId: must(categoryIds, r.category), grades: r.grades, classes: r.classes, unit: r.unit, minimum: r.minimum })),
     }, actorOf(organizer))
     await transitionCampaign(db, created.id, 'catalogue', actorOf(organizer), context)

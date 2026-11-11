@@ -142,11 +142,14 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   await signOut(page)
 
   // The organization locks new offers: from now on an activity that goes only where the target is reached is refused to a teacher.
+  // And it lets the teachers see what others have submitted, so that nobody offers the same thing a second time.
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
   await page.getByRole('button', { name: t.campaign.organization.editSettings }).click()
   const settings = page.getByRole('form', { name: t.campaign.settings.label })
   await settings.getByLabel(t.campaign.settings.lockNewOffers).check()
+  await expect(settings.getByLabel(t.campaign.settings.teachersSeeProposed)).not.toBeChecked()
+  await settings.getByLabel(t.campaign.settings.teachersSeeProposed).check()
   await settings.getByRole('button', { name: t.common.save }).click()
   await expect(page.getByRole('status')).toHaveText(t.common.saved)
   await signOut(page)
@@ -154,6 +157,9 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
   // Carla, a teacher and nothing more (Bernd organizes too, and the gate lets an organizer through).
   await openAs(page, CARLA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
+  // Bernd's climbing, submitted and not yet approved, stands in her list: to see, with nothing for her to do to it.
+  await expect(page.getByRole('row', { name: climbing })).toContainText(t.labels.itemState.proposed)
+  await expect(page.getByRole('row', { name: climbing }).getByRole('link', { name: t.common.edit })).toHaveCount(0)
   await page.getByRole('link', { name: t.common.page.newItem }).click()
   await page.getByLabel(t.item.title).fill(sample.yoga)
   await page.getByLabel(t.common.field.day, { exact: true }).selectOption('2034-07-03')
@@ -290,6 +296,13 @@ test('eine Lehrkraft reicht eine Aktivität ein, eine Klassenaktivität nähme g
 
   await openAs(page, ANNA, '/wahlen')
   await page.getByRole('link', { name: sample.projectWeek }).click()
+  // The box off again: the journeys after this one go by a registration that keeps submitted activities to their people.
+  await page.getByRole('button', { name: t.campaign.organization.editSettings }).click()
+  const settingsAgain = page.getByRole('form', { name: t.campaign.settings.label })
+  await expect(settingsAgain.getByLabel(t.campaign.settings.teachersSeeProposed)).toBeChecked()
+  await settingsAgain.getByLabel(t.campaign.settings.teachersSeeProposed).uncheck()
+  await settingsAgain.getByRole('button', { name: t.common.save }).click()
+  await expect(page.getByRole('status')).toHaveText(t.common.saved)
   // Each activity says when it was first submitted; by that order the climbing, submitted last, comes last, and its row says where its places would go.
   await expect(page.getByRole('columnheader', { name: t.campaign.items.firstProposedAt })).toBeVisible()
   await page.getByLabel(t.campaign.items.order).selectOption('proposed')
