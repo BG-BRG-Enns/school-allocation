@@ -30,7 +30,8 @@ let viewChange: Promise<void> = Promise.resolve()
 /**
  * Puts this tab into `view` and reads the session again, as the server
  * answers it from now on. A reading that fails leaves the tab in the view
- * it had. One change at a time, in the order asked for: two readings under
+ * it had, unless nobody is signed in any more: the view goes with the
+ * session. One change at a time, in the order asked for: two readings under
  * way together could answer out of order and leave the session of one view
  * beside the header of the other.
  */
@@ -41,7 +42,8 @@ export function setView(view: View): Promise<void> {
     try {
       await loadSession()
     } catch (error) {
-      writeView(before)
+      // Another request may have found the session gone meanwhile (a 401 clears it, and the shell the view with it): the old view must not come back for whoever signs in next.
+      writeView(session.value ? before : null)
       throw error
     }
   })

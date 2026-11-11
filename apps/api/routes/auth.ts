@@ -117,6 +117,8 @@ export async function authRoutes(app: FastifyInstance, { config, db, entraAuthor
     return reply.redirect(safeReturnTo(pending.returnTo, config.basePath), 303)
   })
 
+  // No view is read here (lib/auth.ts viewOf): a sign-out is the same in
+  // every view, and a header that is wrong must not keep a person signed in.
   registerEndpoint(app, endpoints.postAuthLogout, { }, (request, reply) => {
     request.userSession.delete()
     void reply.code(204).send()

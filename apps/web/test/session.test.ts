@@ -78,3 +78,21 @@ test('a change that fails leaves the tab in the view it had, and the next change
   await back
   assert.equal(viewAs.value, null)
 })
+
+test('a change that fails after the session has gone leaves no view for whoever signs in next', async (ctx) => {
+  const original = globalThis.fetch
+  ctx.after(() => Object.assign(globalThis, { fetch: original }))
+  const { release } = server()
+  const into = setView('teacher')
+  await tick()
+  release(0)
+  await into
+  assert.deepEqual([viewAs.value, session.value?.roles], ['teacher', []])
+  const back = setView(null)
+  await tick()
+  // Another request is answered 401 meanwhile: nobody is signed in any more.
+  session.value = null
+  release(1, true)
+  await assert.rejects(back)
+  assert.equal(viewAs.value, null, 'not back in the teacher\'s view')
+})
