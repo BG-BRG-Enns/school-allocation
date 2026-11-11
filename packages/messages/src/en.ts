@@ -591,6 +591,8 @@ export const en: Messages = {
     text: 'Search',
     className: 'Class',
     state: 'State',
+    /** The activity list's default choice of state: every activity but the withdrawn ones. */
+    activeItems: 'Active (not withdrawn)',
     category: 'Category',
     kind: 'Kind',
     onlyIncomplete: 'Only without complete choices',
@@ -980,7 +982,7 @@ export const en: Messages = {
     remove: (name: string) => `Remove ${name}`,
     tell: (title: string, lead: string | null) => lead === null ? `Please tell the lead of "${title}": the student is no longer placed there.` : `Please tell ${lead}: the student is no longer placed in "${title}".`,
     absentHeading: 'Not taking part',
-    absentIntro: 'Who from the classes does not come along. You do not give a reason.',
+    absentIntro: 'Who from the classes does not come along.',
     absentSearch: 'Find a student of the classes (name)',
     absentNone: 'Every student of the classes takes part.',
     takeOut: (name: string, className: string) => `${name} (${className}) does not take part`,

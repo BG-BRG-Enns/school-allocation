@@ -8,7 +8,7 @@ Für jeden Projekttag wählst du:
 - **nicht verfügbar**: etwa an einem freien Tag oder wenn du an diesem Tag anderswo eingeteilt bist.
 - **nur wenn nötig**: Du bist da, wenn es ohne dich nicht geht.
 
-SchulWahl speichert deine Wahl sofort. Einen Grund gibst du nicht an.
+SchulWahl speichert deine Wahl sofort.
 
 ![Meine Verfügbarkeit: je Projekttag eine Auswahl, hier am Dienstag nicht verfügbar](/bilder/de/verfuegbarkeit.png)
 

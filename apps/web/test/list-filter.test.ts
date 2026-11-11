@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { ref } from 'vue'
-import { filtered, isFiltering, matchesOneOf, matchesOption, matchesText, useListFilter } from '../src/lib/list-filter.ts'
+import { ACTIVE_ITEMS, differsFrom, filtered, isFiltering, matchesItemState, matchesOneOf, matchesOption, matchesText, restored, useListFilter, type FilterField } from '../src/lib/list-filter.ts'
 
 test('a text matches case-insensitively in any of the texts; an empty or missing needle matches everything', () => {
   assert.equal(matchesText(['Klettern', 'Anna Zwexmhofer'], 'zwex'), true)
@@ -36,6 +36,35 @@ test('values filter when any text is set or any box checked', () => {
   assert.equal(isFiltering({ className: '', incomplete: false, text: '' }), false)
   assert.equal(isFiltering({ className: '5A', incomplete: false, text: '' }), true)
   assert.equal(isFiltering({ className: '', incomplete: true, text: '' }), true)
+})
+
+test('values differ from what the list starts from when one of them is another; a key the start lacks rests at "not filtered"', () => {
+  const initial = { state: ACTIVE_ITEMS, mine: false, text: '' }
+  assert.equal(differsFrom({ state: ACTIVE_ITEMS, mine: false, text: '' }, initial), false)
+  assert.equal(differsFrom({ state: '', mine: false, text: '' }, initial), true)
+  assert.equal(differsFrom({ state: 'approved', mine: false, text: '' }, initial), true)
+  assert.equal(differsFrom({ state: ACTIVE_ITEMS, mine: true, text: '' }, initial), true)
+  assert.equal(differsFrom({ state: ACTIVE_ITEMS, mine: false, text: '', category: '' }, initial), false)
+  assert.equal(differsFrom({ state: ACTIVE_ITEMS, mine: false, text: '', category: 'sport' }, initial), true)
+  assert.equal(differsFrom({ className: '5A' }, {}), true)
+  assert.equal(differsFrom({ className: '', incomplete: false }, {}), false)
+})
+
+test('the values go back to what the list starts from: the fields shown, and a value kept for a field not shown', () => {
+  const fields: FilterField[] = [{ key: 'state', kind: 'select', label: 'Stand' }, { key: 'mine', kind: 'check', label: 'Nur meine' }, { key: 'text', kind: 'text', label: 'Suche' }]
+  const initial = { state: ACTIVE_ITEMS, category: '', mine: false, text: '' }
+  assert.deepEqual(restored({ state: 'withdrawn', category: 'sport', mine: true, text: 'Schach' }, fields, initial), initial)
+  // Without a start of its own, everything is "not filtered", by the field's kind or the value's.
+  assert.deepEqual(restored({ className: '5A', hidden: true }, [{ key: 'className', kind: 'select', label: 'Klasse' }, { key: 'incomplete', kind: 'check', label: 'Nur offene' }], {}), { className: '', hidden: false, incomplete: false })
+})
+
+test('the active activities are all but the withdrawn; any other choice of state is the option itself', () => {
+  for (const state of ['draft', 'proposed', 'approved']) assert.equal(matchesItemState(state, ACTIVE_ITEMS), true, state)
+  assert.equal(matchesItemState('withdrawn', ACTIVE_ITEMS), false)
+  assert.equal(matchesItemState('withdrawn', ''), true)
+  assert.equal(matchesItemState('withdrawn', 'withdrawn'), true)
+  assert.equal(matchesItemState('approved', 'withdrawn'), false)
+  assert.equal(matchesItemState('approved', undefined), true)
 })
 
 test('the filtered rows follow the values and the rows, from a ref or a getter', () => {
