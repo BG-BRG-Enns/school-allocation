@@ -2,12 +2,14 @@
 // browser's cookies, every body as JSON (the API refuses other bodies),
 // and the same handling of a refusal everywhere. A 401 means the session
 // is gone: the browser goes to the sign-in page and comes back to this
-// one. A 204 is an answer without content, undefined to the caller.
+// one. A 204 is an answer without content, undefined to the caller. In the
+// view as a teacher (view-as.ts) every request says so with its header.
 
 import { endpointPath, type ClientEndpoint, type ClientInput, type ClientResponse } from '@school-allocation/api-contracts/client-endpoint'
 
 import { ApiError, problemOf, signInUrl } from './api-rules.ts'
 import { withBase } from './base.ts'
+import { viewHeaders } from './view-as.ts'
 
 let goToSignIn: () => void = () => window.location.assign(withBase(signInUrl(window.location.pathname + window.location.search)))
 
@@ -28,7 +30,7 @@ export async function apiRequest<E extends ClientEndpoint & { transport: 'json' 
 async function send(method: string, path: string, body?: unknown): Promise<Response> {
   // A request without a body carries no content type: the API would refuse
   // an empty JSON body, and some routes take none.
-  const headers: Record<string, string> = { accept: 'application/json' }
+  const headers: Record<string, string> = { accept: 'application/json', ...viewHeaders() }
   if (body !== undefined) headers['content-type'] = 'application/json'
   const response = await fetch(withBase(path), {
     method,

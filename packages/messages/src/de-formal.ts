@@ -8,6 +8,9 @@
 import type { MessagesOverride } from './index.ts'
 
 export const deFormal = {
+  viewAs: {
+    bar: 'Sie sehen SchulWahl in diesem Tab als Lehrkraft, ohne Ihre Rolle. Was Sie hier ändern, ändern Sie als Lehrkraft.',
+  },
   labels: {
     refreshError: {
       graph_authorization_failed: 'Die Berechtigung für Microsoft Graph wurde nicht erteilt oder passt nicht zum Konto.',

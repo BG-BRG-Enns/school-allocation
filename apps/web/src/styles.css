@@ -301,6 +301,14 @@ textarea {
   background: #e8f5ec;
 }
 
+/* The view as a teacher: a bar across the page under the header, for as long as the view lasts. */
+.view-bar {
+  margin: 0;
+  padding: 8px 20px;
+  border-bottom: 1px solid #b7791f;
+  background: #fdf3d8;
+}
+
 .badge {
   display: inline-block;
   padding: 1px 8px;

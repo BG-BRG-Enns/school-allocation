@@ -28,6 +28,8 @@ Hatte die Person schon ein anderes Konto, steht das dabei; die alte Zuordnung wi
 | **Organisation** | Anmeldungen führen: Katalog, Anmeldezeitraum, Zuteilung, Veröffentlichung und Änderungen danach; die Klassenvorstände zuordnen und die E-Mail-Vorlagen ändern |
 | **Einsicht** | Mitlesen, etwa für eine Prüfung: Listen, Excel-Dateien und die Aufbewahrung; ändern kann sie nichts |
 
+Wer eine Rolle hat und selbst Lehrkraft ist, kann sie für einen Tab ablegen und SchulWahl so sehen wie die Lehrkräfte: [Wie Lehrkräfte die Anmeldung sehen](/organisation/#wie-lehrkräfte-die-anmeldung-sehen).
+
 ### Eine Rolle erteilen
 
 ![Das Formular Eine Rolle geben mit der Rolle Organisation und einer Begründung](/bilder/de/rolle-erteilen.png)

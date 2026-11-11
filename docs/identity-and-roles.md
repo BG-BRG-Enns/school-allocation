@@ -58,6 +58,10 @@ Rules for both:
 | **Bootstrap** | Configuration lists the UPNs or `oid`s of the first administrators | Applied at their first sign-in |
 | **Class teacher (KV)** | Assigned per class and school year in the app by an organizer or admin, or taken from a CSV column | Base data of the school year, the same for every campaign of it: a campaign's class pages, placements and attendance open to the class teachers of its school year (the year of the roster its students come from), not to a later year's teacher of a class of the same name. Also a teacher of the roster in force |
 
+### The view as a teacher
+
+Someone who holds a privileged role and is a teacher of the roster in force may lay the role down for a browser tab, to see the app as the teachers see it (the school's feedback of 2026-11-10: the organization could not tell how a registration looks to them). The tab sends `x-view-as: teacher` with every request, and the guard then hands the handlers the same caller without roles (`lib/auth.ts` `viewOf`, `inView`): every route answers as it would the teacher, so the pages are a teacher's because the answers are. What the person does in the view they do as the teacher they are. A request may only lay roles down, never take one up; the header does nothing without a session, any other value is refused with 400 wherever the roles are read (a sign-out reads none and ends the session whatever the header says), nothing is stored on the server and nothing is audited, since no privileged act happens. The tab keeps the view in `sessionStorage`, so other tabs keep their roles; a sign-out ends it. A download is a plain link without the header and is answered by the roles the account holds, which is never more than the person may have. Not offered to an account the roster does not list as a teacher, and it is nobody else's view: seeing a registration as one particular colleague was declined.
+
 ### Rights matrix
 
 `S` student, `T` teacher, `KV` class teacher of that class, `O` organizer, `A` school admin, `R`

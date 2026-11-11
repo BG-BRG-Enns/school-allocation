@@ -7,8 +7,15 @@
 // so an administrator's block or a revoked role takes effect with the next
 // request, not when the cookie expires.
 //
+// A request may lay its roles down, never take one up: with the header
+// `x-view-as: teacher` the caller is the same person without their roles,
+// so a page shows an organizer what a teacher gets (the view as a teacher,
+// per browser tab; docs/identity-and-roles.md §5). Nothing is stored and
+// nothing is audited: no privileged act happens.
+//
 // Status codes for refused requests, the same on every route:
 //
+//   400  a view the header names that does not exist;
 //   401  no valid session: signed out, expired, blocked, or a cookie that
 //        does not decrypt;
 //   403  signed in, but no role allows the action;
@@ -34,6 +41,25 @@ export function currentUser(request: FastifyRequest, now: number): SessionUser |
 export function withinSeconds(since: unknown, seconds: number, now: number): boolean {
   if (typeof since !== 'number' || !Number.isFinite(since)) return false
   return now - since < seconds * 1000
+}
+
+/** The header by which a request lays the caller's roles down. */
+export const VIEW_AS_HEADER = 'x-view-as'
+
+/**
+ * The view a request asks for: none without the header, a teacher's with
+ * `teacher`, and `invalid` for anything else, which is refused: a typo
+ * must not pass for the full view unnoticed.
+ */
+export function viewOf(request: Pick<FastifyRequest, 'headers'>): 'teacher' | 'invalid' | undefined {
+  const value = request.headers[VIEW_AS_HEADER]
+  if (value === undefined) return undefined
+  return value === 'teacher' ? 'teacher' : 'invalid'
+}
+
+/** The caller as the view has them: without their roles in a teacher's view, what the roster says of them unchanged. */
+export function inView(caller: Caller, view: 'teacher' | undefined): Caller {
+  return view === 'teacher' ? { ...caller, roles: [] } : caller
 }
 
 // The caller a guard let through, per request. The handler works with this
@@ -96,7 +122,7 @@ export async function loadCaller(db: Queryable, userId: string): Promise<Caller 
 }
 
 export interface Guards {
-  /** 401 without a live session or for a blocked person; records the caller for callerOf(). */
+  /** 401 without a live session or for a blocked person, 400 for a view that does not exist; records the caller for callerOf(), without their roles in a teacher's view. */
   requireSession: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
   /** requireSession, then 403 unless the caller holds one of `roles` school-wide. */
   requireRole: (...roles: Role[]) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>
@@ -114,7 +140,12 @@ export function createGuards(db: Pick<Database, 'query' | 'now'>): Guards {
       await reply.code(401).send({ error: 'unauthenticated' })
       return
     }
-    authorized.set(request, caller)
+    const view = viewOf(request)
+    if (view === 'invalid') {
+      await reply.code(400).send({ error: 'validation_failed' })
+      return
+    }
+    authorized.set(request, inView(caller, view))
   }
   return {
     requireSession,

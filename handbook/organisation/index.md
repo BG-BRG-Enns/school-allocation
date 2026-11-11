@@ -46,3 +46,13 @@ Lange Listen lassen sich eingrenzen und einklappen: Über dem Stand der Anmeldun
 - Die **Organisation** sieht jede Anmeldung, in jedem Stand.
 - **Lehrkräfte** sehen eine Anmeldung, sobald Angebote gesammelt werden.
 - **Schüler\*innen** sehen sie, sobald der Katalog veröffentlicht ist. Was sie dann sehen, zeigen [Während der Anmeldung](./anmeldung) und [Nach der Veröffentlichung](./nach-der-veroeffentlichung).
+
+### Wie Lehrkräfte die Anmeldung sehen
+
+![Die Ansicht als Lehrkraft: unter der Kopfzeile der Balken, der sagt, dass dieser Tab SchulWahl als Lehrkraft zeigt, mit dem Button Zurück zu meiner Rolle; in der Kopfzeile fehlt die Verwaltung](/bilder/de/ansicht-als-lehrkraft.png)
+
+Bist du selbst Lehrkraft, zeigt dir **Als Lehrkraft ansehen** oben auf der Seite alles so, wie die Lehrkräfte es sehen: ohne den Abschnitt Organisation, mit deinen eigenen Aktivitäten und dem, was Lehrkräfte von den anderen sehen. Die Entwürfe der anderen gehören nicht dazu.
+
+Die Ansicht gilt nur für diesen Tab. In einem zweiten Tab hast du deine Rolle weiter und kannst beide nebeneinander halten. Solange sie gilt, steht das in einem Balken unter der Kopfzeile; **Zurück zu meiner Rolle** beendet sie, das Ausloggen auch. Was du in dieser Ansicht änderst, änderst du wirklich, als Lehrkraft: Eine Aktivität, die du dort anlegst, ist deine.
+
+Steht dein Konto nicht als Lehrkraft in den Klassenlisten, gibt es den Button nicht.
