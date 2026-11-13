@@ -9,7 +9,7 @@ description = "The allocation solver: OR-Tools CP-SAT behind a small HTTP face, 
 license = "MIT"
 requires-python = ">=3.13,<3.14"
 dependencies = [
-  "fastapi==0.162.2",
+  "fastapi==0.162.4",
   "ortools==9.15.6755",
   "uvicorn==0.54.0",
 ]
