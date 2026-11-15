@@ -24,7 +24,7 @@
     "@school-allocation/school-core": "0.1.0",
     "fastify": "5.12.8",
     "jose": "6.2.17",
-    "nodemailer": "10.4.0",
+    "nodemailer": "10.5.0",
     "pg": "8.23.1",
     "typebox": "1.4.6",
     "write-excel-file": "4.1.1",
