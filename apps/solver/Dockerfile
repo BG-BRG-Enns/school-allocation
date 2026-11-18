@@ -7,7 +7,7 @@
 # GIT_SHA record what was built, as for the app. No `# syntax=` line, as in
 # the app's Dockerfile: the pinned BuildKit's built-in frontend reads it.
 
-FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d AS uv
 
 FROM docker.io/library/python:3.13-slim@sha256:d3449c0493345868b09708d7056dce5edda3a75233ea86008fc80c934d355a10 AS requirements
 WORKDIR /lock
